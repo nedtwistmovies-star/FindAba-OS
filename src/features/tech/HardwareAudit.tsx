@@ -30,7 +30,7 @@ const HardwareAudit: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         <div className="text-center">
            <div className="flex items-center justify-center gap-2 mb-1">
               <div className="w-1.5 h-1.5 rounded-full bg-aba-gold animate-pulse" />
-              <span className="text-[8px] font-black text-aba-gold uppercase tracking-[0.5em]">Industrial OS Sentinel</span>
+              <span className="text-[8px] font-black text-aba-gold uppercase tracking-[0.5em]">City OS Sentinel</span>
            </div>
            <h2 className="text-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3">Hardware Audit</h2>
         </div>

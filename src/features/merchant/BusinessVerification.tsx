@@ -211,7 +211,7 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
          <div className="flex flex-col items-center gap-4">
             <img src="https://upload.wikimedia.org/wikipedia/commons/7/74/Coat_of_arms_of_Nigeria.svg" className="w-12 h-12 grayscale opacity-50" alt="Coat of Arms" />
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] leading-relaxed max-w-xs">
-               © 2026 Corporate Affairs Commission (CAC) & FindAba Industrial OS
+               © 2026 Corporate Affairs Commission (CAC) & FindAba City OS
             </p>
          </div>
       </footer>

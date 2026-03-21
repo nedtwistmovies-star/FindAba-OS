@@ -196,7 +196,15 @@ export enum Category {
   TRADING = 'General Import & Export',
   USED_BALES = 'Fairly Used (Jumbo Bales)',
   TOKUNBO_IMPORT = 'Tokunbo & Auto Import',
-  TECH_GADGETS = 'Tech Hub & IT Gadgets'
+  TECH_GADGETS = 'Tech Hub & IT Gadgets',
+  EDUCATION = 'Schools & Training Centers',
+  HEALTHCARE = 'Hospitals & Pharmacies',
+  LEGAL_PROFESSIONAL = 'Legal & Professional Services',
+  MEDIA_ENTERTAINMENT = 'Media, Studios & Entertainment',
+  REAL_ESTATE = 'Real Estate & Construction',
+  BEAUTY_PERSONAL_CARE = 'Beauty, Salons & Spas',
+  FOOD_RESTAURANTS = 'Restaurants & Food Hubs',
+  PUBLIC_SERVICES = 'Public Services & Utilities'
 }
 
 export enum VerificationStatus {

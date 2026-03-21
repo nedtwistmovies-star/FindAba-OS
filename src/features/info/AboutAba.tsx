@@ -74,7 +74,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
     }
   };
 
-  const historyText = `Aba, often referred to as the "Japan of Africa," is a major industrial and commercial hub in southeastern Nigeria. Its history is deeply rooted in the resilience and ingenuity of its people. Originally a traditional market town for the Igbo people, it transformed during the colonial era into a strategic administrative and trading center. The 1929 Women's War, which started in nearby Oloko but had significant roots in Aba, stands as a testament to the city's spirit of resistance against colonial oppression. Today, Aba is world-renowned for its indigenous manufacturing, particularly in leatherwork, textiles, and metal fabrication, centered around the legendary Ariaria International Market.`;
+  const historyText = `Aba, often referred to as the "Japan of Africa," is a major commercial, industrial, and cultural hub in southeastern Nigeria. Its history is deeply rooted in the resilience and ingenuity of its people. Originally a traditional market town for the Igbo people, it transformed during the colonial era into a strategic administrative and trading center. The 1929 Women's War, which started in nearby Oloko but had significant roots in Aba, stands as a testament to the city's spirit of resistance against colonial oppression. Today, Aba is world-renowned for its indigenous manufacturing, vibrant trade, and a growing ecosystem of schools, hospitals, and professional services, all centered around the legendary spirit of enterprise that flows from Ariaria to every corner of the city.`;
 
   return (
     <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40 overflow-x-hidden">
@@ -115,7 +115,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
       {/* 2. MAIN CONTENT */}
       <main className="px-8 py-20 max-w-5xl mx-auto w-full space-y-12">
          
-         <ExpandableSection title="The Industrial Genesis" icon={<History />} defaultExpanded={true}>
+         <ExpandableSection title="The Genesis of Enterprise" icon={<History />} defaultExpanded={true}>
             <div className="space-y-8">
                <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
                   <div className="flex items-center gap-4">
@@ -170,7 +170,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
          <ExpandableSection title="The Master Artisan Philosophy" icon={<Award />}>
             <div className="space-y-8">
                <p className="text-lg text-white/60 leading-loose font-medium">
-                  At the heart of Aba's economy is the "Master Artisan" system—a unique apprenticeship model that has sustained industrial knowledge for generations. This isn't just business; it's a sacred transfer of skill, integrity, and industrial discipline.
+                  At the heart of Aba's economy is the "Master Artisan & Entrepreneur" philosophy—a unique model of apprenticeship and trade that has sustained the city for generations. This isn't just business; it's a sacred transfer of skill, integrity, and community discipline across all sectors.
                </p>
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   {[
@@ -198,12 +198,12 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
                </div>
                <div className="space-y-4">
                   <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
-                     <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Major Markets</span>
-                     <span className="text-sm font-black text-white uppercase tracking-tight">Ariaria, Ngwa Road, Cemetery</span>
+                     <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Major Hubs</span>
+                     <span className="text-sm font-black text-white uppercase tracking-tight">Ariaria, Ngwa Road, Eziukwu, Shopping Centre</span>
                   </div>
                   <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
-                     <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Primary Industries</span>
-                     <span className="text-sm font-black text-white uppercase tracking-tight">Leather, Textiles, Fabrication</span>
+                     <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Primary Spheres</span>
+                     <span className="text-sm font-black text-white uppercase tracking-tight">Manufacturing, Trade, Education, Healthcare</span>
                   </div>
                </div>
             </div>

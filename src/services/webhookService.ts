@@ -33,7 +33,7 @@ export const triggerWebhook = async (event: WebhookEvent, payload: any) => {
       body: JSON.stringify({
         event,
         timestamp: new Date().toISOString(),
-        app: 'FindAba Industrial OS',
+        app: 'FindAba City OS',
         data: payload
       }),
     });

@@ -41,7 +41,7 @@ const AppContent: React.FC = () => {
           <Loader2 className="w-20 h-20 text-aba-gold animate-spin drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]" />
           <div className="text-center space-y-3">
             <p className="text-[12px] font-black uppercase text-aba-gold tracking-[0.8em] animate-pulse">Connecting to Registry...</p>
-            <p className="text-[8px] font-bold text-aba-gold/40 uppercase tracking-widest">Aba Industrial OS v4.0</p>
+            <p className="text-[8px] font-bold text-aba-gold/40 uppercase tracking-widest">FindAba City OS v4.0</p>
           </div>
         </div>
       )}

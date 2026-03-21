@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log("Initializing FindAba Industrial OS Server...");
+console.log("Initializing FindAba City OS Server...");
 
 async function startServer() {
   try {
@@ -275,7 +275,7 @@ async function startServer() {
   app.post("/api/git/commit", async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
     const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
-    const { files, message = "Update via FindAba Industrial OS" } = req.body;
+    const { files, message = "Update via FindAba City OS" } = req.body;
 
     if (!repo) {
       return res.status(400).json({ error: "GITHUB_REPO not configured" });

@@ -158,10 +158,12 @@ const Oracle: React.FC<any> = ({ catalog, onBack, oracleAvatar }) => {
 
   const handleInsertMarketQuery = () => {
     const queries = [
-      "What are the latest leather prices and industrial news in Aba today?",
-      "Query current textile import costs and trade news in Ariaria.",
-      "Check the latest exchange rates impacting Aba footwear manufacturing.",
-      "Are there any new government policies affecting Enyimba shoe masters this week?"
+      "What are the latest market prices and business news in Aba today?",
+      "Query current import costs and trade news in Ariaria and beyond.",
+      "Check the latest exchange rates impacting Aba businesses.",
+      "Are there any new government policies affecting Enyimba entrepreneurs this week?",
+      "Find the best schools and hospitals in Aba.",
+      "Recommend professional legal or accounting services in Aba."
     ];
     const random = queries[Math.floor(Math.random() * queries.length)];
     setInput(random);
@@ -507,7 +509,7 @@ const Oracle: React.FC<any> = ({ catalog, onBack, oracleAvatar }) => {
               </div>
               <div className="text-center space-y-1">
                 <h2 className="text-2xl font-bold tracking-tight">How can I help you today?</h2>
-                <p className="text-sm text-white/40 font-medium">Query the Industrial Oracle of Enyimba City</p>
+                <p className="text-sm text-white/40 font-medium">Query the City Oracle of Enyimba City</p>
               </div>
             </div>
           )}
@@ -690,7 +692,7 @@ const Oracle: React.FC<any> = ({ catalog, onBack, oracleAvatar }) => {
             </div>
           </div>
           <p className="text-[10px] text-center mt-4 text-white/20 font-black uppercase tracking-[0.2em]">
-            Institutional Oracle Node • FindAba Industrial OS v4.0
+            Institutional Oracle Node • FindAba City OS v4.0
           </p>
         </div>
       </footer>

@@ -261,7 +261,7 @@ export const LEGAL_POLICIES: Record<LegalDocType, { title: string; updated: stri
   license: {
     title: "Software License",
     updated: "January 1, 2025",
-    content: "The FindAba Industrial OS is proprietary software of SANDALSroyalle. Unauthorized reproduction is prohibited."
+    content: "The FindAba City OS is proprietary software of SANDALSroyalle. Unauthorized reproduction is prohibited."
   }
 };
 

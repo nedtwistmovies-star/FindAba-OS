@@ -19,9 +19,9 @@ interface OnboardingStep {
 
 const STEPS: OnboardingStep[] = [
   {
-    title: "The Industrial Registry",
+    title: "The City Registry",
     subtitle: "Enyimba's Digital Backbone",
-    description: "Connect with verified master artisans, manufacturers, and service providers across Aba. Every node is vetted for industrial excellence.",
+    description: "Connect with verified businesses, schools, hospitals, and artisans across Aba. Every node is vetted for excellence and integrity.",
     icon: <ShieldCheck size={48} />,
     color: "bg-aba-green",
     accent: "text-aba-green"
@@ -137,7 +137,7 @@ const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
         </button>
 
         <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">
-          Aba Industrial OS v4.0 • Secure Mesh Network Active
+          FindAba City OS v4.0 • Secure Mesh Network Active
         </p>
       </footer>
     </div>
