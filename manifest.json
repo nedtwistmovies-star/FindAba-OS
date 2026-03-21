@@ -1,0 +1,27 @@
+{
+  "name": "FindAba",
+  "short_name": "FindAba",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "contact_email": "inquiries@findaba.com",
+  "social_media_links": {
+    "twitter": "https://twitter.com/findaba",
+    "facebook": "https://facebook.com/findaba",
+    "linkedin": "https://linkedin.com/company/findaba"
+  }
+}

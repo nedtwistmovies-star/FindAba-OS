@@ -1,0 +1,20 @@
+{
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "name": "FindAba Industrial OS",
+  "short_name": "FindAba",
+  "description": "FindAba Industrial OS by SANDALSroyalle is the industrial-grade city platform built for Enyimba City (Aba, Nigeria), connecting master artisans to the global digital economy. It unifies AI-powered discovery, creative production, secure trade, and smart logistics into one modern operating system for the world's workshop.",
+  "theme_color": "#020617",
+  "background_color": "#020617",
+  "contact_email": "inquiries@findaba.com",
+  "account_number": "0000000000",
+  "social_media_links": {
+    "twitter": "https://twitter.com/findaba",
+    "facebook": "https://facebook.com/findaba",
+    "linkedin": "https://linkedin.com/company/findaba"
+  },
+  "icon": "/icon.png"
+}
