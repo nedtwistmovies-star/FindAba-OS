@@ -75,10 +75,39 @@ export const useGitSync = () => {
     }
   };
 
+  const fullSync = async (message?: string) => {
+    setLoading(true);
+    try {
+      const repo = localStorage.getItem('findaba_git_repo') || '';
+      const response = await fetch(`/api/git/sync-full?repo=${encodeURIComponent(repo)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+      
+      const result = await response.json();
+      if (response.ok) {
+        return { success: true, commit: result.commit };
+      } else {
+        return { success: false, error: result.details || result.error || 'Full Sync Failed' };
+      }
+    } catch (err: any) {
+      console.error('Full Sync Error:', err);
+      return { 
+        success: false, 
+        error: err.message === 'Failed to fetch' 
+          ? 'Network error: Server unreachable' 
+          : `Sync Error: ${err.message}` 
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Auto-sync on mount
   useEffect(() => {
     sync();
   }, []);
 
-  return { status, loading, sync, commit };
+  return { status, loading, sync, commit, fullSync };
 };

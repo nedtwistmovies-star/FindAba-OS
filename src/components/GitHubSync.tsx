@@ -16,7 +16,7 @@ export const GitHubSync: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isCommitting, setIsCommitting] = useState(false);
   const { addToast } = useToast();
-  const { status, loading: syncLoading, sync, commit } = useGitSync();
+  const { status, loading: syncLoading, sync, fullSync } = useGitSync();
   const [repoInput, setRepoInput] = useState(localStorage.getItem('findaba_git_repo') || '');
   const [isEditingRepo, setIsEditingRepo] = useState(false);
 
@@ -117,37 +117,7 @@ export const GitHubSync: React.FC = () => {
 
     setIsCommitting(true);
     try {
-      // 1. Fetch all project files from server
-      const filesRes = await fetch('/api/git/all-files');
-      if (!filesRes.ok) {
-        const errData = await filesRes.json().catch(() => ({}));
-        throw new Error(errData.details || errData.error || 'Failed to fetch project files');
-      }
-      const { files } = await filesRes.json();
-
-      // 2. Fetch all data from Supabase for registry.json
-      const businesses = await fetchAllBusinesses();
-      const registry = {
-        version: "17.0",
-        lastUpdated: new Date().toISOString(),
-        businesses: businesses
-      };
-
-      // 3. Prepare files for commit (merging project files with dynamic registry)
-      const finalFiles = files.map((f: any) => {
-        if (f.path === 'registry.json') {
-          return { ...f, data: registry };
-        }
-        return f;
-      });
-
-      // Ensure registry.json is present if not found in files
-      if (!finalFiles.find((f: any) => f.path === 'registry.json')) {
-        finalFiles.push({ path: 'registry.json', data: registry });
-      }
-
-      // 4. Commit to GitHub
-      const result = await commit(finalFiles, `Full Repository Sync: ${new Date().toLocaleString()}`);
+      const result = await fullSync(`Full System Sync: ${new Date().toLocaleString()}`);
       
       if (result.success) {
         addToast('Full Repository Sync Successful', 'success');
@@ -156,7 +126,7 @@ export const GitHubSync: React.FC = () => {
         }
         checkRepoHealth();
       } else {
-        addToast(result.error || 'Commit Failed', 'error');
+        addToast(result.error || 'Sync Failed', 'error');
       }
     } catch (error: any) {
       console.error('Sync Error:', error);
