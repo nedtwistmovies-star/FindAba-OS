@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar } from 'lucide-react';
 import { ViewState, Business } from '../../types';
 import { Logo, IndustrialButton, SectionHeader } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
+import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
 
 interface HomeProps {
   setView: (v: ViewState) => void;
@@ -12,6 +13,56 @@ interface HomeProps {
   heroVideos?: any[];
   myBusiness?: any;
 }
+
+const CitySignals: React.FC = () => {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [marketDay, setMarketDay] = useState<string>('');
+
+  useEffect(() => {
+    setMarketDay(getIgboMarketDay());
+    getAbaWeather().then(setWeather);
+  }, []);
+
+  return (
+    <div className="w-full bg-[#001a0f] border-y border-white/5 py-3 px-8 flex flex-wrap items-center justify-center gap-8 md:gap-16 z-40 relative">
+      <div className="flex items-center gap-3 group">
+        <div className="w-8 h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
+          <Calendar size={16} />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Igbo Market Day</span>
+          <span className="text-[11px] font-black text-white uppercase tracking-widest">{marketDay || '...'}</span>
+        </div>
+      </div>
+
+      <div className="h-6 w-[1px] bg-white/5 hidden md:block" />
+
+      <div className="flex items-center gap-3 group">
+        <div className="w-8 h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
+          <CloudSun size={16} />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
+          <span className="text-[11px] font-black text-white uppercase tracking-widest">
+            {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
+          </span>
+        </div>
+      </div>
+
+      <div className="h-6 w-[1px] bg-white/5 hidden md:block" />
+
+      <div className="flex items-center gap-3 group">
+        <div className="w-8 h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
+          <Radio size={16} className="animate-pulse" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
+          <span className="text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], heroVideos = [], myBusiness }) => {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -50,6 +101,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
   return (
     <div className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans overflow-x-hidden">
+      <CitySignals />
       {/* 1. TOP BRANDING AREA - Micro-minimized for seamless fit */}
       <section className="h-auto py-12 w-full bg-aba-gold flex flex-col items-center justify-center relative overflow-hidden z-20">
         <div className="absolute inset-0 opacity-20 industrial-grid pointer-events-none" />

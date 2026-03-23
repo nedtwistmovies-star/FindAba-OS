@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, X, Globe, ChevronDown, ChevronUp, 
   Plus, Zap, Image as ImageIcon, Code, Play, PanelRight,
@@ -36,7 +36,7 @@ interface VoiceSettings {
 const STORAGE_KEY = 'findaba_oracle_conversations_v6';
 const VOICE_STORAGE_KEY = 'findaba_oracle_voice_settings_v1';
 
-const Oracle: React.FC<any> = ({ catalog, onBack, oracleAvatar }) => {
+const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
   const [conversations, setConversations] = useState<Conversation[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -254,9 +254,19 @@ const Oracle: React.FC<any> = ({ catalog, onBack, oracleAvatar }) => {
       if (res.thoughtProcess) setShowThinkingId(modelMsg.id);
     } catch (e: any) {
       console.error("Oracle Fault:", e);
-      const isQuota = e.message?.toLowerCase().includes("congestion") || e.message?.includes("429");
+      const msg = e.message || "";
+      const isQuota = msg.toLowerCase().includes("congestion") || msg.includes("429") || msg.toLowerCase().includes("quota");
+      const isAuth = msg.toLowerCase().includes("authentication") || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("invalid");
+      
       setIsQuotaError(isQuota);
-      setErrorNode(isQuota ? "MARKET CONGESTION: THE REGISTRY IS OVERLOADED." : "INSTITUTIONAL SIGNAL LOST. THE ORACLE IS RECALIBRATING.");
+      
+      if (isQuota) {
+        setErrorNode("MARKET CONGESTION: THE REGISTRY IS OVERLOADED (QUOTA EXCEEDED).");
+      } else if (isAuth) {
+        setErrorNode(`ORACLE AUTHENTICATION FAILED: ${msg.toUpperCase()}`);
+      } else {
+        setErrorNode(msg || "INSTITUTIONAL SIGNAL LOST. THE ORACLE IS RECALIBRATING.");
+      }
     } finally { 
       setLoading(false); 
     }

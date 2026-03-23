@@ -74,7 +74,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
     }
   };
 
-  const historyText = `Aba, often referred to as the "Japan of Africa," is a major commercial, industrial, and cultural hub in southeastern Nigeria. Its history is deeply rooted in the resilience and ingenuity of its people. Originally a traditional market town for the Igbo people, it transformed during the colonial era into a strategic administrative and trading center. The 1929 Women's War, which started in nearby Oloko but had significant roots in Aba, stands as a testament to the city's spirit of resistance against colonial oppression. Today, Aba is world-renowned for its indigenous manufacturing, vibrant trade, and a growing ecosystem of schools, hospitals, and professional services, all centered around the legendary spirit of enterprise that flows from Ariaria to every corner of the city.`;
+  const historyText = `Abia State, popularly known as "God's Own State," is a vibrant commercial, administrative, and cultural powerhouse in southeastern Nigeria. Formed in 1991, it is a land of immense human and natural resources. From the industrial heartbeat of Aba (the "Japan of Africa") to the administrative excellence of Umuahia, and the rich agricultural and cultural heritage of Bende, Ohafia, and Arochukwu, Abia represents the pinnacle of Igbo ingenuity. The state's history is marked by a relentless spirit of enterprise, from the 1929 Women's War to its current status as a global hub for manufacturing, trade, and professional services. Today, the FindAba State OS connects every corner of the state—from the bustling markets of Ariaria to the serene hills of Ohafia—into one unified digital ecosystem.`;
 
   return (
     <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40 overflow-x-hidden">
@@ -187,6 +187,26 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
             </div>
          </ExpandableSection>
 
+          <ExpandableSection title="The Abia Ecosystem" icon={<Globe />}>
+            <div className="space-y-8">
+               <p className="text-lg text-white/60 leading-loose font-medium">
+                  Abia State is a diverse and interconnected ecosystem. From the industrial power of Aba to the administrative core of Umuahia and the agricultural strength of the northern regions, every part of the state contributes to its collective prosperity.
+               </p>
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[
+                    { area: 'Aba', role: 'Industrial & Commercial Hub' },
+                    { area: 'Umuahia', role: 'Administrative & Professional Center' },
+                    { area: 'Ohafia/Bende', role: 'Agriculture, Culture & Craft' },
+                  ].map((env, i) => (
+                    <div key={i} className="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-2 text-center">
+                       <h5 className="text-sm font-black text-aba-gold uppercase tracking-tight">{env.area}</h5>
+                       <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">{env.role}</p>
+                    </div>
+                  ))}
+               </div>
+            </div>
+          </ExpandableSection>
+
          <ExpandableSection title="Geographic Coordinates" icon={<MapPin />}>
             <div className="space-y-8">
                <div className="h-64 bg-white/5 rounded-[2rem] border border-white/5 flex items-center justify-center relative overflow-hidden group">
@@ -199,7 +219,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
                <div className="space-y-4">
                   <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
                      <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Major Hubs</span>
-                     <span className="text-sm font-black text-white uppercase tracking-tight">Ariaria, Ngwa Road, Eziukwu, Shopping Centre</span>
+                     <span className="text-sm font-black text-white uppercase tracking-tight">Aba, Umuahia, Ohafia, Bende, Arochukwu</span>
                   </div>
                   <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
                      <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Primary Spheres</span>
@@ -215,8 +235,8 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
                <Zap size={32} fill="currentColor" />
             </div>
             <div className="space-y-3">
-               <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Experience the <span className="text-aba-gold italic">Registry.</span></h3>
-               <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Connect with the nodes of Aba today</p>
+               <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Experience the <span className="text-aba-gold italic">State Registry.</span></h3>
+               <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Connect with the nodes of Abia State today</p>
             </div>
             <IndustrialButton
                variant="primary"

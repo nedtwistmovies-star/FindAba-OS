@@ -21,8 +21,9 @@ async function startServer() {
     app.set('trust proxy', true);
 
     app.use(cors());
-    app.use(express.json({ limit: '50mb' }));
-    app.use(express.urlencoded({ limit: '50mb', extended: true }));
+    // Increase limits for large repository syncs
+    app.use(express.json({ limit: '100mb' }));
+    app.use(express.urlencoded({ limit: '100mb', extended: true }));
     app.use(cookieParser());
 
     // API Routes
@@ -256,7 +257,11 @@ async function startServer() {
       res.json({ files });
     } catch (error: any) {
       console.error("Failed to read project files:", error);
-      res.status(500).json({ error: "Failed to read project files", details: error.message });
+      res.status(500).json({ 
+        error: "Failed to read project files", 
+        details: error.message,
+        path: error.path || 'unknown'
+      });
     }
   });
 

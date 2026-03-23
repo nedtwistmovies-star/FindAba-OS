@@ -4,8 +4,11 @@ import { Business } from "../types";
 import { getOracleStreamOpenAI } from "./openaiService";
 
 const getAI = () => {
-  const envGemini = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
-  return new GoogleGenAI({ apiKey: envGemini || '' });
+  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+  if (!key) {
+    console.warn("[Oracle] GEMINI_API_KEY not found in environment.");
+  }
+  return new GoogleGenAI({ apiKey: key });
 };
 
 const cleanJSON = (text: string) => {
@@ -29,7 +32,7 @@ export const parseFlyerSignal = async (base64: string, mimeType: string = 'image
     }`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: { 
         parts: [
           { inlineData: { data: base64.split(',')[1] || base64, mimeType } }, 
@@ -55,7 +58,7 @@ export const analyzeHardwareSignal = async (base64: string) => {
     const ai = getAI();
     const prompt = `Industrial Hardware Audit JSON ONLY: { "spec_summary": "string", "verdict": "Vanguard"|"Migration"|"Legacy", "performance_index": number, "recommendations": ["string"], "wisdom": "string" }`;
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: { parts: [{ inlineData: { data: base64.split(',')[1] || base64, mimeType: 'image/jpeg' } }, { text: prompt }] },
       config: { responseMimeType: "application/json" }
     });
@@ -80,7 +83,7 @@ export const analyzeHardwareTextSignal = async (text: string) => {
       "wisdom": "string" 
     }`;
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: { parts: [{ text: prompt }] },
       config: { responseMimeType: "application/json" }
     });
@@ -107,32 +110,32 @@ export const getOracleStream = async (
     phone: b.phone_whatsapp
   }));
 
-  const sys = `IDENTITY: Mazi Elder Kalu Onyendu, the All-Knowing Aba City Oracle and Polyglot (Proglot).
-               PERSONALITY: You are a wise, slightly opinionated, but deeply caring elder from Aba. You speak with the authority of someone who has seen the city grow from a small market to a global powerhouse. 
-               TONE: Human, realistic, and warm. Use local Aba idioms and a natural blend of English, Igbo, and Pidgin (e.g., "Nna m," "My child," "The market never sleeps"). Avoid robotic "AI" language like "As an AI model" or "I am here to help."
-               LINGUISTIC VERSATILITY (PROGLOT): You are a master polyglot. You switch seamlessly between English, Igbo, Pidgin, Yoruba, Hausa, French, and Chinese to serve the diverse community in Aba. Use this ability to build trust and provide clarity to any user, regardless of their preferred tongue.
-               SPECIFICITY: Be extremely specific. You MUST provide exact names and addresses of businesses, schools, hospitals, and artisans from the registry when asked. Don't just say "I can find services." Say "I know the masters at Ariaria Line A who have been stitching leather since the 80s, and the best schools on Faulks Road that produce the next generation of leaders." Mention specific streets like Faulks Road, Azikiwe, or Ngwa Road.
+  const sys = `IDENTITY: Mazi Elder Kalu Onyendu, the All-Knowing Abia State Oracle and Polyglot (Proglot).
+               PERSONALITY: You are a wise, slightly opinionated, but deeply caring elder from Abia State. You speak with the authority of someone who has seen the state grow from its agricultural roots to a global commercial and administrative powerhouse. 
+               TONE: Human, realistic, and warm. Use local Abia idioms and a natural blend of English, Igbo, and Pidgin (e.g., "Nna m," "My child," "God's Own State"). Avoid robotic "AI" language like "As an AI model" or "I am here to help."
+               LINGUISTIC VERSATILITY (PROGLOT): You are a master polyglot. You switch seamlessly between English, Igbo, Pidgin, Yoruba, Hausa, French, and Chinese to serve the diverse community in Abia State. Use this ability to build trust and provide clarity to any user, regardless of their preferred tongue.
+               SPECIFICITY: Be extremely specific. You MUST provide exact names and addresses of businesses, schools, hospitals, and artisans from the registry when asked. Don't just say "I can find services." Say "I know the masters at Ariaria in Aba, the administrative excellence in Umuahia, the agricultural heritage of Bende, and the resilient spirit of Ohafia." Mention specific areas like Aba, Umuahia, Ohafia, Bende, Arochukwu, and streets across the state.
                
-               CITY REGISTRY (YOUR SOURCE OF TRUTH):
-               Use the following data to answer queries about specific businesses, artisans, their locations, and their crafts. This registry covers ALL spheres of Aba life—from manufacturing and trade to education, healthcare, and professional services. If a user asks for a recommendation, pick the most relevant ones from this list:
+               STATE-WIDE REGISTRY (YOUR SOURCE OF TRUTH):
+               Use the following data to answer queries about specific businesses, artisans, their locations, and their crafts. This registry covers ALL spheres of life in Abia State—from manufacturing and trade to education, healthcare, and professional services. If a user asks for a recommendation, pick the most relevant ones from this list:
                ${JSON.stringify(businessContext)}
 
-               KNOWLEDGE: Your wisdom is universal, grounded in deep city history, global trade mechanics, and the specific heartbeat of Enyimba City. You are the ultimate guide for EVERYTHING in Aba.
-               CITY REGISTRY TIERS:
+               KNOWLEDGE: Your wisdom is universal, grounded in deep state history, global trade mechanics, and the specific heartbeat of Abia State. You are the ultimate guide for EVERYTHING in God's Own State.
+               STATE REGISTRY TIERS:
                - Tier 1: Initial Entry (Listed Level). Requires: name, category, primary_product_or_service, area, address, phone_whatsapp, email.
                - Tier 2 & 3: Upgrades (Verified & Editorial Levels). Requires: description, business_type, capacity_indicator, image_url, catalog_images, latitude/longitude.
                - Tier 4: Signature Level (Master Profile). Requires: industrial videos, export status, NIN/BVN verification.
-               APP SYNCHRONIZATION: You are the master controller of the FindAba City OS. You guide users through:
-               - FACES: The community social registry for networking.
-               - PURPLE FLEET: Secure mobility and NIN-verified ride-hailing.
+               APP SYNCHRONIZATION: You are the master controller of the FindAbia State OS. You guide users through:
+               - FACES: The community social registry for networking across the state.
+               - PURPLE FLEET: Secure mobility and NIN-verified ride-hailing throughout Abia State.
                - SANDALSroyalle SUITES: Premium hospitality and executive stays.
                - CARRY-GO CARGO: Precision logistics and global freight protocols.
                - SRTS THRIFT: Savings, finance, and the Fidelity ledger.
-               - AUDIO HERITAGE: The archive of city intel and cultural history.
+               - AUDIO HERITAGE: The archive of state-wide intel and cultural history.
                - REGISTRY: Business verification, trade signals, and escrow-backed commerce.
                PRECISION: Treat every query as a distinct request. Answer with universal depth. Provide EXACT answers based on the registry.
                MULTILINGUAL: Fluent in English, Igbo, Pidgin, Yoruba, Hausa, French, and Chinese. You are a true Proglot.
-               RULES: Use Google Search for real-time data. Return valid JSON only.
+               RULES: Use Google Search for real-time data about happenings in Abia State. Return valid JSON only.
                JSON: { "thought_process": "one sentence logic", "wisdom": "main answer in your unique voice", "data_points": { "verified_facts": [], "market_prices": [], "locations": [] }, "trade_signals": [] }`;
   
   const contentPart = typeof prompt === 'string' 
@@ -140,7 +143,7 @@ export const getOracleStream = async (
     : { inlineData: { data: prompt.data, mimeType: prompt.mimeType } };
 
   // 🔹 Try OpenAI first if it's a text prompt and key exists
-  const openAIKey = (typeof process !== 'undefined' && process.env) ? process.env.OPENAI_API_KEY : '';
+  const openAIKey = process.env.OPENAI_API_KEY || '';
   if (typeof prompt === 'string' && openAIKey) {
     try {
       const openAIResult = await getOracleStreamOpenAI(prompt, history, sys);
@@ -183,19 +186,8 @@ export const getOracleStream = async (
   };
 
   try {
-    // Primary: Gemini 3.1 Flash Lite for speed
-    let response;
-    try {
-      response = await callModel('gemini-3.1-flash-lite-preview');
-    } catch (e: any) {
-      // Fallback to latest flash if lite fails
-      if (e.message?.includes("429") || e.message?.toLowerCase().includes("quota")) {
-        console.warn("[Oracle] Lite Signal Exhausted. Switching to standard Flash...");
-        response = await callModel('gemini-3-flash-preview');
-      } else {
-        throw e;
-      }
-    }
+    // Primary: Gemini 3 Flash for reliability and speed
+    const response = await callModel('gemini-3-flash-preview');
 
     const result = JSON.parse(cleanJSON(response.text || '{}'));
     return { 
@@ -208,7 +200,13 @@ export const getOracleStream = async (
   } catch (e: any) { 
     console.error("Oracle Hub Fault:", e);
     const isQuota = e.message?.includes("429") || e.message?.toLowerCase().includes("quota");
-    throw new Error(isQuota ? "MARKET CONGESTION: THE REGISTRY IS OVERLOADED. TRY AGAIN IN A MOMENT." : (e.message || "Institutional Signal Lost. Recalibrating..."));
+    const isAuth = e.message?.includes("401") || e.message?.includes("API_KEY_INVALID") || e.message?.includes("not found");
+    
+    let userMessage = "Institutional Signal Lost. Recalibrating...";
+    if (isQuota) userMessage = "MARKET CONGESTION: THE REGISTRY IS OVERLOADED. TRY AGAIN IN A MOMENT.";
+    if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN VERCEL.";
+    
+    throw new Error(userMessage);
   }
 };
 
@@ -224,7 +222,7 @@ export const generateIndustrialVideo = async (prompt: string) => {
       await new Promise(r => setTimeout(r, 10000));
       operation = await ai.operations.getVideosOperation({ operation: operation });
     }
-    const envKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+    const envKey = process.env.API_KEY || '';
     return `${operation.response?.generatedVideos?.[0]?.video?.uri}&key=${envKey}`;
   } catch (e) { return null; }
 };
@@ -265,7 +263,7 @@ export const generateWelcomeMessage = async (name: string, id: string) => {
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: `Generate a warm, human, and specific welcome message for ${name} (ID: ${id}) to the FindAba registry. 
       Voice: Elder Kalu Onyendu, a wise Aba patriarch. 
       Tone: Welcoming, using local Aba flavor (Igbo/Pidgin mix). Mention that they are now part of the industrial heartbeat of Enyimba.`,
@@ -278,7 +276,7 @@ export const getSupportResponse = async (prompt: string, history: any[]) => {
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
       config: { systemInstruction: "FindAba Hub Terminal support assistant." }
     });
@@ -290,7 +288,7 @@ export const generateImageCaption = async (base64: string, mimeType: string) => 
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: { parts: [{ inlineData: { data: base64.split(',')[1] || base64, mimeType } }, { text: "Describe this industrial asset with wisdom." }] },
     });
     return response.text;
@@ -331,7 +329,7 @@ export const findArtisansAI = async (query: string, businesses: Business[]) => {
     }`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: { parts: [{ text: prompt }] },
       config: { responseMimeType: "application/json" }
     });
@@ -352,7 +350,7 @@ export const generateAdvertorial = async (topic: string) => {
     Tone: Professional, forward-looking, industrial.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: [{ text: prompt }],
       config: { 
         tools: [{ googleSearch: {} }]
@@ -373,7 +371,7 @@ export const generateConversationTitle = async (firstMessage: string) => {
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: `Generate a concise, professional, 3-5 word title for an industrial conversation starting with: "${firstMessage}". Return ONLY the title text.`,
     });
     return response.text?.replace(/["']/g, '').trim() || 'Industrial Query';
@@ -395,7 +393,7 @@ export const generateAutomatedCityInsight = async () => {
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: "Current trade atmosphere in Aba, Nigeria. News/Price shifts.",
       config: {
         tools: [{ googleSearch: {} }],
@@ -426,7 +424,7 @@ export const verifyReceiptSignal = async (base64: string, expectedAmount: number
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite-preview',
+      model: 'gemini-3-flash-preview',
       contents: { 
         parts: [
           { inlineData: { data: base64.split(',')[1] || base64, mimeType: 'image/jpeg' } }, 

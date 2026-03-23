@@ -2,7 +2,7 @@
 import OpenAI from "openai";
 
 const getOpenAI = () => {
-  const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.OPENAI_API_KEY : '';
+  const apiKey = process.env.OPENAI_API_KEY || '';
   if (!apiKey) {
     console.warn("[Oracle] OPENAI_API_KEY not found. Falling back to Gemini.");
     return null;

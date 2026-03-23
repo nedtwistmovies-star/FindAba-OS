@@ -17,11 +17,8 @@ export const getSupabase = (): SupabaseClient | null => {
   const manualKey = localStorage.getItem('findaba_supabase_key');
   
   // Standard priority: Local Override > Environment Variable (Vite or Process)
-  const envUrl = (typeof process !== 'undefined' && process.env) ? process.env.SUPABASE_URL : '';
-  const envKey = (typeof process !== 'undefined' && process.env) ? process.env.SUPABASE_ANON_KEY : '';
-  
-  const url = manualUrl || import.meta.env.VITE_SUPABASE_URL || envUrl;
-  const key = manualKey || import.meta.env.VITE_SUPABASE_ANON_KEY || envKey;
+  const url = manualUrl || import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = manualKey || import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
   if (!url || !key || url === 'undefined' || key === 'undefined') {
     console.warn("[Registry] Signal missing. URL:", !!url, "Key:", !!key);
@@ -139,11 +136,9 @@ export const purgeLocalRegistry = () => {
 };
 
 export const getRegistryConfig = () => {
-  const envUrl = (typeof process !== 'undefined' && process.env) ? process.env.SUPABASE_URL : '';
-  const envKey = (typeof process !== 'undefined' && process.env) ? process.env.SUPABASE_ANON_KEY : '';
   return {
-    url: localStorage.getItem('findaba_supabase_url') || envUrl || '',
-    key: localStorage.getItem('findaba_supabase_key') || envKey || ''
+    url: localStorage.getItem('findaba_supabase_url') || process.env.SUPABASE_URL || '',
+    key: localStorage.getItem('findaba_supabase_key') || process.env.SUPABASE_ANON_KEY || ''
   };
 };
 

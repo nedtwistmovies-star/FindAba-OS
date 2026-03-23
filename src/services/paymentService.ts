@@ -13,8 +13,7 @@ export const paymentService = {
   getApiKey: () => {
     const local = localStorage.getItem(PAYSTACK_KEY_STORAGE);
     if (local) return local;
-    const envKey = (typeof process !== 'undefined' && process.env) ? process.env.PAYSTACK_PUBLIC_KEY : '';
-    return import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || envKey || '';
+    return import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || '';
   },
   
   setApiKey: (key: string) => {

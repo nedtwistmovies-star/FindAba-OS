@@ -21,7 +21,7 @@ const STEPS: OnboardingStep[] = [
   {
     title: "The City Registry",
     subtitle: "Enyimba's Digital Backbone",
-    description: "Connect with verified businesses, schools, hospitals, and artisans across Aba. Every node is vetted for excellence and integrity.",
+    description: "Connect with verified businesses, schools, hospitals, and artisans across Aba and its neighboring environs. Every node is vetted for excellence and integrity.",
     icon: <ShieldCheck size={48} />,
     color: "bg-aba-green",
     accent: "text-aba-green"

@@ -57,8 +57,13 @@ export const GitHubSync: React.FC = () => {
   const handleConnect = async () => {
     try {
       const response = await fetch('/api/auth/github/url');
-      const { url } = await response.json();
+      const data = await response.json();
       
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get GitHub auth URL');
+      }
+
+      const { url } = data;
       const width = 600;
       const height = 700;
       const left = window.screenX + (window.outerWidth - width) / 2;
@@ -73,8 +78,9 @@ export const GitHubSync: React.FC = () => {
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         addToast('Popup Blocked: Please allow popups for this site.', 'error');
       }
-    } catch (error) {
-      addToast('Failed to start GitHub connection', 'error');
+    } catch (error: any) {
+      console.error('GitHub Connect Error:', error);
+      addToast(`Failed to start GitHub connection: ${error.message || 'Protocol Failure'}`, 'error');
     }
   };
 
@@ -114,7 +120,8 @@ export const GitHubSync: React.FC = () => {
       // 1. Fetch all project files from server
       const filesRes = await fetch('/api/git/all-files');
       if (!filesRes.ok) {
-        throw new Error('Failed to fetch project files');
+        const errData = await filesRes.json().catch(() => ({}));
+        throw new Error(errData.details || errData.error || 'Failed to fetch project files');
       }
       const { files } = await filesRes.json();
 
@@ -153,7 +160,7 @@ export const GitHubSync: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Sync Error:', error);
-      addToast('Sync Protocol Failure', 'error');
+      addToast(`Sync Error: ${error.message || 'Protocol Failure'}`, 'error');
     } finally {
       setIsCommitting(false);
     }

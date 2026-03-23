@@ -107,12 +107,12 @@ const AppContent: React.FC = () => {
         <div className="fixed inset-0 z-[9999] animate-fade-in">
           {/* Lazy Loaded Oracle from ROUTE_MAP */}
           <Suspense fallback={<div className="fixed inset-0 bg-black/80 flex items-center justify-center"><Loader2 className="animate-spin text-aba-gold" size={40} /></div>}>
-            {React.createElement(ROUTE_MAP['oracle'], {
-              onBack: () => setIsOracleOpen(false),
-              setView: setView,
-              catalog: businesses,
-              oracleAvatar: oracleAvatar
-            })}
+            <ROUTE_MAP.oracle
+              onBack={() => setIsOracleOpen(false)}
+              setView={setView}
+              catalog={businesses}
+              oracleAvatar={oracleAvatar}
+            />
           </Suspense>
         </div>
       )}
