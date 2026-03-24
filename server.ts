@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs/promises";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
+import OpenAI from "openai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,6 +46,48 @@ async function startServer() {
         githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '',
         makeWebhookUrl: process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || ''
       });
+    });
+
+    app.post("/api/oracle/openai", async (req, res) => {
+      const { prompt, history, sys } = req.body;
+      const apiKey = process.env.OPENAI_API_KEY;
+
+      if (!apiKey) {
+        return res.status(500).json({ error: "OPENAI_API_KEY not configured" });
+      }
+
+      const openai = new OpenAI({ apiKey });
+
+      try {
+        const messages = [
+          { role: "system", content: sys },
+          ...history.map((h: any) => ({
+            role: h.role === "user" ? "user" : "assistant",
+            content: h.parts[0].text
+          })),
+          { role: "user", content: prompt }
+        ];
+
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: messages as any,
+          response_format: { type: "json_object" }
+        });
+
+        const content = response.choices[0].message.content;
+        const result = JSON.parse(content || "{}");
+
+        res.json({
+          text: result.wisdom || "Signal lost. Re-establishing...",
+          thoughtProcess: result.thought_process,
+          dataPoints: result.data_points,
+          suggestions: result.trade_signals || [],
+          grounding: undefined
+        });
+      } catch (error: any) {
+        console.error("[Oracle] OpenAI Backend Fault:", error);
+        res.status(500).json({ error: "OpenAI Backend Fault", details: error.message });
+      }
     });
 
   // GitHub OAuth URL

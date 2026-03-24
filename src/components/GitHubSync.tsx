@@ -84,7 +84,7 @@ export const GitHubSync: React.FC = () => {
     }
   };
 
-  const [repoHealth, setRepoHealth] = useState<{ exists: boolean; lastCommit?: string } | null>(null);
+  const [repoHealth, setRepoHealth] = useState<{ exists: boolean; lastCommit?: string; error?: string } | null>(null);
 
   const checkRepoHealth = async () => {
     if (!status.repo || !user) return;
@@ -96,9 +96,20 @@ export const GitHubSync: React.FC = () => {
           exists: !!result.data,
           lastCommit: result.lastUpdated
         });
+      } else {
+        const errorMsg = result.error || response.statusText;
+        console.warn("[GitHub] Health check failed:", errorMsg);
+        setRepoHealth({
+          exists: false,
+          error: errorMsg
+        });
       }
-    } catch (e) {
-      console.error("Health check failed");
+    } catch (e: any) {
+      console.error("[GitHub] Health check fault:", e.message);
+      setRepoHealth({
+        exists: false,
+        error: e.message
+      });
     }
   };
 
@@ -225,9 +236,15 @@ export const GitHubSync: React.FC = () => {
           ) : (
             <>
               {repoHealth && (
-                <div className="flex items-center justify-between px-2 py-1 bg-aba-gold/5 border border-aba-gold/10 rounded-lg animate-fade-in">
-                  <span className="text-[7px] font-black uppercase tracking-widest text-aba-gold/60">
-                    {repoHealth.exists ? 'Registry Detected' : 'No Registry Found'}
+                <div className={`flex items-center justify-between px-2 py-1 border rounded-lg animate-fade-in ${
+                  repoHealth.exists 
+                    ? 'bg-aba-gold/5 border-aba-gold/10 text-aba-gold/60' 
+                    : repoHealth.error
+                      ? 'bg-red-500/5 border-red-500/10 text-red-400/60'
+                      : 'bg-yellow-500/5 border-yellow-500/10 text-yellow-400/60'
+                }`}>
+                  <span className="text-[7px] font-black uppercase tracking-widest">
+                    {repoHealth.exists ? 'Registry Detected' : repoHealth.error ? `Error: ${repoHealth.error}` : 'No Registry Found'}
                   </span>
                   {repoHealth.lastCommit && (
                     <span className="text-[7px] font-mono text-white/20">

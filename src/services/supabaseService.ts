@@ -120,11 +120,13 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
     // Attempt to probe the businesses table
     const { error } = await client.from('businesses').select('id').limit(1);
     if (error) {
+      console.error("[Supabase] Health probe failed:", error);
       if (error.code === '42P01') return { status: 'unhealthy' as const, message: 'Schema missing: RUN SQL in Supabase Editor.' };
       return { status: 'unhealthy' as const, message: `Signal Error: ${error.message}` };
     }
     return { status: 'healthy' as const };
   } catch (e: any) { 
+    console.error("[Supabase] Connection error:", e);
     return { status: 'unhealthy' as const, message: e.message || 'Connection refused by gateway.' }; 
   }
 };

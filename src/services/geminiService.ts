@@ -5,19 +5,17 @@ import { getOracleStreamOpenAI } from "./openaiService";
 import { resetSupabaseInstance } from "./supabaseService";
 
 const getAI = () => {
-  const localKey = localStorage.getItem('findaba_gemini_api_key');
-  
   // In Vite, process.env is not available on client. import.meta.env is.
   // However, we also check process.env for environments that might inject it (like AI Studio preview)
   const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
   const metaKey = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY) : '';
   
-  const key = localKey || envKey || metaKey || '';
+  const key = envKey || metaKey || '';
   
   if (!key) {
-    console.warn("[Oracle] Signal missing. No API key found in localStorage, process.env, or import.meta.env.");
+    console.warn("[Oracle] Signal missing. No API key found in process.env or import.meta.env.");
   } else {
-    console.log("[Oracle] Signal detected. Key source: " + (localKey ? "localStorage" : (envKey ? "process.env" : "import.meta.env")));
+    console.log("[Oracle] Signal detected. Key source: " + (envKey ? "process.env" : "import.meta.env"));
   }
   return new GoogleGenAI({ apiKey: key });
 };
@@ -190,14 +188,13 @@ export const getOracleStream = async (
     ? { text: prompt } 
     : { inlineData: { data: prompt.data, mimeType: prompt.mimeType } };
 
-  // 🔹 Try OpenAI first if it's a text prompt and key exists
-  const openAIKey = process.env.OPENAI_API_KEY || '';
-  if (typeof prompt === 'string' && openAIKey) {
+  // 🔹 Try OpenAI first if it's a text prompt
+  if (typeof prompt === 'string') {
     try {
       const openAIResult = await getOracleStreamOpenAI(prompt, history, sys);
       if (openAIResult) return openAIResult;
     } catch (e) {
-      console.warn("[Oracle] OpenAI failed, falling back to Gemini...");
+      console.warn("[Oracle] OpenAI proxy failed, falling back to Gemini...");
     }
   }
 

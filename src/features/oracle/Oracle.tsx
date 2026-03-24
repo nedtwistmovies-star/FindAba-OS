@@ -62,17 +62,12 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [signalLocked, setSignalLocked] = useState(!!localStorage.getItem('findaba_gemini_api_key'));
+  const [signalLocked, setSignalLocked] = useState(true);
 
   useEffect(() => {
     const checkSignal = async () => {
-      const locked = !!localStorage.getItem('findaba_gemini_api_key');
-      if (!locked) {
-        const synced = await syncGeminiConfig();
-        setSignalLocked(synced);
-      } else {
-        setSignalLocked(true);
-      }
+      const synced = await syncGeminiConfig();
+      setSignalLocked(synced);
     };
     checkSignal();
     
@@ -93,7 +88,6 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [showOracleSetup, setShowOracleSetup] = useState(false);
-  const [oracleKey, setOracleKey] = useState(localStorage.getItem('findaba_gemini_api_key') || '');
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -102,13 +96,6 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
 
   const currentConversation = conversations.find(c => c.id === currentConvId);
   const messages = currentConversation?.messages || [];
-
-  const handleOracleKeySave = () => {
-    // Key is now handled via server-side sync
-    setShowOracleSetup(false);
-    setErrorNode(null);
-    addToast("Oracle Signal Recalibrated Successfully.", "success");
-  };
 
   useEffect(() => {
     syncGeminiConfig().then(synced => {
@@ -220,30 +207,6 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
       await new Promise(resolve => setTimeout(resolve, 800));
     }
 
-    // Check for API key
-    const localKey = localStorage.getItem('findaba_gemini_api_key');
-    const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
-    const metaKey = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY) : '';
-    
-    let currentKey = localKey || envKey || metaKey || '';
-    
-    if (!currentKey) {
-      console.warn("[Oracle] No key found in localStorage or process.env. Attempting sync...");
-      const synced = await syncGeminiConfig();
-      if (synced) {
-        currentKey = localStorage.getItem('findaba_gemini_api_key') || '';
-        setSignalLocked(true);
-      }
-      
-      if (!currentKey) {
-        setErrorNode("ORACLE SIGNAL LOST: NO API KEY DETECTED. PLEASE ENSURE 'GEMINI_API_KEY' IS ADDED TO VERCEL OR APP SECRETS.");
-        setShowOracleSetup(true);
-        setLoading(false);
-        return;
-      }
-    }
-    console.log("[Oracle] Proceeding with key: " + currentKey.slice(0, 4) + "..." + currentKey.slice(-4));
-
     let activeConvId = currentConvId;
     if (!activeConvId) {
       const newId = `conv-${Date.now()}`;
@@ -257,8 +220,6 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
       setCurrentConvId(newId);
       activeConvId = newId;
     }
-
-    activeConvId = activeConvId; // Ensure we use the latest ID
 
     if (!isRetry) {
       const userMsg: OracleMessage = { 
@@ -706,11 +667,11 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
                 <IndustrialButton 
                   variant="secondary" 
                   size="md" 
-                  icon={Settings} 
-                  onClick={() => setShowOracleSetup(true)}
+                  icon={ArrowLeft} 
+                  onClick={onBack}
                   fullWidth
                 >
-                  Configure Oracle
+                  Return to Hub
                 </IndustrialButton>
               </div>
             </div>
@@ -719,52 +680,6 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
         
         <div ref={scrollRef} className="h-4" />
       </main>
-
-      {/* ORACLE SETUP MODAL */}
-      {showOracleSetup && (
-        <div className="absolute inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl">
-          <div className="w-full max-w-md bg-[#1e1e1e] rounded-[3rem] border border-white/10 p-10 space-y-8 animate-slide-up shadow-2xl">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-aba-gold/20 rounded-full flex items-center justify-center mx-auto">
-                <Zap className="text-aba-gold" size={32} />
-              </div>
-              <h3 className="text-2xl font-black uppercase tracking-tighter text-white">ORACLE RECALIBRATION</h3>
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Configure Gemini AI Signal Node</p>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Gemini API Key</label>
-                <input 
-                  type="password"
-                  value={oracleKey}
-                  onChange={e => setOracleKey(e.target.value)}
-                  placeholder="Enter your Gemini API Key..."
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all"
-                />
-                <p className="text-[8px] text-white/30 uppercase tracking-widest ml-1">
-                  Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-aba-gold hover:underline">AI Studio</a>
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setShowOracleSetup(false)}
-                className="flex-1 py-5 bg-white/5 text-white/40 rounded-full font-black uppercase text-[10px] tracking-[0.3em] active:scale-95 transition-all"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleOracleKeySave}
-                className="flex-1 py-5 bg-aba-gold text-aba-dark rounded-full font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all"
-              >
-                Sync Signal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* SCROLL TO BOTTOM BUTTON */}
       {showScrollButton && (
