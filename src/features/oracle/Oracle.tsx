@@ -3,12 +3,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, X, Globe, ChevronDown, ChevronUp, 
   Plus, Zap, Image as ImageIcon, Code, Play, PanelRight,
-  Activity, Sparkles, Loader2, Search, Camera, Smartphone, Info, AlertTriangle,
+  Activity, Sparkles, Loader2, Search, Camera, Smartphone, Info, AlertTriangle, Settings,
   Menu, SquarePen, Share, MoreHorizontal, ArrowDown, Mic, AudioLines,
   Trash2, ArrowLeft, RefreshCcw, Paperclip, ArrowUp
 } from 'lucide-react';
-import { getOracleStream as askOracle, getSupportResponse, generateConversationTitle } from '../../services/geminiService';
+import { getOracleStream as askOracle, getSupportResponse, generateConversationTitle, syncGeminiConfig } from '../../services/geminiService';
 import IndustrialButton from '../../components/IndustrialButton';
+import { useToast } from '../../providers/ToastProvider';
 
 interface OracleMessage {
   id: string;
@@ -37,6 +38,7 @@ const STORAGE_KEY = 'findaba_oracle_conversations_v6';
 const VOICE_STORAGE_KEY = 'findaba_oracle_voice_settings_v1';
 
 const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
+  const { addToast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -60,6 +62,24 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [signalLocked, setSignalLocked] = useState(!!localStorage.getItem('findaba_gemini_api_key'));
+
+  useEffect(() => {
+    const checkSignal = async () => {
+      const locked = !!localStorage.getItem('findaba_gemini_api_key');
+      if (!locked) {
+        const synced = await syncGeminiConfig();
+        setSignalLocked(synced);
+      } else {
+        setSignalLocked(true);
+      }
+    };
+    checkSignal();
+    
+    // Periodically check signal health
+    const interval = setInterval(checkSignal, 30000);
+    return () => clearInterval(interval);
+  }, []);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
@@ -72,6 +92,8 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [showOracleSetup, setShowOracleSetup] = useState(false);
+  const [oracleKey, setOracleKey] = useState(localStorage.getItem('findaba_gemini_api_key') || '');
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -80,6 +102,19 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
 
   const currentConversation = conversations.find(c => c.id === currentConvId);
   const messages = currentConversation?.messages || [];
+
+  const handleOracleKeySave = () => {
+    // Key is now handled via server-side sync
+    setShowOracleSetup(false);
+    setErrorNode(null);
+    addToast("Oracle Signal Recalibrated Successfully.", "success");
+  };
+
+  useEffect(() => {
+    syncGeminiConfig().then(synced => {
+      if (synced) setSignalLocked(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (conversations.length > 0) {
@@ -169,10 +204,46 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
     setInput(random);
   };
 
-  const handleSend = async (txt?: string) => {
+  const [isReconnecting, setIsReconnecting] = useState(false);
+
+  const handleSend = async (txt?: string, isRetry = false) => {
     const val = (txt || input).trim();
-    if (!val && !pendingImage || loading) return;
+    if (!val && !pendingImage || (loading && !isRetry)) return;
     
+    if (isRetry) setIsReconnecting(true);
+    setErrorNode(null);
+    setIsQuotaError(false);
+    setLoading(true);
+
+    if (isRetry) {
+      // Artificial delay for better UX feedback during reconnection
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
+    // Check for API key
+    const localKey = localStorage.getItem('findaba_gemini_api_key');
+    const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
+    const metaKey = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY) : '';
+    
+    let currentKey = localKey || envKey || metaKey || '';
+    
+    if (!currentKey) {
+      console.warn("[Oracle] No key found in localStorage or process.env. Attempting sync...");
+      const synced = await syncGeminiConfig();
+      if (synced) {
+        currentKey = localStorage.getItem('findaba_gemini_api_key') || '';
+        setSignalLocked(true);
+      }
+      
+      if (!currentKey) {
+        setErrorNode("ORACLE SIGNAL LOST: NO API KEY DETECTED. PLEASE ENSURE 'GEMINI_API_KEY' IS ADDED TO VERCEL OR APP SECRETS.");
+        setShowOracleSetup(true);
+        setLoading(false);
+        return;
+      }
+    }
+    console.log("[Oracle] Proceeding with key: " + currentKey.slice(0, 4) + "..." + currentKey.slice(-4));
+
     let activeConvId = currentConvId;
     if (!activeConvId) {
       const newId = `conv-${Date.now()}`;
@@ -187,37 +258,40 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
       activeConvId = newId;
     }
 
-    setInput('');
-    setErrorNode(null);
-    setIsQuotaError(false);
-    
-    const userMsg: OracleMessage = { 
-      id: `u-${Date.now()}`, 
-      role: 'user', 
-      text: val || (pendingImage ? "Audit this hardware node spec." : ""), 
-      imageData: pendingImage || undefined,
-      timestamp: new Date().toISOString() 
-    };
-    
-    setConversations(prev => prev.map(c => {
-      if (c.id === activeConvId) {
-        const newMessages = [...c.messages, userMsg];
-        return { 
-          ...c, 
-          messages: newMessages, 
-          title: c.title === 'New Conversation' ? val.slice(0, 30) : c.title,
-          lastUpdated: new Date().toISOString() 
-        };
-      }
-      return c;
-    }));
+    activeConvId = activeConvId; // Ensure we use the latest ID
 
-    setLoading(true);
+    if (!isRetry) {
+      const userMsg: OracleMessage = { 
+        id: `u-${Date.now()}`, 
+        role: 'user', 
+        text: val || (pendingImage ? "Audit this hardware node spec." : ""), 
+        imageData: pendingImage || undefined,
+        timestamp: new Date().toISOString() 
+      };
+      
+      setConversations(prev => prev.map(c => {
+        if (c.id === activeConvId) {
+          const newMessages = [...c.messages, userMsg];
+          return { 
+            ...c, 
+            messages: newMessages, 
+            title: c.title === 'New Conversation' ? val.slice(0, 30) : c.title,
+            lastUpdated: new Date().toISOString() 
+          };
+        }
+        return c;
+      }));
+      setInput('');
+    }
+
     const imgToSend = pendingImage;
-    setPendingImage(null);
+    if (!isRetry) setPendingImage(null);
     
     try {
-      const history = messages.slice(-8).map(m => ({ 
+      const targetConv = conversations.find(c => c.id === activeConvId);
+      const currentMessages = targetConv?.messages || [];
+      
+      const history = currentMessages.slice(-8).map(m => ({ 
         role: m.role, 
         parts: [{ text: m.text }] 
       }));
@@ -244,7 +318,6 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
       }));
 
       // Auto-titling for new conversations
-      const targetConv = conversations.find(c => c.id === activeConvId);
       if (targetConv && targetConv.title === 'New Conversation') {
         generateConversationTitle(val).then(newTitle => {
           renameConversation(activeConvId!, newTitle);
@@ -269,6 +342,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
       }
     } finally { 
       setLoading(false); 
+      setIsReconnecting(false);
     }
   };
 
@@ -390,9 +464,12 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
         </div>
 
         <div className="flex items-center gap-1 cursor-pointer group px-4 py-2 hover:bg-white/5 rounded-2xl transition-all border border-transparent hover:border-white/5">
-          <span className="text-[15px] font-black uppercase tracking-widest text-white/90 flex items-center gap-3">
-            Elder Kalu Onyendu 4.0 <ChevronDown size={14} className="opacity-40" />
-          </span>
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${signalLocked ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse'}`} />
+            <span className="text-[15px] font-black uppercase tracking-widest text-white/90 flex items-center gap-3">
+              Elder Kalu Onyendu v5.2 <ChevronDown size={14} className="opacity-40" />
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-1 relative">
@@ -612,21 +689,82 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
                   <p className="text-sm font-bold text-white/90">{errorNode}</p>
                 </div>
               </div>
-              <IndustrialButton 
-                variant={isQuotaError ? 'primary' : 'danger'} 
-                size="md" 
-                icon={RefreshCcw} 
-                onClick={() => handleSend(messages[messages.length-1]?.text)}
-                fullWidth
-              >
-                Reconnect Signal
-              </IndustrialButton>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <IndustrialButton 
+                  variant={isQuotaError ? 'primary' : 'danger'} 
+                  size="md" 
+                  icon={isReconnecting ? Loader2 : RefreshCcw} 
+                  loading={isReconnecting}
+                  onClick={async () => {
+                    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+                    handleSend(lastUserMsg?.text || input, true);
+                  }}
+                  fullWidth
+                >
+                  {isReconnecting ? 'Reconnecting...' : 'Reconnect Signal'}
+                </IndustrialButton>
+                <IndustrialButton 
+                  variant="secondary" 
+                  size="md" 
+                  icon={Settings} 
+                  onClick={() => setShowOracleSetup(true)}
+                  fullWidth
+                >
+                  Configure Oracle
+                </IndustrialButton>
+              </div>
             </div>
           )}
         </div>
         
         <div ref={scrollRef} className="h-4" />
       </main>
+
+      {/* ORACLE SETUP MODAL */}
+      {showOracleSetup && (
+        <div className="absolute inset-0 z-[300] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl">
+          <div className="w-full max-w-md bg-[#1e1e1e] rounded-[3rem] border border-white/10 p-10 space-y-8 animate-slide-up shadow-2xl">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-aba-gold/20 rounded-full flex items-center justify-center mx-auto">
+                <Zap className="text-aba-gold" size={32} />
+              </div>
+              <h3 className="text-2xl font-black uppercase tracking-tighter text-white">ORACLE RECALIBRATION</h3>
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Configure Gemini AI Signal Node</p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Gemini API Key</label>
+                <input 
+                  type="password"
+                  value={oracleKey}
+                  onChange={e => setOracleKey(e.target.value)}
+                  placeholder="Enter your Gemini API Key..."
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all"
+                />
+                <p className="text-[8px] text-white/30 uppercase tracking-widest ml-1">
+                  Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-aba-gold hover:underline">AI Studio</a>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setShowOracleSetup(false)}
+                className="flex-1 py-5 bg-white/5 text-white/40 rounded-full font-black uppercase text-[10px] tracking-[0.3em] active:scale-95 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleOracleKeySave}
+                className="flex-1 py-5 bg-aba-gold text-aba-dark rounded-full font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all"
+              >
+                Sync Signal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SCROLL TO BOTTOM BUTTON */}
       {showScrollButton && (
@@ -702,7 +840,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
             </div>
           </div>
           <p className="text-[10px] text-center mt-4 text-white/20 font-black uppercase tracking-[0.2em]">
-            Institutional Oracle Node • FindAba City OS v4.0
+            Institutional Oracle Node • FindAba City OS v5.2
           </p>
         </div>
       </footer>

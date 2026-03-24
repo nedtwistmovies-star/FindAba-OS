@@ -31,6 +31,7 @@ import {
   Users,
   MessageSquare,
   BarChart3,
+  Github,
 } from "lucide-react";
 import {
   fetchPlatformConfig,
@@ -55,6 +56,7 @@ import StatCard from "../../components/StatCard";
 import SectionHeader from "../../components/SectionHeader";
 import IndustrialButton from "../../components/IndustrialButton";
 import { BentoGrid, BentoItem } from "../../components/BentoGrid";
+import { GitHubSync } from "../../components/GitHubSync";
 
 const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
@@ -330,22 +332,36 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
 
                 <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
                   <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-                    <TrendingUp className="text-aba-gold" /> Quick Actions
+                    <Github className="text-aba-gold" /> Code Synchronization
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <IndustrialButton variant="secondary" size="md" icon={RefreshCcw} onClick={refreshAllData} fullWidth>
-                      Sync Registry
-                    </IndustrialButton>
-                    <IndustrialButton variant="secondary" size="md" icon={Zap} onClick={() => setActiveTab('signals')} fullWidth>
-                      View Signals
-                    </IndustrialButton>
-                    <IndustrialButton variant="secondary" size="md" icon={Shield} onClick={() => setActiveTab('verification')} fullWidth>
-                      Audit Queue
-                    </IndustrialButton>
-                    <IndustrialButton variant="secondary" size="md" icon={Settings} onClick={() => setActiveTab('supabase')} fullWidth>
-                      Node Config
-                    </IndustrialButton>
+                  <div className="space-y-6">
+                    <p className="text-[10px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
+                      Synchronize your local development environment with your GitHub repository.
+                    </p>
+                    <div className="p-6 bg-black/40 rounded-3xl border border-white/5">
+                      <GitHubSync />
+                    </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+                <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+                  <TrendingUp className="text-aba-gold" /> Quick Actions
+                </h4>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <IndustrialButton variant="secondary" size="md" icon={RefreshCcw} onClick={refreshAllData} fullWidth>
+                    Sync Registry
+                  </IndustrialButton>
+                  <IndustrialButton variant="secondary" size="md" icon={Zap} onClick={() => setActiveTab('signals')} fullWidth>
+                    View Signals
+                  </IndustrialButton>
+                  <IndustrialButton variant="secondary" size="md" icon={Shield} onClick={() => setActiveTab('verification')} fullWidth>
+                    Audit Queue
+                  </IndustrialButton>
+                  <IndustrialButton variant="secondary" size="md" icon={Settings} onClick={() => setActiveTab('supabase')} fullWidth>
+                    Node Config
+                  </IndustrialButton>
                 </div>
               </div>
             </div>
@@ -701,14 +717,18 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                       variant="secondary"
                       size="sm"
                       icon={Copy}
-                      onClick={() => {
-                        navigator.clipboard.writeText(
-                          "Check SUPABASE_SCHEMA.sql in root",
-                        );
-                        addToast("Schema Reference Copied", "success");
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/SUPABASE_SCHEMA.sql');
+                          const sql = await response.text();
+                          navigator.clipboard.writeText(sql);
+                          addToast("Master SQL Schema Copied! Run this in your Supabase SQL Editor.", "success");
+                        } catch (err) {
+                          addToast("Failed to load schema file. Check root directory.", "error");
+                        }
                       }}
                     >
-                      Copy Reference
+                      Copy Master SQL
                     </IndustrialButton>
                   }
                 />

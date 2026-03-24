@@ -7,7 +7,8 @@ import Layout from '../components/Layout';
 import FeedbackToast from '../components/FeedbackToast';
 import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } from '../providers';
 import { ROUTE_MAP } from './router';
-import { getSupabase } from '../services/supabaseService';
+import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
+import { syncGeminiConfig } from '../services/geminiService';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
@@ -27,6 +28,34 @@ const AppContent: React.FC = () => {
   const myBusiness = businesses?.find ? businesses.find(b => b.email === userIdentifier) : null;
   const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']);
 
+  const [showQuickSetup, setShowQuickSetup] = React.useState(false);
+  const [quickConfig, setQuickConfig] = React.useState({
+    url: localStorage.getItem('findaba_supabase_url') || '',
+    key: localStorage.getItem('findaba_supabase_key') || ''
+  });
+
+  const handleQuickSave = () => {
+    localStorage.setItem('findaba_supabase_url', quickConfig.url);
+    localStorage.setItem('findaba_supabase_key', quickConfig.key);
+    setShowQuickSetup(false);
+    window.location.reload();
+  };
+
+  const [signalHealth, setSignalHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'unknown'; message?: string } | null>(null);
+
+  React.useEffect(() => {
+    const initApp = async () => {
+      // 1. Sync Config First
+      await syncGeminiConfig();
+      
+      // 2. Then Check Health
+      const health = await checkDatabaseHealth();
+      setSignalHealth(health as any);
+    };
+    
+    initApp();
+  }, []);
+
   return (
     <Layout 
       currentView={view} 
@@ -35,37 +64,85 @@ const AppContent: React.FC = () => {
       oracleAvatar={oracleAvatar} 
       socialLinks={socialLinks}
     >
-      {/* Non-blocking loading indicator */}
-      {loading && (!businesses || businesses.length === 0) && (
-        <div className="fixed inset-0 z-[10000] bg-[#002113] flex flex-col items-center justify-center space-y-12">
-          <Loader2 className="w-20 h-20 text-aba-gold animate-spin drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]" />
-          <div className="text-center space-y-3">
-            <p className="text-[12px] font-black uppercase text-aba-gold tracking-[0.8em] animate-pulse">Connecting to Registry...</p>
-            <p className="text-[8px] font-bold text-aba-gold/40 uppercase tracking-widest">FindAba City OS v4.0</p>
-          </div>
-        </div>
-      )}
+      {/* Non-blocking loading indicator removed for faster launch */}
       
       {loading && businesses.length > 0 && (
         <div className="fixed top-0 left-0 right-0 h-1 z-[10000] overflow-hidden bg-aba-deep/20">
           <div className="h-full bg-aba-gold animate-progress-indefinite w-full shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
         </div>
       )}
-      {!getSupabase() && (
+      {(!getSupabase() || (signalHealth && signalHealth.status === 'unhealthy')) && (
         <div className="bg-red-500/10 border-b border-red-500/20 p-4 text-center animate-fade-in relative z-[5000]">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4">
             <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] flex items-center gap-3">
-              <AlertTriangle size={14} /> Industrial Signal Not Detected on this Device.
+              <AlertTriangle size={14} /> 
+              {signalHealth?.message || "Industrial Signal Not Detected on this Device."}
             </p>
             <div className="flex gap-3">
               <button 
-                onClick={() => setView('admin')}
+                onClick={() => setShowQuickSetup(true)}
                 className="px-4 py-2 bg-red-500/20 text-red-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-red-500/30 hover:bg-red-500 hover:text-white transition-all"
               >
-                Configure Manually
+                Quick Connect
+              </button>
+              <button 
+                onClick={() => setView('admin')}
+                className="px-4 py-2 bg-white/5 text-white/40 rounded-lg text-[8px] font-black uppercase tracking-widest border border-white/10 hover:text-white transition-all"
+              >
+                Admin Console
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {showQuickSetup && (
+        <div className="fixed inset-0 z-[10001] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-8">
+           <div className="w-full max-w-md bg-[#002113] border border-white/10 rounded-[3rem] p-10 space-y-8 shadow-2xl animate-slide-up">
+              <div className="text-center space-y-4">
+                 <h3 className="text-2xl font-black uppercase tracking-tighter text-white">SIGNAL SYNC</h3>
+                 <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Initialize Industrial Registry Node</p>
+              </div>
+
+              <div className="space-y-6">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Supabase URL</label>
+                    <input 
+                       type="text"
+                       value={quickConfig.url}
+                       onChange={e => setQuickConfig({...quickConfig, url: e.target.value})}
+                       placeholder="https://your-project.supabase.co"
+                       className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all"
+                    />
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Anon Key</label>
+                    <input 
+                       type="password"
+                       value={quickConfig.key}
+                       onChange={e => setQuickConfig({...quickConfig, key: e.target.value})}
+                       placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                       className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all"
+                    />
+                 </div>
+              </div>
+
+              <div className="flex gap-4">
+                 <button 
+                   onClick={() => setShowQuickSetup(false)}
+                   className="flex-1 py-5 bg-white/5 text-white/40 rounded-full font-black uppercase text-[10px] tracking-[0.3em] active:scale-95 transition-all"
+                 >
+                    Cancel
+                 </button>
+                 <button 
+                   onClick={handleQuickSave}
+                   className="flex-1 py-5 bg-aba-gold text-aba-dark rounded-full font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all"
+                 >
+                    Connect
+                 </button>
+              </div>
+           </div>
         </div>
       )}
 

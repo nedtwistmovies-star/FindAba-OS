@@ -20,7 +20,7 @@ export const BrandSignature: React.FC<{ light?: boolean; className?: string }> =
     <div className={`flex items-center gap-4 opacity-30 ${light ? 'text-aba-white' : 'text-aba-deep'}`}>
       <div className="h-[1px] w-10 bg-current" />
       <span className="text-[8px] font-black uppercase tracking-[0.6em] flex items-center gap-1">
-        <span className="font-black">Find</span><span className="font-medium opacity-60">ABA</span> OS Node v17.0
+        <span className="font-black">Find</span><span className="font-medium opacity-60">ABA</span> OS Node v5.2
       </span>
       <div className="h-[1px] w-10 bg-current" />
     </div>
@@ -105,7 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const [activeLogo, setActiveLogo] = useState<string>(appLogo || SANDALS_BRAND.logo);
   
   const [notifications, setNotifications] = useState<Notification[]>([
-    { id: '1', title: 'Registry Synchronized', message: 'Industrial Node v17.0 mesh established.', type: 'info', read: false, timestamp: new Date().toISOString() },
+    { id: '1', title: 'Registry Synchronized', message: 'Industrial Node v5.2 mesh established.', type: 'info', read: false, timestamp: new Date().toISOString() },
     { id: '2', title: 'Security Protocol', message: 'Fidelity Handshake verified via Paystack.', type: 'success', read: false, timestamp: new Date().toISOString() }
   ]);
   
@@ -371,7 +371,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                     <h3 className="uppercase tracking-tight text-xl leading-none">
                       <span className="font-black">Find</span><span className="font-medium opacity-60">ABA</span>
                     </h3>
-                    <span className="text-[8px] font-black uppercase text-aba-gold tracking-[0.4em] mt-2">v17.0</span>
+                    <span className="text-[8px] font-black uppercase text-aba-gold tracking-[0.4em] mt-2">v5.2</span>
                   </div>
                </div>
                <button onClick={() => setIsMenuOpen(false)} className="p-4 bg-aba-white/5 hover:bg-aba-white/10 rounded-2xl transition-all text-aba-white/40 active:scale-90">

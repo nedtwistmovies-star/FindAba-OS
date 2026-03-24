@@ -139,7 +139,7 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
                        <div className="w-1.5 h-1.5 rounded-full bg-aba-green animate-pulse" />
                        <h2 className="text-xl font-black uppercase tracking-tight text-aba-dark">Carry-Me</h2>
                     </div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Aba Executive Transport v4.0</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Aba Executive Transport v5.2</p>
                  </div>
 
                  <div className="space-y-3">

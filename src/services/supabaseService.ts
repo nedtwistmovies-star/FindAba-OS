@@ -10,15 +10,22 @@ import { triggerWebhook, WebhookEvent } from './webhookService';
 
 let _supabaseInstance: SupabaseClient | null = null;
 
+export const resetSupabaseInstance = () => {
+  _supabaseInstance = null;
+};
+
 export const getSupabase = (): SupabaseClient | null => {
   if (_supabaseInstance) return _supabaseInstance;
   
   const manualUrl = localStorage.getItem('findaba_supabase_url');
   const manualKey = localStorage.getItem('findaba_supabase_key');
   
+  const env: any = (typeof process !== 'undefined' && process.env) ? process.env : {};
+  const meta: any = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
+
   // Standard priority: Local Override > Environment Variable (Vite or Process)
-  const url = manualUrl || import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = manualKey || import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  const url = manualUrl || meta.VITE_SUPABASE_URL || env.SUPABASE_URL;
+  const key = manualKey || meta.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY;
 
   if (!url || !key || url === 'undefined' || key === 'undefined') {
     console.warn("[Registry] Signal missing. URL:", !!url, "Key:", !!key);

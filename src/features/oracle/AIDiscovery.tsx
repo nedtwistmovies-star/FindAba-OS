@@ -58,7 +58,7 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
           <h1 className="text-xl font-black uppercase tracking-widest flex items-center gap-3">
             <Sparkles className="text-aba-gold" size={20} /> AI Discovery
           </h1>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">Industrial Intelligence v4.0</p>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">Industrial Intelligence v5.2</p>
         </div>
         <div className="w-12" />
       </header>

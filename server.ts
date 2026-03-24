@@ -12,6 +12,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 console.log("Initializing FindAba City OS Server...");
+console.log("Environment Check:", {
+  hasGeminiKey: !!(process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY),
+  hasSupabaseUrl: !!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
+  nodeEnv: process.env.NODE_ENV
+});
 
 async function startServer() {
   try {
@@ -30,6 +35,16 @@ async function startServer() {
     // API Routes
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok" });
+    });
+
+    // Config Sync
+    app.get("/api/config", (req, res) => {
+      res.json({ 
+        supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '',
+        supabaseKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
+        githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '',
+        makeWebhookUrl: process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || ''
+      });
     });
 
   // GitHub OAuth URL
@@ -281,7 +296,7 @@ async function startServer() {
           const { data: businesses } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
           if (businesses) {
             const registry = {
-              version: "17.0",
+              version: "v5.2",
               lastUpdated: new Date().toISOString(),
               businesses
             };

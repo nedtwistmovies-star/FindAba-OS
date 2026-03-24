@@ -4,9 +4,9 @@
     "microphone",
     "geolocation"
   ],
-  "name": "FindAba State OS",
-  "short_name": "FindAba",
-  "description": "FindAba State OS by SANDALSroyalle is the comprehensive state-wide platform built for Abia State (Nigeria), connecting everyone—from the industrial heart of Aba and the administrative center of Umuahia to the agricultural and professional hubs across the entire state—to the global digital economy. It unifies AI-powered discovery, creative production, secure trade, and smart logistics into one modern operating system for God's Own State.",
+  "name": "FindAba OS",
+  "short_name": "FindAba OS",
+  "description": "FindAba OS is the advanced, AI-powered operating system for Abia State (Nigeria). It integrates statewide knowledge, secure industrial trade, smart logistics, and creative production into a unified digital ecosystem. From the markets of Aba to the administrative hubs of Umuahia, FindAba OS connects God's Own State to the global economy with improved signal reliability and expert AI guidance.",
   "theme_color": "#020617",
   "background_color": "#020617",
   "contact_email": "inquiries@findaba.com",
