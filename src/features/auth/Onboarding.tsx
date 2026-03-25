@@ -137,7 +137,7 @@ const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
         </button>
 
         <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">
-          FindAba City OS v5.2 • Secure Mesh Network Active
+          FindAba City OS v6.0 • Secure Mesh Network Active
         </p>
       </footer>
     </div>
