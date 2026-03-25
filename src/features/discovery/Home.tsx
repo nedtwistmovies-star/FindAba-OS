@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar } from 'lucide-react';
-import { ViewState, Business } from '../../types';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2 } from 'lucide-react';
+import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
@@ -82,6 +82,25 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
     return businesses.filter(b => b.is_hidden_gem).slice(0, 4);
   }, [businesses]);
 
+  // 🔹 Artisan Tabs Logic
+  const [artisanTab, setArtisanTab] = useState<'featured' | 'new' | 'top'>('new');
+  
+  const filteredArtisans = useMemo(() => {
+    const allArtisans = [...ARTISANS, ...businesses];
+    // Remove duplicates by ID
+    const uniqueArtisans = Array.from(new Map(allArtisans.map(item => [item.id, item])).values());
+
+    switch (artisanTab) {
+      case 'new':
+        return uniqueArtisans.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 4);
+      case 'top':
+        return uniqueArtisans.sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 4);
+      case 'featured':
+      default:
+        return uniqueArtisans.filter(a => a.verification_level === VerificationLevel.SIGNATURE || a.premium_features_enabled).slice(0, 4);
+    }
+  }, [artisanTab, businesses]);
+
   const heroTexts = [
     { title: "ABA", highlight: "MASTERY.", desc: "A curated chronicle of industrial" },
     { title: "INDUSTRIAL", highlight: "HUB.", desc: "Connecting global trade signals to the heart of African manufacturing." },
@@ -108,18 +127,40 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent pointer-events-none" />
         
         <div className="relative z-10 flex flex-col items-center animate-slide-up w-full px-8">
-          {/* Merchant Quick Access */}
-          {myBusiness && (
+          {/* Merchant Quick Access & Registration CTA */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+            {myBusiness ? (
+              <IndustrialButton 
+                variant="secondary"
+                size="sm"
+                icon={ShieldCheck}
+                onClick={() => setView('merchant-portal')}
+                className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20"
+              >
+                Manage {myBusiness.name}
+              </IndustrialButton>
+            ) : (
+              <IndustrialButton 
+                variant="primary"
+                size="sm"
+                icon={PlusCircle}
+                onClick={() => setView('register')}
+                className="bg-aba-dark text-white hover:bg-black shadow-[0_10px_30px_rgba(0,0,0,0.3)]"
+              >
+                Register New Business
+              </IndustrialButton>
+            )}
+            
             <IndustrialButton 
               variant="secondary"
               size="sm"
-              icon={ShieldCheck}
-              onClick={() => setView('merchant-portal')}
-              className="mb-8 bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20"
+              icon={Building2}
+              onClick={() => setView('explore')}
+              className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20"
             >
-              Manage {myBusiness.name}
+              Industrial Directory
             </IndustrialButton>
-          )}
+          </div>
 
           {/* SEARCH BAR - Professional positioned pill style from screenshot */}
           <div className="w-full max-w-2xl relative group">
@@ -312,6 +353,144 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
          </div>
       </section>
 
+      {/* 🔹 JOIN THE REGISTRY CTA - CONSPICUOUS SECTION */}
+      {!myBusiness && (
+        <section className="px-8 mb-24 max-w-7xl mx-auto w-full">
+          <div className="bg-aba-gold rounded-[3rem] p-12 md:p-20 relative overflow-hidden shadow-[0_50px_100px_-20px_rgba(255,215,0,0.3)] group">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white/20 rounded-full -mr-48 -mt-48 blur-3xl group-hover:scale-110 transition-transform duration-1000" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-aba-deep/5 rounded-full -ml-32 -mb-32 blur-2xl" />
+            
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
+              <div className="space-y-6 text-center md:text-left max-w-2xl">
+                <div className="inline-flex items-center gap-3 px-4 py-2 bg-aba-deep text-aba-gold rounded-full text-[10px] font-black uppercase tracking-widest">
+                  <Sparkles size={14} /> Industrial Opportunity
+                </div>
+                <h2 className="text-4xl md:text-6xl font-black text-aba-deep uppercase tracking-tighter leading-[0.9]">
+                  Bring Your Business <br/>
+                  <span className="italic opacity-80">To The Global Stage.</span>
+                </h2>
+                <p className="text-aba-deep/70 text-base md:text-lg font-medium leading-relaxed">
+                  Join 5,000+ Aba artisans already synchronized with the global industrial mesh. Get verified, accept secure payments, and scale your production.
+                </p>
+              </div>
+              
+              <div className="shrink-0">
+                <button 
+                  onClick={() => setView('register')}
+                  className="group relative px-12 py-8 bg-aba-deep text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl hover:bg-black transition-all active:scale-95 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  <span className="relative flex items-center gap-4">
+                    Register Now <ArrowRight size={20} />
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 🔹 ARTISAN REGISTRY TABS */}
+      <section className="px-8 mb-24 max-w-7xl mx-auto w-full">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+          <SectionHeader 
+            title="Artisan Registry" 
+            subtitle="Industrial Nodes"
+            icon={Users}
+            className="mb-0"
+          />
+          
+          <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl">
+            {[
+              { id: 'featured', label: 'Featured', icon: Zap },
+              { id: 'new', label: 'New Registrations', icon: Clock },
+              { id: 'top', label: 'Top Rated', icon: Award },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setArtisanTab(tab.id as any)}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                  artisanTab === tab.id 
+                    ? 'bg-aba-gold text-aba-deep shadow-lg' 
+                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <tab.icon size={14} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {filteredArtisans.map(artisan => (
+            <div 
+              key={artisan.id}
+              onClick={() => setView('explore')}
+              className="bg-white/5 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-white/5 group cursor-pointer hover:border-aba-gold/30 transition-all duration-500 active:scale-95 shadow-2xl flex flex-col h-full"
+            >
+              <div className="h-48 relative overflow-hidden shrink-0">
+                <img 
+                  src={artisan.image_url} 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
+                  alt={artisan.name} 
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/90 via-aba-deep/20 to-transparent" />
+                
+                {artisanTab === 'new' && (
+                  <div className="absolute top-5 left-5">
+                    <div className="bg-aba-green text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl">
+                      New Node
+                    </div>
+                  </div>
+                )}
+                
+                <div className="absolute top-5 right-5">
+                  <div className="w-10 h-10 bg-aba-deep/80 backdrop-blur-md text-aba-gold rounded-2xl flex items-center justify-center border border-white/10 shadow-2xl group-hover:rotate-12 transition-transform">
+                    {artisan.verification_level === VerificationLevel.SIGNATURE ? <ShieldCheck size={18} /> : <Users size={18} />}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-8 space-y-4 flex-1 flex flex-col">
+                <div className="space-y-1">
+                  <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em]">{artisan.category}</p>
+                  <h4 className="text-sm font-black text-white uppercase tracking-tight group-hover:text-aba-gold transition-colors line-clamp-1">{artisan.name}</h4>
+                </div>
+                
+                <p className="text-[11px] text-white/40 line-clamp-2 leading-relaxed flex-1">
+                  {artisan.description}
+                </p>
+                
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-1.5">
+                    <Star size={12} fill="#FFD700" className="text-aba-gold" />
+                    <span className="text-[10px] font-black text-white/60">{artisan.rating}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-white/30">
+                    <MapPin size={12} />
+                    <span className="text-[9px] font-bold uppercase tracking-widest">{artisan.area.split(' ')[0]}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="mt-12 flex justify-center">
+          <IndustrialButton
+            variant="secondary"
+            size="md"
+            icon={ChevronRight}
+            onClick={() => setView('explore')}
+            className="w-full max-w-xs"
+          >
+            Browse All Artisans
+          </IndustrialButton>
+        </div>
+      </section>
+
       {/* 🔹 HIDDEN GEMS OF ABA */}
       {hiddenGems.length > 0 && (
         <section className="px-8 mb-24 max-w-7xl mx-auto w-full">
@@ -368,22 +547,37 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       )}
 
       {/* 2. PROTOCOL QUICK NAV */}
-      <section className="px-8 mt-12 mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+      <section className="px-8 mt-12 mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">
         {[
+          { id: 'register', label: 'Join', icon: <PlusCircle size={24} />, desc: 'Register Business', highlight: true },
           { id: 'feed', label: 'Faces', icon: <Users size={24} />, desc: 'City Social' },
           { id: 'purple-fleet', label: 'Fleet', icon: <Car size={24} />, desc: 'Purple Ride' },
-          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={24} />, desc: 'SANDALSroyalle Hotels & Suites' },
+          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={24} />, desc: 'Hotels & Suites' },
           { id: 'cargo', label: 'Cargo', icon: <Truck size={24} />, desc: 'Carry-Go' },
           { id: 'srts-dashboard', label: 'Thrift', icon: <Wallet size={24} />, desc: 'Fidelity' },
           { id: 'audio-heritage', label: 'Archive', icon: <Radio size={24} />, desc: 'Audio Intel' },
         ].map(node => (
-          <button key={node.id} onClick={() => setView(node.id as any)} className="bg-white/5 backdrop-blur-3xl p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center gap-5 border border-white/5 hover:border-aba-gold/30 transition-all duration-500 active:scale-95 group">
-             <div className="w-12 h-12 bg-aba-green/20 text-aba-green rounded-xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
+          <button 
+            key={node.id} 
+            onClick={() => setView(node.id as any)} 
+            className={`backdrop-blur-3xl p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center gap-5 border transition-all duration-500 active:scale-95 group ${
+              node.highlight 
+                ? 'bg-aba-gold border-aba-gold/50 hover:bg-white' 
+                : 'bg-white/5 border-white/5 hover:border-aba-gold/30'
+            }`}
+          >
+             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform ${
+               node.highlight ? 'bg-aba-deep text-aba-gold' : 'bg-aba-green/20 text-aba-green'
+             }`}>
                 {node.icon}
              </div>
              <div className="space-y-1">
-                <h4 className="text-[11px] font-black uppercase tracking-tight text-white group-hover:text-aba-gold transition-colors">{node.label}</h4>
-                <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em]">{node.desc}</p>
+                <h4 className={`text-[11px] font-black uppercase tracking-tight transition-colors ${
+                  node.highlight ? 'text-aba-deep' : 'text-white group-hover:text-aba-gold'
+                }`}>{node.label}</h4>
+                <p className={`text-[7px] font-bold uppercase tracking-[0.2em] ${
+                  node.highlight ? 'text-aba-deep/60' : 'text-white/30'
+                }`}>{node.desc}</p>
              </div>
           </button>
         ))}

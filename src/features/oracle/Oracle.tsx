@@ -428,7 +428,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
           <div className="flex items-center gap-3">
             <div className={`w-2 h-2 rounded-full ${signalLocked ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse'}`} />
             <span className="text-[15px] font-black uppercase tracking-widest text-white/90 flex items-center gap-3">
-              Elder Kalu Onyendu v5.2 <ChevronDown size={14} className="opacity-40" />
+              Elder Kalu Onyendu v6.0 <ChevronDown size={14} className="opacity-40" />
             </span>
           </div>
         </div>
@@ -755,7 +755,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
             </div>
           </div>
           <p className="text-[10px] text-center mt-4 text-white/20 font-black uppercase tracking-[0.2em]">
-            Institutional Oracle Node • FindAba City OS v5.2
+            Institutional Oracle Node • FindAba City OS v6.0
           </p>
         </div>
       </footer>

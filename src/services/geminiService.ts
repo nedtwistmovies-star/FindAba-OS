@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Modality, Type } from "@google/genai";
+import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 import { Business } from "../types";
 import { getOracleStreamOpenAI } from "./openaiService";
 import { resetSupabaseInstance } from "./supabaseService";
@@ -206,7 +206,7 @@ export const getOracleStream = async (
       config: { 
         systemInstruction: sys, 
         tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingBudget: 0 }, 
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }, 
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -231,8 +231,8 @@ export const getOracleStream = async (
   };
 
   try {
-    // Primary: Gemini 3 Flash for reliability and speed
-    const response = await callModel('gemini-3-flash-preview');
+    // Primary: Gemini 3.1 Pro for high-reasoning and reliability
+    const response = await callModel('gemini-3.1-pro-preview');
 
     const result = JSON.parse(cleanJSON(response.text || '{}'));
     return { 
