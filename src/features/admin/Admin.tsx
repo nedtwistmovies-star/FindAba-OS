@@ -146,11 +146,13 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
 
   const handleDbReconnect = async () => {
     setLoading(true);
-    const client = reconnectRegistry(dbConfig.url, dbConfig.key);
-    if (client) {
+    const healthy = await reconnectRegistry(dbConfig.url, dbConfig.key);
+    if (healthy) {
       const health = await checkDatabaseHealth(dbConfig.url, dbConfig.key);
       setDbHealth(health);
       if (health.status === "healthy") refreshAllData();
+    } else {
+      setDbHealth({ status: 'unhealthy', message: 'Signal Sync Failed: Check URL and Key.' });
     }
     setLoading(false);
   };

@@ -27,9 +27,18 @@ export const syncGeminiConfig = async () => {
   console.log("[Oracle] Initiating Signal Sync...");
 
   try {
+    // 1. Check if Gemini Key exists locally or in env
+    const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
+    const metaKey = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY) : '';
+    const hasGeminiKey = !!(envKey || metaKey);
+
+    // 2. Sync from server
     const response = await fetch('/api/config');
 
-    if (!response.ok) throw new Error("Config failed");
+    if (!response.ok) {
+      console.warn("[Oracle] Server config sync failed.");
+      return hasGeminiKey; // If we have a key locally, we might still be okay
+    }
 
     const config = await response.json();
 
@@ -48,10 +57,14 @@ export const syncGeminiConfig = async () => {
     return true;
 
   } catch (e) {
-    console.warn("[Oracle] Config failed — continuing anyway", e);
+    console.warn("[Oracle] Config failed — checking local fallback", e);
+    
+    // Check if we at least have local keys
+    const hasSupabase = !!localStorage.getItem('findaba_supabase_url');
+    const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
+    const hasGemini = !!envKey;
 
-    // 🔥 THIS LINE FIXES YOUR APP
-    return true;
+    return hasSupabase && hasGemini;
   }
 };
 
@@ -246,10 +259,12 @@ export const getOracleStream = async (
     console.error("Oracle Hub Fault:", e);
     const isQuota = e.message?.includes("429") || e.message?.toLowerCase().includes("quota") || e.message?.includes("RESOURCE_EXHAUSTED");
     const isAuth = e.message?.includes("401") || e.message?.includes("API_KEY_INVALID") || e.message?.includes("not found") || e.message?.includes("PERMISSION_DENIED") || e.message?.includes("INVALID_ARGUMENT");
+    const isNetwork = e.message?.toLowerCase().includes("offline") || e.message?.toLowerCase().includes("network") || e.message?.toLowerCase().includes("failed to fetch");
     
     let userMessage = "Institutional Signal Lost. Recalibrating...";
     if (isQuota) userMessage = "MARKET CONGESTION: THE REGISTRY IS OVERLOADED. TRY AGAIN IN A MOMENT.";
-    if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN VERCEL DASHBOARD.";
+    if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN AI STUDIO SETTINGS.";
+    if (isNetwork) userMessage = "SIGNAL INTERRUPTED: NETWORK CONNECTION LOST. CHECK YOUR INTERNET.";
     
     throw new Error(userMessage);
   }

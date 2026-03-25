@@ -100,6 +100,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const { addToast } = useToast();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRegistryActive, setIsRegistryActive] = useState(false);
+  const [isSignalHealthy, setIsSignalHealthy] = useState(true);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   
   const [activeLogo, setActiveLogo] = useState<string>(appLogo || SANDALS_BRAND.logo);
@@ -113,8 +114,22 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const isDarkView = ['discover', 'home', 'editorial', 'editorial-detail', 'oracle', 'admin', 'srts-dashboard', 'sandals-hotels', 'lab', 'about', 'feed', 'login', 'purple-fleet', 'driver-console', 'fleet-admin'].includes(currentView);
 
   useEffect(() => {
-    const sb = getSupabase();
-    setIsRegistryActive(!!sb);
+    const checkHealth = async () => {
+      const sb = getSupabase();
+      setIsRegistryActive(!!sb);
+      
+      if (sb) {
+        const { checkDatabaseHealth } = await import('../services/supabaseService');
+        const health = await checkDatabaseHealth();
+        setIsSignalHealthy(health.status === 'healthy');
+      } else {
+        setIsSignalHealthy(false);
+      }
+    };
+    
+    checkHealth();
+    const interval = setInterval(checkHealth, 15000);
+    return () => clearInterval(interval);
   }, [currentView]);
 
   useEffect(() => {
@@ -165,7 +180,17 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               <h1 className="text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
                 FindAba
               </h1>
-              <p className="text-aba-gold text-[9px] font-black uppercase tracking-[0.6em] mt-2 opacity-60">SANDALSroyalle</p>
+              <div className="flex items-center gap-2 mt-2">
+                <p className="text-aba-gold text-[9px] font-black uppercase tracking-[0.6em] opacity-60">SANDALSroyalle</p>
+                {isRegistryActive && (
+                  <div className="flex items-center gap-1.5 border-l border-white/10 pl-2">
+                    <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]'}`} />
+                    <span className={`text-[6px] font-black uppercase tracking-widest ${isSignalHealthy ? 'text-aba-green/60' : 'text-red-500/60'}`}>
+                      {isSignalHealthy ? 'Live' : 'Lost'}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
         </div>
         

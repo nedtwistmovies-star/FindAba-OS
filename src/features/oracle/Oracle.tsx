@@ -67,12 +67,14 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
   useEffect(() => {
     const checkSignal = async () => {
       const synced = await syncGeminiConfig();
-      setSignalLocked(synced);
+      const { checkDatabaseHealth } = await import('../../services/supabaseService');
+      const health = await checkDatabaseHealth();
+      setSignalLocked(synced && health.status === 'healthy');
     };
     checkSignal();
     
     // Periodically check signal health
-    const interval = setInterval(checkSignal, 30000);
+    const interval = setInterval(checkSignal, 15000);
     return () => clearInterval(interval);
   }, []);
   const [input, setInput] = useState('');

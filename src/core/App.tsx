@@ -42,11 +42,13 @@ const AppContent: React.FC = () => {
   };
 
   const [signalHealth, setSignalHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'unknown'; message?: string } | null>(null);
+  const [geminiHealth, setGeminiHealth] = React.useState(true);
 
   React.useEffect(() => {
     const initApp = async () => {
       // 1. Sync Config First
-      await syncGeminiConfig();
+      const gHealth = await syncGeminiConfig();
+      setGeminiHealth(gHealth);
       
       // 2. Then Check Health
       const health = await checkDatabaseHealth();
@@ -54,6 +56,10 @@ const AppContent: React.FC = () => {
     };
     
     initApp();
+    
+    // Periodically refresh health to ensure UI stays in sync with actual connection
+    const interval = setInterval(initApp, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -71,12 +77,12 @@ const AppContent: React.FC = () => {
           <div className="h-full bg-aba-gold animate-progress-indefinite w-full shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
         </div>
       )}
-      {(!getSupabase() || (signalHealth && signalHealth.status === 'unhealthy')) && (
+      {(!getSupabase() || (signalHealth && signalHealth.status === 'unhealthy') || !geminiHealth) && (
         <div className="bg-red-500/10 border-b border-red-500/20 p-4 text-center animate-fade-in relative z-[5000]">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4">
             <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] flex items-center gap-3">
               <AlertTriangle size={14} /> 
-              {signalHealth?.message || "Industrial Signal Not Detected on this Device."}
+              {!geminiHealth ? "Oracle Signal Interrupted (Gemini API Key Missing)" : (signalHealth?.message || "Industrial Signal Not Detected on this Device.")}
             </p>
             <div className="flex gap-3">
               <button 
@@ -175,7 +181,11 @@ const AppContent: React.FC = () => {
             <div className="sm:w-16 sm:h-16 w-12 h-12 rounded-full border-2 border-aba-gold overflow-hidden bg-black flex items-center justify-center relative z-10">
                <img src={oracleAvatar} className="w-full h-full object-cover" alt="Elder Kalu" />
             </div>
-            <div className="absolute bottom-1 right-1 sm:w-5 sm:h-5 w-4 h-4 bg-aba-green border-[3px] border-aba-dark rounded-full shadow-lg z-20" />
+            <div className={`absolute bottom-1 right-1 sm:w-5 sm:h-5 w-4 h-4 border-[3px] border-aba-dark rounded-full shadow-lg z-20 transition-all duration-500 ${
+              (signalHealth?.status === 'healthy' && geminiHealth) 
+                ? 'bg-aba-green shadow-[0_0_10px_rgba(34,197,94,0.8)]' 
+                : 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]'
+            }`} />
           </div>
         </motion.button>
       )}

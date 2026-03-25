@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         const { data: businesses } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
         if (businesses) {
           const registry = {
-            version: "v5.2",
+            version: "v6.0",
             lastUpdated: new Date().toISOString(),
             businesses
           };
