@@ -7,11 +7,13 @@ import {
   Car, Navigation, CheckCircle2, Phone, MessageSquare, ShieldAlert
 } from 'lucide-react';
 import { ViewState, DriverNode, ComplianceLevel } from '../../types';
+import { useToast } from '../../providers/ToastProvider';
 import MapView from '../../components/MapView';
 import { fetchDriverByEmail, updateDriverStatus, subscribeToRideRequests, updateRideBookingStatus, getSupabase } from '../../services/supabaseService';
 import { getCurrentPosition } from '../../services/locationService';
 
 const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
+  const { addToast } = useToast();
   const [driver, setDriver] = useState<any>(null);
   const [online, setOnline] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
         setCurrentRide(null);
       }
     } catch (e) {
-      alert("Signal failure. Registry could not sync.");
+      addToast("Signal failure. Registry could not sync.", "error");
     } finally {
       setLoading(false);
     }
@@ -80,17 +82,17 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
       setRideRequest(null);
       startMovement();
     } catch (e) {
-      alert("Handshake failed.");
+      addToast("Handshake failed.", "error");
     }
   };
 
   const handlePanicSignal = () => {
     setPanicActive(true);
-    alert("SILENT SOS BROADCASTED. Command center is monitoring your live GPS node. Protocol logged.");
+    addToast("SILENT SOS BROADCASTED. Command center is monitoring your live GPS node. Protocol logged.", "error");
   };
 
   const handleReportIncident = () => {
-    alert(`INCIDENT LOGGED: ${incidentType} at Node Perimeter. Signal dispatched to Fleet Control.`);
+    addToast(`INCIDENT LOGGED: ${incidentType} at Node Perimeter. Signal dispatched to Fleet Control.`, "info");
     setShowIncidentReport(false);
   };
 
@@ -109,10 +111,10 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     try {
       await updateRideBookingStatus(currentRide.id, 'completed');
       if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
-      alert("Industrial Handshake Finalized. Registry Settlement committed.");
+      addToast("Industrial Handshake Finalized. Registry Settlement committed.", "success");
       setCurrentRide(null);
     } catch (e) {
-      alert("Settlement error.");
+      addToast("Settlement error.", "error");
     }
   };
 
@@ -271,8 +273,8 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                        </div>
                     </div>
                     <div className="flex gap-2">
-                       <button onClick={() => alert("Initializing Secure Voice Link...")} className="p-3 bg-aba-gold text-aba-dark rounded-lg shadow-md active:scale-90 transition-all"><Phone size={18}/></button>
-                       <button onClick={() => alert("Opening Registry Chat Hub...")} className="p-3 bg-white/5 rounded-lg border border-white/10 active:scale-90 transition-all"><MessageSquare size={18}/></button>
+                       <button onClick={() => addToast("Initializing Secure Voice Link...", "info")} className="p-3 bg-aba-gold text-aba-dark rounded-lg shadow-md active:scale-90 transition-all"><Phone size={18}/></button>
+                       <button onClick={() => addToast("Opening Registry Chat Hub...", "info")} className="p-3 bg-white/5 rounded-lg border border-white/10 active:scale-90 transition-all"><MessageSquare size={18}/></button>
                     </div>
                  </div>
 
@@ -394,11 +396,11 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                     if (client) {
                       await client.from('drivers').update(bankDetails).eq('email', userEmail);
                       setDriver({...driver, ...bankDetails});
-                      alert("Settlement Node Bound Successfully.");
+                      addToast("Settlement Node Bound Successfully.", "success");
                       setShowBankForm(false);
                     }
                   } catch (e) {
-                    alert("Sync failed.");
+                    addToast("Sync failed.", "error");
                   } finally {
                     setLoading(false);
                   }

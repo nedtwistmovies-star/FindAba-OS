@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
+import { useToast } from '../../providers/ToastProvider';
 import { ArrowLeft, Cpu, Zap, ShieldCheck, AlertTriangle, Loader2, Send, History, HardDrive, Monitor, Speaker } from 'lucide-react';
 import { analyzeHardwareTextSignal } from '../../services/geminiService';
 
 const HardwareAudit: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const { addToast } = useToast();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -139,7 +141,7 @@ const HardwareAudit: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                    </div>
 
                    <button 
-                     onClick={() => alert("Broadcasting intelligence signal to registry nodes...")}
+                     onClick={() => addToast("Broadcasting intelligence signal to registry nodes...", "info")}
                      className="w-full py-8 bg-white text-aba-deep rounded-[2rem] font-black uppercase text-xs tracking-[0.5em] flex items-center justify-center gap-4 shadow-2xl active:scale-95 transition-all"
                    >
                       Share Intelligence <History size={20} />

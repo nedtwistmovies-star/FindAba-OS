@@ -7,10 +7,12 @@ import {
   Image as ImageIcon, UploadCloud
 } from 'lucide-react';
 import { ViewState, VehicleCategory, ComplianceLevel } from '../../types';
+import { useToast } from '../../providers/ToastProvider';
 import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
 
 const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
+  const { addToast } = useToast();
   const [step, setStep] = useState<'requirements' | 'form' | 'docs' | 'revenue' | 'tier' | 'success'>('requirements');
   const [loading, setLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -38,7 +40,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
   const handleNext = () => {
     if (step === 'form') {
       if (!formData.vehicle_image_url) {
-        alert("CRITICAL: Vessel visual identification (photo) is required.");
+        addToast("CRITICAL: Vessel visual identification (photo) is required.", "error");
         return;
       }
       setStep('docs');
@@ -46,7 +48,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
     else if (step === 'docs') setStep('revenue');
     else if (step === 'revenue') {
       if (!formData.account_number || !formData.bank_name) {
-        alert("CRITICAL: Revenue Matrix requires valid settlement coordinates.");
+        addToast("CRITICAL: Revenue Matrix requires valid settlement coordinates.", "error");
         return;
       }
       setShowCheckout(true);

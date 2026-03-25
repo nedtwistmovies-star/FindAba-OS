@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useToast } from '../../providers/ToastProvider';
 import { 
   Zap, Bot, ImageIcon, Video, Send, 
   Plus, Share2, MoreHorizontal, Heart,
@@ -108,6 +109,7 @@ const MOCK_POSTS: Post[] = [
 ];
 
 const Feed: React.FC<FeedProps> = ({ onBack, setView }) => {
+  const { addToast } = useToast();
   const [stories, setStories] = useState<StoryNode[]>(INITIAL_STORIES);
   const [posts, setPosts] = useState<Post[]>(MOCK_POSTS);
   const [loading, setLoading] = useState(true);
@@ -410,7 +412,7 @@ const Feed: React.FC<FeedProps> = ({ onBack, setView }) => {
                         <MessageCircle size={18} /> Respond
                       </button>
                       <button 
-                        onClick={() => alert("Broadcasting Signal to Registry nodes...")}
+                        onClick={() => addToast("Broadcasting Signal to Registry nodes...", "info")}
                         className="flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all text-[10px] font-black uppercase text-gray-500 dark:text-white/40 tracking-[0.2em] hover:scale-[1.03]"
                       >
                         <Repeat2 size={18} /> Broadcast

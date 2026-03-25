@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2 } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
@@ -400,22 +400,31 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             className="mb-0"
           />
           
-          <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl">
+          <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl overflow-x-auto scrollbar-hide">
             {[
-              { id: 'featured', label: 'Featured', icon: Zap },
               { id: 'new', label: 'New Registrations', icon: Clock },
+              { id: 'featured', label: 'Featured', icon: Zap },
               { id: 'top', label: 'Top Rated', icon: Award },
+              { id: 'register', label: 'Register Business', icon: Plus, highlight: true },
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setArtisanTab(tab.id as any)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                onClick={() => {
+                  if (tab.id === 'register') {
+                    setView('register');
+                  } else {
+                    setArtisanTab(tab.id as any);
+                  }
+                }}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 min-w-fit ${
                   artisanTab === tab.id 
                     ? 'bg-aba-gold text-aba-deep shadow-lg' 
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
+                    : tab.highlight 
+                      ? 'text-aba-gold border border-aba-gold/20 hover:bg-aba-gold/10'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <tab.icon size={14} />
+                <tab.icon size={14} className={tab.highlight ? 'animate-pulse' : ''} />
                 {tab.label}
               </button>
             ))}

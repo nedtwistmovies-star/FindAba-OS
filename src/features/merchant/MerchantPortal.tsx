@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Business, ViewState, Product, Order, OrderStatus } from '../../types';
+import { useToast } from '../../providers/ToastProvider';
 import { 
   ArrowLeft, TrendingUp, BarChart3, ShieldCheck, Landmark, 
   Activity, Clock, ChevronRight, ShoppingBag, ListChecks, 
@@ -24,6 +25,7 @@ const defaultIcon = L.icon({
 L.Marker.prototype.options.icon = defaultIcon;
 
 const MerchantPortal: React.FC<{ business: Business; onBack: () => void; setView: (v: ViewState) => void }> = ({ business: initialBusiness, onBack, setView }) => {
+  const { addToast } = useToast();
   const [business, setBusiness] = useState(initialBusiness);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,8 +60,9 @@ const MerchantPortal: React.FC<{ business: Business; onBack: () => void; setView
     try {
       await updateBusinessInDB(business.id, updates);
       setBusiness(prev => ({ ...prev, ...updates }));
+      addToast("Registry Node Updated Successfully.", "success");
     } catch (e) {
-      alert("Sync Signal Failed.");
+      addToast("Sync Signal Failed. Check Connectivity.", "error");
     } finally {
       setSyncing(false);
     }
@@ -405,9 +408,9 @@ const MerchantPortal: React.FC<{ business: Business; onBack: () => void; setView
                     setSyncing(true);
                     try {
                       await updateBusinessInDB(business.id, { products: business.products });
-                      alert("Showroom Synced with Global Node.");
+                      addToast("Showroom Synced with Global Node.", "success");
                     } catch (e) {
-                      alert("Sync Signal Failed.");
+                      addToast("Sync Signal Failed. Check Connectivity.", "error");
                     } finally {
                       setSyncing(false);
                     }
@@ -614,9 +617,9 @@ const MerchantPortal: React.FC<{ business: Business; onBack: () => void; setView
                         account_number: business.account_number,
                         account_name: business.account_name
                       });
-                      alert("Settlement Node Bound Successfully.");
+                      addToast("Settlement Node Bound Successfully.", "success");
                     } catch (e) {
-                      alert("Sync Signal Failed.");
+                      addToast("Sync Signal Failed. Check Connectivity.", "error");
                     } finally {
                       setSyncing(false);
                     }
