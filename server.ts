@@ -165,6 +165,13 @@ app.get("/api/health", (req, res) => {
     res.json({ success: true });
   });
 
+  // Paystack Webhook Handler
+  app.post("/api/paystack-webhook", async (req, res) => {
+    console.log("Paystack Webhook Received:", req.body);
+    // Basic success response for Paystack
+    res.status(200).json({ status: "success" });
+  });
+
   // Automatic Git Repo Connection
   app.get("/api/git/sync", async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
