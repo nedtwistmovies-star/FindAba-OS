@@ -6,6 +6,10 @@ type ConfigResponse = {
   environment: string;
   region?: string;
   timestamp: string;
+
+  // 🔹 REQUIRED FOR FRONTEND SYNC
+  supabaseUrl?: string;
+  supabaseKey?: string;
 };
 
 export default async function handler(
@@ -25,6 +29,10 @@ export default async function handler(
       environment: process.env.NODE_ENV || "development",
       region: process.env.VERCEL_REGION || "unknown",
       timestamp: new Date().toISOString(),
+
+      // 🔹 CRITICAL: expose ONLY public-safe keys
+      supabaseUrl: process.env.SUPABASE_URL || "",
+      supabaseKey: process.env.SUPABASE_ANON_KEY || "",
     };
 
     return res.status(200).json(response);
