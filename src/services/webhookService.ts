@@ -1,10 +1,10 @@
-
 /**
  * MAKE.COM (INTEGROMAT) INDUSTRIAL AUTOMATION SERVICE
  * Connects FindAba Registry events to external automation workflows.
  */
 
-const MAKE_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || '';
+const MAKE_WEBHOOK_URL =
+  import.meta.env.VITE_MAKE_WEBHOOK_URL || '';
 
 export enum WebhookEvent {
   NEW_REGISTRATION = 'new_registration',
@@ -19,7 +19,10 @@ export enum WebhookEvent {
 
 export const triggerWebhook = async (event: WebhookEvent, payload: any) => {
   if (!MAKE_WEBHOOK_URL) {
-    console.warn(`[Automation] Webhook trigger skipped: VITE_MAKE_WEBHOOK_URL not configured for event: ${event}`);
+    console.warn("[Automation] Webhook skipped:", {
+      event,
+      hasEnv: !!import.meta.env.VITE_MAKE_WEBHOOK_URL
+    });
     return;
   }
 
@@ -39,15 +42,16 @@ export const triggerWebhook = async (event: WebhookEvent, payload: any) => {
 
     if (!response.ok) {
       if (response.status === 410) {
-        throw new Error("Webhook URL is 'Gone' (410). Please generate a new Webhook URL in Make.com and update your environment variables.");
+        throw new Error("Webhook URL expired (410). Generate a new one in Make.com.");
       }
-      throw new Error(`Webhook failed with status: ${response.status}`);
+      throw new Error(`Webhook failed: ${response.status}`);
     }
 
-    console.debug(`[Automation] Webhook signal sent successfully: ${event}`);
+    console.debug(`[Automation] Webhook sent: ${event}`);
     return true;
+
   } catch (error) {
-    console.error(`[Automation] Webhook transmission fault:`, error);
+    console.error("[Automation] Webhook fault:", error);
     return false;
   }
 };
