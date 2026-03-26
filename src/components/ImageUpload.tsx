@@ -175,3 +175,67 @@ export const MultiImageUpload: React.FC<any> = ({ label, urls, onAdd, onRemove, 
           } else {
             throw new Error("Registry Offline");
           }
+
+        } catch (cloudErr) {
+          console.warn("[Registry] Multi-upload fallback:", cloudErr);
+
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+          });
+
+          await onAdd(base64);
+        }
+      }
+
+    } catch (err) {
+      console.error("[Registry] Multi-upload fault:", err);
+    } finally {
+      setLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{label}</p>
+
+      <div className="grid grid-cols-3 gap-3">
+        {urls.map((url: string, idx: number) => (
+          <div key={idx} className="relative aspect-square rounded-[1.5rem] overflow-hidden border border-white/5 group shadow-sm bg-slate-900">
+            <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="Node asset" />
+
+            <button
+              type="button"
+              onClick={() => onRemove(idx)}
+              className="absolute top-2 right-2 p-1.5 bg-black/60 backdrop-blur-md text-white rounded-lg hover:bg-red-500 transition-all opacity-0 group-hover:opacity-100 z-10"
+            >
+              <ImageIcon size={12} />
+            </button>
+          </div>
+        ))}
+
+        {urls.length < 12 && (
+          <div className="relative aspect-square rounded-[1.5rem] border-2 border-dashed border-white/5 flex items-center justify-center hover:border-aba-gold/50 transition-all cursor-pointer bg-slate-900/50">
+            {loading ? (
+              <Loader2 className="animate-spin text-aba-gold" size={20} />
+            ) : (
+              <ImageIcon size={20} className="text-white/20" />
+            )}
+
+            <input
+              type="file"
+              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+              onChange={handleFiles}
+              accept="image/*"
+              multiple
+              disabled={loading}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
