@@ -42,7 +42,7 @@ const AppContent: React.FC = () => {
   };
 
   const [signalHealth, setSignalHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'unknown'; message?: string } | null>(null);
-  const [geminiHealth, setGeminiHealth] = React.useState(true);
+  const [geminiHealth, setGeminiHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'warning'; message: string } | null>(null);
 
   React.useEffect(() => {
     const initApp = async () => {
@@ -77,12 +77,12 @@ const AppContent: React.FC = () => {
           <div className="h-full bg-aba-gold animate-progress-indefinite w-full shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
         </div>
       )}
-      {(!getSupabase() || (signalHealth && signalHealth.status === 'unhealthy') || !geminiHealth) && (
+      {(!getSupabase() || (signalHealth && signalHealth.status === 'unhealthy') || (geminiHealth && geminiHealth.status === 'unhealthy')) && (
         <div className="bg-red-500/10 border-b border-red-500/20 p-4 text-center animate-fade-in relative z-[5000]">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4">
             <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] flex items-center gap-3">
               <AlertTriangle size={14} /> 
-              {!geminiHealth ? "Oracle Signal Interrupted (Gemini API Key Missing)" : (signalHealth?.message || "Industrial Signal Not Detected on this Device.")}
+              {geminiHealth?.status === 'unhealthy' ? geminiHealth.message : (signalHealth?.message || "Industrial Signal Not Detected on this Device.")}
             </p>
             <div className="flex gap-3">
               <button 

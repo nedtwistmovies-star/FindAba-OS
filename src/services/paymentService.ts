@@ -1,3 +1,4 @@
+
 import { logTransaction, activatePlanFeatures } from './supabaseService';
 import { triggerWebhook, WebhookEvent } from './webhookService';
 
@@ -5,38 +6,22 @@ const PAYSTACK_KEY_STORAGE = 'findaba_paystack_public_key';
 const PAYSTACK_HANDSHAKE_STATUS = 'findaba_paystack_handshake_confirmed';
 
 /**
- * PAYSTACK INDUSTRIAL SETTLEMENT SERVICE v8.0 (Hardened)
+ * PAYSTACK INDUSTRIAL SETTLEMENT SERVICE v7.0
+ * Official Partner Interface for SANDALSroyalle Registry
  */
 export const paymentService = {
-  
-  /**
-   * Resolve API Key (priority: localStorage → env)
-   */
   getApiKey: () => {
     const local = localStorage.getItem(PAYSTACK_KEY_STORAGE);
-    const env = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
-
-    const key = local || env;
-
-    if (!key) {
-      console.warn("[Paystack] No API key found");
-    }
-
-    return key;
+    if (local) return local;
+    return import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || '';
   },
-
-  /**
-   * Store valid key
-   */
+  
   setApiKey: (key: string) => {
     const cleaned = key.trim();
-
     if (cleaned.startsWith('pk_live_') || cleaned.startsWith('pk_test_')) {
       localStorage.setItem(PAYSTACK_KEY_STORAGE, cleaned);
       return true;
     }
-
-    console.warn("[Paystack] Invalid key format");
     return false;
   },
 
@@ -45,12 +30,12 @@ export const paymentService = {
   },
 
   isLive: () => {
-    const key = paymentService.getApiKey();
-    return key.startsWith('pk_live_');
+    const key = localStorage.getItem(PAYSTACK_KEY_STORAGE);
+    return key && key.startsWith('pk_live_');
   },
 
   hasKey: () => {
-    const key = paymentService.getApiKey();
+    const key = localStorage.getItem(PAYSTACK_KEY_STORAGE);
     return !!key && key.length > 20;
   },
 
@@ -62,20 +47,11 @@ export const paymentService = {
     return localStorage.getItem(PAYSTACK_HANDSHAKE_STATUS) === 'true';
   },
 
-  /**
-   * Generate Paystack config safely
-   */
   getPaystackConfig: (config: { email: string, amount: number, label: string, businessId?: string }) => {
-    const key = paymentService.getApiKey();
-
-    if (!key) {
-      throw new Error("PAYSTACK API KEY NOT CONFIGURED");
-    }
-
     return {
-      key,
+      key: paymentService.getApiKey(),
       email: config.email,
-      amount: config.amount * 100,
+      amount: config.amount * 100, // Paystack uses kobo
       ref: `SIG-PS-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
       currency: "NGN",
       metadata: {
@@ -95,9 +71,6 @@ export const paymentService = {
     };
   },
 
-  /**
-   * Verify + log transaction
-   */
   verifyAndLog: async (response: any, config: any) => {
     if (!response || response.status !== 'success') return false;
 
@@ -113,7 +86,8 @@ export const paymentService = {
       timestamp: new Date().toISOString()
     });
 
-    await triggerWebhook(WebhookEvent.PAYMENT_SUCCESS, { 
+    // Trigger Automation Webhook
+    triggerWebhook(WebhookEvent.PAYMENT_SUCCESS, { 
       reference: response.reference, 
       amount: config.amount, 
       label: config.label,
@@ -124,19 +98,21 @@ export const paymentService = {
   },
 
   /**
-   * Simulated webhook (dev/testing only)
+   * WEBHOOK SIGNAL SIMULATION (FOR TESTING)
+   * Mimics the behavior of a backend receiving a Paystack notification
    */
   simulateWebhookSignal: async (businessId: string, planId: string) => {
     console.debug(`[WEBHOOK] Incoming settlement signal for Biz: ${businessId}, Plan: ${planId}`);
     
+    // Simulate a delay for institutional processing
     await new Promise(r => setTimeout(r, 2000));
 
     try {
       await activatePlanFeatures(businessId, planId);
-      console.debug(`[WEBHOOK] Activation successful`);
+      console.debug(`[WEBHOOK] Commercial node activation successful.`);
       return true;
     } catch (e) {
-      console.error(`[WEBHOOK] Activation failed:`, e);
+      console.error(`[WEBHOOK] Critical failure in activation sequence:`, e);
       return false;
     }
   }

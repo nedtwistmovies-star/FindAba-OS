@@ -1,7 +1,7 @@
 
 import { Business, Category, VerificationStatus, VerificationLevel, EditorialStory, BusinessPlan, SubscriptionTier, AdType, LegalDocType } from './types';
 
-export const SANDALS_ROYALLE_BRAND = {
+export const SANDALS_BRAND = {
   name: "FindAba",
   brandOwner: "SANDALSroyalle",
   fullName: "FindAba by SANDALSroyalle • Industrial Operating System",

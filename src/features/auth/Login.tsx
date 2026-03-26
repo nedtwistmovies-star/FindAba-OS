@@ -91,6 +91,22 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+               {mode === 'signup' && (
+                 <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2 animate-slide-up">
+                    <div className="flex items-center">
+                      <div className="p-4"><User className="text-white/20" size={20} /></div>
+                      <input 
+                         required
+                         type="text" 
+                         placeholder="FULL LEGAL NAME" 
+                         className="flex-1 bg-transparent py-4 pr-6 outline-none text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
+                         value={formData.name}
+                         onChange={e => setFormData({...formData, name: e.target.value})}
+                      />
+                    </div>
+                 </div>
+               )}
+
                <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2">
                   <div className="flex items-center">
                     <div className="p-4"><Mail className="text-white/20" size={20} /></div>

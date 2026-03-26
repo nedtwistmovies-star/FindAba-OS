@@ -1,6 +1,7 @@
 
 import { Database, Wifi, Loader2, RefreshCcw, AlertTriangle, ShieldCheck, Zap, Landmark, X, Info, Activity, ChevronRight, CheckCircle2, Github, Copy, Check } from 'lucide-react';
 import { reconnectRegistry, checkDatabaseHealth, seedDatabase, getRegistryConfig } from '../../services/supabaseService';
+import { syncGeminiConfig } from '../../services/geminiService';
 import { paymentService } from '../../services/paymentService';
 import { ARTISANS } from '../../constants';
 import React, { useState, useEffect } from 'react';
@@ -115,9 +116,13 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
   const handleFinalCommit = async () => {
     setCommitting(true);
     try {
-      // Use Git data if available, otherwise fallback to ARTISANS
+      // 1. Seed Database
       const seedData = (gitStatus.connected && gitStatus.data?.businesses) ? gitStatus.data.businesses : ARTISANS;
       await seedDatabase(seedData);
+      
+      // 2. Sync Signal Configuration (Gemini API Key, etc.)
+      await syncGeminiConfig();
+      
       await new Promise(r => setTimeout(r, 2000));
       onComplete?.();
     } finally {
@@ -267,13 +272,20 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
 
           {step === 'commit' && (
             <div className="space-y-8 animate-fade-in text-center">
-               <div className="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-3">
+               <div className="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-4">
                   <div className="flex justify-between items-center text-[8px] font-black uppercase text-white/30 tracking-widest">
-                     <span>Node Integrity</span>
+                     <span>Registry Integrity</span>
                      <span className="text-aba-green">100% Verified</span>
                   </div>
                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                      <div className="h-full bg-aba-green w-full" />
+                  </div>
+                  <div className="flex justify-between items-center text-[8px] font-black uppercase text-white/30 tracking-widest pt-2">
+                     <span>Oracle Signal Sync</span>
+                     <span className="text-aba-gold">Ready for Handshake</span>
+                  </div>
+                  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                     <div className="h-full bg-aba-gold w-1/2 animate-pulse" />
                   </div>
                </div>
                <button 

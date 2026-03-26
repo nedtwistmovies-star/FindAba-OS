@@ -2,13 +2,7 @@
 {
   "version": 2,
   "cleanUrls": true,
-
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
-
+  "framework": "vite",
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]

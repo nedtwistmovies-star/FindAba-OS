@@ -118,13 +118,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
       const sb = getSupabase();
       setIsRegistryActive(!!sb);
       
-      if (sb) {
-        const { checkDatabaseHealth } = await import('../services/supabaseService');
-        const health = await checkDatabaseHealth();
-        setIsSignalHealthy(health.status === 'healthy');
-      } else {
-        setIsSignalHealthy(false);
-      }
+      const { checkDatabaseHealth } = await import('../services/supabaseService');
+      const { syncGeminiConfig } = await import('../services/geminiService');
+      
+      const dbHealth = await checkDatabaseHealth();
+      const gHealth = await syncGeminiConfig();
+      
+      setIsSignalHealthy(dbHealth.status === 'healthy' && gHealth.status !== 'unhealthy');
     };
     
     checkHealth();
