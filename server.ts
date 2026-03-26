@@ -7,7 +7,6 @@ import path from "path";
 import fs from "fs/promises";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,24 +18,21 @@ console.log("Environment Check:", {
   nodeEnv: process.env.NODE_ENV
 });
 
-async function startServer() {
-  try {
-    const app = express();
-    const PORT = 3000;
+export const app = express();
 
-    // Trust proxy is required for correct protocol/host detection behind nginx
-    app.set('trust proxy', true);
+// Trust proxy is required for correct protocol/host detection behind nginx
+app.set('trust proxy', true);
 
-    app.use(cors());
-    // Increase limits for large repository syncs
-    app.use(express.json({ limit: '100mb' }));
-    app.use(express.urlencoded({ limit: '100mb', extended: true }));
-    app.use(cookieParser());
+app.use(cors());
+// Increase limits for large repository syncs
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(cookieParser());
 
-    // API Routes
-    app.get("/api/health", (req, res) => {
-      res.json({ status: "ok" });
-    });
+// API Routes
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
 
     // Config Sync
     app.get("/api/config", (req, res) => {
@@ -46,48 +42,6 @@ async function startServer() {
         githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '',
         makeWebhookUrl: process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || ''
       });
-    });
-
-    app.post("/api/oracle/openai", async (req, res) => {
-      const { prompt, history, sys } = req.body;
-      const apiKey = process.env.OPENAI_API_KEY;
-
-      if (!apiKey) {
-        return res.status(500).json({ error: "OPENAI_API_KEY not configured" });
-      }
-
-      const openai = new OpenAI({ apiKey });
-
-      try {
-        const messages = [
-          { role: "system", content: sys },
-          ...history.map((h: any) => ({
-            role: h.role === "user" ? "user" : "assistant",
-            content: h.parts[0].text
-          })),
-          { role: "user", content: prompt }
-        ];
-
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: messages as any,
-          response_format: { type: "json_object" }
-        });
-
-        const content = response.choices[0].message.content;
-        const result = JSON.parse(content || "{}");
-
-        res.json({
-          text: result.wisdom || "Signal lost. Re-establishing...",
-          thoughtProcess: result.thought_process,
-          dataPoints: result.data_points,
-          suggestions: result.trade_signals || [],
-          grounding: undefined
-        });
-      } catch (error: any) {
-        console.error("[Oracle] OpenAI Backend Fault:", error);
-        res.status(500).json({ error: "OpenAI Backend Fault", details: error.message });
-      }
     });
 
   // GitHub OAuth URL
@@ -575,31 +529,30 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+// Setup Vite or Static Files
+if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
+  (async () => {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
-  } else {
-    // Serve static files in production
-    app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
-    });
-  }
-
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://0.0.0.0:${PORT}`);
-    });
-  } catch (error) {
-    console.error("CRITICAL SERVER ERROR:", error);
-    process.exit(1);
-  }
+  })();
+} else {
+  // Serve static files in production
+  const distPath = path.join(__dirname, "dist");
+  app.use(express.static(distPath));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
 }
 
-startServer().catch(err => {
-  console.error("UNHANDLED REJECTION:", err);
-  process.exit(1);
-});
+// Start Server if not on Vercel
+if (!process.env.VERCEL) {
+  const PORT = Number(process.env.PORT) || 3000;
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+export default app;

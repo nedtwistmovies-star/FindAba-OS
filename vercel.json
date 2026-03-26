@@ -1,9 +1,6 @@
-
 {
   "version": 2,
-  "cleanUrls": true,
-  "framework": "vite",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/api/(.*)", "destination": "/api/index" }
   ]
 }

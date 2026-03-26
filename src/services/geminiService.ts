@@ -1,7 +1,6 @@
 
 import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 import { Business } from "../types";
-import { getOracleStreamOpenAI } from "./openaiService";
 import { resetSupabaseInstance } from "./supabaseService";
 
 const getAI = () => {
@@ -227,16 +226,6 @@ export const getOracleStream = async (
   const contentPart = typeof prompt === 'string' 
     ? { text: prompt } 
     : { inlineData: { data: prompt.data, mimeType: prompt.mimeType } };
-
-  // 🔹 Try OpenAI first if it's a text prompt
-  if (typeof prompt === 'string') {
-    try {
-      const openAIResult = await getOracleStreamOpenAI(prompt, history, sys);
-      if (openAIResult) return openAIResult;
-    } catch (e) {
-      console.warn("[Oracle] OpenAI proxy failed, falling back to Gemini...");
-    }
-  }
 
   const callModel = async (modelName: string) => {
     const ai = getAI();
