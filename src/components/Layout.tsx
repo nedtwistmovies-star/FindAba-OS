@@ -139,10 +139,16 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
   // Robust scroll to top when view changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    // Force scroll to top on view change
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTo(0, 0);
+    document.body.scrollTo(0, 0);
+    
     // Also scroll any potential internal containers
     const mainContent = document.querySelector('main');
-    if (mainContent) mainContent.scrollTop = 0;
+    if (mainContent) {
+      mainContent.scrollTop = 0;
+    }
   }, [currentView]);
 
   const menuItems = [
@@ -162,7 +168,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className={`flex flex-col min-h-screen w-full transition-colors duration-1000 font-sans overflow-x-hidden ${isDarkView ? 'bg-[#050505] text-aba-white' : 'bg-aba-white text-aba-deep'}`}>
+    <div className={`flex flex-col min-h-screen w-full transition-colors duration-1000 font-sans overflow-x-hidden relative ${isDarkView ? 'bg-[#050505] text-aba-white' : 'bg-aba-white text-aba-deep'}`}>
       <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-[9999] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
       
       {/* GLOBAL ATMOSPHERIC ELEMENTS */}

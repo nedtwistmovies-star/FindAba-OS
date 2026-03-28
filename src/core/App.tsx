@@ -21,8 +21,10 @@ const AppContent: React.FC = () => {
   const loading = businessLoading;
 
   useEffect(() => {
-    // Scroll to top on view change
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    // Force scroll to top on view change
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTo(0, 0);
+    document.body.scrollTo(0, 0);
   }, [view]);
 
   const myBusiness = businesses?.find ? businesses.find(b => b.email === userIdentifier) : null;
