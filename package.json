@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
-    "vercel-build": "vite build",
+    "build": "node node_modules/vite/bin/vite.js build",
+    "vercel-build": "node node_modules/vite/bin/vite.js build",
     "start": "node server.ts",
     "lint": "tsc --noEmit",
     "preview": "vite preview"
