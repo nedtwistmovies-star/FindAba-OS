@@ -4,18 +4,25 @@ import { Business } from "../types";
 import { resetSupabaseInstance } from "./supabaseService";
 
 const getAI = () => {
-  // In Vite, process.env is not available on client. import.meta.env is.
-  // However, we also check process.env for environments that might inject it (like AI Studio preview)
+  // 1. Check localStorage for synced key (highest priority)
+  const localKey = (typeof localStorage !== 'undefined') ? localStorage.getItem('findaba_gemini_key') : '';
+  
+  // 2. Check process.env (AI Studio Environment)
   const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
+  
+  // 3. Check import.meta.env (Vite Environment)
   const metaKey = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY) : '';
+  
+  // 4. Hardcoded Fallback (Emergency only)
   const hardcodedKey = 'AIzaSyCxjuQC56zQJsuhSJH8LJFfAjRe4xI8jpk';
   
-  const key = envKey || metaKey || hardcodedKey;
+  const key = localKey || envKey || metaKey || hardcodedKey;
   
   if (!key) {
-    console.warn("[Oracle] Signal missing. No API key found in process.env or import.meta.env.");
+    console.warn("[Oracle] Signal missing. No API key found in localStorage, process.env or import.meta.env.");
   } else {
-    console.log("[Oracle] Signal detected. Key source: " + (envKey ? "process.env" : (metaKey ? "import.meta.env" : "hardcoded")));
+    const source = localKey ? "localStorage" : (envKey ? "process.env" : (metaKey ? "import.meta.env" : "hardcoded"));
+    console.log(`[Oracle] Signal detected. Key source: ${source}`);
   }
   return new GoogleGenAI({ apiKey: key });
 };
@@ -266,84 +273,110 @@ export const getOracleStream = async (
     ? { text: prompt } 
     : { inlineData: { data: prompt.data, mimeType: prompt.mimeType } };
 
-  const callModel = async (modelName: string) => {
+  const callModel = async (modelName: string, useSearch = true) => {
     const ai = getAI();
+    const config: any = { 
+      systemInstruction: sys, 
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }, 
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          thought_process: { type: Type.STRING },
+          wisdom: { type: Type.STRING },
+          data_points: {
+            type: Type.OBJECT,
+            properties: {
+              verified_facts: { type: Type.ARRAY, items: { type: Type.STRING } },
+              market_prices: { type: Type.ARRAY, items: { type: Type.STRING } },
+              locations: { type: Type.ARRAY, items: { type: Type.STRING } }
+            },
+            required: ["verified_facts", "locations"]
+          },
+          trade_signals: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["wisdom", "thought_process", "data_points", "trade_signals"]
+      }
+    };
+
+    if (useSearch) {
+      config.tools = [{ googleSearch: {} }];
+    }
+
     return await ai.models.generateContent({
       model: modelName,
       contents: [...history, { role: 'user', parts: [contentPart] }],
-      config: { 
-        systemInstruction: sys, 
-        tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }, 
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            thought_process: { type: Type.STRING },
-            wisdom: { type: Type.STRING },
-            data_points: {
-              type: Type.OBJECT,
-              properties: {
-                verified_facts: { type: Type.ARRAY, items: { type: Type.STRING } },
-                market_prices: { type: Type.ARRAY, items: { type: Type.STRING } },
-                locations: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["verified_facts", "locations"]
-            },
-            trade_signals: { type: Type.ARRAY, items: { type: Type.STRING } }
-          },
-          required: ["wisdom", "thought_process", "data_points", "trade_signals"]
-        }
-      }
+      config
     });
   };
 
+  let lastError: any = null;
+  
+  // Attempt 1: Gemini 3.1 Pro (Primary)
   try {
-    // Primary: Gemini 3.1 Pro for high-reasoning and reliability
-    let response;
-    try {
-      response = await callModel('gemini-3.1-pro-preview');
-    } catch (e: any) {
-      const msg = e.message?.toLowerCase() || "";
-      const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("resource_exhausted");
-      
-      if (isQuota) {
-        console.warn("[Oracle] Pro Signal Congested. Switching to Flash Relay...");
-        try {
-          // Fallback 1: Gemini 3.1 Flash Lite for highest availability
-          response = await callModel('gemini-3.1-flash-lite-preview');
-        } catch (e2: any) {
-          console.warn("[Oracle] Flash Lite Congested. Switching to Flash Standard...");
-          // Fallback 2: Gemini 3 Flash standard
-          response = await callModel('gemini-3-flash-preview');
-        }
-      } else {
-        throw e;
-      }
-    }
-
-    const result = JSON.parse(cleanJSON(response.text || '{}'));
-    return { 
-      text: result.wisdom || "Signal lost. Re-establishing...",
-      thoughtProcess: result.thought_process,
-      dataPoints: result.data_points,
-      suggestions: result.trade_signals || [],
-      grounding: response.candidates?.[0]?.groundingMetadata?.groundingChunks || undefined
-    };
-  } catch (e: any) { 
-    console.error("Oracle Hub Fault:", e);
+    const response = await callModel('gemini-3.1-pro-preview');
+    return processOracleResponse(response);
+  } catch (e: any) {
+    lastError = e;
     const msg = e.message?.toLowerCase() || "";
     const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("resource_exhausted");
-    const isAuth = msg.includes("401") || msg.includes("api_key_invalid") || msg.includes("not found") || msg.includes("permission_denied") || msg.includes("invalid_argument");
-    const isNetwork = msg.includes("offline") || msg.includes("network") || msg.includes("failed to fetch") || msg.includes("failed to connect");
     
-    let userMessage = "Institutional Signal Lost. Recalibrating...";
-    if (isQuota) userMessage = "MARKET CONGESTION [FLASH RELAY ACTIVE]: THE REGISTRY IS OVERLOADED. PLEASE RETRY IN A MOMENT.";
-    if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN AI STUDIO SETTINGS.";
-    if (isNetwork) userMessage = "SIGNAL INTERRUPTED: NETWORK CONNECTION LOST. CHECK YOUR INTERNET.";
-    
-    throw new Error(userMessage);
+    if (isQuota) {
+      console.warn("[Oracle] Pro Signal Congested. Switching to Flash Relay...");
+      
+      // Attempt 2: Gemini 3.1 Flash Lite (High Availability)
+      try {
+        const response = await callModel('gemini-3.1-flash-lite-preview');
+        return processOracleResponse(response);
+      } catch (e2: any) {
+        lastError = e2;
+        console.warn("[Oracle] Flash Lite Congested. Switching to Flash Standard...");
+        
+        // Attempt 3: Gemini 3 Flash (Standard)
+        try {
+          const response = await callModel('gemini-3-flash-preview');
+          return processOracleResponse(response);
+        } catch (e3: any) {
+          lastError = e3;
+          console.warn("[Oracle] Flash Standard Congested. Emergency Protocol: Disabling Search Grounding...");
+          
+          // Attempt 4: Gemini 3 Flash without Search (Lowest Quota usage)
+          try {
+            const response = await callModel('gemini-3-flash-preview', false);
+            return processOracleResponse(response);
+          } catch (e4: any) {
+            lastError = e4;
+          }
+        }
+      }
+    }
   }
+
+  // If we reached here, all attempts failed
+  console.error("Oracle Hub Fault:", lastError);
+  const msg = lastError?.message?.toLowerCase() || "";
+  const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("resource_exhausted") || msg.includes("overloaded");
+  const isAuth = msg.includes("401") || msg.includes("api_key_invalid") || msg.includes("not found") || msg.includes("permission_denied") || msg.includes("invalid_argument");
+  const isNetwork = msg.includes("offline") || msg.includes("network") || msg.includes("failed to fetch") || msg.includes("failed to connect");
+  
+  let userMessage = "Institutional Signal Lost. Recalibrating...";
+  if (isQuota) userMessage = "MARKET CONGESTION [FLASH RELAY ACTIVE]: THE REGISTRY IS OVERLOADED. PLEASE RETRY IN A MOMENT.";
+  if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN AI STUDIO SETTINGS.";
+  if (isNetwork) userMessage = "SIGNAL INTERRUPTED: NETWORK CONNECTION LOST. CHECK YOUR INTERNET.";
+  
+  throw new Error(userMessage);
+};
+
+// Helper to process response
+const processOracleResponse = (response: any) => {
+  const result = JSON.parse(cleanJSON(response.text || '{}'));
+  return { 
+    text: result.wisdom || "Signal lost. Re-establishing...",
+    thoughtProcess: result.thought_process,
+    dataPoints: result.data_points,
+    suggestions: result.trade_signals || [],
+    grounding: response.candidates?.[0]?.groundingMetadata?.groundingChunks || undefined
+  };
 };
 
 export const generateIndustrialVideo = async (prompt: string) => {

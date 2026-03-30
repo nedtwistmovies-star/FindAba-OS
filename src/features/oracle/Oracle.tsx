@@ -651,6 +651,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
                   icon={isReconnecting ? Loader2 : RefreshCcw} 
                   loading={isReconnecting}
                   onClick={async () => {
+                    await syncGeminiConfig();
                     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
                     handleSend(lastUserMsg?.text || input, true);
                   }}
