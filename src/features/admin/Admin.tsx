@@ -81,6 +81,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "supabase"
     | "verification"
     | "users"
+    | "infrastructure"
   >("overview");
   const [loading, setLoading] = useState(false);
   const [platformConfig, setPlatformConfig] = useState<PlatformConfig | null>(
@@ -251,6 +252,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
           { id: "signals", label: "Signals", icon: <Zap size={16} /> },
           { id: "settlement", label: "Settlement", icon: <Landmark size={16} /> },
           { id: "users", label: "Users", icon: <Users size={16} /> },
+          {
+            id: "infrastructure",
+            label: "Infrastructure",
+            icon: <Globe size={16} />,
+          },
           {
             id: "supabase",
             label: "Signal Registry",
@@ -539,6 +545,153 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   Registry Identity Node Not Initialized.
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === "infrastructure" && (
+            <div className="animate-slide-up space-y-12">
+              <SectionHeader 
+                title="Industrial Infrastructure" 
+                subtitle="Domain configuration and global node propagation"
+                icon={Globe}
+              />
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+                      <Globe className="text-aba-gold" /> Domain Configuration
+                    </h4>
+                    <div className="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-[8px] font-black uppercase text-red-500 tracking-widest">DNS Update Required</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
+                    To connect your custom domain to the FindAba OS network, you must update your DNS records at your domain registrar (e.g., Namecheap, GoDaddy, Whogohost).
+                  </p>
+
+                  <div className="space-y-6">
+                    <div className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Apex Domain</span>
+                        <span className="text-[10px] font-mono text-white/40">findaba.com.ng</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-[10px] font-black uppercase tracking-widest">
+                        <div className="space-y-1">
+                          <p className="text-white/20">Type</p>
+                          <p className="text-white">A</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-white/20">Name</p>
+                          <p className="text-white">@</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-white/20">Value</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-white">76.76.21.21</p>
+                            <button onClick={() => {
+                              navigator.clipboard.writeText("76.76.21.21");
+                              addToast("IP Copied", "success");
+                            }} className="text-white/20 hover:text-white transition-colors">
+                              <Copy size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase text-aba-gold tracking-widest">WWW Subdomain</span>
+                        <span className="text-[10px] font-mono text-white/40">www.findaba.com.ng</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-[10px] font-black uppercase tracking-widest">
+                        <div className="space-y-1">
+                          <p className="text-white/20">Type</p>
+                          <p className="text-white">CNAME</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-white/20">Name</p>
+                          <p className="text-white">www</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-white/20">Value</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-white truncate max-w-[60px]">cname.vercel-dns.com</p>
+                            <button onClick={() => {
+                              navigator.clipboard.writeText("cname.vercel-dns.com");
+                              addToast("CNAME Copied", "success");
+                            }} className="text-white/20 hover:text-white transition-colors">
+                              <Copy size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6 bg-aba-gold/10 border border-aba-gold/20 rounded-3xl space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Info size={16} className="text-aba-gold" />
+                      <h5 className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Propagation Protocol</h5>
+                    </div>
+                    <p className="text-[10px] font-bold text-aba-gold/60 uppercase leading-relaxed tracking-widest">
+                      DNS changes can take up to 48 hours to propagate globally. Once updated, Vercel will automatically issue an SSL certificate for secure industrial trade.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+                  <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+                    <Cloud className="text-aba-gold" /> Vercel Deployment Status
+                  </h4>
+                  
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-white/5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center">
+                          <Globe size={20} className="text-white/40" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black uppercase text-white tracking-widest">findabaos-six.vercel.app</p>
+                          <p className="text-[8px] font-bold text-aba-green uppercase tracking-widest">Valid Configuration</p>
+                        </div>
+                      </div>
+                      <div className="px-3 py-1 bg-aba-green/10 border border-aba-green/20 rounded-full">
+                        <span className="text-[8px] font-black uppercase text-aba-green tracking-widest">Production</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-white/5 opacity-50">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center">
+                          <Globe size={20} className="text-white/40" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black uppercase text-white tracking-widest">findaba.com.ng</p>
+                          <p className="text-[8px] font-bold text-red-500 uppercase tracking-widest">Invalid Configuration</p>
+                        </div>
+                      </div>
+                      <div className="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
+                        <span className="text-[8px] font-black uppercase text-red-500 tracking-widest">Production</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-8">
+                      <a 
+                        href="https://vercel.com/neds-projects-eccde4e9/findaba.os/settings/domains" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full py-5 bg-white text-black rounded-full font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3 hover:bg-aba-gold transition-all"
+                      >
+                        Open Vercel Dashboard <ChevronRight size={16} />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

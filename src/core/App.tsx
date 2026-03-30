@@ -1,7 +1,7 @@
 
 import React, { Suspense, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Globe } from 'lucide-react';
 import ErrorBoundary from '../components/ErrorBoundary';
 import Layout from '../components/Layout';
 import FeedbackToast from '../components/FeedbackToast';
@@ -19,6 +19,7 @@ const AppContent: React.FC = () => {
   const { isOracleOpen = false, setIsOracleOpen = () => {}, view = 'home', setView = () => {} } = useOracle();
 
   const loading = businessLoading;
+  const isVercelDomain = window.location.hostname.endsWith('.vercel.app');
 
   useEffect(() => {
     // Force scroll to top on view change
@@ -79,6 +80,24 @@ const AppContent: React.FC = () => {
           <div className="h-full bg-aba-gold animate-progress-indefinite w-full shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
         </div>
       )}
+
+      {isVercelDomain && view !== 'admin' && (
+        <div className="bg-aba-gold/10 border-b border-aba-gold/20 p-3 text-center animate-fade-in relative z-[4000]">
+          <div className="max-w-4xl mx-auto flex items-center justify-center gap-4">
+            <p className="text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] flex items-center gap-3">
+              <Globe size={12} /> 
+              Custom Domain Setup Incomplete: findaba.com.ng is not yet connected.
+            </p>
+            <button 
+              onClick={() => setView('admin')}
+              className="px-3 py-1.5 bg-aba-gold/20 text-aba-gold rounded-lg text-[8px] font-black uppercase tracking-widest border border-aba-gold/30 hover:bg-aba-gold hover:text-aba-dark transition-all"
+            >
+              Configure DNS
+            </button>
+          </div>
+        </div>
+      )}
+
       {(!getSupabase() || (signalHealth && signalHealth.status === 'unhealthy') || (geminiHealth && geminiHealth.status === 'unhealthy')) && (
         <div className="bg-red-500/10 border-b border-red-500/20 p-4 text-center animate-fade-in relative z-[5000]">
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4">
