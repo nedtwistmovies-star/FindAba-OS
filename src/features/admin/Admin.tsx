@@ -556,6 +556,52 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 icon={Globe}
               />
 
+              {/* Signal Configuration */}
+              <div className="bg-white/5 p-8 sm:p-12 rounded-[3rem] border border-white/5 space-y-10">
+                <SectionHeader 
+                  title="Signal Configuration" 
+                  subtitle="Industrial AI Registry Key (Gemini API)"
+                  icon={Zap}
+                />
+                
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Gemini API Key</label>
+                    <div className="flex gap-4">
+                      <input 
+                        type="password"
+                        defaultValue={localStorage.getItem('findaba_gemini_key') || ''}
+                        placeholder="AIzaSy..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all"
+                        onBlur={(e) => {
+                          const val = e.target.value.trim();
+                          if (val) {
+                            localStorage.setItem('findaba_gemini_key', val);
+                            addToast("Signal Key Updated. Refreshing Node...", "success");
+                            setTimeout(() => window.location.reload(), 1500);
+                          }
+                        }}
+                      />
+                      <IndustrialButton 
+                        variant="secondary" 
+                        size="md" 
+                        icon={Trash2}
+                        onClick={() => {
+                          localStorage.removeItem('findaba_gemini_key');
+                          addToast("Signal Key Purged", "info");
+                          setTimeout(() => window.location.reload(), 1500);
+                        }}
+                      >
+                        Purge
+                      </IndustrialButton>
+                    </div>
+                    <p className="text-[9px] font-bold text-white/20 uppercase leading-relaxed tracking-widest">
+                      This key is used for the Oracle AI, Image Generation, and Industrial Video features.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
                   <div className="flex items-center justify-between">

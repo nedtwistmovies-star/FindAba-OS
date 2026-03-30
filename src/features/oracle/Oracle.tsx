@@ -37,7 +37,7 @@ interface VoiceSettings {
 const STORAGE_KEY = 'findaba_oracle_conversations_v6';
 const VOICE_STORAGE_KEY = 'findaba_oracle_voice_settings_v1';
 
-const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
+const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
   const { addToast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>(() => {
     try {
@@ -644,7 +644,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
                   <p className="text-sm font-bold text-white/90">{errorNode}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <IndustrialButton 
                   variant={isQuotaError ? 'primary' : 'danger'} 
                   size="md" 
@@ -658,6 +658,15 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
                   fullWidth
                 >
                   {isReconnecting ? 'Reconnecting...' : 'Reconnect Signal'}
+                </IndustrialButton>
+                <IndustrialButton 
+                  variant="secondary" 
+                  size="md" 
+                  icon={Settings} 
+                  onClick={() => setView('admin')}
+                  fullWidth
+                >
+                  Admin Console
                 </IndustrialButton>
                 <IndustrialButton 
                   variant="secondary" 

@@ -33,6 +33,12 @@ export interface GeminiHealthStatus {
   source?: 'server' | 'env' | 'local' | 'none';
 }
 
+export const setGeminiKey = (key: string) => {
+  if (!key) return;
+  localStorage.setItem('findaba_gemini_key', key);
+  console.log("[Oracle] Signal Key updated manually.");
+};
+
 /**
  * PERMANENT SIGNAL LOCK: SYNC ALL KEYS FROM SERVER WITH RETRY
  */
@@ -361,7 +367,7 @@ export const getOracleStream = async (
   
   let userMessage = "Institutional Signal Lost. Recalibrating...";
   if (isQuota) userMessage = "MARKET CONGESTION [FLASH RELAY ACTIVE]: THE REGISTRY IS OVERLOADED. PLEASE RETRY IN A MOMENT.";
-  if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN AI STUDIO SETTINGS.";
+  if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN THE SYSTEM CONSOLE (ADMIN).";
   if (isNetwork) userMessage = "SIGNAL INTERRUPTED: NETWORK CONNECTION LOST. CHECK YOUR INTERNET.";
   
   throw new Error(userMessage);

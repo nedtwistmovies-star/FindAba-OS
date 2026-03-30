@@ -160,6 +160,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
     { label: 'Audio Archive', icon: <Radio size={20} />, view: 'audio-heritage' as ViewState },
     { label: 'City Registry', icon: <Layers size={20} />, view: 'explore' as ViewState },
     { label: 'Oracle Hub', icon: <Cpu size={20} />, view: 'oracle' as ViewState },
+    { label: 'System Console', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
     { label: 'Discover', icon: <Sparkles size={20} />, view: 'discover' as ViewState },
     { label: 'Stories', icon: <BookOpen size={20} />, view: 'editorial' as ViewState },
     { label: 'Executive HQ', icon: <ShieldCheck size={20} />, view: 'srts-office' as ViewState },

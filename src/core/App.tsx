@@ -116,7 +116,7 @@ const AppContent: React.FC = () => {
                 onClick={() => setView('admin')}
                 className="px-4 py-2 bg-white/5 text-white/40 rounded-lg text-[8px] font-black uppercase tracking-widest border border-white/10 hover:text-white transition-all"
               >
-                Admin Console
+                System Console
               </button>
             </div>
           </div>
