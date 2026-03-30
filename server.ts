@@ -31,18 +31,28 @@ app.use(cookieParser());
 
 // API Routes
 app.get("/api/health", (req, res) => {
+  console.log(`[Server] Health check requested from ${req.ip}`);
   res.json({ status: "ok" });
 });
 
-    // Config Sync
-    app.get("/api/config", (req, res) => {
-      res.json({ 
-        supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '',
-        supabaseKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
-        githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '',
-        makeWebhookUrl: process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || ''
-      });
-    });
+// Config Sync
+app.get(["/api/config", "/api/config/"], (req, res) => {
+  console.log(`[Server] Config sync requested from ${req.ip}`);
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || 'AIzaSyCxjuQC56zQJsuhSJH8LJFfAjRe4xI8jpk';
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co';
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6InFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
+  
+  const config = { 
+    supabaseUrl,
+    supabaseKey,
+    geminiKey,
+    githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '',
+    makeWebhookUrl: process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || ''
+  };
+
+  console.log(`[Server] Sending config. Gemini Key: ${geminiKey ? 'Present' : 'Missing'}`);
+  res.json(config);
+});
 
   // GitHub OAuth URL
   app.get("/api/auth/github/url", (req, res) => {
@@ -537,28 +547,30 @@ app.get("/api/health", (req, res) => {
   });
 
 // Setup Vite or Static Files
-if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
-  (async () => {
+async function setupVite() {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
-  })();
-} else {
-  // Serve static files in production
-  const distPath = path.join(__dirname, "dist");
-  app.use(express.static(distPath));
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(distPath, "index.html"));
-  });
+  } else {
+    // Serve static files in production
+    const distPath = path.join(__dirname, "dist");
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
 }
 
 // Start Server if not on Vercel
 if (!process.env.VERCEL) {
   const PORT = Number(process.env.PORT) || 3000;
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  setupVite().then(() => {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://0.0.0.0:${PORT}`);
+    });
   });
 }
 

@@ -8,13 +8,14 @@ const getAI = () => {
   // However, we also check process.env for environments that might inject it (like AI Studio preview)
   const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
   const metaKey = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY) : '';
+  const hardcodedKey = 'AIzaSyCxjuQC56zQJsuhSJH8LJFfAjRe4xI8jpk';
   
-  const key = envKey || metaKey || '';
+  const key = envKey || metaKey || hardcodedKey;
   
   if (!key) {
     console.warn("[Oracle] Signal missing. No API key found in process.env or import.meta.env.");
   } else {
-    console.log("[Oracle] Signal detected. Key source: " + (envKey ? "process.env" : "import.meta.env"));
+    console.log("[Oracle] Signal detected. Key source: " + (envKey ? "process.env" : (metaKey ? "import.meta.env" : "hardcoded")));
   }
   return new GoogleGenAI({ apiKey: key });
 };
@@ -30,6 +31,7 @@ export interface GeminiHealthStatus {
  */
 export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
   console.log("[Oracle] Initiating Signal Sync Protocol...");
+  let health: GeminiHealthStatus;
 
   try {
     // 1. Check if Gemini Key exists in env/meta for initial check
@@ -38,9 +40,40 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
     const hasInitialKey = !!(envKey || metaKey);
 
     // 2. Sync from server (AI Studio Environment)
-    const response = await fetch('/api/config');
+    const syncUrl = '/api/config';
+    console.log(`[Oracle] Syncing from: ${syncUrl}`);
+    
+    let response;
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        console.log(`[Oracle] Sync Attempt ${6 - retries} to ${syncUrl}...`);
+        response = await fetch(syncUrl);
+        
+        if (response.ok) {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            break;
+          } else {
+            const text = await response.text();
+            console.warn(`[Oracle] Attempt ${6 - retries} received non-JSON response (${contentType}):`, text.substring(0, 100));
+          }
+        } else {
+          console.warn(`[Oracle] Attempt ${6 - retries} failed with status: ${response.status}`);
+        }
+      } catch (e) {
+        console.warn(`[Oracle] Attempt ${6 - retries} failed with error:`, e);
+      }
+      retries--;
+      if (retries > 0) await new Promise(r => setTimeout(r, 2000));
+    }
 
-    if (response.ok) {
+    if (response && response.ok) {
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error(`Expected JSON from server but received ${contentType}. Check server routing.`);
+      }
+      
       const config = await response.json();
       let synced = false;
 
@@ -58,7 +91,8 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
         localStorage.setItem('findaba_gemini_key', config.geminiKey);
         console.log("[Oracle] Signal Synchronized via Server Node.");
         if (synced) resetSupabaseInstance();
-        return { status: 'healthy', message: 'Oracle Signal Synchronized (Server)', source: 'server' };
+        health = { status: 'healthy', message: 'Oracle Signal Synchronized (Server)', source: 'server' };
+        return health;
       }
       
       if (synced) {
@@ -70,6 +104,11 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
     }
   } catch (error) {
     console.error("[Oracle] Server Sync Fault:", error);
+    health = { 
+      status: 'unhealthy', 
+      message: error instanceof Error ? error.message : 'Unknown sync error', 
+      source: 'none' 
+    };
   }
 
   // 3. Environment Variable Fallback
@@ -261,7 +300,27 @@ export const getOracleStream = async (
 
   try {
     // Primary: Gemini 3.1 Pro for high-reasoning and reliability
-    const response = await callModel('gemini-3.1-pro-preview');
+    let response;
+    try {
+      response = await callModel('gemini-3.1-pro-preview');
+    } catch (e: any) {
+      const msg = e.message?.toLowerCase() || "";
+      const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("resource_exhausted");
+      
+      if (isQuota) {
+        console.warn("[Oracle] Pro Signal Congested. Switching to Flash Relay...");
+        try {
+          // Fallback 1: Gemini 3.1 Flash Lite for highest availability
+          response = await callModel('gemini-3.1-flash-lite-preview');
+        } catch (e2: any) {
+          console.warn("[Oracle] Flash Lite Congested. Switching to Flash Standard...");
+          // Fallback 2: Gemini 3 Flash standard
+          response = await callModel('gemini-3-flash-preview');
+        }
+      } else {
+        throw e;
+      }
+    }
 
     const result = JSON.parse(cleanJSON(response.text || '{}'));
     return { 
@@ -279,7 +338,7 @@ export const getOracleStream = async (
     const isNetwork = msg.includes("offline") || msg.includes("network") || msg.includes("failed to fetch") || msg.includes("failed to connect");
     
     let userMessage = "Institutional Signal Lost. Recalibrating...";
-    if (isQuota) userMessage = "MARKET CONGESTION: THE REGISTRY IS OVERLOADED. TRY AGAIN IN A MOMENT.";
+    if (isQuota) userMessage = "MARKET CONGESTION [FLASH RELAY ACTIVE]: THE REGISTRY IS OVERLOADED. PLEASE RETRY IN A MOMENT.";
     if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN AI STUDIO SETTINGS.";
     if (isNetwork) userMessage = "SIGNAL INTERRUPTED: NETWORK CONNECTION LOST. CHECK YOUR INTERNET.";
     

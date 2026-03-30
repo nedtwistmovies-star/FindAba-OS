@@ -290,19 +290,11 @@ const Oracle = ({ catalog, onBack, oracleAvatar }: any) => {
       if (res.thoughtProcess) setShowThinkingId(modelMsg.id);
     } catch (e: any) {
       console.error("Oracle Fault:", e);
-      const msg = e.message || "";
-      const isQuota = msg.toLowerCase().includes("congestion") || msg.includes("429") || msg.toLowerCase().includes("quota");
-      const isAuth = msg.toLowerCase().includes("authentication") || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("invalid");
+      const msg = e.message || "INSTITUTIONAL SIGNAL LOST. THE ORACLE IS RECALIBRATING.";
+      const isQuota = msg.toLowerCase().includes("congestion") || msg.includes("429") || msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("overloaded");
       
       setIsQuotaError(isQuota);
-      
-      if (isQuota) {
-        setErrorNode("MARKET CONGESTION: THE REGISTRY IS OVERLOADED (QUOTA EXCEEDED).");
-      } else if (isAuth) {
-        setErrorNode(`ORACLE AUTHENTICATION FAILED: ${msg.toUpperCase()}`);
-      } else {
-        setErrorNode(msg || "INSTITUTIONAL SIGNAL LOST. THE ORACLE IS RECALIBRATING.");
-      }
+      setErrorNode(msg);
     } finally { 
       setLoading(false); 
       setIsReconnecting(false);
