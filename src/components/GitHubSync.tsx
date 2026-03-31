@@ -105,7 +105,7 @@ export const GitHubSync: React.FC = () => {
         });
       }
     } catch (e: any) {
-      console.error("[GitHub] Health check fault:", e.message);
+      console.warn("Registry health check failed, using fallback");
       setRepoHealth({
         exists: false,
         error: e.message
