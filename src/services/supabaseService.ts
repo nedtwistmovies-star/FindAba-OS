@@ -4,7 +4,8 @@ import {
   Business, Hotel, Room, Booking, LedgerEntry, 
   LogisticsOrder, ChatMessage, Advertorial, AdPlan, 
   PaymentLog, ThriftAccount, Order, OrderStatus, Dispute, PlatformConfig,
-  QualityAudit, SubscriptionTier, RoomType, BuyerSignal, SignalInterest, AdCampaign, HospitalityConfig
+  QualityAudit, SubscriptionTier, RoomType, BuyerSignal, SignalInterest, AdCampaign, HospitalityConfig,
+  AppNotification
 } from '../types';
 import { triggerWebhook, WebhookEvent } from './webhookService';
 
@@ -669,6 +670,51 @@ export const trackAdvertorialView = async (id: string) => {
   if (data) {
     await client.from('advertorials').update({ views: (data.views || 0) + 1 }).eq('id', id);
   }
+};
+
+export const createWelcomeNotification = async (userId: string) => {
+  const client = getSupabase();
+  if (!client) return;
+  
+  const { error } = await client
+    .from('notifications')
+    .insert([
+      {
+        user_id: userId,
+        title: "Welcome to FindAba",
+        message: "Welcome to FindAba! We're excited to have you on board. Explore the best of Aba's industrial and creative landscape.",
+        type: 'success',
+        read: false,
+        created_at: new Date().toISOString()
+      }
+    ]);
+    
+  if (error) {
+    console.warn("[Registry] Welcome notification failed:", error.message);
+  }
+};
+
+export const fetchNotifications = async (userId: string): Promise<AppNotification[]> => {
+  const client = getSupabase();
+  if (!client) return [];
+  try {
+    const { data, error } = await client
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error && error.code === '42P01') return [];
+    return (data || []).map(n => ({
+      ...n,
+      timestamp: n.created_at || new Date().toISOString()
+    }));
+  } catch (e) { return []; }
+};
+
+export const markNotificationAsRead = async (id: string) => {
+  const client = getSupabase();
+  if (!client) return;
+  await client.from('notifications').update({ read: true }).eq('id', id);
 };
 
 // --- PURPLE FLEET & DRIVER NODE PROTOCOLS ---

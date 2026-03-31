@@ -7,7 +7,7 @@ export type ViewState =
   | 'contact' | 'audio-heritage' | 'srts-office' | 'booking-ledger' 
   | 'hotel-detail' | 'hotel-node-control' | 'pricing' | 'ad-checkout' | 'about'
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
-  | 'orders' | 'dispute-center' | 'login' | 'carry-me' | 'driver-registry'
+  | 'orders' | 'dispute-center' | 'login' | 'signup' | 'carry-me' | 'driver-registry'
   | 'purple-fleet' | 'driver-console' | 'fleet-admin' | 'legal' | 'hardware-audit' | 'business-verification'
   | 'carry-go-dash' | 'onboarding';
 
@@ -514,7 +514,7 @@ export interface SignalInterest {
   created_at: string;
 }
 
-export interface Notification {
+export interface AppNotification {
   id: string;
   title: string;
   message: string;

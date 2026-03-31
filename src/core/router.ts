@@ -50,6 +50,7 @@ export const Oracle = lazy(() => import('../features/oracle/Oracle'));
 export const ChatView = lazy(() => import('../features/oracle/ChatView'));
 
 export const Login = lazy(() => import('../features/auth/Login'));
+export const Signup = lazy(() => import('../pages/Signup'));
 export const Profile = lazy(() => import('../features/auth/Profile'));
 export const Onboarding = lazy(() => import('../features/auth/Onboarding'));
 
@@ -94,6 +95,7 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'oracle': Oracle,
   'messages': ChatView,
   'login': Login,
+  'signup': Signup,
   'profile': Profile,
   'onboarding': Onboarding,
   'buyer-portal': Profile,

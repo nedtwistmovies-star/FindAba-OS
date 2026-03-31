@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Notification } from '../types';
+import { AppNotification } from '../types';
 import { X, Bell, CheckCircle, Info, AlertTriangle, Trash2 } from 'lucide-react';
 
 interface Props {
-  notifications: Notification[];
+  notifications: AppNotification[];
   onClose: () => void;
   onClear: () => void;
   onMarkRead: (id: string) => void;

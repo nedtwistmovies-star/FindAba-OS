@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ViewState, Notification } from '../types';
+import { ViewState, AppNotification } from '../types';
 import { useToast } from '../providers/ToastProvider';
 import { 
   Home, Compass, UserCircle, Search, Menu, X, Globe, Building2, Zap, ShieldCheck,
@@ -11,7 +11,7 @@ import {
 import Logo from './Logo';
 import { GitHubSync } from './GitHubSync';
 import { generateWelcomeMessage } from '../services/geminiService';
-import { getSupabase } from '../services/supabaseService';
+import { getSupabase, fetchNotifications, markNotificationAsRead } from '../services/supabaseService';
 import { useAuth } from '../providers/AuthProvider';
 import { SANDALS_BRAND } from '../constants';
 import NotificationCenter from './NotificationCenter';
@@ -99,6 +99,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo, oracleAvatar, socialLinks }) => {
   const { addToast } = useToast();
+  const { userIdentifier, userName, isAuth } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRegistryActive, setIsRegistryActive] = useState(false);
   const [isSignalHealthy, setIsSignalHealthy] = useState(true);
@@ -106,10 +107,25 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   
   const [activeLogo, setActiveLogo] = useState<string>(appLogo || SANDALS_BRAND.logo);
   
-  const [notifications, setNotifications] = useState<Notification[]>([
+  const [notifications, setNotifications] = useState<AppNotification[]>([
     { id: '1', title: 'Registry Synchronized', message: 'Industrial Node v6.0 mesh established.', type: 'info', read: false, timestamp: new Date().toISOString() },
     { id: '2', title: 'Security Protocol', message: 'Fidelity Handshake verified via Paystack.', type: 'success', read: false, timestamp: new Date().toISOString() }
   ]);
+
+  useEffect(() => {
+    if (isAuth && userIdentifier) {
+      fetchNotifications(userIdentifier).then((data: AppNotification[]) => {
+        if (data && data.length > 0) {
+          setNotifications(prev => {
+            // Merge with local hardcoded ones, avoiding duplicates if any
+            const existingIds = new Set(prev.map(n => n.id));
+            const newOnes = data.filter(n => !existingIds.has(n.id));
+            return [...newOnes, ...prev];
+          });
+        }
+      });
+    }
+  }, [isAuth, userIdentifier]);
   
   const isSealed = localStorage.getItem('findaba_registry_sealed') === 'true';
   const isDarkView = ['discover', 'home', 'editorial', 'editorial-detail', 'oracle', 'admin', 'srts-dashboard', 'sandals-hotels', 'lab', 'about', 'feed', 'login', 'purple-fleet', 'driver-console', 'fleet-admin'].includes(currentView);
@@ -240,7 +256,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           notifications={notifications} 
           onClose={() => setNotificationsOpen(false)}
           onClear={() => setNotifications([])}
-          onMarkRead={(id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))}
+          onMarkRead={(id) => {
+            markNotificationAsRead(id);
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+          }}
         />
       )}
 

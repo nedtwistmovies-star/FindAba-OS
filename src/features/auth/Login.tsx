@@ -147,10 +147,10 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
             <div className="text-center pt-4 flex flex-col items-center gap-4">
                <button 
-                 onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                 onClick={() => setView('signup')}
                  className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-aba-gold transition-colors border-b border-white/10 pb-1"
                >
-                  {mode === 'login' ? "DON'T HAVE A NODE? CREATE ACCOUNT" : "EXISTING NODE? ENTRY PORTAL"}
+                  DON'T HAVE A NODE? CREATE ACCOUNT
                </button>
 
                <button 
