@@ -201,6 +201,13 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
       </div>
     );
 
+  const currentHostname = window.location.hostname;
+  const isApexDomain = currentHostname === "findaba.com.ng";
+  const isWwwDomain = currentHostname === "www.findaba.com.ng";
+  const isVercelDomain = currentHostname.endsWith(".vercel.app");
+  const isProductionVercel = currentHostname === "findabaos-six.vercel.app";
+  const isCustomDomainActive = isApexDomain || isWwwDomain;
+
   return (
     <div className="flex-1 bg-[#020617] flex flex-col text-white animate-fade-in font-sans h-full overflow-hidden">
       <header className="px-4 sm:px-8 py-4 sm:py-8 flex justify-between items-center bg-black/40 backdrop-blur-2xl border-b border-white/5 shrink-0">
@@ -608,9 +615,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
                       <Globe className="text-aba-gold" /> Domain Configuration
                     </h4>
-                    <div className="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-[8px] font-black uppercase text-red-500 tracking-widest">DNS Update Required</span>
+                    <div className={`px-3 py-1 rounded-full flex items-center gap-2 ${isCustomDomainActive ? 'bg-aba-green/10 border border-aba-green/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${isCustomDomainActive ? 'bg-aba-green' : 'bg-red-500 animate-pulse'}`} />
+                      <span className={`text-[8px] font-black uppercase tracking-widest ${isCustomDomainActive ? 'text-aba-green' : 'text-red-500'}`}>
+                        {isCustomDomainActive ? 'Domain Active' : 'DNS Update Required'}
+                      </span>
                     </div>
                   </div>
 
@@ -695,33 +704,41 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   </h4>
                   
                   <div className="space-y-6">
-                    <div className="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-white/5">
+                    <div className={`flex items-center justify-between p-6 bg-black/40 rounded-3xl border ${isProductionVercel || isVercelDomain ? 'border-aba-green/20' : 'border-white/5'}`}>
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center">
-                          <Globe size={20} className="text-white/40" />
+                          <Globe size={20} className={isProductionVercel || isVercelDomain ? "text-aba-green" : "text-white/40"} />
                         </div>
                         <div className="space-y-1">
                           <p className="text-[10px] font-black uppercase text-white tracking-widest">findabaos-six.vercel.app</p>
-                          <p className="text-[8px] font-bold text-aba-green uppercase tracking-widest">Valid Configuration</p>
+                          <p className={`text-[8px] font-bold uppercase tracking-widest ${isProductionVercel || isVercelDomain ? 'text-aba-green' : 'text-white/40'}`}>
+                            {isProductionVercel || isVercelDomain ? 'Valid Configuration' : 'Secondary Node'}
+                          </p>
                         </div>
                       </div>
-                      <div className="px-3 py-1 bg-aba-green/10 border border-aba-green/20 rounded-full">
-                        <span className="text-[8px] font-black uppercase text-aba-green tracking-widest">Production</span>
+                      <div className={`px-3 py-1 rounded-full ${isProductionVercel ? 'bg-aba-green/10 border border-aba-green/20' : 'bg-white/5 border border-white/10'}`}>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${isProductionVercel ? 'text-aba-green' : 'text-white/40'}`}>
+                          {isProductionVercel ? 'Production' : 'Preview'}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-white/5 opacity-50">
+                    <div className={`flex items-center justify-between p-6 bg-black/40 rounded-3xl border ${isCustomDomainActive ? 'border-aba-green/20' : 'border-red-500/10 opacity-50'}`}>
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center">
-                          <Globe size={20} className="text-white/40" />
+                          <Globe size={20} className={isCustomDomainActive ? "text-aba-green" : "text-white/40"} />
                         </div>
                         <div className="space-y-1">
                           <p className="text-[10px] font-black uppercase text-white tracking-widest">findaba.com.ng</p>
-                          <p className="text-[8px] font-bold text-red-500 uppercase tracking-widest">Invalid Configuration</p>
+                          <p className={`text-[8px] font-bold uppercase tracking-widest ${isCustomDomainActive ? 'text-aba-green' : 'text-red-500'}`}>
+                            {isCustomDomainActive ? 'Valid Configuration' : 'Invalid Configuration'}
+                          </p>
                         </div>
                       </div>
-                      <div className="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
-                        <span className="text-[8px] font-black uppercase text-red-500 tracking-widest">Production</span>
+                      <div className={`px-3 py-1 rounded-full ${isCustomDomainActive ? 'bg-aba-green/10 border border-aba-green/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${isCustomDomainActive ? 'text-aba-green' : 'text-red-500'}`}>
+                          {isCustomDomainActive ? 'Production' : 'Inactive'}
+                        </span>
                       </div>
                     </div>
 
