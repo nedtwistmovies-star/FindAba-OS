@@ -26,18 +26,23 @@ export const useGitSync = () => {
       }
 
       const url = targetRepo ? `/api/git/sync?repo=${encodeURIComponent(targetRepo)}` : '/api/git/sync';
-      const response = await fetch(url);
-      const result = await response.json();
-      
-      if (response.ok) {
-        setStatus({
-          connected: true,
-          repo: result.repo,
-          lastUpdated: result.lastUpdated,
-          data: result.data
-        });
-      } else {
-        setStatus({ connected: false, error: result.error });
+      try {
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (response.ok) {
+          setStatus({
+            connected: true,
+            repo: result.repo,
+            lastUpdated: result.lastUpdated,
+            data: result.data
+          });
+        } else {
+          setStatus({ connected: false, error: result.error });
+        }
+      } catch (err) {
+        console.warn("Registry sync failed, using fallback state");
+        setStatus({ connected: false, error: 'Network error during Git sync' });
       }
     } catch (err) {
       setStatus({ connected: false, error: 'Network error during Git sync' });

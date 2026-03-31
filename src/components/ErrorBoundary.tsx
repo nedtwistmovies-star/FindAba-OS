@@ -38,7 +38,7 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="space-y-4">
               <h1 className="text-3xl font-black text-white uppercase tracking-tight">This node can't be reached</h1>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                Check if there is a typo in registry.findaba.app. <br/>
+                Check if there is a typo in findaba.com.ng. <br/>
                 <span className="text-[10px] font-mono opacity-40 uppercase mt-4 block">REGISTRY_PROBE_FINISHED_NXDOMAIN</span>
               </p>
             </div>
