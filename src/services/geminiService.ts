@@ -2,6 +2,7 @@
 import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 import { Business } from "../types";
 import { resetSupabaseInstance } from "./supabaseService";
+import { getOpenRouterStream } from "./openRouterService";
 
 const getAI = () => {
   // 1. Check localStorage for synced key (highest priority)
@@ -236,6 +237,24 @@ export const getOracleStream = async (
   history: any[], 
   catalog: Business[]
 ) => {
+  const primaryAI = localStorage.getItem('findaba_primary_ai') || 'gemini';
+  
+  if (primaryAI === 'openrouter') {
+    try {
+      const openRouterKey = localStorage.getItem('findaba_openrouter_key');
+      if (openRouterKey) {
+        console.log("[Oracle] Primary Signal: OpenRouter Relay Active.");
+        return await getOpenRouterStream(
+          typeof prompt === 'string' ? prompt : "Analyze this image and provide wisdom.",
+          history,
+          catalog
+        );
+      }
+    } catch (e: any) {
+      console.warn("[Oracle] OpenRouter Primary Signal Failed. Falling back to Gemini Native...", e);
+    }
+  }
+
   const businessContext = catalog.map(b => ({
     name: b.name,
     category: b.category,
@@ -352,6 +371,22 @@ export const getOracleStream = async (
             return processOracleResponse(response);
           } catch (e4: any) {
             lastError = e4;
+            console.warn("[Oracle] Gemini Signal Completely Lost. Attempting OpenRouter Relay...");
+            
+            // Attempt 5: OpenRouter (External Relay)
+            try {
+              const openRouterKey = localStorage.getItem('findaba_openrouter_key');
+              if (openRouterKey) {
+                return await getOpenRouterStream(
+                  typeof prompt === 'string' ? prompt : "Analyze this image and provide wisdom.",
+                  history,
+                  catalog
+                );
+              }
+            } catch (e5: any) {
+              console.error("[Oracle] OpenRouter Relay Fault:", e5);
+              lastError = e5;
+            }
           }
         }
       }

@@ -573,6 +573,26 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 
                 <div className="space-y-6">
                   <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Primary AI Provider</label>
+                    <div className="flex gap-4">
+                      <select 
+                        defaultValue={localStorage.getItem('findaba_primary_ai') || 'gemini'}
+                        onChange={(e) => {
+                          localStorage.setItem('findaba_primary_ai', e.target.value);
+                          addToast(`Primary AI set to ${e.target.value.toUpperCase()}`, "success");
+                        }}
+                        className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all"
+                      >
+                        <option value="gemini" className="bg-aba-dark">Google Gemini (Native)</option>
+                        <option value="openrouter" className="bg-aba-dark">OpenRouter (External Relay)</option>
+                      </select>
+                    </div>
+                    <p className="text-[9px] font-bold text-white/20 uppercase leading-relaxed tracking-widest">
+                      Choose the primary AI engine for the Oracle.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Gemini API Key</label>
                     <div className="flex gap-4">
                       <input 
@@ -604,6 +624,39 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     </div>
                     <p className="text-[9px] font-bold text-white/20 uppercase leading-relaxed tracking-widest">
                       This key is used for the Oracle AI, Image Generation, and Industrial Video features.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">OpenRouter API Key (Alternative)</label>
+                    <div className="flex gap-4">
+                      <input 
+                        type="password"
+                        defaultValue={localStorage.getItem('findaba_openrouter_key') || ''}
+                        placeholder="sk-or-v1-..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all"
+                        onBlur={(e) => {
+                          const val = e.target.value.trim();
+                          if (val) {
+                            localStorage.setItem('findaba_openrouter_key', val);
+                            addToast("OpenRouter Signal Key Updated.", "success");
+                          }
+                        }}
+                      />
+                      <IndustrialButton 
+                        variant="secondary" 
+                        size="md" 
+                        icon={Trash2}
+                        onClick={() => {
+                          localStorage.removeItem('findaba_openrouter_key');
+                          addToast("OpenRouter Signal Key Purged", "info");
+                        }}
+                      >
+                        Purge
+                      </IndustrialButton>
+                    </div>
+                    <p className="text-[9px] font-bold text-white/20 uppercase leading-relaxed tracking-widest">
+                      Use OpenRouter to access alternative AI models.
                     </p>
                   </div>
                 </div>
