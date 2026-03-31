@@ -12,6 +12,7 @@ import Logo from './Logo';
 import { GitHubSync } from './GitHubSync';
 import { generateWelcomeMessage } from '../services/geminiService';
 import { getSupabase } from '../services/supabaseService';
+import { useAuth } from '../providers/AuthProvider';
 import { SANDALS_BRAND } from '../constants';
 import NotificationCenter from './NotificationCenter';
 
@@ -43,27 +44,27 @@ export const BrandSignature: React.FC<{ light?: boolean; className?: string }> =
 );
 
 const AIWelcomeSection: React.FC<{ light?: boolean }> = ({ light }) => {
+  const { userIdentifier, userName } = useAuth();
   const [welcome, setWelcome] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const name = localStorage.getItem('findaba_user_name');
-    const id = localStorage.getItem('findaba_user_id');
-    
-    if (name && id) {
-      const savedWelcome = sessionStorage.getItem('findaba_layout_welcome');
+    if (userName && userIdentifier) {
+      const savedWelcome = sessionStorage.getItem(`findaba_layout_welcome_${userIdentifier}`);
       if (savedWelcome) {
         setWelcome(savedWelcome);
       } else {
         setLoading(true);
-        generateWelcomeMessage(name, id).then(msg => {
+        generateWelcomeMessage(userName, userIdentifier).then(msg => {
           setWelcome(msg);
-          sessionStorage.setItem('findaba_layout_welcome', msg);
+          sessionStorage.setItem(`findaba_layout_welcome_${userIdentifier}`, msg);
           setLoading(false);
         }).catch(() => setLoading(false));
       }
+    } else {
+      setWelcome(null);
     }
-  }, []);
+  }, [userName, userIdentifier]);
 
   if (loading) return null;
   if (!welcome) return null;
@@ -312,19 +313,40 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                 <h4 className="text-aba-green text-[18px] font-bold uppercase tracking-widest">Connect With Us</h4>
                 <div className="flex gap-6">
                   <button 
-                    onClick={() => (socialLinks?.facebook || SANDALS_BRAND.facebook) ? window.open(socialLinks?.facebook || `https://facebook.com/${SANDALS_BRAND.facebook}`, '_blank') : addToast("Facebook Link not set in Registry. Contact Admin.", "info")} 
+                    onClick={() => {
+                      const url = socialLinks?.facebook || SANDALS_BRAND.facebook;
+                      if (url) {
+                        window.open(url.startsWith('http') ? url : `https://facebook.com/${url}`, '_blank');
+                      } else {
+                        addToast("Facebook Link not set in Registry. Contact Admin.", "info");
+                      }
+                    }} 
                     className="p-3 bg-white/5 rounded-xl hover:text-aba-gold transition-all"
                   >
                     <Facebook size={20} />
                   </button>
                   <button 
-                    onClick={() => (socialLinks?.instagram || SANDALS_BRAND.instagram) ? window.open(socialLinks?.instagram || `https://instagram.com/${SANDALS_BRAND.instagram}`, '_blank') : addToast("Instagram Link not set in Registry. Contact Admin.", "info")} 
+                    onClick={() => {
+                      const url = socialLinks?.instagram || SANDALS_BRAND.instagram;
+                      if (url) {
+                        window.open(url.startsWith('http') ? url : `https://instagram.com/${url}`, '_blank');
+                      } else {
+                        addToast("Instagram Link not set in Registry. Contact Admin.", "info");
+                      }
+                    }} 
                     className="p-3 bg-white/5 rounded-xl hover:text-aba-gold transition-all"
                   >
                     <Instagram size={20} />
                   </button>
                   <button 
-                    onClick={() => (socialLinks?.twitter || SANDALS_BRAND.twitter) ? window.open(socialLinks?.twitter || `https://twitter.com/${SANDALS_BRAND.twitter}`, '_blank') : addToast("Twitter Link not set in Registry. Contact Admin.", "info")} 
+                    onClick={() => {
+                      const url = socialLinks?.twitter || SANDALS_BRAND.twitter;
+                      if (url) {
+                        window.open(url.startsWith('http') ? url : `https://twitter.com/${url}`, '_blank');
+                      } else {
+                        addToast("Twitter Link not set in Registry. Contact Admin.", "info");
+                      }
+                    }} 
                     className="p-3 bg-white/5 rounded-xl hover:text-aba-gold transition-all"
                   >
                     <Twitter size={20} />

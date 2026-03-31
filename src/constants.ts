@@ -10,7 +10,7 @@ export const SANDALS_BRAND = {
   location: "Aba, Abia State, Nigeria",
   website: "https://findaba.app",
   twitter: "https://twitter.com/Find_Aba",
-  facebook: "https://facebook.com/FindAba",
+  facebook: "https://www.facebook.com/profile.php?id=61588427943743&mibextid=rS40aB7S9Ucbxw6v",
   instagram: "https://instagram.com/find_aba",
   accent: "#FFD700",
   email: "suite@sandalsroyalle.com",

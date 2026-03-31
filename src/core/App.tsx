@@ -12,9 +12,9 @@ import { syncGeminiConfig } from '../services/geminiService';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
-  const { isAuth, userRole, userIdentifier } = useAuth();
+  const { isAuth, userRole, userIdentifier, handleAuthSuccess = () => {} } = useAuth();
   const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
-  const { businesses = [], favorites = [], loading: businessLoading = false, toggleFavorite = () => {} } = useBusiness();
+  const { businesses = [], favorites = [], loading: businessLoading = false, toggleFavorite = () => {}, refreshData = () => {} } = useBusiness();
   const { toasts = [], removeToast = () => {} } = useToast();
   const { isOracleOpen = false, setIsOracleOpen = () => {}, view = 'home', setView = () => {} } = useOracle();
 
@@ -182,6 +182,8 @@ const AppContent: React.FC = () => {
           myBusiness={myBusiness}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
+          onRegister={refreshData}
+          onAuthSuccess={handleAuthSuccess}
           userEmail={userIdentifier}
           userRole={userRole}
         />
