@@ -63,6 +63,45 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [signalLocked, setSignalLocked] = useState(true);
+  const [isReconnecting, setIsReconnecting] = useState(false);
+
+  const saveConversations = (newConvs: Conversation[]) => {
+    setConversations(newConvs);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newConvs));
+  };
+
+  const handleNewChat = () => {
+    const newId = `conv-${Date.now()}`;
+    const newConv: Conversation = {
+      id: newId,
+      title: 'New Signal',
+      messages: [],
+      lastUpdated: new Date().toISOString()
+    };
+    saveConversations([newConv, ...conversations]);
+    setCurrentConvId(newId);
+    setIsSidebarOpen(false);
+  };
+
+  const handleDeleteConversation = (id: string) => {
+    const filtered = conversations.filter(c => c.id !== id);
+    saveConversations(filtered);
+    if (currentConvId === id) {
+      setCurrentConvId(filtered.length > 0 ? filtered[0].id : null);
+    }
+  };
+
+  const handleRenameConversation = (id: string, newTitle: string) => {
+    const updated = conversations.map(c => c.id === id ? { ...c, title: newTitle } : c);
+    saveConversations(updated);
+  };
+
+  const switchToOpenRouter = () => {
+    localStorage.setItem('findaba_primary_ai', 'openrouter');
+    addToast("Primary Signal switched to OpenRouter Relay.", "info");
+    setErrorNode(null);
+    setIsQuotaError(false);
+  };
 
   useEffect(() => {
     const checkSignal = async () => {
@@ -192,8 +231,6 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
     const random = queries[Math.floor(Math.random() * queries.length)];
     setInput(random);
   };
-
-  const [isReconnecting, setIsReconnecting] = useState(false);
 
   const handleSend = async (txt?: string, isRetry = false) => {
     const val = (txt || input).trim();
@@ -644,20 +681,31 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   <p className="text-sm font-bold text-white/90">{errorNode}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <IndustrialButton 
                   variant={isQuotaError ? 'primary' : 'danger'} 
                   size="md" 
                   icon={isReconnecting ? Loader2 : RefreshCcw} 
                   loading={isReconnecting}
                   onClick={async () => {
+                    setIsReconnecting(true);
                     await syncGeminiConfig();
                     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
                     handleSend(lastUserMsg?.text || input, true);
+                    setIsReconnecting(false);
                   }}
                   fullWidth
                 >
                   {isReconnecting ? 'Reconnecting...' : 'Reconnect Signal'}
+                </IndustrialButton>
+                <IndustrialButton 
+                  variant="secondary" 
+                  size="md" 
+                  icon={Zap} 
+                  onClick={switchToOpenRouter}
+                  fullWidth
+                >
+                  Switch to OpenRouter
                 </IndustrialButton>
                 <IndustrialButton 
                   variant="secondary" 

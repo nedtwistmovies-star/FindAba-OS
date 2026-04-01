@@ -20,6 +20,7 @@ const AppContent: React.FC = () => {
 
   const loading = businessLoading;
   const isVercelDomain = window.location.hostname.endsWith('.vercel.app');
+  const isCustomDomain = window.location.hostname === 'findaba.com.ng';
 
   useEffect(() => {
     // Force scroll to top on view change
@@ -28,7 +29,7 @@ const AppContent: React.FC = () => {
     document.body.scrollTo(0, 0);
   }, [view]);
 
-  const myBusiness = businesses?.find ? businesses.find(b => b.email === userIdentifier) : null;
+  const myBusiness = businesses?.find ? businesses.find(b => b.email === userIdentifier || b.phone === userIdentifier) : null;
   const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']);
 
   const [showQuickSetup, setShowQuickSetup] = React.useState(false);
@@ -81,7 +82,7 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      {isVercelDomain && view !== 'admin' && (
+      {isVercelDomain && !isCustomDomain && view !== 'admin' && (
         <div className="bg-aba-gold/10 border-b border-aba-gold/20 p-3 text-center animate-fade-in relative z-[4000]">
           <div className="max-w-4xl mx-auto flex items-center justify-center gap-4">
             <p className="text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] flex items-center gap-3">

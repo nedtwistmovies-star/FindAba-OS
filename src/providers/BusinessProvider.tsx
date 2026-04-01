@@ -97,18 +97,36 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const refreshData = useCallback(async () => {
-    // Only show full-screen loader if we have NO data at all
-    if (businesses.length === 0) {
+  const refreshData = useCallback(async (newBiz?: Business) => {
+    // If we have a new business, add it to the state immediately
+    if (newBiz) {
+      setBusinesses(prev => {
+        const exists = prev.some(b => b.id === newBiz.id);
+        const updated = exists ? prev.map(b => b.id === newBiz.id ? newBiz : b) : [newBiz, ...prev];
+        localStorage.setItem('findaba_businesses_cache', JSON.stringify(updated));
+        return updated;
+      });
+      // If we're just adding one business, we might not need a full refresh immediately
+      // but let's do it anyway to stay in sync, just don't set loading to true
+    } else if (businesses.length === 0) {
       setLoading(true);
     }
+
     try {
       const bizData = await fetchAllBusinesses();
       const favs = userIdentifier ? await fetchFavorites(userIdentifier) : [];
 
       if (bizData?.length) {
-        setBusinesses(bizData);
-        localStorage.setItem('findaba_businesses_cache', JSON.stringify(bizData));
+        setBusinesses(prev => {
+          // Merge logic: keep any newBiz that might not be in the fetch yet
+          const merged = [...bizData];
+          if (newBiz) {
+            const existsInFetch = merged.some(b => b.id === newBiz.id);
+            if (!existsInFetch) merged.unshift(newBiz);
+          }
+          localStorage.setItem('findaba_businesses_cache', JSON.stringify(merged));
+          return merged;
+        });
       }
       if (Array.isArray(favs)) {
         setFavorites(favs);
@@ -122,7 +140,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setLoading(false);
     }
-  }, [userIdentifier, addToast]);
+  }, [userIdentifier, addToast]); // Removed businesses.length to avoid unnecessary re-renders
 
   useEffect(() => {
     refreshData();

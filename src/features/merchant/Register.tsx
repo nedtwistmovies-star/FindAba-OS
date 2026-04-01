@@ -18,6 +18,7 @@ const Register: React.FC<any> = ({ setView, onRegister }) => {
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   
+  const [registrationType, setRegistrationType] = useState<'email' | 'phone'>('email');
   const [formData, setFormData] = useState({
     name: '',
     primary_product_or_service: '',
@@ -27,6 +28,7 @@ const Register: React.FC<any> = ({ setView, onRegister }) => {
     phone_whatsapp: '',
     description: '',
     email: localStorage.getItem('findaba_user_email') || '',
+    phone: localStorage.getItem('findaba_user_phone') || '',
     image_url: '',
   });
 
@@ -38,11 +40,11 @@ const Register: React.FC<any> = ({ setView, onRegister }) => {
   const finalRegister = async () => {
     setIsFinalizing(true);
     
-    // Logic: If plan is Free, activation is instant. 
-    // If paid, the PaystackOverlay handles the automatic handshake.
     const finalBusinessData: any = {
       id: `biz-${Date.now()}`,
       ...formData,
+      email: registrationType === 'email' ? formData.email : undefined,
+      phone: registrationType === 'phone' ? formData.phone : undefined,
       status: 'active',
       verification_status: VerificationStatus.PENDING,
       verification_level: VerificationLevel.LISTED,
@@ -62,10 +64,19 @@ const Register: React.FC<any> = ({ setView, onRegister }) => {
     try {
       await saveBusinessToDB(finalBusinessData);
       localStorage.setItem('findaba_my_business_id', finalBusinessData.id);
+      
+      const identifier = registrationType === 'email' ? formData.email : formData.phone;
+      if (identifier) {
+        localStorage.setItem('findaba_user_id', identifier);
+        localStorage.setItem('findaba_user_email', formData.email);
+        localStorage.setItem('findaba_user_phone', formData.phone);
+        localStorage.setItem('findaba_is_auth', 'true');
+      }
+
       onRegister(finalBusinessData);
       setStep('success');
     } catch (e) {
-      // Fallback for demo
+      console.error("Registration error:", e);
       localStorage.setItem('findaba_my_business_id', finalBusinessData.id);
       onRegister(finalBusinessData);
       setStep('success');
@@ -255,8 +266,33 @@ const Register: React.FC<any> = ({ setView, onRegister }) => {
                 <input type="text" className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="No. 42 Ariaria International Market" />
               </div>
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Contact Email</label>
-                <input type="email" className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all font-mono" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="artisan@example.com" />
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Registration Protocol</label>
+                <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl">
+                  <button 
+                    type="button"
+                    onClick={() => setRegistrationType('email')}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${registrationType === 'email' ? 'bg-white text-aba-dark shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Email
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setRegistrationType('phone')}
+                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${registrationType === 'phone' ? 'bg-white text-aba-dark shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Phone
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">
+                  {registrationType === 'email' ? 'Contact Email' : 'Contact Phone'}
+                </label>
+                {registrationType === 'email' ? (
+                  <input type="email" className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all font-mono" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="artisan@example.com" />
+                ) : (
+                  <input type="tel" className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all font-mono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="+234..." />
+                )}
               </div>
             </div>
           </div>

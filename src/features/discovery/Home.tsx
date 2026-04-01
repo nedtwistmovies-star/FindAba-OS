@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
@@ -17,10 +17,15 @@ interface HomeProps {
 const CitySignals: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [marketDay, setMarketDay] = useState<string>('');
+  const [currentDate, setCurrentDate] = useState<string>('');
 
   useEffect(() => {
     setMarketDay(getIgboMarketDay());
     getAbaWeather().then(setWeather);
+    
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    setCurrentDate(now.toLocaleDateString('en-NG', options));
   }, []);
 
   return (
@@ -30,8 +35,8 @@ const CitySignals: React.FC = () => {
           <Calendar size={16} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Igbo Market Day</span>
-          <span className="text-[11px] font-black text-white uppercase tracking-widest">{marketDay || '...'}</span>
+          <span className="text-[11px] font-black text-aba-gold uppercase tracking-[0.2em] mb-0.5">{currentDate}</span>
+          <span className="text-[13px] font-black text-white uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
         </div>
       </div>
 
@@ -556,7 +561,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       )}
 
       {/* 2. PROTOCOL QUICK NAV */}
-      <section className="px-8 mt-12 mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">
+      <section className="px-8 mt-12 mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-6">
         {[
           { id: 'register', label: 'Join', icon: <PlusCircle size={24} />, desc: 'Register Business', highlight: true },
           { id: 'feed', label: 'Faces', icon: <Users size={24} />, desc: 'City Social' },
@@ -564,7 +569,10 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={24} />, desc: 'Hotels & Suites' },
           { id: 'cargo', label: 'Cargo', icon: <Truck size={24} />, desc: 'Carry-Go' },
           { id: 'srts-dashboard', label: 'Thrift', icon: <Wallet size={24} />, desc: 'Fidelity' },
+          { id: 'lab', label: 'Lab', icon: <Sparkles size={24} />, desc: 'Creative Hub' },
+          { id: 'hardware-audit', label: 'Sentinel', icon: <ShieldCheck size={24} />, desc: 'Tech Audit' },
           { id: 'audio-heritage', label: 'Archive', icon: <Radio size={24} />, desc: 'Audio Intel' },
+          { id: 'about-aba', label: 'History', icon: <BookOpen size={24} />, desc: 'Aba Archive' },
         ].map(node => (
           <button 
             key={node.id} 

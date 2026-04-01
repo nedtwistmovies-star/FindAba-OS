@@ -237,7 +237,7 @@ export const getOracleStream = async (
   history: any[], 
   catalog: Business[]
 ) => {
-  const primaryAI = localStorage.getItem('findaba_primary_ai') || 'gemini';
+  const primaryAI = localStorage.getItem('findaba_primary_ai') || 'openrouter';
   
   if (primaryAI === 'openrouter') {
     try {

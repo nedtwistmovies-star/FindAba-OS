@@ -18,13 +18,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRole, setUserRole] = useState<string | null>(localStorage.getItem('findaba_user_role'));
   const [isAuth, setIsAuth] = useState<boolean>(!!localStorage.getItem('findaba_user_id'));
 
-  const handleAuthSuccess = useCallback((email: string, name: string, role: string = 'registered') => {
-    localStorage.setItem('findaba_user_id', email);
-    localStorage.setItem('findaba_user_email', email);
+  const handleAuthSuccess = useCallback((identifier: string, name: string, role: string = 'registered') => {
+    localStorage.setItem('findaba_user_id', identifier);
+    if (identifier.includes('@')) {
+      localStorage.setItem('findaba_user_email', identifier);
+    } else {
+      localStorage.setItem('findaba_user_phone', identifier);
+    }
     localStorage.setItem('findaba_user_name', name);
     localStorage.setItem('findaba_user_role', role);
     localStorage.setItem('findaba_is_auth', 'true');
-    setUserIdentifier(email);
+    setUserIdentifier(identifier);
     setUserName(name);
     setUserRole(role);
     setIsAuth(true);

@@ -238,6 +238,7 @@ export interface Business {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   category: Category;
   primary_product_or_service: string;
   area: string;
