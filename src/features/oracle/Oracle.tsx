@@ -129,6 +129,12 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [showOracleSetup, setShowOracleSetup] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -456,11 +462,22 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
         </div>
 
         <div className="flex items-center gap-1 cursor-pointer group px-4 py-2 hover:bg-white/5 rounded-2xl transition-all border border-transparent hover:border-white/5">
-          <div className="flex items-center gap-3">
-            <div className={`w-2 h-2 rounded-full ${signalLocked ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse'}`} />
-            <span className="text-[15px] font-black uppercase tracking-widest text-white/90 flex items-center gap-3">
-              Elder Kalu Onyendu v6.0 <ChevronDown size={14} className="opacity-40" />
-            </span>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-3">
+              <div className={`w-2 h-2 rounded-full ${signalLocked ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse'}`} />
+              <span className="text-[15px] font-black uppercase tracking-widest text-white/90 flex items-center gap-3">
+                Elder Kalu Onyendu v6.0 <ChevronDown size={14} className="opacity-40" />
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-1 opacity-40">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em]">
+                {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </span>
+              <div className="w-1 h-1 bg-white/20 rounded-full" />
+              <span className="text-[9px] font-black uppercase tracking-widest">
+                {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+              </span>
+            </div>
           </div>
         </div>
 

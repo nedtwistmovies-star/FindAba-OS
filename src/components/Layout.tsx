@@ -16,6 +16,34 @@ import { useAuth } from '../providers/AuthProvider';
 import { SANDALS_BRAND } from '../constants';
 import NotificationCenter from './NotificationCenter';
 
+const SystemClock: React.FC = () => {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const dateStr = time.toLocaleDateString('en-US', { 
+    weekday: 'short', 
+    day: 'numeric', 
+    month: 'short', 
+    year: 'numeric' 
+  });
+  const timeStr = time.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
+
+  return (
+    <div className="hidden md:flex flex-col items-end px-6 border-x border-white/10 mx-6">
+      <span className="text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] leading-none mb-1">{dateStr}</span>
+      <span className="text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
+    </div>
+  );
+};
+
 export const BrandSignature: React.FC<{ light?: boolean; className?: string }> = ({ light = false, className = "" }) => (
   <div className={`py-12 flex flex-col items-center justify-center gap-4 select-none w-full text-center overflow-hidden px-4 ${className}`}>
     <div className={`flex items-center gap-4 opacity-30 ${light ? 'text-aba-white' : 'text-aba-deep'}`}>
@@ -222,6 +250,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
         </div>
         
         <div className="flex items-center gap-6">
+          <SystemClock />
           <div className="hidden lg:block">
             <GitHubSync />
           </div>
@@ -470,7 +499,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                ))}
             </div>
             <div className="p-8 border-t border-aba-white/5">
-               <div className="p-6 bg-aba-white/5 rounded-[2.5rem] border border-aba-white/5 text-center">
+               <div className="p-6 bg-aba-white/5 rounded-[2.5rem] border border-aba-white/5 text-center flex flex-col gap-2">
+                  <span className="text-[10px] font-black text-aba-gold uppercase tracking-[0.2em]">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </span>
                   <span className="text-[10px] font-black text-aba-white/60 uppercase tracking-widest">SANDALSroyalle Industrial HQ</span>
                </div>
             </div>

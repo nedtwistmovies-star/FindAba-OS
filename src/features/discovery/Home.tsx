@@ -23,9 +23,15 @@ const CitySignals: React.FC = () => {
     setMarketDay(getIgboMarketDay());
     getAbaWeather().then(setWeather);
     
-    const now = new Date();
-    const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    setCurrentDate(now.toLocaleDateString('en-NG', options));
+    const updateDate = () => {
+      const now = new Date();
+      const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      setCurrentDate(now.toLocaleDateString('en-US', options));
+    };
+
+    updateDate();
+    const interval = setInterval(updateDate, 60000); // Update every minute
+    return () => clearInterval(interval);
   }, []);
 
   return (
