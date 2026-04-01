@@ -15,29 +15,70 @@ import { fetchMerchantOrders, updateBusinessInDB } from '../../services/supabase
 import { MultiImageUpload, ImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
 
-// Fix Leaflet icon issue
-const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-L.Marker.prototype.options.icon = defaultIcon;
+// Fix Leaflet icon issue safely
+try {
+  const defaultIcon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+  });
+  if (L.Marker.prototype.options) {
+    L.Marker.prototype.options.icon = defaultIcon;
+  }
+} catch (e) {
+  console.warn("Leaflet icon initialization failed:", e);
+}
 
-const MerchantPortal: React.FC<{ business: Business; onBack: () => void; setView: (v: ViewState) => void }> = ({ business: initialBusiness, onBack, setView }) => {
+const MerchantPortal: React.FC<{ myBusiness: Business | null; setView: (v: ViewState) => void }> = ({ myBusiness: initialBusiness, setView }) => {
   const { addToast } = useToast();
-  const [business, setBusiness] = useState(initialBusiness);
+  const [business, setBusiness] = useState<Business | null>(initialBusiness);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<'identity' | 'orders' | 'media' | 'finance' | 'showroom' | 'trust'>('identity');
 
   useEffect(() => {
-    fetchMerchantOrders(initialBusiness.id).then(data => {
-      setOrders(data);
+    if (initialBusiness) {
+      setBusiness(initialBusiness);
+    }
+  }, [initialBusiness]);
+
+  useEffect(() => {
+    if (initialBusiness?.id) {
+      setLoading(true);
+      fetchMerchantOrders(initialBusiness.id).then(data => {
+        setOrders(data);
+        setLoading(false);
+      }).catch(() => {
+        setLoading(false);
+      });
+    } else {
       setLoading(false);
-    });
-  }, [initialBusiness.id]);
+    }
+  }, [initialBusiness?.id]);
+
+  if (!initialBusiness || !business) {
+    return (
+      <div className="min-h-screen bg-aba-deep flex flex-col items-center justify-center p-8 text-center space-y-8">
+        <div className="w-24 h-24 bg-aba-gold/10 rounded-[2.5rem] flex items-center justify-center text-aba-gold animate-pulse">
+          <Loader2 size={48} className="animate-spin" />
+        </div>
+        <div className="space-y-4">
+          <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Syncing Node...</h2>
+          <p className="text-white/40 text-xs font-bold uppercase tracking-widest max-w-xs leading-relaxed">
+            Establishing secure handshake with the Enyimba Registry. Please wait while we activate your industrial hub.
+          </p>
+        </div>
+        <button 
+          onClick={() => setView('home')}
+          className="px-10 py-5 bg-white/5 text-white/40 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all"
+        >
+          Return to Registry
+        </button>
+      </div>
+    );
+  }
 
   const earnings = orders.reduce((acc, curr) => curr.status === OrderStatus.RELEASED ? acc + curr.merchant_payout : acc, 0);
   const pending = orders.reduce((acc, curr) => curr.status === OrderStatus.PAID ? acc + curr.merchant_payout : acc, 0);
@@ -56,10 +97,11 @@ const MerchantPortal: React.FC<{ business: Business; onBack: () => void; setView
   };
 
   const handleUpdateMedia = async (updates: Partial<Business>) => {
+    if (!business) return;
     setSyncing(true);
     try {
       await updateBusinessInDB(business.id, updates);
-      setBusiness(prev => ({ ...prev, ...updates }));
+      setBusiness(prev => prev ? ({ ...prev, ...updates }) : null);
       addToast("Registry Node Updated Successfully.", "success");
     } catch (e) {
       addToast("Sync Signal Failed. Check Connectivity.", "error");
@@ -75,7 +117,7 @@ const MerchantPortal: React.FC<{ business: Business; onBack: () => void; setView
         <div className="absolute top-0 right-0 p-12 opacity-[0.03] -rotate-12"><TrendingUp size={350} /></div>
         <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
            <div className="flex items-center gap-6">
-              <button onClick={onBack} className="p-4 bg-white/5 rounded-2xl text-white border border-white/10 active:scale-90 shadow-xl transition-all"><ArrowLeft size={24}/></button>
+              <button onClick={() => setView('home')} className="p-4 bg-white/5 rounded-2xl text-white border border-white/10 active:scale-90 shadow-xl transition-all"><ArrowLeft size={24}/></button>
               <div className="flex items-center gap-4">
                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center p-2 shadow-xl">
                     <img src="/manifest.json" className="w-full h-full object-contain" alt="FindAba" onError={(e) => { (e.target as any).src = 'https://picsum.photos/seed/aba/100/100'; }} />

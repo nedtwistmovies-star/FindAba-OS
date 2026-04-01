@@ -36,18 +36,26 @@ class ErrorBoundary extends Component<Props, State> {
           <div className="max-w-sm space-y-8 animate-fade-in">
             <FileX size={80} className="text-white/20" />
             <div className="space-y-4">
-              <h1 className="text-3xl font-black text-white uppercase tracking-tight">This node can't be reached</h1>
+              <h1 className="text-3xl font-black text-white uppercase tracking-tight">Node Interruption</h1>
               <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                Check if there is a typo in findaba.com.ng. <br/>
-                <span className="text-[10px] font-mono opacity-40 uppercase mt-4 block">REGISTRY_PROBE_FINISHED_NXDOMAIN</span>
+                The FindAba OS node encountered a runtime exception. This can happen due to network connectivity issues or temporary service interruptions.
+                <span className="text-[10px] font-mono opacity-40 uppercase mt-4 block">RUNTIME_NODE_EXCEPTION</span>
               </p>
             </div>
-            <button 
-              onClick={() => window.location.reload()}
-              className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[12px] tracking-[0.2em] shadow-2xl active:scale-95 transition-all"
-            >
-              Reload Registry
-            </button>
+            <div className="space-y-3">
+              <button 
+                onClick={() => window.location.reload()}
+                className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[12px] tracking-[0.2em] shadow-2xl active:scale-95 transition-all"
+              >
+                Reboot Node
+              </button>
+              <button 
+                onClick={() => window.location.href = '/'}
+                className="w-full py-5 bg-white/5 text-white rounded-2xl font-black uppercase text-[12px] tracking-[0.2em] border border-white/10 hover:bg-white/10 transition-all"
+              >
+                Return Home
+              </button>
+            </div>
           </div>
         </div>
       );

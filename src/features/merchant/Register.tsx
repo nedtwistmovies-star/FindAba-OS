@@ -11,7 +11,7 @@ import { BUSINESS_PLANS, CATEGORIES, ABA_AREAS } from '../../constants';
 import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
 
-const Register: React.FC<any> = ({ setView, onRegister }) => {
+const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
   const [step, setStep] = useState<'plan' | 'form' | 'success'>('plan');
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(SubscriptionTier.FREE);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
@@ -71,6 +71,11 @@ const Register: React.FC<any> = ({ setView, onRegister }) => {
         localStorage.setItem('findaba_user_email', formData.email);
         localStorage.setItem('findaba_user_phone', formData.phone);
         localStorage.setItem('findaba_is_auth', 'true');
+        
+        // Update global auth state
+        if (onAuthSuccess) {
+          onAuthSuccess(identifier, formData.name, 'merchant');
+        }
       }
 
       onRegister(finalBusinessData);
@@ -78,6 +83,12 @@ const Register: React.FC<any> = ({ setView, onRegister }) => {
     } catch (e) {
       console.error("Registration error:", e);
       localStorage.setItem('findaba_my_business_id', finalBusinessData.id);
+      
+      const identifier = registrationType === 'email' ? formData.email : formData.phone;
+      if (identifier && onAuthSuccess) {
+        onAuthSuccess(identifier, formData.name, 'merchant');
+      }
+      
       onRegister(finalBusinessData);
       setStep('success');
     } finally { 
