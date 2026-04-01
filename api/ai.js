@@ -10,27 +10,40 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({ error: "Missing API key" });
+    if (!process.env.OPENROUTER_API_KEY) {
+      return res.status(500).json({ error: "Missing OpenRouter API key" });
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://www.findaba.com.ng", // REQUIRED
+        "X-Title": "Findaba AI" // REQUIRED
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }]
+        model: "openai/gpt-4o-mini", // or any OpenRouter-supported model
+        messages: [
+          { role: "user", content: prompt }
+        ]
       })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("OpenAI error:", data);
+      console.error("OpenRouter error:", data);
       return res.status(500).json({ error: data });
+    }
+
+    return res.status(200).json(data);
+
+  } catch (error) {
+    console.error("CRASH:", error);
+    return res.status(500).json({ error: "Server crashed" });
+  }
+}
     }
 
     return res.status(200).json(data);
