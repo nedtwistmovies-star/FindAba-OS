@@ -41,8 +41,8 @@ const CitySignals: React.FC = () => {
           <Calendar size={16} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[11px] font-black text-aba-gold uppercase tracking-[0.2em] mb-0.5">{currentDate}</span>
-          <span className="text-[13px] font-black text-white uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
+          <span className="text-[13px] font-black text-aba-gold uppercase tracking-[0.2em] mb-0.5">{currentDate}</span>
+          <span className="text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
         </div>
       </div>
 
