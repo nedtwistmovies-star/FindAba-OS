@@ -29,7 +29,25 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
   const [loading, setLoading] = useState(false);
   const [selectedTracking, setSelectedTracking] = useState<ShipmentDetails | null>(null);
   const [quotes, setQuotes] = useState<LogisticsQuote[]>([]);
+  const [manualTrackingId, setManualTrackingId] = useState('');
+  const [isTrackingManual, setIsTrackingManual] = useState(false);
   const userEmail = localStorage.getItem('findaba_user_email');
+
+  const handleManualTrack = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualTrackingId.trim()) return;
+    setIsTrackingManual(true);
+    try {
+      const data = await fetchTrackingById(manualTrackingId);
+      if (data) {
+        setSelectedTracking(data as any);
+      } else {
+        alert("Tracking ID not found in the Industrial Registry.");
+      }
+    } finally {
+      setIsTrackingManual(false);
+    }
+  };
 
   useEffect(() => {
     const weightNum = parseFloat(bookingData.weight) || 1;
@@ -233,6 +251,31 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
 
         {activeTab === 'track' && (
           <div className="space-y-8 animate-slide-up">
+            {!selectedTracking && (
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-lg border border-slate-100">
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <Search size={16} className="text-aba-gold" />
+                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Manual Registry Search</p>
+                </div>
+                <form onSubmit={handleManualTrack} className="flex gap-3">
+                  <input 
+                    type="text" 
+                    placeholder="Enter Tracking ID (e.g. DH-XXXXXX)" 
+                    className="flex-1 bg-slate-50 p-5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-aba-gold/20 shadow-inner uppercase"
+                    value={manualTrackingId}
+                    onChange={e => setManualTrackingId(e.target.value)}
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={isTrackingManual}
+                    className="bg-aba-dark text-white px-8 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {isTrackingManual ? <Loader2 className="animate-spin" size={16} /> : 'Track'}
+                  </button>
+                </form>
+              </div>
+            )}
+
             {selectedTracking ? (
               <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-xl space-y-10 animate-fade-in">
                 <div className="flex justify-between items-center">
@@ -345,7 +388,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                                <p className="text-lg font-black text-aba-green">₦{o.totalFee.toLocaleString()}</p>
                             </div>
                             <button 
-                              onClick={() => setSelectedTracking(getMockTrackingDetails(o.trackingId))}
+                              onClick={() => setSelectedTracking(o)}
                               className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-aba-dark hover:bg-aba-dark hover:text-white transition-all"
                             >
                                <ChevronRight size={24} />

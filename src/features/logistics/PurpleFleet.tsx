@@ -51,7 +51,10 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
     }
   };
 
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+
   const handleSelectVehicle = (vehicle: any) => {
+    setSelectedVehicle(vehicle);
     setSelectedCategory(vehicle.category);
     setShowCheckout(true);
   };
@@ -64,7 +67,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
       id: `RIDE-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       passenger_email: userEmail,
       passenger_name: userName,
-      vehicle_id: availableVehicles[0]?.id, // Simplified for demo
+      vehicle_id: selectedVehicle?.id || availableVehicles[0]?.id,
       pickup_addr: pickup,
       dropoff_addr: dropoff,
       amount: getPrice(selectedCategory),

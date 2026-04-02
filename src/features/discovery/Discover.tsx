@@ -15,7 +15,7 @@ interface DiscoverProps {
   heroVideos?: any[];
 }
 
-const Discover: React.FC<DiscoverProps> = ({ setView }) => {
+const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
   const discoverCategories = [
     {
       title: "About Aba",
@@ -163,7 +163,7 @@ const Discover: React.FC<DiscoverProps> = ({ setView }) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {featuredBusinesses.map((biz) => (
-            <div key={biz.id} onClick={() => setView('explore')} className="group cursor-pointer bg-white/5 backdrop-blur-2xl rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95 shadow-xl">
+            <div key={biz.id} onClick={() => onBusinessClick(biz as any)} className="group cursor-pointer bg-white/5 backdrop-blur-2xl rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95 shadow-xl">
               <div className="h-56 relative overflow-hidden">
                 <img src={biz.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={biz.name} />
                 <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/90 to-transparent" />

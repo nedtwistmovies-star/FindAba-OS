@@ -291,6 +291,12 @@ export interface Business {
 
 export type ShipmentStatus = 'requested' | 'pickup-scheduled' | 'at-hub' | 'in-transit' | 'delivered' | 'confirmed';
 
+export interface TrackingEvent {
+  timestamp: string;
+  description: string;
+  location: string;
+}
+
 export interface LogisticsOrder {
   id: string;
   user_email: string;

@@ -14,9 +14,27 @@ import { ViewState } from '../types';
 const AppContent: React.FC = () => {
   const { isAuth, userRole, userIdentifier, handleAuthSuccess = () => {} } = useAuth();
   const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
-  const { businesses = [], favorites = [], loading: businessLoading = false, toggleFavorite = () => {}, refreshData = () => {} } = useBusiness();
+  const { 
+    businesses = [], 
+    favorites = [], 
+    loading: businessLoading = false, 
+    toggleFavorite = () => {}, 
+    refreshData = () => {},
+    setSelectedBusiness,
+    setSelectedStory
+  } = useBusiness();
   const { toasts = [], removeToast = () => {} } = useToast();
   const { isOracleOpen = false, setIsOracleOpen = () => {}, view = 'home', setView = () => {} } = useOracle();
+
+  const handleBusinessClick = (b: any) => {
+    setSelectedBusiness(b);
+    setView('detail');
+  };
+
+  const handleStoryClick = (s: any) => {
+    setSelectedStory(s);
+    setView('editorial-detail');
+  };
 
   const loading = businessLoading;
   const isVercelDomain = window.location.hostname.endsWith('.vercel.app');
@@ -193,6 +211,8 @@ const AppContent: React.FC = () => {
           myBusiness={myBusiness}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
+          onBusinessClick={handleBusinessClick}
+          onStoryClick={handleStoryClick}
           onRegister={refreshData}
           onRefresh={refreshData}
           onAuthSuccess={handleAuthSuccess}
