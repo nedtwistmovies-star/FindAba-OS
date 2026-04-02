@@ -8,6 +8,7 @@ import {
 import { ViewState, Vehicle, VehicleCategory } from '../../types';
 import MapView from '../../components/MapView';
 import PaystackOverlay from '../../components/PaystackOverlay';
+import { fetchOnlineVehicles } from '../../services/supabaseService';
 
 const MOCK_DRIVERS: Vehicle[] = [
   {
@@ -17,7 +18,6 @@ const MOCK_DRIVERS: Vehicle[] = [
     driver_phone: '+234 803 111 2222',
     driver_nin: '12345678901',
     plate_number: 'ABA-001-EN',
-    // Fix: Changed engine_number to vin to match Vehicle interface
     vin: 'ENG-9988-XY',
     vehicle_model: 'Lexus ES 350',
     vehicle_year: '2016',
@@ -37,7 +37,6 @@ const MOCK_DRIVERS: Vehicle[] = [
     driver_phone: '+234 810 555 4444',
     driver_nin: '09876543210',
     plate_number: 'ARI-772-AB',
-    // Fix: Changed engine_number to vin to match Vehicle interface
     vin: 'ENG-4433-ZZ',
     vehicle_model: 'Toyota Camry',
     vehicle_year: '2014',
@@ -60,6 +59,7 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
   const [loading, setLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [driverPos, setDriverPos] = useState({ lat: 5.1105, lng: 7.3653 });
+  const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
 
   useEffect(() => {
     let interval: any;
@@ -76,13 +76,18 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
   
   const fare = selectedVehicle?.category === VehicleCategory.EXECUTIVE ? 4500 : 2200;
 
-  const handleRideRequest = () => {
+  const handleRideRequest = async () => {
     if (!pickup || !dropoff) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const vehicles = await fetchOnlineVehicles();
+      setAvailableVehicles(vehicles);
       setStep('select');
-    }, 1200);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBook = (v: Vehicle) => {
@@ -118,7 +123,7 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
         <MapView 
           businesses={step === 'tracking' && selectedVehicle ? [
             { ...selectedVehicle, name: selectedVehicle.driver_name, category: selectedVehicle.category as any, latitude: driverPos.lat, longitude: driverPos.lng } as any
-          ] : MOCK_DRIVERS.map(d => ({ ...d, name: d.driver_name, category: d.category as any, latitude: d.current_lat || 5.1105, longitude: d.current_lng || 7.3653 } as any))} 
+          ] : availableVehicles.map(d => ({ ...d, name: d.driver_name, category: d.category as any, latitude: d.current_lat || 5.1105, longitude: d.current_lng || 7.3653 } as any))} 
           onBusinessClick={(b: any) => setSelectedVehicle(b)} 
         />
         <div className="absolute top-6 left-6 z-50">
@@ -182,7 +187,7 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
                  </div>
 
                  <div className="space-y-3">
-                    {MOCK_DRIVERS.map(driver => (
+                    {availableVehicles.length > 0 ? availableVehicles.map(driver => (
                        <button 
                          key={driver.id}
                          onClick={() => handleBook(driver)}
@@ -208,7 +213,11 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
                              <p className="text-[6px] font-black text-slate-300 uppercase tracking-widest">Est. Fare</p>
                           </div>
                        </button>
-                    ))}
+                    )) : (
+                      <div className="py-12 text-center">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No vehicles found in registry.</p>
+                      </div>
+                    )}
                  </div>
               </div>
             )}

@@ -16,6 +16,35 @@ interface SupportCenterProps {
 const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeChat, setActiveChat] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([
+    { id: 1, text: "Hello! I'm your FindAba support assistant. How can we help you scale your industrial node today?", sender: 'support', time: '5:27 PM' }
+  ]);
+
+  const handleSendMessage = () => {
+    if (!message.trim()) return;
+
+    const newMessage = {
+      id: messages.length + 1,
+      text: message,
+      sender: 'user',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages([...messages, newMessage]);
+    setMessage('');
+
+    // Mock support response
+    setTimeout(() => {
+      const supportResponse = {
+        id: messages.length + 2,
+        text: "Thank you for your message. A SANDALSroyalle support specialist will be with you shortly to assist with your query.",
+        sender: 'support',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, supportResponse]);
+    }, 1500);
+  };
 
   const articles = [
     { id: 1, title: 'How to verify my business?', category: 'Verification' },
@@ -61,27 +90,43 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
             </div>
           </div>
 
-          <div className="flex gap-3 max-w-[85%]">
-            <div className="w-8 h-8 bg-aba-gold rounded-full flex items-center justify-center text-aba-dark font-black text-[10px] shrink-0">SR</div>
-            <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 dark:border-white/5">
-              <p className="text-sm text-slate-600 dark:text-white/70 leading-relaxed">
-                Hello! I'm your FindAba support assistant. How can we help you scale your industrial node today?
-              </p>
+          {messages.map((msg) => (
+            <div key={msg.id} className={`flex gap-3 max-w-[85%] ${msg.sender === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 ${msg.sender === 'support' ? 'bg-aba-gold text-aba-dark' : 'bg-aba-dark text-white'}`}>
+                {msg.sender === 'support' ? 'SR' : 'AU'}
+              </div>
+              <div className={`p-4 rounded-2xl shadow-sm border ${msg.sender === 'support' ? 'bg-white dark:bg-[#1e293b] rounded-tl-none border-slate-100 dark:border-white/5' : 'bg-aba-dark text-white rounded-tr-none border-aba-dark'}`}>
+                <p className="text-sm leading-relaxed">
+                  {msg.text}
+                </p>
+                <p className={`text-[8px] mt-2 font-bold uppercase tracking-widest ${msg.sender === 'support' ? 'text-slate-400' : 'text-white/40'}`}>
+                  {msg.time}
+                </p>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
 
         <div className="p-6 bg-white dark:bg-[#020617] border-t border-slate-100 dark:border-white/5">
-          <div className="flex gap-3 items-center bg-slate-50 dark:bg-white/5 p-2 rounded-2xl border border-slate-100 dark:border-white/5">
+          <form 
+            onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
+            className="flex gap-3 items-center bg-slate-50 dark:bg-white/5 p-2 rounded-2xl border border-slate-100 dark:border-white/5"
+          >
             <input 
               type="text" 
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
               placeholder="Type your message..." 
               className="flex-1 bg-transparent border-none outline-none px-4 py-3 text-sm font-medium dark:text-white"
             />
-            <button className="p-4 bg-aba-dark text-white rounded-xl shadow-lg active:scale-90 transition-all">
+            <button 
+              type="submit"
+              disabled={!message.trim()}
+              className="p-4 bg-aba-dark text-white rounded-xl shadow-lg active:scale-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <Send size={18} />
             </button>
-          </div>
+          </form>
         </div>
       </div>
     );

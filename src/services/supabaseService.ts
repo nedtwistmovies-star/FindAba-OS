@@ -834,6 +834,13 @@ export const fetchAllVehicles = async () => {
   return data || [];
 };
 
+export const fetchOnlineVehicles = async () => {
+  const client = getSupabase();
+  if (!client) return [];
+  const { data } = await client.from('vehicles').select('*').eq('status', 'online');
+  return data || [];
+};
+
 export const subscribeToRideRequests = (driverId: string, callback: (payload: any) => void) => {
   const client = getSupabase();
   if (!client) return { unsubscribe: () => {} };
