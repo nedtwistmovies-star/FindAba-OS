@@ -6,6 +6,8 @@ import { Logo, IndustrialButton, SectionHeader } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
 
+import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
+
 interface HomeProps {
   setView: (v: ViewState) => void;
   businesses?: Business[];
@@ -77,6 +79,32 @@ const CitySignals: React.FC = () => {
 
 const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], heroVideos = [], myBusiness }) => {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      // Trigger Make.com Webhook if configured
+      await triggerWebhook(WebhookEvent.SEARCH_QUERY, { 
+        query: searchQuery,
+        user_email: localStorage.getItem('findaba_user_email') || 'anonymous',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Navigate to explore with the query
+      setView('explore');
+    } catch (err) {
+      console.error("Search signal failed:", err);
+      setView('explore');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const validVideos = (heroVideos || []).filter(v => v && v.url);
   const validImages = (heroImages || []).filter(i => i && i.trim() !== '');
   let mediaNodes = validVideos.length > 0 ? validVideos : (validImages.length > 0 ? validImages : DEFAULT_HERO_IMAGES);
@@ -182,17 +210,25 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           {/* SEARCH BAR - Professional positioned pill style from screenshot */}
           <div className="w-full max-w-2xl relative group">
             <div className="absolute -inset-1 bg-white/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            <button 
-              onClick={() => setView('explore')}
+            <form 
+              onSubmit={handleSearch}
               className="w-full h-16 md:h-20 px-6 md:px-10 bg-[#002113] text-white/70 rounded-full flex items-center shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 relative z-10 transition-all active:scale-[0.98] hover:border-white/30"
             >
               <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-full flex items-center justify-center mr-4 md:mr-6 group-hover:bg-aba-gold group-hover:text-aba-dark transition-all duration-500">
-                <Search size={20} className="text-aba-gold group-hover:text-aba-dark md:w-6 md:h-6" strokeWidth={3} />
+                {isSearching ? <Loader2 className="animate-spin text-aba-gold" size={20} /> : <Search size={20} className="text-aba-gold group-hover:text-aba-dark md:w-6 md:h-6" strokeWidth={3} />}
               </div>
-              <span className="text-sm md:text-base font-bold tracking-tight flex-1 text-left uppercase truncate">Search Aba Industrial Registry...</span>
+              <input 
+                type="text"
+                placeholder="Search Aba Industrial Registry..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="text-sm md:text-base font-bold tracking-tight flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/30 uppercase"
+              />
               <div className="h-8 md:h-10 w-[1px] bg-white/10 mx-4 md:mx-6" />
-              <ChevronRight size={20} className="text-aba-gold/50 group-hover:text-aba-gold transition-all group-hover:translate-x-1 md:w-6 md:h-6" />
-            </button>
+              <button type="submit" className="text-aba-gold/50 group-hover:text-aba-gold transition-all group-hover:translate-x-1">
+                <ChevronRight size={20} className="md:w-6 md:h-6" />
+              </button>
+            </form>
           </div>
         </div>
       </section>

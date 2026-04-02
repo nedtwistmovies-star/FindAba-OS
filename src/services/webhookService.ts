@@ -14,7 +14,8 @@ export enum WebhookEvent {
   DISPUTE_RAISED = 'dispute_raised',
   NEW_BOOKING = 'new_booking',
   RIDE_REQUEST = 'ride_request',
-  SIGNAL_INTEREST = 'signal_interest'
+  SIGNAL_INTEREST = 'signal_interest',
+  SEARCH_QUERY = 'search_query'
 }
 
 export const triggerWebhook = async (event: WebhookEvent, payload: any) => {

@@ -6,7 +6,7 @@ import {
   X, MapPin, Search, ChevronRight, BarChart3, 
   Boxes, ShieldCheck, TrendingUp, Globe, Bike
 } from 'lucide-react';
-import { logTransaction, saveLogisticsOrder, fetchLogisticsOrders } from '../../services/supabaseService';
+import { logTransaction, saveLogisticsOrder, fetchLogisticsOrders, fetchTrackingById } from '../../services/supabaseService';
 import { ShipmentStatus, ViewState } from '../../types';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { calculateLogisticsQuotes, generateTrackingId, getMockTrackingDetails, LogisticsQuote, ShipmentDetails } from '../../services/logisticsService';
@@ -57,16 +57,28 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
   const handlePaymentSuccess = async (res: any) => {
     setLoading(true);
     const carrierName = selectedQuote?.carrier || 'Carry-Go Express';
+    const trackingId = generateTrackingId(carrierName);
+    const initialEvents = [
+      {
+        status: 'requested' as ShipmentStatus,
+        location: ABA_HUBS.find(h => h.id === bookingData.hubId)?.name || 'Central Hub',
+        timestamp: new Date().toISOString(),
+        description: 'Shipment information received'
+      }
+    ];
+
     const order = { 
       id: `ship-${Date.now()}`, 
-      trackingId: generateTrackingId(carrierName), 
+      trackingId, 
       status: 'requested' as ShipmentStatus, 
       pickupAddress: ABA_HUBS.find(h => h.id === bookingData.hubId)?.name || 'Central Hub', 
       deliveryAddress: bookingData.delivery, 
       totalFee: total, 
       timestamp: new Date().toISOString(),
       riderPayout: total * 0.7,
-      carrier: carrierName
+      carrier: carrierName,
+      events: initialEvents,
+      estimatedDelivery: new Date(Date.now() + 86400000 * (selectedQuote?.estimatedDays || 2)).toISOString()
     };
     
     try {

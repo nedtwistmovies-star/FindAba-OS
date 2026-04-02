@@ -49,10 +49,10 @@ export const generateTrackingId = (carrier: string): string => {
   return `${prefix}-${random}`;
 };
 
-export const getMockTrackingDetails = (trackingId: string): ShipmentDetails => {
+export const getMockTrackingDetails = (trackingId: string, carrier: string = 'DHL Enyimba'): ShipmentDetails => {
   return {
     trackingId,
-    carrier: 'DHL Enyimba',
+    carrier,
     status: 'in-transit',
     origin: 'Ariaria Industrial Hub, Aba',
     destination: 'Lagos Island Perimeter',

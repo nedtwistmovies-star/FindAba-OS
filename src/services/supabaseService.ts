@@ -307,6 +307,13 @@ export const fetchLogisticsOrders = async (email: string): Promise<LogisticsOrde
   return data || [];
 };
 
+export const fetchTrackingById = async (trackingId: string): Promise<LogisticsOrder | null> => {
+  const client = getSupabase();
+  if (!client) return null;
+  const { data } = await client.from('logistics_orders').select('*').eq('trackingId', trackingId).maybeSingle();
+  return data;
+};
+
 export const uploadImage = async (file: File, bucket: string): Promise<string | null> => {
   const client = getSupabase();
   if (!client) return null;

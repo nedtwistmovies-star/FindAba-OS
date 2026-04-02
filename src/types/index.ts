@@ -301,6 +301,9 @@ export interface LogisticsOrder {
   totalFee: number;
   riderPayout: number;
   timestamp: string;
+  events?: TrackingEvent[];
+  carrier?: string;
+  estimatedDelivery?: string;
 }
 
 export interface Hotel {
