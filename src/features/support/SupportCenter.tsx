@@ -39,11 +39,11 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
             </button>
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-10 h-10 bg-aba-gold rounded-full flex items-center justify-center text-aba-dark font-black text-xs">WH</div>
+                <div className="w-10 h-10 bg-aba-gold rounded-full flex items-center justify-center text-aba-dark font-black text-xs">SR</div>
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-aba-green border-2 border-white dark:border-[#020617] rounded-full" />
               </div>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-tight dark:text-white">Whogohost Support</h3>
+                <h3 className="text-sm font-black uppercase tracking-tight dark:text-white">SANDALSroyalle Support</h3>
                 <p className="text-[10px] font-bold text-aba-green uppercase tracking-widest">Online • Enyimba Node</p>
               </div>
             </div>
@@ -62,7 +62,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
           </div>
 
           <div className="flex gap-3 max-w-[85%]">
-            <div className="w-8 h-8 bg-aba-gold rounded-full flex items-center justify-center text-aba-dark font-black text-[10px] shrink-0">WH</div>
+            <div className="w-8 h-8 bg-aba-gold rounded-full flex items-center justify-center text-aba-dark font-black text-[10px] shrink-0">SR</div>
             <div className="bg-white dark:bg-[#1e293b] p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 dark:border-white/5">
               <p className="text-sm text-slate-600 dark:text-white/70 leading-relaxed">
                 Hello! I'm your FindAba support assistant. How can we help you scale your industrial node today?
@@ -143,10 +143,10 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
               onClick={() => setActiveChat(true)}
               className="w-full p-6 bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 flex items-center gap-5 hover:bg-slate-100 dark:hover:bg-white/10 transition-all group"
             >
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg">WH</div>
+              <div className="w-12 h-12 bg-gradient-to-br from-aba-gold to-yellow-600 rounded-2xl flex items-center justify-center text-aba-dark font-black shadow-lg">SR</div>
               <div className="flex-1 text-left">
                 <h5 className="text-sm font-black uppercase tracking-tight dark:text-white">Hi, how can we be of help today?</h5>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Whogohost Support • 9m ago</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">SANDALSroyalle Support • 9m ago</p>
               </div>
               <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
             </button>
