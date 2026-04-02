@@ -7,7 +7,7 @@ FindAba by **SANDALSroyalle** is the industrial-grade city platform built for En
 
 ## 🚀 Core Industrial Protocols
 
-### 1. The Oracle (Mazi Elder Kalu AI)
+### 1. The Oracle (FindAba AI)
 - **Intelligence Engine**: Powered by Google Gemini 3 Pro (Reasoning) & Gemini 3 Flash (Logic).
 - **Capabilities**: Real-time market intelligence, leather price indexing via Google Search grounding, and multi-lingual trade wisdom (Igbo, Pidgin, English).
 - **Access**: Floating Pulse Node (Round Oracle vessel).
@@ -75,6 +75,6 @@ This project is pre-configured for the Vercel Edge Network. Simply connect your 
 
 ## 📄 Intellectual Property & License
 
-The software components of FindAba are licensed under the **MIT License**. The "FindAba" trademark, **SANDALSroyalle** brand architecture, and the "Mazi Elder Kalu" AI character concept remain the exclusive intellectual property of **SANDALSroyalle**.
+The software components of FindAba are licensed under the **MIT License**. The "FindAba" trademark and **SANDALSroyalle** brand architecture remain the exclusive intellectual property of **SANDALSroyalle**.
 
 *Built for the Masters. Powered by SANDALSroyalle.*

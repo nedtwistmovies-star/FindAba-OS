@@ -9,7 +9,7 @@ export type ViewState =
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
   | 'orders' | 'dispute-center' | 'login' | 'signup' | 'carry-me' | 'driver-registry'
   | 'purple-fleet' | 'driver-console' | 'fleet-admin' | 'legal' | 'hardware-audit' | 'business-verification'
-  | 'carry-go-dash' | 'onboarding';
+  | 'carry-go-dash' | 'onboarding' | 'support';
 
 export type Language = 'en' | 'ig' | 'pcm' | 'ha' | 'yo' | 'fr' | 'zh';
 export type UserRole = 'visitor' | 'registered' | 'business_owner' | 'verified_business' | 'buyer' | 'editor' | 'admin' | 'driver' | 'fleet_commander';

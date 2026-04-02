@@ -53,6 +53,7 @@ export const Login = lazy(() => import('../features/auth/Login'));
 export const Signup = lazy(() => import('../pages/Signup'));
 export const Profile = lazy(() => import('../features/auth/Profile'));
 export const Onboarding = lazy(() => import('../features/auth/Onboarding'));
+export const SupportCenter = lazy(() => import('../features/support/SupportCenter'));
 
 export const ROUTE_MAP: Record<ViewState, any> = {
   'home': Home,
@@ -98,6 +99,7 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'signup': Signup,
   'profile': Profile,
   'onboarding': Onboarding,
+  'support': SupportCenter,
   'buyer-portal': Profile,
   'registry-setup': Register,
   'orders': MerchantPortal,

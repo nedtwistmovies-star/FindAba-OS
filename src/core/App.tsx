@@ -203,7 +203,7 @@ const AppContent: React.FC = () => {
         >
           <div className="relative sm:w-18 sm:h-18 w-14 h-14 rounded-full flex items-center justify-center bg-aba-dark border-[3px] border-aba-gold shadow-[0_0_40px_rgba(255,215,0,0.5)] transition-all duration-500 hover:scale-110 group">
             <div className="sm:w-16 sm:h-16 w-12 h-12 rounded-full border-2 border-aba-gold overflow-hidden bg-black flex items-center justify-center relative z-10">
-               <img src={oracleAvatar} className="w-full h-full object-cover" alt="Elder Kalu" />
+               <img src={oracleAvatar} className="w-full h-full object-cover" alt="FindAba AI" />
             </div>
             <div className={`absolute bottom-1 right-1 sm:w-5 sm:h-5 w-4 h-4 border-[3px] border-aba-dark rounded-full shadow-lg z-20 transition-all duration-500 ${
               (signalHealth?.status === 'healthy' && geminiHealth) 

@@ -244,7 +244,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                         onUpload={(url: string) => updatePlatformConfig({ app_logo: url }).then(refreshData)}
                       />
                       <ImageUpload
-                        label="Oracle Avatar (Elder Kalu)"
+                        label="Oracle Avatar (FindAba AI)"
                         currentImage={platformConfig.oracle_avatar}
                         onUpload={(url: string) => updatePlatformConfig({ oracle_avatar: url }).then(refreshData)}
                       />

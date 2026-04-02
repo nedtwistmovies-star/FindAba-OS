@@ -35,26 +35,26 @@ const CitySignals: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full bg-[#001a0f] border-y border-white/5 py-3 px-8 flex flex-wrap items-center justify-center gap-8 md:gap-16 z-40 relative">
-      <div className="flex items-center gap-3 group">
-        <div className="w-8 h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
-          <Calendar size={16} />
+    <div className="w-full bg-[#001a0f] border-y border-white/5 py-3 px-4 md:px-8 flex flex-wrap items-center justify-center gap-4 md:gap-16 z-40 relative">
+      <div className="flex items-center gap-2 md:gap-3 group">
+        <div className="w-7 h-7 md:w-8 md:h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
+          <Calendar size={14} className="md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[13px] font-black text-aba-gold uppercase tracking-[0.2em] mb-0.5">{currentDate}</span>
-          <span className="text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
+          <span className="text-[10px] md:text-[13px] font-black text-aba-gold uppercase tracking-[0.15em] md:tracking-[0.2em] mb-0.5">{currentDate}</span>
+          <span className="text-[9px] md:text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
         </div>
       </div>
 
       <div className="h-6 w-[1px] bg-white/5 hidden md:block" />
 
-      <div className="flex items-center gap-3 group">
-        <div className="w-8 h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
-          <CloudSun size={16} />
+      <div className="flex items-center gap-2 md:gap-3 group">
+        <div className="w-7 h-7 md:w-8 md:h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
+          <CloudSun size={14} className="md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
-          <span className="text-[11px] font-black text-white uppercase tracking-widest">
+          <span className="text-[7px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
+          <span className="text-[9px] md:text-[11px] font-black text-white uppercase tracking-widest">
             {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
           </span>
         </div>
@@ -62,13 +62,13 @@ const CitySignals: React.FC = () => {
 
       <div className="h-6 w-[1px] bg-white/5 hidden md:block" />
 
-      <div className="flex items-center gap-3 group">
-        <div className="w-8 h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
-          <Radio size={16} className="animate-pulse" />
+      <div className="flex items-center gap-2 md:gap-3 group">
+        <div className="w-7 h-7 md:w-8 md:h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
+          <Radio size={14} className="animate-pulse md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
-          <span className="text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
+          <span className="text-[7px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
+          <span className="text-[9px] md:text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
         </div>
       </div>
     </div>
@@ -133,20 +133,20 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
     <div className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans overflow-x-hidden">
       <CitySignals />
       {/* 1. TOP BRANDING AREA - Micro-minimized for seamless fit */}
-      <section className="h-auto py-12 w-full bg-aba-gold flex flex-col items-center justify-center relative overflow-hidden z-20">
+      <section className="h-auto py-8 md:py-12 w-full bg-aba-gold flex flex-col items-center justify-center relative overflow-hidden z-20">
         <div className="absolute inset-0 opacity-20 industrial-grid pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent pointer-events-none" />
         
-        <div className="relative z-10 flex flex-col items-center animate-slide-up w-full px-8">
+        <div className="relative z-10 flex flex-col items-center animate-slide-up w-full px-4 md:px-8">
           {/* Merchant Quick Access & Registration CTA */}
-          <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mb-6 md:mb-8">
             {myBusiness ? (
               <IndustrialButton 
                 variant="secondary"
                 size="sm"
                 icon={ShieldCheck}
                 onClick={() => setView('merchant-portal')}
-                className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20"
+                className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20 text-[10px] md:text-xs"
               >
                 Manage {myBusiness.name}
               </IndustrialButton>
@@ -156,7 +156,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 size="sm"
                 icon={PlusCircle}
                 onClick={() => setView('register')}
-                className="bg-aba-dark text-white hover:bg-black shadow-[0_10px_30px_rgba(0,0,0,0.3)]"
+                className="bg-aba-dark text-white hover:bg-black shadow-[0_10px_30px_rgba(0,0,0,0.3)] text-[10px] md:text-xs"
               >
                 Register New Business
               </IndustrialButton>
@@ -167,7 +167,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               size="sm"
               icon={Building2}
               onClick={() => setView('explore')}
-              className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20"
+              className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20 text-[10px] md:text-xs"
             >
               Industrial Directory
             </IndustrialButton>
@@ -178,14 +178,14 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             <div className="absolute -inset-1 bg-white/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <button 
               onClick={() => setView('explore')}
-              className="w-full h-20 px-10 bg-[#002113] text-white/70 rounded-full flex items-center shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 relative z-10 transition-all active:scale-[0.98] hover:border-white/30"
+              className="w-full h-16 md:h-20 px-6 md:px-10 bg-[#002113] text-white/70 rounded-full flex items-center shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 relative z-10 transition-all active:scale-[0.98] hover:border-white/30"
             >
-              <div className="w-12 h-12 bg-aba-gold/10 rounded-full flex items-center justify-center mr-6 group-hover:bg-aba-gold group-hover:text-aba-dark transition-all duration-500">
-                <Search size={24} className="text-aba-gold group-hover:text-aba-dark" strokeWidth={3} />
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-full flex items-center justify-center mr-4 md:mr-6 group-hover:bg-aba-gold group-hover:text-aba-dark transition-all duration-500">
+                <Search size={20} className="text-aba-gold group-hover:text-aba-dark md:w-6 md:h-6" strokeWidth={3} />
               </div>
-              <span className="text-base font-bold tracking-tight flex-1 text-left uppercase">Search Aba Industrial Registry...</span>
-              <div className="h-10 w-[1px] bg-white/10 mx-6" />
-              <ChevronRight size={24} className="text-aba-gold/50 group-hover:text-aba-gold transition-all group-hover:translate-x-1" />
+              <span className="text-sm md:text-base font-bold tracking-tight flex-1 text-left uppercase truncate">Search Aba Industrial Registry...</span>
+              <div className="h-8 md:h-10 w-[1px] bg-white/10 mx-4 md:mx-6" />
+              <ChevronRight size={20} className="text-aba-gold/50 group-hover:text-aba-gold transition-all group-hover:translate-x-1 md:w-6 md:h-6" />
             </button>
           </div>
         </div>
@@ -261,19 +261,19 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       
       {/* 🔹 BUSINESS OF THE DAY */}
       {businessOfTheDay && (
-        <section className="px-8 mb-24 max-w-7xl mx-auto w-full">
+        <section className="px-4 md:px-8 mb-16 md:mb-24 max-w-7xl mx-auto w-full">
            <SectionHeader 
               title="Business of the Day" 
               subtitle="Daily Industrial Spotlight"
               icon={Sparkles}
-              className="mb-10"
+              className="mb-6 md:mb-10"
            />
 
            <div 
              onClick={() => setView('explore')}
-             className="bg-white/5 backdrop-blur-2xl rounded-[3rem] overflow-hidden flex flex-col md:flex-row shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] border border-white/10 group cursor-pointer active:scale-[0.99] transition-all duration-700 hover:border-aba-gold/30"
+             className="bg-white/5 backdrop-blur-2xl rounded-2xl md:rounded-[3rem] overflow-hidden flex flex-col md:flex-row shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] border border-white/10 group cursor-pointer active:scale-[0.99] transition-all duration-700 hover:border-aba-gold/30"
            >
-              <div className="h-80 md:h-auto md:w-1/2 relative overflow-hidden">
+              <div className="h-64 md:h-auto md:w-1/2 relative overflow-hidden">
                  <img 
                     src={businessOfTheDay.image_url} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3s] ease-out" 
@@ -281,28 +281,28 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                     loading="lazy"
                  />
                  <div className="absolute inset-0 bg-gradient-to-r from-aba-deep/80 via-aba-deep/20 to-transparent" />
-                 <div className="absolute top-8 left-8">
-                    <div className="bg-aba-gold text-aba-deep text-[10px] font-black px-5 py-2.5 rounded-2xl uppercase tracking-widest shadow-2xl flex items-center gap-3">
-                       <Star size={14} fill="currentColor" /> Featured Node
+                 <div className="absolute top-4 left-4 md:top-8 md:left-8">
+                    <div className="bg-aba-gold text-aba-deep text-[8px] md:text-[10px] font-black px-3 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl uppercase tracking-widest shadow-2xl flex items-center gap-2 md:gap-3">
+                       <Star size={12} className="md:w-3.5 md:h-3.5" fill="currentColor" /> Featured Node
                     </div>
                  </div>
               </div>
-              <div className="p-12 md:w-1/2 bg-aba-dark/40 flex flex-col justify-center space-y-8">
-                 <div className="space-y-3">
-                    <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.5em]">{businessOfTheDay.category}</p>
-                    <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">{businessOfTheDay.name}</h2>
+              <div className="p-8 md:p-12 md:w-1/2 bg-aba-dark/40 flex flex-col justify-center space-y-6 md:space-y-8">
+                 <div className="space-y-2 md:space-y-3">
+                    <p className="text-[8px] md:text-[10px] font-black text-aba-gold uppercase tracking-[0.3em] md:tracking-[0.5em]">{businessOfTheDay.category}</p>
+                    <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">{businessOfTheDay.name}</h2>
                  </div>
-                 <p className="text-white/50 text-base leading-relaxed line-clamp-3 font-medium">
+                 <p className="text-white/50 text-sm md:text-base leading-relaxed line-clamp-3 font-medium">
                     {businessOfTheDay.description}
                  </p>
-                 <div className="flex items-center gap-8 pt-6 border-t border-white/5">
-                    <div className="flex items-center gap-3">
-                       <MapPin size={18} className="text-aba-red" />
-                       <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{businessOfTheDay.area}</span>
+                 <div className="flex flex-wrap items-center gap-4 md:gap-8 pt-4 md:pt-6 border-t border-white/5">
+                    <div className="flex items-center gap-2 md:gap-3">
+                       <MapPin size={16} className="text-aba-red md:w-4.5 md:h-4.5" />
+                       <span className="text-[8px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">{businessOfTheDay.area}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                       <ShieldCheck size={18} className="text-aba-green" />
-                       <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Verified Hub</span>
+                    <div className="flex items-center gap-2 md:gap-3">
+                       <ShieldCheck size={16} className="text-aba-green md:w-4.5 md:h-4.5" />
+                       <span className="text-[8px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">Verified Hub</span>
                     </div>
                  </div>
                  <IndustrialButton
@@ -313,7 +313,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                       e.stopPropagation();
                       setView('explore');
                     }}
-                    className="w-fit bg-white text-aba-deep hover:bg-aba-gold"
+                    className="w-full md:w-fit bg-white text-aba-deep hover:bg-aba-gold"
                  >
                     View Profile
                  </IndustrialButton>
@@ -567,38 +567,38 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       )}
 
       {/* 2. PROTOCOL QUICK NAV */}
-      <section className="px-8 mt-12 mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-6">
+      <section className="px-4 md:px-8 mt-8 md:mt-12 mb-16 md:mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-4 md:gap-6">
         {[
-          { id: 'register', label: 'Join', icon: <PlusCircle size={24} />, desc: 'Register Business', highlight: true },
-          { id: 'feed', label: 'Faces', icon: <Users size={24} />, desc: 'City Social' },
-          { id: 'purple-fleet', label: 'Fleet', icon: <Car size={24} />, desc: 'Purple Ride' },
-          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={24} />, desc: 'Hotels & Suites' },
-          { id: 'cargo', label: 'Cargo', icon: <Truck size={24} />, desc: 'Carry-Go' },
-          { id: 'srts-dashboard', label: 'Thrift', icon: <Wallet size={24} />, desc: 'Fidelity' },
-          { id: 'lab', label: 'Lab', icon: <Sparkles size={24} />, desc: 'Creative Hub' },
-          { id: 'hardware-audit', label: 'Sentinel', icon: <ShieldCheck size={24} />, desc: 'Tech Audit' },
-          { id: 'audio-heritage', label: 'Archive', icon: <Radio size={24} />, desc: 'Audio Intel' },
-          { id: 'about-aba', label: 'History', icon: <BookOpen size={24} />, desc: 'Aba Archive' },
+          { id: 'register', label: 'Join', icon: <PlusCircle size={20} className="md:w-6 md:h-6" />, desc: 'Register Business', highlight: true },
+          { id: 'feed', label: 'Faces', icon: <Users size={20} className="md:w-6 md:h-6" />, desc: 'City Social' },
+          { id: 'purple-fleet', label: 'Fleet', icon: <Car size={20} className="md:w-6 md:h-6" />, desc: 'Purple Ride' },
+          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={20} className="md:w-6 md:h-6" />, desc: 'Hotels & Suites' },
+          { id: 'cargo', label: 'Cargo', icon: <Truck size={20} className="md:w-6 md:h-6" />, desc: 'Carry-Go' },
+          { id: 'srts-dashboard', label: 'Thrift', icon: <Wallet size={20} className="md:w-6 md:h-6" />, desc: 'Fidelity' },
+          { id: 'lab', label: 'Lab', icon: <Sparkles size={20} className="md:w-6 md:h-6" />, desc: 'Creative Hub' },
+          { id: 'hardware-audit', label: 'Sentinel', icon: <ShieldCheck size={20} className="md:w-6 md:h-6" />, desc: 'Tech Audit' },
+          { id: 'audio-heritage', label: 'Archive', icon: <Radio size={20} className="md:w-6 md:h-6" />, desc: 'Audio Intel' },
+          { id: 'about-aba', label: 'History', icon: <BookOpen size={20} className="md:w-6 md:h-6" />, desc: 'Aba Archive' },
         ].map(node => (
           <button 
             key={node.id} 
             onClick={() => setView(node.id as any)} 
-            className={`backdrop-blur-3xl p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center gap-5 border transition-all duration-500 active:scale-95 group ${
+            className={`backdrop-blur-3xl p-4 md:p-8 rounded-2xl md:rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center gap-3 md:gap-5 border transition-all duration-500 active:scale-95 group ${
               node.highlight 
                 ? 'bg-aba-gold border-aba-gold/50 hover:bg-white' 
                 : 'bg-white/5 border-white/5 hover:border-aba-gold/30'
             }`}
           >
-             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform ${
+             <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform ${
                node.highlight ? 'bg-aba-deep text-aba-gold' : 'bg-aba-green/20 text-aba-green'
              }`}>
                 {node.icon}
              </div>
-             <div className="space-y-1">
-                <h4 className={`text-[11px] font-black uppercase tracking-tight transition-colors ${
+             <div className="space-y-0.5 md:space-y-1">
+                <h4 className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight transition-colors ${
                   node.highlight ? 'text-aba-deep' : 'text-white group-hover:text-aba-gold'
                 }`}>{node.label}</h4>
-                <p className={`text-[7px] font-bold uppercase tracking-[0.2em] ${
+                <p className={`text-[6px] md:text-[7px] font-bold uppercase tracking-[0.15em] md:tracking-[0.2em] ${
                   node.highlight ? 'text-aba-deep/60' : 'text-white/30'
                 }`}>{node.desc}</p>
              </div>
@@ -607,9 +607,9 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       </section>
 
       {/* 4. INDUSTRIAL SHOWCASE VIDEO */}
-      <section className="px-8 mb-40 max-w-7xl mx-auto w-full">
-        <div className="bg-aba-gold p-1 rounded-[3rem] shadow-2xl overflow-hidden">
-          <div className="bg-aba-deep rounded-[2.8rem] overflow-hidden relative aspect-video group">
+      <section className="px-4 md:px-8 mb-24 md:mb-40 max-w-7xl mx-auto w-full">
+        <div className="bg-aba-gold p-1 rounded-2xl md:rounded-[3rem] shadow-2xl overflow-hidden">
+          <div className="bg-aba-deep rounded-xl md:rounded-[2.8rem] overflow-hidden relative aspect-video group">
             <video 
               src="https://assets.mixkit.co/videos/preview/mixkit-blacksmith-working-on-a-piece-of-metal-41005-large.mp4" 
               autoPlay 
@@ -620,20 +620,20 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-aba-deep via-transparent to-transparent" />
             
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 space-y-6">
-              <div className="w-20 h-20 bg-aba-gold rounded-full flex items-center justify-center shadow-gold-glow animate-pulse-subtle">
-                <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[18px] border-l-aba-deep border-b-[10px] border-b-transparent ml-1" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 md:p-8 space-y-4 md:space-y-6">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-aba-gold rounded-full flex items-center justify-center shadow-gold-glow animate-pulse-subtle">
+                <div className="w-0 h-0 border-t-[8px] md:border-t-[10px] border-t-transparent border-l-[14px] md:border-l-[18px] border-l-aba-deep border-b-[8px] md:border-b-[10px] border-b-transparent ml-1" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter">The Revolution in <span className="text-aba-gold italic">Action.</span></h3>
-                <p className="text-[10px] md:text-xs font-bold text-aba-gold uppercase tracking-[0.5em]">Showcasing Aba's Master Artisans</p>
+              <div className="space-y-1 md:space-y-2">
+                <h3 className="text-2xl md:text-5xl font-black text-white uppercase tracking-tighter">The Revolution in <span className="text-aba-gold italic">Action.</span></h3>
+                <p className="text-[8px] md:text-xs font-bold text-aba-gold uppercase tracking-[0.3em] md:tracking-[0.5em]">Showcasing Aba's Master Artisans</p>
               </div>
             </div>
 
             {/* Technical Overlay Details */}
-            <div className="absolute top-8 left-8 flex items-center gap-3">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Live Industrial Feed // Node_042</span>
+            <div className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 md:gap-3">
+              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-[7px] md:text-[8px] font-black text-white/40 uppercase tracking-widest">Live Industrial Feed // Node_042</span>
             </div>
           </div>
         </div>

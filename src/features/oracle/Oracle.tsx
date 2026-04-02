@@ -466,7 +466,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
             <div className="flex items-center gap-3">
               <div className={`w-2 h-2 rounded-full ${signalLocked ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse'}`} />
               <span className="text-[15px] font-black uppercase tracking-widest text-white/90 flex items-center gap-3">
-                Elder Kalu Onyendu v6.0 <ChevronDown size={14} className="opacity-40" />
+                FindAba AI v6.0 <ChevronDown size={14} className="opacity-40" />
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1 opacity-40">
@@ -601,11 +601,11 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
           {messages.length === 0 && (
             <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 select-none">
               <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-aba-gold shadow-[0_0_30px_rgba(255,215,0,0.3)]">
-                <img src={oracleAvatar} className="w-full h-full object-cover" alt="Elder Kalu Onyendu" />
+                <img src={oracleAvatar} className="w-full h-full object-cover" alt="FindAba AI" />
               </div>
               <div className="text-center space-y-1">
                 <h2 className="text-2xl font-bold tracking-tight">How can I help you today?</h2>
-                <p className="text-sm text-white/40 font-medium">Query the City Oracle of Enyimba City</p>
+                <p className="text-sm text-white/40 font-medium">Query the FindAba AI Assistant</p>
               </div>
             </div>
           )}
@@ -630,7 +630,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
               {m.role === 'model' && (
                 <div className="flex gap-4 group">
                   <div className="w-10 h-10 rounded-full overflow-hidden border border-aba-gold/30 shrink-0 mt-1 shadow-[0_0_15px_rgba(255,215,0,0.2)]">
-                    <img src={oracleAvatar} className="w-full h-full object-cover" alt="Elder Kalu Onyendu" />
+                    <img src={oracleAvatar} className="w-full h-full object-cover" alt="FindAba AI" />
                   </div>
                   <div className="flex-1 space-y-4 overflow-hidden">
                     {m.thoughtProcess && (
@@ -674,7 +674,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
           {loading && (
             <div className="flex gap-4 animate-pulse">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-aba-gold/30 shrink-0">
-                <img src={oracleAvatar} className="w-full h-full object-cover opacity-50" alt="Elder Kalu Onyendu" />
+                <img src={oracleAvatar} className="w-full h-full object-cover opacity-50" alt="FindAba AI" />
               </div>
               <div className="flex items-center gap-3 text-aba-gold">
                 <div className="flex gap-1">
@@ -800,7 +800,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   e.target.style.height = e.target.scrollHeight + 'px';
                 }} 
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Message Elder Kalu Onyendu..."
+                placeholder="Message FindAba AI..."
                 className="flex-1 bg-transparent border-none outline-none py-4 px-2 text-[15px] text-white placeholder:text-white/20 resize-none max-h-48 scrollbar-hide"
                 rows={1}
                 disabled={loading || isRefining}

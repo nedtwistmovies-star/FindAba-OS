@@ -36,6 +36,12 @@ export const getSupabase = (): SupabaseClient | null => {
     return null;
   }
 
+  // Prevent using the app's own URL as Supabase URL (common misconfiguration)
+  if (url.includes(window.location.hostname) && !url.includes('supabase.co')) {
+    console.error("[Registry] Loopback detected: Supabase URL points to the application itself. This will cause SYNC ERROR (HTML response). URL:", url);
+    return null;
+  }
+
   try {
     _supabaseInstance = createClient(url, key, { 
       auth: { 
@@ -44,6 +50,7 @@ export const getSupabase = (): SupabaseClient | null => {
         detectSessionInUrl: true
       } 
     });
+    console.log(`[Registry] Client initialized with URL: ${url.substring(0, 20)}...`);
     return _supabaseInstance;
   } catch (e) { 
     console.error("[Registry] Client initialization fault:", e);
@@ -126,6 +133,7 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
     if (error) {
       console.error("[Supabase] Health probe failed:", error);
       if (error.code === '42P01') return { status: 'unhealthy' as const, message: 'Schema missing: RUN SQL in Supabase Editor.' };
+      if (error.message.includes('Unexpected token')) return { status: 'unhealthy' as const, message: 'Signal Error: Received HTML instead of JSON. Check Supabase URL.' };
       return { status: 'unhealthy' as const, message: `Signal Error: ${error.message}` };
     }
     return { status: 'healthy' as const };
@@ -215,6 +223,7 @@ export const fetchPlatformConfig = async (): Promise<PlatformConfig | null> => {
     const { data, error } = await client.from('platform_config').select('*').eq('id', 1).maybeSingle();
     if (error) {
       if (error.code === '42P01') return parsedLocal || defaultConfig;
+      if (error.message.includes('Unexpected token')) return parsedLocal || defaultConfig;
       throw error;
     }
     
@@ -338,6 +347,7 @@ export const fetchAllBusinesses = async (): Promise<Business[]> => {
   try {
     const { data, error } = await client.from('businesses').select('*').order('created_at', { ascending: false });
     if (error && error.code === '42P01') return [];
+    if (error && error.message.includes('Unexpected token')) return [];
     return data || [];
   } catch (e) { return []; }
 };
@@ -363,6 +373,7 @@ export const fetchFavorites = async (userId: string): Promise<string[]> => {
   try {
     const { data, error } = await client.from('favorites').select('business_id').eq('user_id', userId);
     if (error && error.code === '42P01') return [];
+    if (error && error.message.includes('Unexpected token')) return [];
     return data?.map(f => f.business_id) || [];
   } catch (e) { return []; }
 };
@@ -386,6 +397,7 @@ export const fetchAllAdvertorials = async (): Promise<Advertorial[]> => {
   try {
     const { data, error } = await client.from('advertorials').select('*').order('created_at', { ascending: false });
     if (error && error.code === '42P01') return [];
+    if (error && error.message.includes('Unexpected token')) return [];
     return data || [];
   } catch (e) { return []; }
 };
@@ -412,21 +424,44 @@ export const activatePlanFeatures = async (businessId: string, planId: string) =
 export const fetchThriftAccount = async (email: string): Promise<ThriftAccount | null> => {
   const client = getSupabase();
   if (!client) return null;
-  const { data } = await client.from('thrift_accounts').select('*').eq('user_email', email).maybeSingle();
-  return data;
+  try {
+    const { data, error } = await client.from('thrift_accounts').select('*').eq('user_email', email).maybeSingle();
+    if (error) {
+      if (error.code === '42P01') throw new Error("Thrift Table Missing: Please run SQL setup.");
+      if (error.message.includes('Unexpected token')) throw new Error("Signal Error: Received HTML instead of JSON. Check Supabase URL.");
+      throw error;
+    }
+    return data;
+  } catch (e: any) {
+    console.error("[Thrift] Fetch fault:", e);
+    throw e;
+  }
 };
 
 export const createThriftAccount = async (email: string, cycle: string) => {
   const client = getSupabase();
   if (!client) return;
-  await client.from('thrift_accounts').insert({ user_email: email, cycle, total_saved: 0, status: 'active', start_date: new Date().toISOString() });
+  const { error } = await client.from('thrift_accounts').insert({ user_email: email, cycle, total_saved: 0, status: 'active', start_date: new Date().toISOString() });
+  if (error) throw error;
 };
 
 export const saveThriftContribution = async (email: string, amount: number) => {
   const client = getSupabase();
-  if (!client) return;
-  const account = await fetchThriftAccount(email);
-  if (account) await client.from('thrift_accounts').update({ total_saved: Number(account.total_saved) + amount }).eq('user_email', email);
+  if (!client) throw new Error("Registry Offline");
+  
+  try {
+    const account = await fetchThriftAccount(email);
+    if (!account) throw new Error("No active thrift account found for this user.");
+    
+    const { error } = await client.from('thrift_accounts').update({ 
+      total_saved: Number(account.total_saved) + amount 
+    }).eq('user_email', email);
+    
+    if (error) throw error;
+  } catch (e: any) {
+    console.error("[Thrift] Sync fault:", e);
+    throw e;
+  }
 };
 
 export const updateThriftAccountSettlement = async (email: string, details: any) => {

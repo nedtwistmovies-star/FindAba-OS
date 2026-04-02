@@ -339,7 +339,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                       <span className="text-[10px] font-black uppercase tracking-widest text-aba-green">Active</span>
                     </div>
                     <div className="flex items-center justify-between py-4 border-b border-white/5">
-                      <span className="text-[10px] font-black uppercase text-white/40 tracking-widest">AI Oracle (Elder Kalu)</span>
+                      <span className="text-[10px] font-black uppercase text-white/40 tracking-widest">FindAba AI</span>
                       <span className="text-[10px] font-black uppercase tracking-widest text-aba-gold">Synchronized</span>
                     </div>
                   </div>
@@ -403,7 +403,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                         }
                       />
                       <ImageUpload
-                        label="Oracle Avatar (Elder Kalu)"
+                        label="Oracle Avatar (FindAba AI)"
                         currentImage={platformConfig.oracle_avatar}
                         onUpload={(url: string) =>
                           updatePlatformConfig({ oracle_avatar: url }).then(

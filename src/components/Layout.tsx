@@ -6,7 +6,7 @@ import {
   Home, Compass, UserCircle, Search, Menu, X, Globe, Building2, Zap, ShieldCheck,
   MessageCircle, BookOpen, Map as MapIcon, Layers, Sparkles, Radio, Info, Loader2, Cpu,
   Rss, Users, Lock, Unlock, Bell, Car, Key, Truck, Wallet,
-  Facebook, Instagram, Twitter, Music, Send, Mail
+  Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft
 } from 'lucide-react';
 import Logo from './Logo';
 import { GitHubSync } from './GitHubSync';
@@ -132,6 +132,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const [isRegistryActive, setIsRegistryActive] = useState(false);
   const [isSignalHealthy, setIsSignalHealthy] = useState(true);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   const [activeLogo, setActiveLogo] = useState<string>(appLogo || SANDALS_BRAND.logo);
   
@@ -209,6 +210,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
     { label: 'City Registry', icon: <Layers size={20} />, view: 'explore' as ViewState },
     { label: 'Oracle Hub', icon: <Cpu size={20} />, view: 'oracle' as ViewState },
     { label: 'System Console', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
+    { label: 'System Support', icon: <LifeBuoy size={20} />, view: 'support' as ViewState },
     { label: 'Discover', icon: <Sparkles size={20} />, view: 'discover' as ViewState },
     { label: 'Stories', icon: <BookOpen size={20} />, view: 'editorial' as ViewState },
     { label: 'Executive HQ', icon: <ShieldCheck size={20} />, view: 'srts-office' as ViewState },
@@ -216,92 +218,147 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const SidebarItem = ({ item }: { item: typeof menuItems[0] }) => (
+    <button 
+      onClick={() => setView(item.view)}
+      className={`w-full flex items-center gap-4 p-4 rounded-2xl font-bold uppercase text-[10px] tracking-widest transition-all group ${
+        currentView === item.view 
+          ? 'bg-aba-gold text-aba-dark shadow-lg' 
+          : 'hover:bg-white/5 text-white/40 hover:text-white'
+      }`}
+    >
+      <div className={`transition-transform duration-500 group-hover:scale-110 ${
+        currentView === item.view ? 'text-aba-deep' : 'text-aba-gold'
+      }`}>
+        {item.icon}
+      </div>
+      {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
+    </button>
+  );
+
   return (
-    <div className={`flex flex-col min-h-screen w-full transition-colors duration-1000 font-sans overflow-x-hidden relative ${isDarkView ? 'bg-[#050505] text-aba-white' : 'bg-aba-white text-aba-deep'}`}>
+    <div className={`flex min-h-screen w-full transition-colors duration-1000 font-sans overflow-x-hidden relative ${isDarkView ? 'bg-[#050505] text-aba-white' : 'bg-aba-white text-aba-deep'}`}>
       <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-[9999] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
       
-      {/* GLOBAL ATMOSPHERIC ELEMENTS */}
-      {isDarkView && (
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-aba-gold/5 rounded-full blur-[150px] animate-pulse-slow" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-aba-green/5 rounded-full blur-[200px] animate-pulse-slow" />
-        </div>
-      )}
-
-      <header className={`fixed top-0 left-0 right-0 z-[1000] px-6 md:px-12 py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 ${isDarkView ? 'bg-black/40 border-b border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/80 border-b border-aba-green/5'}`}>
-        <div className="flex items-center gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
-            <Logo src={activeLogo} size={56} className="border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
-            <div className="flex flex-col">
-              <h1 className="text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
-                FindAba
-              </h1>
-              <div className="flex items-center gap-2 mt-2">
-                <p className="text-aba-gold text-[9px] font-black uppercase tracking-[0.6em] opacity-60">SANDALSroyalle</p>
-                {isRegistryActive && (
-                  <div className="flex items-center gap-1.5 border-l border-white/10 pl-2">
-                    <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]'}`} />
-                    <span className={`text-[6px] font-black uppercase tracking-widest ${isSignalHealthy ? 'text-aba-green/60' : 'text-red-500/60'}`}>
-                      {isSignalHealthy ? 'Live' : 'Lost'}
-                    </span>
-                  </div>
-                )}
-              </div>
+      {/* DESKTOP SIDEBAR */}
+      <aside className={`hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-[1100] transition-all duration-500 border-r border-white/5 bg-black/40 backdrop-blur-3xl ${isSidebarCollapsed ? 'w-24' : 'w-72'}`}>
+        <div className="p-8 border-b border-white/5 flex items-center gap-4 overflow-hidden">
+          <Logo src={activeLogo} size={40} className="shrink-0" />
+          {!isSidebarCollapsed && (
+            <div className="flex flex-col animate-fade-in">
+              <h1 className="text-xl font-black tracking-tighter leading-none">FindAba</h1>
+              <span className="text-[7px] font-black uppercase text-aba-gold tracking-[0.4em] mt-1">SANDALSroyalle</span>
             </div>
+          )}
         </div>
         
-        <div className="flex items-center gap-6">
-          <SystemClock />
-          <div className="hidden lg:block">
-            <GitHubSync />
-          </div>
-          <button className="hidden md:flex p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
-            <Search size={24} />
-          </button>
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
+          {menuItems.map((item, i) => (
+            <SidebarItem key={i} item={item} />
+          ))}
+        </div>
+
+        <div className="p-4 border-t border-white/5">
           <button 
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
-            className="relative p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="w-full p-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/40 flex items-center justify-center transition-all"
           >
-            <Bell size={24} />
-            {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-5 h-5 bg-aba-gold text-aba-deep text-[10px] font-black rounded-full flex items-center justify-center border-2 border-black shadow-lg">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-          <button 
-            onClick={() => setIsMenuOpen(true)}
-            className="w-14 h-14 bg-white text-aba-dark rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-all hover:bg-aba-gold hover:shadow-[0_0_30px_rgba(255,215,0,0.3)]"
-          >
-            <Menu size={28} />
-          </button>
-          <button 
-            onClick={() => setView('profile')}
-            className="w-14 h-14 rounded-2xl border-2 border-white/10 overflow-hidden shadow-2xl active:scale-90 transition-all hover:border-aba-gold group/profile"
-          >
-            <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Profile" />
+            {isSidebarCollapsed ? <ChevronRight size={20} /> : <ArrowLeft size={20} />}
           </button>
         </div>
-      </header>
+      </aside>
 
-      {notificationsOpen && (
-        <NotificationCenter 
-          notifications={notifications} 
-          onClose={() => setNotificationsOpen(false)}
-          onClear={() => setNotifications([])}
-          onMarkRead={(id) => {
-            markNotificationAsRead(id);
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-          }}
-        />
-      )}
+      <div className={`flex-1 flex flex-col transition-all duration-500 ${isDarkView ? 'bg-[#050505]' : 'bg-aba-white'} lg:pl-${isSidebarCollapsed ? '24' : '72'}`}>
+        {/* GLOBAL ATMOSPHERIC ELEMENTS */}
+        {isDarkView && (
+          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-aba-gold/5 rounded-full blur-[150px] animate-pulse-slow" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-aba-green/5 rounded-full blur-[200px] animate-pulse-slow" />
+          </div>
+        )}
 
-      <main className={`flex-1 flex flex-col pt-24`}>
-        {children}
-        <footer className={`w-full relative flex flex-col transition-colors duration-700 pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
+        <header className={`fixed top-0 left-0 right-0 z-[1000] px-6 md:px-12 py-4 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 lg:left-${isSidebarCollapsed ? '24' : '72'} ${isDarkView ? 'bg-black/40 border-b border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/80 border-b border-aba-green/5'}`}>
+          <div className="flex items-center gap-4 md:gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
+              <Logo src={activeLogo} size={40} className="md:w-14 md:h-14 border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
+              <div className="flex flex-col">
+                <h1 className="text-xl md:text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
+                  FindAba
+                </h1>
+                <div className="hidden md:flex items-center gap-2 mt-2">
+                  <p className="text-aba-gold text-[9px] font-black uppercase tracking-[0.6em] opacity-60">SANDALSroyalle</p>
+                  {isRegistryActive && (
+                    <div className="flex items-center gap-1.5 border-l border-white/10 pl-2">
+                      <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]'}`} />
+                      <span className={`text-[6px] font-black uppercase tracking-widest ${isSignalHealthy ? 'text-aba-green/60' : 'text-red-500/60'}`}>
+                        {isSignalHealthy ? 'Live' : 'Lost'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+          </div>
           
-          {/* Requested Menu Structure */}
-          <div className="px-10 py-20 space-y-20 max-w-4xl mx-auto w-full">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
+          <div className="flex items-center gap-3 md:gap-6">
+            <div className="hidden xl:block">
+              <SystemClock />
+            </div>
+            <div className="hidden lg:block">
+              <GitHubSync />
+            </div>
+            <button className="hidden sm:flex p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
+              <Search size={20} className="md:w-6 md:h-6" />
+            </button>
+            <button 
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              className="relative p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+            >
+              <Bell size={20} className="md:w-6 md:h-6" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 md:top-2 md:right-2 w-4 h-4 md:w-5 md:h-5 bg-aba-gold text-aba-deep text-[8px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-black shadow-lg">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            <button 
+              onClick={() => setView('support')}
+              className="hidden sm:flex p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+            >
+              <LifeBuoy size={20} className="md:w-6 md:h-6" />
+            </button>
+            <button 
+              onClick={() => setIsMenuOpen(true)}
+              className="w-10 h-10 md:w-14 md:h-14 bg-white text-aba-dark rounded-xl md:rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-all hover:bg-aba-gold hover:shadow-[0_0_30px_rgba(255,215,0,0.3)]"
+            >
+              <Menu size={20} className="md:w-7 md:h-7" />
+            </button>
+            <button 
+              onClick={() => setView('profile')}
+              className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl border-2 border-white/10 overflow-hidden shadow-2xl active:scale-90 transition-all hover:border-aba-gold group/profile"
+            >
+              <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Profile" />
+            </button>
+          </div>
+        </header>
+
+        {notificationsOpen && (
+          <NotificationCenter 
+            notifications={notifications} 
+            onClose={() => setNotificationsOpen(false)}
+            onClear={() => setNotifications([])}
+            onMarkRead={(id) => {
+              markNotificationAsRead(id);
+              setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+            }}
+          />
+        )}
+
+        <main className={`flex-1 flex flex-col pt-20 md:pt-32`}>
+          {children}
+          <footer className={`w-full relative flex flex-col transition-colors duration-700 pb-32 md:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
+            
+            {/* Requested Menu Structure */}
+            <div className="px-6 md:px-10 py-12 md:py-20 space-y-12 md:space-y-20 max-w-4xl mx-auto w-full">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
               <div className="space-y-8">
                 <h4 className="text-aba-green text-[14px] font-bold uppercase tracking-widest">Registry</h4>
                 <div className="space-y-4">
@@ -448,20 +505,21 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
         </footer>
       </main>
 
-      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-8 py-6 flex justify-around items-center transition-all duration-700 ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-4 md:px-8 py-4 md:py-6 flex justify-around items-center transition-all duration-700 lg:hidden ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
         {[
-          { id: 'discover', icon: <Sparkles size={24} />, label: 'DISCOVER' },
-          { id: 'explore', icon: <Layers size={24} />, label: 'REGISTRY' },
-          { id: 'oracle', icon: <Zap size={24} />, label: 'ORACLE' },
-          { id: 'profile', icon: <UserCircle size={24} />, label: 'PROFILE' }
+          { id: 'discover', icon: <Sparkles size={20} />, label: 'DISCOVER' },
+          { id: 'explore', icon: <Layers size={20} />, label: 'REGISTRY' },
+          { id: 'oracle', icon: <Zap size={20} />, label: 'ORACLE' },
+          { id: 'support', icon: <LifeBuoy size={20} />, label: 'SUPPORT' },
+          { id: 'profile', icon: <UserCircle size={20} />, label: 'PROFILE' }
         ].map((btn, i) => (
           <button 
             key={i}
             onClick={() => setView(btn.id as ViewState)} 
-            className={`flex flex-col items-center gap-2 transition-all active:scale-90 group ${currentView === btn.id ? 'text-aba-gold' : (isDarkView ? 'text-white/30 hover:text-white/50' : 'text-aba-deep/30 hover:text-aba-deep/50')}`}
+            className={`flex flex-col items-center gap-1.5 transition-all active:scale-90 group ${currentView === btn.id ? 'text-aba-gold' : (isDarkView ? 'text-white/30 hover:text-white/50' : 'text-aba-deep/30 hover:text-aba-deep/50')}`}
           >
             <div className={`transition-transform duration-500 ${currentView === btn.id ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'group-hover:scale-105'}`}>{btn.icon}</div>
-            <span className={`text-[8px] font-black uppercase tracking-[0.2em] transition-opacity ${currentView === btn.id ? 'opacity-100' : 'opacity-60'}`}>{btn.label}</span>
+            <span className={`text-[7px] font-black uppercase tracking-[0.1em] transition-opacity ${currentView === btn.id ? 'opacity-100' : 'opacity-60'}`}>{btn.label}</span>
           </button>
         ))}
       </nav>
@@ -507,9 +565,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                </div>
             </div>
          </div>
-      </div>
+       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default Layout;

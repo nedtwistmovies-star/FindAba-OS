@@ -7,7 +7,7 @@ import {
   DollarSign, CheckCircle2, Wallet, CreditCard, Loader2, Globe, Sparkles,
   Building2, User, Landmark, Edit3, X, AlertTriangle, RefreshCcw, Zap
 } from 'lucide-react';
-import { fetchThriftAccount, createThriftAccount, saveThriftContribution, updateThriftAccountSettlement, getSupabase } from '../../services/supabaseService';
+import { fetchThriftAccount, createThriftAccount, saveThriftContribution, updateThriftAccountSettlement, getSupabase, purgeLocalRegistry } from '../../services/supabaseService';
 import PaystackOverlay from '../../components/PaystackOverlay';
 
 interface ThriftDashboardProps {
@@ -113,7 +113,17 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       setShowCheckout(false);
       alert(`Master Signal Confirmed: ₦${contributionAmount.toLocaleString()} settled via Paystack Fidelity.`);
     } catch (err: any) {
-      alert(`SYNC ERROR: ${err.message}`);
+      console.error("Thrift Sync Error:", err);
+      const isHtmlError = err.message.includes('Unexpected token') || err.message.includes('Signal Error');
+      
+      if (isHtmlError) {
+        if (confirm(`SIGNAL INTERFERENCE: Your device is receiving invalid data from the registry. This usually happens due to a DNS or configuration fault.\n\nWould you like to reset your signal connection? (This will refresh the page)`)) {
+          purgeLocalRegistry();
+          window.location.reload();
+        }
+      } else {
+        alert(`SYNC ERROR: ${err.message}`);
+      }
     } finally {
       setActionLoading(false);
     }

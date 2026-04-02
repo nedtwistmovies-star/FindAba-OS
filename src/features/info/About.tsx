@@ -29,7 +29,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
     { 
       id: 'intelligence', 
       title: 'Oracle Wisdom', 
-      desc: 'Advanced trade intelligence and market signals powered by the Elder Kalu Onyendu AI core.',
+      desc: 'Advanced trade intelligence and market signals powered by the FindAba AI core.',
       icon: <Cpu size={24} />,
       color: 'text-aba-gold'
     },
