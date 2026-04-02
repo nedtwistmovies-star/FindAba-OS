@@ -11,7 +11,7 @@ import { generateDesignImage, generateIndustrialVideo, getSupportResponse } from
 import { saveVisionToCloud, fetchVisionHistory } from '../../services/supabaseService';
 
 const PRESENTERS = [
-  { id: 'p1', name: 'Executive Kalu', style: 'Corporate Industrial', bio: 'Sophisticated trade envoy for international leather deals.' },
+  { id: 'p1', name: 'FindAba AI', style: 'Corporate Industrial', bio: 'Sophisticated trade envoy for international leather deals.' },
   { id: 'p2', name: 'Master Amaka', style: 'Workshop Professional', bio: 'Expert craftswoman representing garments and textiles.' },
   { id: 'p3', name: 'Global Envoy', style: 'Trade Representative', bio: 'Polished diplomatic figure for cross-border logistics.' }
 ];

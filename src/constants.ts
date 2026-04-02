@@ -20,7 +20,7 @@ export const SANDALS_BRAND = {
 // MANUAL SETTLEMENT NODE v1.0
 export const OFFICIAL_BANK_DETAILS = {
   bankName: "SANDALSROYALLE OFFICIAL BANK",
-  accountNumber: "1234567890",
+  accountNumber: import.meta.env.VITE_ACCOUNT_NUMBER || "0000000000",
   accountName: "SANDALSroyalle Special Events Hub",
   transferNote: "Include Node-ID in Transfer Memo"
 };
@@ -193,6 +193,58 @@ export const ARTISANS: Business[] = [
     products: [
       { id: 'p-jumbo-1', name: 'Premium UK Summer Jumbo Bale', price: 155000, imageUrl: 'https://images.unsplash.com/photo-1523381235312-3a1574da1e28?q=80&w=400', condition: 'Fairly Used', status: 'active' }
     ],
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'biz-verified-1000',
+    name: 'Enyimba Verified Hub (1000 Tier)',
+    email: 'verified@findaba.com',
+    category: Category.SHOEMAKING,
+    primary_product_or_service: 'Verified Industrial Supply',
+    active_features: { physical_verification_badge: true },
+    area: 'Ariaria International',
+    description: 'A verified industrial hub for high-quality production and trade. Payment confirmed by Paystack.',
+    address: 'Ariaria, Aba',
+    phone_whatsapp: '+2348000000000',
+    image_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800',
+    rating: 5.0,
+    review_count: 1,
+    latitude: 5.112,
+    longitude: 7.335,
+    status: 'approved',
+    verification_status: VerificationStatus.VERIFIED,
+    verification_level: VerificationLevel.VERIFIED,
+    subscription_tier: SubscriptionTier.VERIFIED,
+    is_export_ready: true,
+    capacity_indicator: 'Verified Hub',
+    premium_features_enabled: true,
+    products: [],
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'biz-local-trust-hub-01',
+    name: 'Enyimba Local Trust Hub',
+    email: 'trusthub@findaba.com',
+    category: Category.TAILORING,
+    primary_product_or_service: 'Verified Tailoring Node',
+    active_features: { physical_verification_badge: true },
+    area: 'Ngwa Road Hub',
+    description: 'A verified Local Trust Hub node specializing in industrial garment production. Payment confirmed and verified.',
+    address: 'Ngwa Road, Aba',
+    phone_whatsapp: '+2348000000001',
+    image_url: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=800',
+    rating: 5.0,
+    review_count: 5,
+    latitude: 5.102,
+    longitude: 7.365,
+    status: 'approved',
+    verification_status: VerificationStatus.VERIFIED,
+    verification_level: VerificationLevel.VERIFIED,
+    subscription_tier: SubscriptionTier.VERIFIED,
+    is_export_ready: true,
+    capacity_indicator: 'Verified Hub',
+    premium_features_enabled: true,
+    products: [],
     created_at: new Date().toISOString()
   }
 ];

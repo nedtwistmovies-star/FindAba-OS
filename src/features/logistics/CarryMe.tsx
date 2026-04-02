@@ -33,7 +33,7 @@ const MOCK_DRIVERS: Vehicle[] = [
   {
     id: 'v2',
     owner_email: 'driver2@findaba.com',
-    driver_name: 'Mazi Emeka',
+    driver_name: 'Emeka',
     driver_phone: '+234 810 555 4444',
     driver_nin: '09876543210',
     plate_number: 'ARI-772-AB',

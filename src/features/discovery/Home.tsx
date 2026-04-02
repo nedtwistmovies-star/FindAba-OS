@@ -77,8 +77,14 @@ const CitySignals: React.FC = () => {
 
 const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], heroVideos = [], myBusiness }) => {
   const [activeSlide, setActiveSlide] = useState(0);
-  const validVideos = heroVideos.filter(v => v.url);
-  const mediaNodes = validVideos.length > 0 ? validVideos : (heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES);
+  const validVideos = (heroVideos || []).filter(v => v && v.url);
+  const validImages = (heroImages || []).filter(i => i && i.trim() !== '');
+  let mediaNodes = validVideos.length > 0 ? validVideos : (validImages.length > 0 ? validImages : DEFAULT_HERO_IMAGES);
+  
+  // Final safety check to ensure we always have something to show
+  if (!mediaNodes || mediaNodes.length === 0) {
+    mediaNodes = ["https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=1200"];
+  }
 
   // 🔹 Business of the Day Logic
   const businessOfTheDay = useMemo(() => {

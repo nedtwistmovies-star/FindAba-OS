@@ -97,50 +97,72 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const refreshData = useCallback(async (newBiz?: Business) => {
-    // If we have a new business, add it to the state immediately
-    if (newBiz) {
-      setBusinesses(prev => {
-        const exists = prev.some(b => b.id === newBiz.id);
-        const updated = exists ? prev.map(b => b.id === newBiz.id ? newBiz : b) : [newBiz, ...prev];
-        localStorage.setItem('findaba_businesses_cache', JSON.stringify(updated));
-        return updated;
-      });
-      // If we're just adding one business, we might not need a full refresh immediately
-      // but let's do it anyway to stay in sync, just don't set loading to true
-    } else if (businesses.length === 0) {
-      setLoading(true);
-    }
-
-    try {
-      const bizData = await fetchAllBusinesses();
-      const favs = userIdentifier ? await fetchFavorites(userIdentifier) : [];
-
-      if (bizData?.length) {
+    const refreshData = useCallback(async (newBiz?: Business) => {
+      // If we have a new business, add it to the state immediately
+      if (newBiz) {
         setBusinesses(prev => {
-          // Merge logic: keep any newBiz that might not be in the fetch yet
-          const merged = [...bizData];
-          if (newBiz) {
-            const existsInFetch = merged.some(b => b.id === newBiz.id);
-            if (!existsInFetch) merged.unshift(newBiz);
-          }
-          localStorage.setItem('findaba_businesses_cache', JSON.stringify(merged));
-          return merged;
+          const exists = prev.some(b => b.id === newBiz.id);
+          const updated = exists ? prev.map(b => b.id === newBiz.id ? newBiz : b) : [newBiz, ...prev];
+          localStorage.setItem('findaba_businesses_cache', JSON.stringify(updated));
+          return updated;
         });
+      } else if (businesses.length === 0) {
+        setLoading(true);
       }
-      if (Array.isArray(favs)) {
-        setFavorites(favs);
-        localStorage.setItem('findaba_favorites_cache', JSON.stringify(favs));
+
+      // Add a safety timeout to ensure loading state doesn't hang forever
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Registry Sync Timeout")), 15000)
+      );
+
+      try {
+        const fetchPromise = Promise.all([
+          fetchAllBusinesses(),
+          userIdentifier ? fetchFavorites(userIdentifier) : Promise.resolve([])
+        ]);
+
+        const [bizData, favs] = await Promise.race([fetchPromise, timeoutPromise]) as [Business[], string[]];
+
+        if (bizData?.length) {
+          setBusinesses(prev => {
+            // Merge logic: prioritize server data but keep user's own business if missing from server
+            const merged = [...bizData];
+            
+            // 1. Ensure the business just passed to refreshData is included
+            if (newBiz && !merged.some(b => b.id === newBiz.id)) {
+              merged.unshift(newBiz);
+            }
+            
+            // 2. Ensure the current user's business from previous state is preserved if not in server data yet
+            if (userIdentifier) {
+              const myPrevBiz = prev.find(b => 
+                b.email === userIdentifier || 
+                b.phone === userIdentifier || 
+                b.phone_whatsapp === userIdentifier ||
+                (b.phone_whatsapp && userIdentifier && (b.phone_whatsapp.includes(userIdentifier) || userIdentifier.includes(b.phone_whatsapp)))
+              );
+              if (myPrevBiz && !merged.some(b => b.id === myPrevBiz.id)) {
+                merged.unshift(myPrevBiz);
+              }
+            }
+            
+            localStorage.setItem('findaba_businesses_cache', JSON.stringify(merged));
+            return merged;
+          });
+        }
+        if (Array.isArray(favs)) {
+          setFavorites(favs);
+          localStorage.setItem('findaba_favorites_cache', JSON.stringify(favs));
+        }
+        setError(null);
+      } catch (e) {
+        console.error("Business data fetch error:", e);
+        setError("The Industrial Registry is currently unreachable.");
+        addToast("Registry Connection Limited. Using Local Mesh.", "error");
+      } finally {
+        setLoading(false);
       }
-      setError(null);
-    } catch (e) {
-      console.error("Business data fetch error:", e);
-      setError("The Industrial Registry is currently unreachable.");
-      addToast("Registry Connection Limited. Using Local Mesh.", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [userIdentifier, addToast]); // Removed businesses.length to avoid unnecessary re-renders
+    }, [userIdentifier, addToast, businesses.length]);
 
   useEffect(() => {
     refreshData();

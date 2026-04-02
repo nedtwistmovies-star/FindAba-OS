@@ -40,13 +40,19 @@ export const setGeminiKey = (key: string) => {
   console.log("[Oracle] Signal Key updated manually.");
 };
 
+let isSyncing = false;
+
 /**
  * PERMANENT SIGNAL LOCK: SYNC ALL KEYS FROM SERVER WITH RETRY
  */
 export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
+  if (isSyncing) {
+    return { status: 'warning', message: 'Sync already in progress' };
+  }
+  
+  isSyncing = true;
   console.log("[Oracle] Initiating Signal Sync Protocol...");
-  let health: GeminiHealthStatus;
-
+  
   try {
     // 1. Check if Gemini Key exists in env/meta for initial check
     const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
@@ -58,11 +64,16 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
     console.log(`[Oracle] Syncing from: ${syncUrl}`);
     
     let response;
-    let retries = 5;
+    let retries = 3;
     while (retries > 0) {
       try {
-        console.log(`[Oracle] Sync Attempt ${6 - retries} to ${syncUrl}...`);
-        response = await fetch(syncUrl);
+        console.log(`[Oracle] Sync Attempt ${4 - retries} to ${syncUrl}...`);
+        // Add a timeout to the fetch call
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        response = await fetch(syncUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           const contentType = response.headers.get("content-type");
@@ -70,86 +81,83 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
             break;
           } else {
             const text = await response.text();
-            console.warn(`[Oracle] Attempt ${6 - retries} received non-JSON response (${contentType}):`, text.substring(0, 100));
+            console.warn(`[Oracle] Attempt ${4 - retries} received non-JSON response (${contentType}):`, text.substring(0, 100));
           }
         } else {
-          console.warn(`[Oracle] Attempt ${6 - retries} failed with status: ${response.status}`);
+          console.warn(`[Oracle] Attempt ${4 - retries} failed with status: ${response.status}`);
         }
       } catch (e) {
-        console.warn(`[Oracle] Attempt ${6 - retries} failed with error:`, e);
+        console.warn(`[Oracle] Attempt ${4 - retries} failed with error:`, e);
       }
       retries--;
-      if (retries > 0) await new Promise(r => setTimeout(r, 2000));
+      if (retries > 0) await new Promise(r => setTimeout(r, 1000));
     }
 
     if (response && response.ok) {
       const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(`Expected JSON from server but received ${contentType}. Check server routing.`);
-      }
-      
-      const config = await response.json();
-      let synced = false;
+      if (contentType && contentType.includes("application/json")) {
+        const config = await response.json();
+        let synced = false;
 
-      if (config.supabaseUrl && config.supabaseUrl !== 'undefined' && config.supabaseUrl.trim() !== '') {
-        // Prevent loopback configuration
-        if (config.supabaseUrl.includes(window.location.hostname) && !config.supabaseUrl.includes('supabase.co')) {
-          console.error("[Oracle] Loopback detected in server config: Supabase URL points to the application itself. Ignoring.");
-        } else {
-          localStorage.setItem('findaba_supabase_url', config.supabaseUrl);
+        if (config.supabaseUrl && config.supabaseUrl !== 'undefined' && config.supabaseUrl.trim() !== '') {
+          // Prevent loopback configuration
+          if (config.supabaseUrl.includes(window.location.hostname) && !config.supabaseUrl.includes('supabase.co')) {
+            console.error("[Oracle] Loopback detected in server config: Supabase URL points to the application itself. Ignoring.");
+          } else {
+            localStorage.setItem('findaba_supabase_url', config.supabaseUrl);
+            synced = true;
+          }
+        }
+
+        if (config.supabaseKey && config.supabaseKey !== 'undefined' && config.supabaseKey.trim() !== '') {
+          localStorage.setItem('findaba_supabase_key', config.supabaseKey);
           synced = true;
         }
-      }
 
-      if (config.supabaseKey && config.supabaseKey !== 'undefined' && config.supabaseKey.trim() !== '') {
-        localStorage.setItem('findaba_supabase_key', config.supabaseKey);
-        synced = true;
+        if (config.geminiKey && config.geminiKey !== 'undefined' && config.geminiKey.trim() !== '') {
+          localStorage.setItem('findaba_gemini_key', config.geminiKey);
+          console.log("[Oracle] Signal Synchronized via Server Node.");
+          if (synced) resetSupabaseInstance();
+          return { status: 'healthy', message: 'Oracle Signal Synchronized (Server)', source: 'server' };
+        }
+        
+        if (synced) {
+          resetSupabaseInstance();
+          console.log("[Oracle] Supabase Signal Synchronized, but Gemini Key missing on server.");
+        }
       }
-
-      if (config.geminiKey && config.geminiKey !== 'undefined' && config.geminiKey.trim() !== '') {
-        localStorage.setItem('findaba_gemini_key', config.geminiKey);
-        console.log("[Oracle] Signal Synchronized via Server Node.");
-        if (synced) resetSupabaseInstance();
-        health = { status: 'healthy', message: 'Oracle Signal Synchronized (Server)', source: 'server' };
-        return health;
-      }
-      
-      if (synced) {
-        resetSupabaseInstance();
-        console.log("[Oracle] Supabase Signal Synchronized, but Gemini Key missing on server.");
-      }
-    } else {
-      console.warn("[Oracle] Server Node unreachable for configuration sync.");
     }
+
+    // 3. Environment Variable Fallback
+    const envKeyFallback = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
+    const metaKeyFallback = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY) : '';
+    
+    if (envKeyFallback || metaKeyFallback) {
+      const key = envKeyFallback || metaKeyFallback;
+      localStorage.setItem('findaba_gemini_key', key);
+      console.log("[Oracle] Signal Synchronized via Environment Variable.");
+      return { status: 'healthy', message: 'Oracle Signal Synchronized (Env)', source: 'env' };
+    }
+
+    // 4. Local Storage Fallback
+    const localKey = localStorage.getItem('findaba_gemini_key');
+    if (localKey && localKey.trim() !== '') {
+      console.log("[Oracle] Signal Synchronized via Local Mesh.");
+      return { status: 'warning', message: 'Oracle Signal Synchronized (Local Mesh)', source: 'local' };
+    }
+
+    console.error("[Oracle] CRITICAL: No Signal Configuration Detected.");
+    return { status: 'unhealthy', message: 'Oracle Signal Interrupted (API Key Missing)', source: 'none' };
   } catch (error) {
     console.error("[Oracle] Server Sync Fault:", error);
-    health = { 
+    return { 
       status: 'unhealthy', 
       message: error instanceof Error ? error.message : 'Unknown sync error', 
       source: 'none' 
     };
+  } finally {
+    isSyncing = false;
   }
-
-  // 3. Environment Variable Fallback
-  const envKeyFallback = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
-  const metaKeyFallback = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY) : '';
-  
-  if (envKeyFallback || metaKeyFallback) {
-    const key = envKeyFallback || metaKeyFallback;
-    localStorage.setItem('findaba_gemini_key', key);
-    console.log("[Oracle] Signal Synchronized via Environment Variable.");
-    return { status: 'healthy', message: 'Oracle Signal Synchronized (Env)', source: 'env' };
-  }
-
-  // 4. Local Storage Fallback
-  const localKey = localStorage.getItem('findaba_gemini_key');
-  if (localKey && localKey.trim() !== '') {
-    console.log("[Oracle] Signal Synchronized via Local Mesh.");
-    return { status: 'warning', message: 'Oracle Signal Synchronized (Local Mesh)', source: 'local' };
-  }
-
-  console.error("[Oracle] CRITICAL: No Signal Configuration Detected.");
-  return { status: 'unhealthy', message: 'Oracle Signal Interrupted (API Key Missing)', source: 'none' };
 };
 
 const cleanJSON = (text: string) => {
@@ -235,7 +243,7 @@ export const analyzeHardwareTextSignal = async (text: string) => {
 };
 
 /**
- * ORACLE HUB: MAZI ELDER KALU ONYENDU
+ * ORACLE HUB: FindAba AI
  */
 export const getOracleStream = async (
   prompt: string | { data: string, mimeType: string }, 
@@ -461,7 +469,7 @@ export const generateHistoryAudio = async (title: string, lang: string = 'Englis
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Narrate industrial history: ${title} in ${lang}. Tone: Wise patriarch.` }] }],
+      contents: [{ parts: [{ text: `Narrate industrial history: ${title} in ${lang}. Tone: Informative, professional, and friendly.` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName as any } } }
@@ -483,7 +491,7 @@ export const generateWelcomeMessage = async (name: string, id: string) => {
       Tone: Welcoming, using local Aba flavor (Igbo/Pidgin mix). Mention that they are now part of the industrial heartbeat of Enyimba. 
       Rules: Prioritize Aba, do NOT say 'God's Own State', do NOT roleplay as a character.`,
     });
-    return response.text || "Welcome to the Hub, my child. The registry is open.";
+    return response.text || "Welcome to the Hub. The registry is open.";
   } catch (e) { return "Welcome to the Hub."; }
 };
 
@@ -552,7 +560,7 @@ export const findArtisansAI = async (query: string, businesses: Business[]) => {
     return JSON.parse(cleanJSON(response.text || '{}'));
   } catch (e) {
     console.error("[Oracle] Discovery Fault:", e);
-    return { recommendations: [], oracle_wisdom: "The industrial signals are crossed. Try a different query, my child." };
+    return { recommendations: [], oracle_wisdom: "The industrial signals are crossed. Try a different query." };
   }
 };
 

@@ -236,7 +236,7 @@ const AudioHeritage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             {loading ? `Recalling Oral Memory...` : (playing ? currentTopic.title : "Learned Heritage Engine")}
           </h3>
           <p className="text-[11px] font-bold text-white/30 uppercase tracking-[0.4em] max-w-xl mx-auto text-center leading-relaxed italic">
-            {loading ? "Mmm... Mazi Kalu is adjusting his glasses. Preparing a high-fidelity academic narrative of our lineage." : (playing ? `The Ogbuefi is narrating in ${selectedLanguage}. Hear the weight of the red earth.` : "Commence an oral session to hear the sophisticated wisdom of the Learned Ogbuefi.")}
+            {loading ? "FindAba AI is processing... Preparing a high-fidelity academic narrative of our lineage." : (playing ? `The Ogbuefi is narrating in ${selectedLanguage}. Hear the weight of the red earth.` : "Commence an oral session to hear the sophisticated wisdom of the Learned Ogbuefi.")}
           </p>
         </div>
       </div>

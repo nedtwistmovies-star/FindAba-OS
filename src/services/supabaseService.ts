@@ -360,8 +360,9 @@ export const updateBusinessInDB = async (id: string, updates: Partial<Business>)
 
 export const saveBusinessToDB = async (business: Business) => {
   const client = getSupabase();
-  if (!client) return;
-  await client.from('businesses').insert(business);
+  if (!client) throw new Error("Registry Offline");
+  const { error } = await client.from('businesses').insert(business);
+  if (error) throw error;
   
   // Trigger Automation Webhook
   triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);

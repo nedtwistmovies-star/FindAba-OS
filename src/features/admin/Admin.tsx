@@ -32,6 +32,7 @@ import {
   MessageSquare,
   BarChart3,
   Github,
+  Save,
 } from "lucide-react";
 import {
   fetchPlatformConfig,
@@ -58,6 +59,138 @@ import IndustrialButton from "../../components/IndustrialButton";
 import { BentoGrid, BentoItem } from "../../components/BentoGrid";
 import { GitHubSync } from "../../components/GitHubSync";
 
+const MetadataEditor: React.FC = () => {
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [metadata, setMetadata] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/metadata.json')
+      .then(res => res.json())
+      .then(data => {
+        setMetadata(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to load metadata:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metadata)
+      });
+      if (response.ok) {
+        addToast("Metadata Updated Successfully", "success");
+      } else {
+        addToast("Failed to Update Metadata", "error");
+      }
+    } catch (err) {
+      addToast("Network Error during Metadata Update", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="p-20 text-center animate-pulse text-aba-gold">Loading Metadata...</div>;
+  if (!metadata) return <div className="p-20 text-center text-red-500">Failed to load metadata.json</div>;
+
+  return (
+    <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Application Name</label>
+          <input 
+            type="text" 
+            value={metadata.name || ''} 
+            onChange={e => setMetadata({...metadata, name: e.target.value})}
+            className="w-full bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-bold"
+          />
+        </div>
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Short Name</label>
+          <input 
+            type="text" 
+            value={metadata.short_name || ''} 
+            onChange={e => setMetadata({...metadata, short_name: e.target.value})}
+            className="w-full bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-bold"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Application Description</label>
+        <textarea 
+          rows={5}
+          value={metadata.description || ''} 
+          onChange={e => setMetadata({...metadata, description: e.target.value})}
+          className="w-full bg-black/40 border border-white/10 p-8 rounded-[2.5rem] outline-none focus:border-aba-gold transition-all text-xs font-medium leading-relaxed resize-none"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Contact Email</label>
+          <input 
+            type="email" 
+            value={metadata.contact_email || ''} 
+            onChange={e => setMetadata({...metadata, contact_email: e.target.value})}
+            className="w-full bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
+          />
+        </div>
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Settlement Account Number</label>
+          <input 
+            type="text" 
+            value={metadata.account_number || ''} 
+            onChange={e => setMetadata({...metadata, account_number: e.target.value})}
+            className="w-full bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Theme Color</label>
+          <div className="flex gap-4">
+            <input 
+              type="color" 
+              value={metadata.theme_color || '#020617'} 
+              onChange={e => setMetadata({...metadata, theme_color: e.target.value})}
+              className="w-16 h-16 bg-black/40 border border-white/10 rounded-2xl outline-none cursor-pointer"
+            />
+            <input 
+              type="text" 
+              value={metadata.theme_color || ''} 
+              onChange={e => setMetadata({...metadata, theme_color: e.target.value})}
+              className="flex-1 bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-8">
+        <IndustrialButton 
+          variant="primary" 
+          size="lg" 
+          icon={saving ? Loader2 : Save} 
+          loading={saving}
+          onClick={handleSave}
+          fullWidth
+        >
+          Commit Metadata Changes
+        </IndustrialButton>
+      </div>
+    </div>
+  );
+};
+
 const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -82,6 +215,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "verification"
     | "users"
     | "infrastructure"
+    | "metadata"
   >("overview");
   const [loading, setLoading] = useState(false);
   const [platformConfig, setPlatformConfig] = useState<PlatformConfig | null>(
@@ -263,6 +397,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
             id: "infrastructure",
             label: "Infrastructure",
             icon: <Globe size={16} />,
+          },
+          {
+            id: "metadata",
+            label: "Metadata",
+            icon: <Settings size={16} />,
           },
           {
             id: "supabase",
@@ -552,6 +691,18 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   Registry Identity Node Not Initialized.
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === "metadata" && (
+            <div className="animate-slide-up space-y-12">
+              <SectionHeader 
+                title="Platform Metadata" 
+                subtitle="Configure application name, description and global settings"
+                icon={Settings}
+              />
+              
+              <MetadataEditor />
             </div>
           )}
 
@@ -1346,14 +1497,36 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                           {b.name}
                         </h5>
                         <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-1">
-                          {b.category}
+                          {b.category} • {b.subscription_tier}
                         </p>
                       </div>
                     </div>
-                    <ChevronRight
-                      size={20}
-                      className="text-white/20 group-hover:text-aba-gold transition-colors"
-                    />
+                    <div className="flex items-center gap-2">
+                      <select 
+                        value={b.subscription_tier}
+                        onChange={async (e) => {
+                          const newTier = e.target.value;
+                          const sb = getSupabase();
+                          if (sb) {
+                            const { error } = await sb.from('businesses').update({ subscription_tier: newTier }).eq('id', b.id);
+                            if (error) addToast("Tier Update Fault", "error");
+                            else {
+                              addToast(`${b.name} Tier Updated to ${newTier}`, "success");
+                              refreshAllData();
+                            }
+                          }
+                        }}
+                        className="bg-white/5 border border-white/10 rounded-lg py-1 px-2 text-[8px] font-black uppercase text-aba-gold outline-none focus:border-aba-gold transition-all"
+                      >
+                        <option value="Free" className="bg-aba-dark">Free</option>
+                        <option value="Verified" className="bg-aba-dark">Verified (1000)</option>
+                        <option value="Premium" className="bg-aba-dark">Premium</option>
+                      </select>
+                      <ChevronRight
+                        size={20}
+                        className="text-white/20 group-hover:text-aba-gold transition-colors"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

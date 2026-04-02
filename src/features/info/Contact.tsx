@@ -6,7 +6,7 @@ import { Language, ViewState } from '../../types';
 import { getSupportResponse } from '../../services/geminiService';
 
 const FAQ_DATA = [
-  { q: "How do I verify my industrial workshop?", a: "To get the Blue Verified badge, submit your CAC documents or Business Permit in your Merchant Portal. Verification typically takes 24-48 hours of review by Mazi Kalu's team." },
+  { q: "How do I verify my industrial workshop?", a: "To get the Blue Verified badge, submit your CAC documents or Business Permit in your Merchant Portal. Verification typically takes 24-48 hours of review by our verification team." },
   { q: "Is FindAba free for artisans?", a: "Yes, exploring businesses is free. Artisan registration has a free 'Starter' tier. Verified and Premium tiers offer advanced export visibility." },
   { q: "How does Carry-Go logistics work?", a: "We act as a hub-to-hub intermediary. Once you book a shipment, a rider is dispatched to your workshop or specified hub, and goods are moved through our secure trade routes." },
   { q: "Can I sell globally via FindAba?", a: "Absolutely. Our 'Export Gold' tier is specifically designed to facilitate global discovery and logistics for master artisans." }

@@ -29,7 +29,12 @@ const AppContent: React.FC = () => {
     document.body.scrollTo(0, 0);
   }, [view]);
 
-  const myBusiness = businesses?.find ? businesses.find(b => b.email === userIdentifier || b.phone === userIdentifier) : null;
+  const myBusiness = businesses?.find ? businesses.find(b => 
+    b.email === userIdentifier || 
+    b.phone === userIdentifier || 
+    b.phone_whatsapp === userIdentifier ||
+    (b.phone_whatsapp && userIdentifier && (b.phone_whatsapp.includes(userIdentifier) || userIdentifier.includes(b.phone_whatsapp)))
+  ) : null;
   const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']);
 
   const [showQuickSetup, setShowQuickSetup] = React.useState(false);
@@ -50,19 +55,24 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     const initApp = async () => {
-      // 1. Sync Config First
-      const gHealth = await syncGeminiConfig();
-      setGeminiHealth(gHealth);
-      
-      // 2. Then Check Health
-      const health = await checkDatabaseHealth();
-      setSignalHealth(health as any);
+      try {
+        // 1. Sync Config First
+        const gHealth = await syncGeminiConfig();
+        setGeminiHealth(gHealth);
+        
+        // 2. Then Check Health
+        const health = await checkDatabaseHealth();
+        setSignalHealth(health as any);
+      } catch (e) {
+        console.error("App initialization error:", e);
+        setSignalHealth({ status: 'unhealthy', message: 'Industrial Signal Lost' });
+      }
     };
     
     initApp();
     
     // Periodically refresh health to ensure UI stays in sync with actual connection
-    const interval = setInterval(initApp, 15000);
+    const interval = setInterval(initApp, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -184,6 +194,7 @@ const AppContent: React.FC = () => {
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
           onRegister={refreshData}
+          onRefresh={refreshData}
           onAuthSuccess={handleAuthSuccess}
           userEmail={userIdentifier}
           userRole={userRole}

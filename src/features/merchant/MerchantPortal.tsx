@@ -33,12 +33,17 @@ try {
   console.warn("Leaflet icon initialization failed:", e);
 }
 
-const MerchantPortal: React.FC<{ myBusiness: Business | null; setView: (v: ViewState) => void }> = ({ myBusiness: initialBusiness, setView }) => {
+const MerchantPortal: React.FC<{ 
+  myBusiness: Business | null; 
+  setView: (v: ViewState) => void;
+  onRefresh?: () => Promise<void>;
+}> = ({ myBusiness: initialBusiness, setView, onRefresh }) => {
   const { addToast } = useToast();
   const [business, setBusiness] = useState<Business | null>(initialBusiness);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [showRetry, setShowRetry] = useState(false);
   const [activeTab, setActiveTab] = useState<'identity' | 'orders' | 'media' | 'finance' | 'showroom' | 'trust' | 'subscription'>('identity');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
   const [showUpgradeCheckout, setShowUpgradeCheckout] = useState(false);
@@ -47,6 +52,15 @@ const MerchantPortal: React.FC<{ myBusiness: Business | null; setView: (v: ViewS
   useEffect(() => {
     if (initialBusiness) {
       setBusiness(initialBusiness);
+      setShowRetry(false);
+    }
+  }, [initialBusiness]);
+
+  useEffect(() => {
+    // Show retry button after 10 seconds of syncing
+    if (!initialBusiness) {
+      const timer = setTimeout(() => setShowRetry(true), 10000);
+      return () => clearTimeout(timer);
     }
   }, [initialBusiness]);
 
@@ -75,13 +89,46 @@ const MerchantPortal: React.FC<{ myBusiness: Business | null; setView: (v: ViewS
           <p className="text-white/40 text-xs font-bold uppercase tracking-widest max-w-xs leading-relaxed">
             Establishing secure handshake with the Enyimba Registry. Please wait while we activate your industrial hub.
           </p>
+          {showRetry && (
+            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl mt-4">
+              <p className="text-red-400 text-[10px] font-black uppercase tracking-widest">
+                Registry Handshake Timeout. Signal is weak or node is unregistered.
+              </p>
+            </div>
+          )}
         </div>
-        <button 
-          onClick={() => setView('home')}
-          className="px-10 py-5 bg-white/5 text-white/40 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all"
-        >
-          Return to Registry
-        </button>
+        
+        <div className="flex flex-col gap-4 w-full max-w-xs">
+          {showRetry && (
+            <>
+              <button 
+                onClick={() => {
+                  if (onRefresh) {
+                    addToast("Re-initializing Registry Sync...", "info");
+                    onRefresh();
+                  }
+                }}
+                className="w-full py-5 bg-aba-gold text-aba-dark rounded-full font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <Activity size={16} /> Force Registry Sync
+              </button>
+              
+              <button 
+                onClick={() => setView('register')}
+                className="w-full py-5 bg-white/10 text-white rounded-full font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/20"
+              >
+                <Plus size={16} /> Register New Business
+              </button>
+            </>
+          )}
+          
+          <button 
+            onClick={() => setView('home')}
+            className="w-full py-5 bg-white/5 text-white/40 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all"
+          >
+            Return to Registry
+          </button>
+        </div>
       </div>
     );
   }

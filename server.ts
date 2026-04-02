@@ -423,6 +423,19 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     }
   });
 
+  // Update metadata.json
+  app.post("/api/metadata", async (req, res) => {
+    try {
+      const metadataPath = path.join(process.cwd(), "metadata.json");
+      const newMetadata = req.body;
+      await fs.writeFile(metadataPath, JSON.stringify(newMetadata, null, 2));
+      res.json({ success: true, message: "Metadata updated successfully" });
+    } catch (error: any) {
+      console.error("Failed to update metadata:", error);
+      res.status(500).json({ error: "Failed to update metadata", details: error.message });
+    }
+  });
+
   // Commit to Git Repo (Atomic Multi-file Commit)
   app.post("/api/git/commit", async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
