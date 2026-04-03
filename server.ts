@@ -118,10 +118,11 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       }
 
       // Set cookie with token
+      const isProd = process.env.NODE_ENV === "production";
       res.cookie("github_token", access_token, {
         httpOnly: true,
-        secure: true,
-        sameSite: "none",
+        secure: true, // Always true for HTTPS in AI Studio
+        sameSite: "none", // Required for iframe context
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 
@@ -154,14 +155,22 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     }
 
     try {
+      console.log("[GitHub] Fetching user info...");
       const response = await axios.get("https://api.github.com/user", {
         headers: {
-          Authorization: `token ${token}`,
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "FindAba-City-OS",
+          Accept: "application/vnd.github.v3+json",
         },
       });
+      console.log(`[GitHub] User fetched: ${response.data.login}`);
       res.json(response.data);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch GitHub user" });
+    } catch (error: any) {
+      console.error("[GitHub] User Fetch Error:", error.response?.data || error.message);
+      res.status(error.response?.status || 500).json({ 
+        error: "Failed to fetch GitHub user",
+        details: error.response?.data?.message || error.message
+      });
     }
   });
 
