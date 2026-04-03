@@ -3,10 +3,11 @@ import React, { useState } from 'react';
 import { 
   X, Send, Search, MessageSquare, ChevronRight, 
   User, Globe, ShieldCheck, Sparkles, ArrowLeft,
-  LifeBuoy, BookOpen, Clock, HelpCircle
+  LifeBuoy, BookOpen, Clock, HelpCircle, Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ViewState } from '../../types';
+import { getSupportResponse } from '../../services/geminiService';
 
 interface SupportCenterProps {
   setView: (v: ViewState) => void;
@@ -17,33 +18,52 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeChat, setActiveChat] = useState(false);
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([
     { id: 1, text: "Hello! I'm your FindAba support assistant. How can we help you scale your industrial node today?", sender: 'support', time: '5:27 PM' }
   ]);
 
-  const handleSendMessage = () => {
-    if (!message.trim()) return;
+  const handleSendMessage = async () => {
+    if (!message.trim() || loading) return;
 
+    const userText = message;
     const newMessage = {
       id: messages.length + 1,
-      text: message,
+      text: userText,
       sender: 'user',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages(prev => [...prev, newMessage]);
     setMessage('');
+    setLoading(true);
 
-    // Mock support response
-    setTimeout(() => {
+    try {
+      const history = messages.map(m => ({
+        role: m.sender === 'support' ? 'model' : 'user',
+        parts: [{ text: m.text }]
+      }));
+
+      const aiResponse = await getSupportResponse(userText, history);
+      
       const supportResponse = {
-        id: messages.length + 2,
-        text: "Thank you for your message. A SANDALSroyalle support specialist will be with you shortly to assist with your query.",
+        id: Date.now(),
+        text: aiResponse || "Thank you for your message. A SANDALSroyalle support specialist will be with you shortly to assist with your query.",
         sender: 'support',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, supportResponse]);
-    }, 1500);
+    } catch (e) {
+      const errorResponse = {
+        id: Date.now(),
+        text: "Signal weak. A SANDALSroyalle support specialist will be with you shortly to assist with your query.",
+        sender: 'support',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const articles = [
@@ -105,6 +125,18 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
               </div>
             </div>
           ))}
+
+          {loading && (
+            <div className="flex gap-3 max-w-[85%] animate-pulse">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] shrink-0 bg-aba-gold text-aba-dark">
+                SR
+              </div>
+              <div className="p-4 rounded-2xl shadow-sm border bg-white dark:bg-[#1e293b] rounded-tl-none border-slate-100 dark:border-white/5 flex items-center gap-2">
+                <Loader2 size={14} className="animate-spin text-aba-gold" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Specialist is typing...</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-6 bg-white dark:bg-[#020617] border-t border-slate-100 dark:border-white/5">
