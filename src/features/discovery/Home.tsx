@@ -79,7 +79,6 @@ const CitySignals: React.FC = () => {
 
 const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], heroVideos = [], myBusiness }) => {
   const { setSearchQuery: setGlobalSearchQuery } = useOracle();
-  const [activeSlide, setActiveSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -89,17 +88,12 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
     
     setIsSearching(true);
     try {
-      // Set global search query for Explore view
       setGlobalSearchQuery(searchQuery);
-
-      // Trigger Make.com Webhook if configured
       await triggerWebhook(WebhookEvent.SEARCH_QUERY, { 
         query: searchQuery,
         user_email: localStorage.getItem('findaba_user_email') || 'anonymous',
         timestamp: new Date().toISOString()
       });
-      
-      // Navigate to explore with the query
       setView('explore');
     } catch (err) {
       console.error("Search signal failed:", err);
@@ -108,15 +102,6 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       setIsSearching(false);
     }
   };
-
-  const validVideos = (heroVideos || []).filter(v => v && v.url);
-  const validImages = (heroImages || []).filter(i => i && i.trim() !== '');
-  let mediaNodes = validVideos.length > 0 ? validVideos : (validImages.length > 0 ? validImages : DEFAULT_HERO_IMAGES);
-  
-  // Final safety check to ensure we always have something to show
-  if (!mediaNodes || mediaNodes.length === 0) {
-    mediaNodes = ["https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=1200"];
-  }
 
   // 🔹 Business of the Day Logic
   const businessOfTheDay = useMemo(() => {
@@ -136,7 +121,6 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
   
   const filteredArtisans = useMemo(() => {
     const allArtisans = [...ARTISANS, ...businesses];
-    // Remove duplicates by ID
     const uniqueArtisans = Array.from(new Map(allArtisans.map(item => [item.id, item])).values());
 
     switch (artisanTab) {
@@ -150,160 +134,101 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
     }
   }, [artisanTab, businesses]);
 
-  const heroTexts = [
-    { title: "ABA", highlight: "MASTERY.", desc: "A curated chronicle of industrial" },
-    { title: "INDUSTRIAL", highlight: "HUB.", desc: "Connecting global trade signals to the heart of African manufacturing." },
-    { title: "ENYIMBA", highlight: "SPIRIT.", desc: "Resilience, innovation, and the relentless drive of Aba's master artisans." },
-    { title: "TRADE", highlight: "SIGNALS.", desc: "Synchronizing the city's production nodes with the global industrial mesh." }
+  const categories = [
+    { id: 'explore', label: 'Restaurants', icon: <Users size={20} /> },
+    { id: 'sandals-hotels', label: 'Hotels & Stays', icon: <Hotel size={20} /> },
+    { id: 'explore', label: 'Tailor / Fashion Designer', icon: <Users size={20} /> },
+    { id: 'explore', label: 'Market Vendors', icon: <Building2 size={20} /> },
+    { id: 'explore', label: 'Healthcare', icon: <ShieldCheck size={20} /> },
+    { id: 'explore', label: 'Shopping', icon: <PlusCircle size={20} /> },
   ];
-
-  const currentHeroText = heroTexts[activeSlide % heroTexts.length];
-
-  useEffect(() => {
-    if (mediaNodes.length <= 1) return;
-    const interval = setInterval(() => {
-      setActiveSlide(prev => (prev + 1) % mediaNodes.length);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [mediaNodes.length]);
 
   return (
     <div className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans overflow-x-hidden">
+      {/* 🔹 CITY SIGNALS - Top Aligned */}
       <CitySignals />
-      {/* 1. TOP BRANDING AREA - Micro-minimized for seamless fit */}
-      <section className="h-auto py-8 md:py-12 w-full bg-aba-gold flex flex-col items-center justify-center relative overflow-hidden z-20">
-        <div className="absolute inset-0 opacity-20 industrial-grid pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent pointer-events-none" />
+
+      {/* 1. HERO SECTION - Matching Screenshot Layout */}
+      <section className="relative min-h-[70vh] flex flex-col items-center justify-center px-4 md:px-8 py-20 overflow-hidden bg-aba-gold">
+        <div className="absolute inset-0 opacity-10 industrial-grid pointer-events-none" />
         
-        <div className="relative z-10 flex flex-col items-center animate-slide-up w-full px-4 md:px-8">
-          {/* Merchant Quick Access & Registration CTA */}
-          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mb-6 md:mb-8">
-            {myBusiness ? (
-              <IndustrialButton 
-                variant="secondary"
-                size="sm"
-                icon={ShieldCheck}
-                onClick={() => setView('merchant-portal')}
-                className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20 text-[10px] md:text-xs"
-              >
-                Manage {myBusiness.name}
-              </IndustrialButton>
-            ) : (
-              <IndustrialButton 
-                variant="primary"
-                size="sm"
-                icon={PlusCircle}
-                onClick={() => setView('register')}
-                className="bg-aba-dark text-white hover:bg-black shadow-[0_10px_30px_rgba(0,0,0,0.3)] text-[10px] md:text-xs"
-              >
-                List a Business
-              </IndustrialButton>
-            )}
+        <div className="relative z-10 w-full max-w-5xl flex flex-col items-center text-center space-y-12">
+          {/* Quick Access Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 animate-slide-up">
+            <IndustrialButton 
+              variant="secondary"
+              size="md"
+              icon={ShieldCheck}
+              onClick={() => setView('merchant-portal')}
+              className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20 text-white font-black uppercase tracking-widest"
+            >
+              Manage Wired for Something Leadership Institute
+            </IndustrialButton>
             
             <IndustrialButton 
               variant="secondary"
-              size="sm"
+              size="md"
               icon={Building2}
               onClick={() => setView('explore')}
-              className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20 text-[10px] md:text-xs"
+              className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20 text-white font-black uppercase tracking-widest"
             >
               Industrial Directory
             </IndustrialButton>
           </div>
 
-          {/* SEARCH BAR - Professional positioned pill style from screenshot */}
-          <div className="w-full max-w-2xl relative group">
-            <div className="absolute -inset-1 bg-white/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          {/* Search Bar - Dark Pill Style */}
+          <div className="w-full max-w-3xl relative group animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <div className="absolute -inset-4 bg-black/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <form 
               onSubmit={handleSearch}
-              className="w-full h-16 md:h-20 px-6 md:px-10 bg-[#002113] text-white/70 rounded-full flex items-center shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 relative z-10 transition-all active:scale-[0.98] hover:border-white/30"
+              className="w-full h-16 md:h-24 px-6 md:px-12 bg-[#002113] rounded-full flex items-center shadow-2xl relative z-10 transition-all border border-white/5"
             >
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-full flex items-center justify-center mr-4 md:mr-6 group-hover:bg-aba-gold group-hover:text-aba-dark transition-all duration-500">
-                {isSearching ? <Loader2 className="animate-spin text-aba-gold" size={20} /> : <Search size={20} className="text-aba-gold group-hover:text-aba-dark md:w-6 md:h-6" strokeWidth={3} />}
+              <div className="w-10 h-10 md:w-14 md:h-14 bg-aba-gold/10 rounded-full flex items-center justify-center mr-4 md:mr-8 group-hover:bg-aba-gold group-hover:text-aba-dark transition-all duration-500">
+                {isSearching ? <Loader2 className="animate-spin text-aba-gold" size={24} /> : <Search size={24} className="text-aba-gold md:w-8 md:h-8" strokeWidth={3} />}
               </div>
               <input 
                 type="text"
-                placeholder="Search Aba Industrial Registry..."
+                placeholder="SEARCH ABA INDUSTRIAL REGISTRY..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-sm md:text-base font-bold tracking-tight flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/30 uppercase"
+                className="text-sm md:text-xl font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
               />
-              <div className="h-8 md:h-10 w-[1px] bg-white/10 mx-4 md:mx-6" />
-              <button type="submit" className="text-aba-gold/50 group-hover:text-aba-gold transition-all group-hover:translate-x-1">
-                <ChevronRight size={20} className="md:w-6 md:h-6" />
+              <button type="submit" className="text-aba-gold/50 hover:text-aba-gold transition-all hover:translate-x-1 ml-4">
+                <ChevronRight size={32} className="md:w-10 md:h-10" />
               </button>
             </form>
           </div>
+
+          {/* Mastery Text */}
+          <div className="pt-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <h2 className="text-6xl md:text-9xl font-black text-aba-deep/10 uppercase tracking-tighter leading-none select-none">
+              MASTERY.
+            </h2>
+          </div>
         </div>
-      </section>
 
-      {/* 2. HERO MEDIA CAROUSEL - Seamless fit with no gaps */}
-      <section className="relative px-4 sm:px-8 z-30 pt-0">
-        <div className="max-w-6xl mx-auto">
-          {/* Screen Frame - Industrial Device Look */}
-          <div className="relative bg-aba-gold p-2 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.7)] overflow-hidden border-4 border-aba-deep/10">
-            <div className="relative h-[50dvh] w-full overflow-hidden bg-black rounded-[2.5rem] border-2 border-aba-deep/20">
-              {mediaNodes.length === 0 ? (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-aba-deep/50 gap-4">
-                  <Logo size={60} className="opacity-20 animate-pulse" />
-                  <p className="text-[10px] font-black uppercase tracking-[0.8em] text-white/20">Syncing Industrial Nodes...</p>
+        {/* Category Cards - Horizontal List at bottom of hero */}
+        <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-4 md:px-8 z-20">
+          <div className="max-w-7xl mx-auto flex gap-4 overflow-x-auto pb-8 scrollbar-hide">
+            {categories.map((cat, i) => (
+              <button
+                key={i}
+                onClick={() => setView(cat.id as any)}
+                className="flex items-center gap-4 bg-white p-6 rounded-2xl shadow-xl min-w-[240px] group hover:bg-aba-deep transition-all duration-500 active:scale-95"
+              >
+                <div className="w-12 h-12 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-colors">
+                  {cat.icon}
                 </div>
-              ) : (
-                mediaNodes.map((item, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`absolute inset-0 transition-all duration-[1.5s] ${idx === activeSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
-                  >
-                    <div className="w-full h-full relative">
-                      {/* Scanline effect for screen feel */}
-                      <div className="absolute inset-0 z-20 pointer-events-none opacity-[0.08] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
-                      
-                      {typeof item === 'object' && item.url ? (
-                        <video src={item.url} autoPlay muted loop playsInline className="w-full h-full object-cover brightness-[0.5]" />
-                      ) : (
-                        <img 
-                          src={typeof item === 'string' ? item : item.url} 
-                          className="w-full h-full object-cover brightness-[0.5] animate-slow-zoom" 
-                          alt="Industrial Node" 
-                          loading={idx === 0 ? "eager" : "lazy"}
-                        />
-                      )}
-                      {/* Gradient overlays for depth */}
-                      <div className="absolute inset-0 bg-gradient-to-b from-aba-deep/60 via-transparent to-aba-deep" />
-                    </div>
-                    
-                    {/* Overlay Content - Matching Screenshot */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16 space-y-8 z-30">
-                      
-                      <div className="max-w-4xl space-y-4 animate-slide-up" key={activeSlide % heroTexts.length} style={{ animationDelay: '0.2s' }}>
-                        <h2 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter leading-[0.85]">
-                          {currentHeroText.title} <br/>
-                          <span className="text-aba-gold italic">{currentHeroText.highlight}</span>
-                        </h2>
-                        <p className="text-sm md:text-base font-medium text-white/40 max-w-xl leading-relaxed">
-                          {currentHeroText.desc}
-                        </p>
-                      </div>
-
-                      <div className="flex justify-center pt-4">
-                        <IndustrialButton
-                          variant="primary"
-                          size="lg"
-                          icon={ChevronRight}
-                          onClick={() => setView('explore')}
-                          className="w-full max-w-sm bg-white text-aba-deep hover:bg-aba-gold"
-                        >
-                          OPEN REGISTRY
-                        </IndustrialButton>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                <span className="text-sm font-black text-aba-deep group-hover:text-white uppercase tracking-tight text-left">
+                  {cat.label}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       </section>
+
+      <div className="h-32" /> {/* Spacer for category cards */}
       
       {/* 🔹 BUSINESS OF THE DAY */}
       {businessOfTheDay && (

@@ -92,6 +92,7 @@ export const useGitSync = () => {
 
   const fullSync = async (message?: string) => {
     setLoading(true);
+    console.log(`[GitSync] Initiating full sync...`);
     try {
       const repo = localStorage.getItem('findaba_git_repo') || '';
       const response = await fetch(`/api/git/sync-full?repo=${encodeURIComponent(repo)}`, {
@@ -115,11 +116,15 @@ export const useGitSync = () => {
       }
     } catch (err: any) {
       console.error('Full Sync Error:', err);
+      let errorMsg = `Sync Error: ${err.message}`;
+      
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        errorMsg = 'Network error: Server unreachable or request timed out. The project might be too large for a single sync.';
+      }
+      
       return { 
         success: false, 
-        error: err.message === 'Failed to fetch' 
-          ? 'Network error: Server unreachable' 
-          : `Sync Error: ${err.message}` 
+        error: errorMsg
       };
     } finally {
       setLoading(false);

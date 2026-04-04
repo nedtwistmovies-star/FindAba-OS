@@ -292,9 +292,10 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
         Accept: "application/vnd.github.v3+json",
       };
 
-      const gitClient = axios.create({ headers, timeout: 120000 });
+      const gitClient = axios.create({ headers, timeout: 300000 }); // Increase to 5 minutes
 
       // 1. Gather all local files
+      console.log(`[GitSync] Starting full sync for repo: ${repo}`);
       const rootDir = process.cwd();
       const files: { path: string, content: string }[] = [];
       const excludeDirs = ['node_modules', 'dist', '.git', '.next', '.vercel', 'build', 'public'];
@@ -320,6 +321,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
         }
       }
       await readDir(rootDir);
+      console.log(`[GitSync] Found ${files.length} files to sync.`);
 
       // 2. Fetch Registry Data from Supabase
       const supabaseUrl = process.env.SUPABASE_URL;
@@ -362,21 +364,25 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
         content: file.content
       }));
 
+      console.log(`[GitSync] Creating tree with ${treeItems.length} items...`);
       const treeRes = await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/trees`, {
         base_tree: baseTreeSha,
         tree: treeItems
       });
       
+      console.log(`[GitSync] Tree created: ${treeRes.data.sha}. Creating commit...`);
       const commitRes = await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/commits`, {
         message,
         tree: treeRes.data.sha,
         parents: latestCommitSha ? [latestCommitSha] : []
       });
 
+      console.log(`[GitSync] Commit created: ${commitRes.data.sha}. Updating ref...`);
       await gitClient.patch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${defaultBranch}`, {
         sha: commitRes.data.sha
       });
 
+      console.log(`[GitSync] Sync complete: ${commitRes.data.html_url}`);
       res.json({ success: true, commit: commitRes.data.html_url });
     } catch (error: any) {
       console.error("Full Sync Error:", error.response?.data || error.message);

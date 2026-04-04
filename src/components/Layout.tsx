@@ -284,7 +284,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                 <h1 className="text-xl md:text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
                   FindAba
                 </h1>
-                <div className="hidden md:flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2">
                   <p className="text-aba-gold text-[9px] font-black uppercase tracking-[0.6em] opacity-60">SANDALSroyalle</p>
                   {isRegistryActive && (
                     <div className="flex items-center gap-1.5 border-l border-white/10 pl-2">
@@ -299,32 +299,18 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           </div>
           
           <div className="flex items-center gap-3 md:gap-6">
-            <div className="hidden xl:block">
-              <SystemClock />
-            </div>
+            <button className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
+              <Info size={20} className="md:w-6 md:h-6" />
+            </button>
+
             <div className="hidden lg:block">
               <GitHubSync />
             </div>
-            
-            {!isAuth ? (
-              <button 
-                onClick={() => setView('login')}
-                className="hidden md:flex px-6 py-3 bg-aba-gold text-aba-dark rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-all"
-              >
-                Join Us
-              </button>
-            ) : (
-              <button 
-                onClick={() => setView('register')}
-                className="hidden md:flex px-6 py-3 bg-aba-green text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-all"
-              >
-                Add Listing
-              </button>
-            )}
 
-            <button className="hidden sm:flex p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
+            <button className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
               <Search size={20} className="md:w-6 md:h-6" />
             </button>
+            
             <button 
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               className="relative p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
@@ -336,18 +322,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                 </span>
               )}
             </button>
-            <button 
-              onClick={() => setView('support')}
-              className="hidden sm:flex p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
-            >
-              <LifeBuoy size={20} className="md:w-6 md:h-6" />
+
+            <button className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
+              <Cpu size={20} className="md:w-6 md:h-6" />
             </button>
-            <button 
-              onClick={() => setIsMenuOpen(true)}
-              className="w-10 h-10 md:w-14 md:h-14 bg-white text-aba-dark rounded-xl md:rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-all hover:bg-aba-gold hover:shadow-[0_0_30px_rgba(255,215,0,0.3)]"
-            >
-              <Menu size={20} className="md:w-7 md:h-7" />
-            </button>
+
+            <div className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-xl md:rounded-2xl shrink-0" />
+            
             <button 
               onClick={() => setView('profile')}
               className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl border-2 border-white/10 overflow-hidden shadow-2xl active:scale-90 transition-all hover:border-aba-gold group/profile"
