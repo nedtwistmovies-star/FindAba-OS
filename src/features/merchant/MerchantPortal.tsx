@@ -57,9 +57,9 @@ const MerchantPortal: React.FC<{
   }, [initialBusiness]);
 
   useEffect(() => {
-    // Show retry button after 10 seconds of syncing
+    // Show retry button after 30 seconds of syncing
     if (!initialBusiness) {
-      const timer = setTimeout(() => setShowRetry(true), 10000);
+      const timer = setTimeout(() => setShowRetry(true), 30000);
       return () => clearTimeout(timer);
     }
   }, [initialBusiness]);
@@ -770,13 +770,13 @@ const MerchantPortal: React.FC<{
                     onClick={() => setBillingCycle(BillingCycle.MONTHLY)} 
                     className={`flex-1 md:flex-none px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-[1.5rem] text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}
                   >
-                    Monthly
+                    30 Day Node
                   </button>
                   <button 
                     onClick={() => setBillingCycle(BillingCycle.YEARLY)} 
                     className={`flex-1 md:flex-none px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-[1.5rem] text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}
                   >
-                    Annual <span className="bg-aba-green text-white px-1.5 py-0.5 rounded text-[6px] md:text-[7px]">-20%</span>
+                    45 Day Cycle <span className="bg-aba-green text-white px-1.5 py-0.5 rounded text-[6px] md:text-[7px]">PRO</span>
                   </button>
                 </div>
               </div>
@@ -792,7 +792,7 @@ const MerchantPortal: React.FC<{
                         <div className="flex justify-between items-start">
                           <div>
                             <h5 className="text-lg md:text-xl font-black uppercase tracking-tight">{plan.name}</h5>
-                            <p className="text-[7px] md:text-[8px] font-black text-aba-gold uppercase tracking-widest mt-1">{billingCycle === BillingCycle.YEARLY ? 'Annual Billing' : 'Monthly Billing'}</p>
+                            <p className="text-[7px] md:text-[8px] font-black text-aba-gold uppercase tracking-widest mt-1">{billingCycle === BillingCycle.YEARLY ? '45 Day Industrial Cycle' : '30 Day Activation'}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">NGN</p>

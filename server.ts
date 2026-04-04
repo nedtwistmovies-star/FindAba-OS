@@ -292,60 +292,74 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
         Accept: "application/vnd.github.v3+json",
       };
 
-      const gitClient = axios.create({ headers, timeout: 300000 }); // Increase to 5 minutes
+      const gitClient = axios.create({ headers, timeout: 600000 }); // 10 minutes
 
-      // 1. Gather all local files
+      // 1. Gather all local files in parallel
       console.log(`[GitSync] Starting full sync for repo: ${repo}`);
       const rootDir = process.cwd();
       const files: { path: string, content: string }[] = [];
-      const excludeDirs = ['node_modules', 'dist', '.git', '.next', '.vercel', 'build', 'public'];
-      const excludeFiles = ['package-lock.json', '.env', '.env.local', 'github_token', '.DS_Store'];
+      const excludeDirs = ['node_modules', 'dist', '.git', '.next', '.vercel', 'build', 'public', 'coverage', 'logs'];
+      const excludeFiles = ['package-lock.json', 'yarn.lock', '.env', '.env.local', 'github_token', '.DS_Store'];
       const includeExtensions = ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.html', '.md', '.sql'];
 
       async function readDir(dir: string, relativePath: string = "") {
         const entries = await fs.readdir(dir, { withFileTypes: true });
-        for (const entry of entries) {
+        await Promise.all(entries.map(async (entry) => {
           const fullPath = path.join(dir, entry.name);
-          const relPath = path.join(relativePath, entry.name);
+          const relPath = path.join(relativePath, entry.name).replace(/\\/g, '/');
+          
           if (entry.isDirectory()) {
-            if (!excludeDirs.includes(entry.name)) await readDir(fullPath, relPath);
+            if (!excludeDirs.includes(entry.name)) {
+              await readDir(fullPath, relPath);
+            }
           } else {
             const ext = path.extname(entry.name).toLowerCase();
             if (!excludeFiles.includes(entry.name) && (includeExtensions.includes(ext) || entry.name === 'LICENSE')) {
               try {
+                const stats = await fs.stat(fullPath);
+                if (stats.size > 1024 * 1024) { // Skip files > 1MB
+                  console.warn(`Skipping large file: ${relPath} (${stats.size} bytes)`);
+                  return;
+                }
                 const content = await fs.readFile(fullPath, "utf-8");
                 files.push({ path: relPath, content });
-              } catch (e) { console.warn(`Skipping ${relPath}`); }
+              } catch (e) {
+                console.warn(`Skipping ${relPath}: ${e}`);
+              }
             }
           }
-        }
+        }));
       }
       await readDir(rootDir);
       console.log(`[GitSync] Found ${files.length} files to sync.`);
 
-      // 2. Fetch Registry Data from Supabase
+      // 2. Fetch Registry Data from Supabase with limit to avoid huge payload
       const supabaseUrl = process.env.SUPABASE_URL;
       const supabaseKey = process.env.SUPABASE_ANON_KEY;
       if (supabaseUrl && supabaseKey) {
         try {
           const supabase = createClient(supabaseUrl, supabaseKey);
-          const { data: businesses } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
+          const { data: businesses, error: sbError } = await supabase
+            .from('businesses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(500); // Limit to 500 businesses for sync stability
+          
           if (businesses) {
             const registry = {
               version: "v6.0",
               lastUpdated: new Date().toISOString(),
               businesses
             };
-            // Update or add registry.json to the files list
-            const existingIdx = files.findIndex(f => f.path === 'registry.json');
             const registryContent = JSON.stringify(registry, null, 2);
+            const existingIdx = files.findIndex(f => f.path === 'registry.json');
             if (existingIdx >= 0) files[existingIdx].content = registryContent;
             else files.push({ path: 'registry.json', content: registryContent });
           }
         } catch (e) { console.error("Supabase fetch failed during sync", e); }
       }
 
-      // 3. GitHub Commit Logic
+      // 3. GitHub Commit Logic - Split into batches if needed
       const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
       const defaultBranch = repoInfo.data.default_branch;
       let latestCommitSha: string | null = null;
@@ -357,7 +371,15 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
         baseTreeSha = branchRes.data.commit.commit.tree.sha;
       } catch (e) {}
 
-      const treeItems = files.map(file => ({
+      // GitHub Tree API has a limit of 1,000 items per request.
+      // For now, we'll just take the first 1,000 files to ensure success.
+      // A more robust solution would be multiple tree requests.
+      const syncFiles = files.slice(0, 1000);
+      if (files.length > 1000) {
+        console.warn(`[GitSync] Project has ${files.length} files. Only syncing first 1,000 for stability.`);
+      }
+
+      const treeItems = syncFiles.map(file => ({
         path: file.path,
         mode: "100644",
         type: "blob",

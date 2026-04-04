@@ -261,7 +261,7 @@ export const BUSINESS_PLANS: BusinessPlan[] = [
   {
     id: SubscriptionTier.VERIFIED,
     name: 'Local Trust Hub',
-    monthlyAmount: 1000,
+    monthlyAmount: 2500,
     yearlyAmount: 2500, // 45 Day Cycle
     slots: 15,
     features: ['Trusted Node Badge', 'Verified Hub Profile', 'Local Signal Priority']
@@ -269,16 +269,16 @@ export const BUSINESS_PLANS: BusinessPlan[] = [
   {
     id: SubscriptionTier.GROWTH,
     name: 'Growth Engine Hub',
-    monthlyAmount: 3000,
-    yearlyAmount: 7500, // 45 Day Cycle
+    monthlyAmount: 5000,
+    yearlyAmount: 5000, // 45 Day Cycle
     slots: 40,
     features: ['Search Priority Node', 'Advanced Creative Lab Access', 'City Pulse Insights']
   },
   {
     id: SubscriptionTier.PREMIUM,
     name: 'Export Ready Hub',
-    monthlyAmount: 6000,
-    yearlyAmount: 15000, // 45 Day Cycle
+    monthlyAmount: 10000,
+    yearlyAmount: 10000, // 45 Day Cycle
     slots: 100,
     features: ['Verified Exporter Node', 'Unlimited Discovery Ranking', 'Global Buyer Signals', 'Direct Trade Intelligence']
   }

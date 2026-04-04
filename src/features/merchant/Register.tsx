@@ -160,8 +160,8 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
         <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
           <div className="flex justify-center">
             <div className="bg-white p-1 md:p-1.5 rounded-2xl md:rounded-[2.5rem] border border-slate-200 flex shadow-sm">
-              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}>Monthly</button>
-              <button onClick={() => setBillingCycle(BillingCycle.YEARLY)} className={`px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}>Annual <span className="bg-aba-green text-white px-1.5 py-0.5 rounded text-[7px] md:text-[8px]">-20%</span></button>
+              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}>30 Day Node</button>
+              <button onClick={() => setBillingCycle(BillingCycle.YEARLY)} className={`px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}>45 Day Cycle <span className="bg-aba-green text-white px-1.5 py-0.5 rounded text-[7px] md:text-[8px]">PRO</span></button>
             </div>
           </div>
 
@@ -186,7 +186,7 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
                 </div>
                 <div className="mt-12 md:mt-16 space-y-6 md:space-y-8">
                   <div className="border-t border-slate-100 pt-6 md:pt-8">
-                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Commercial Value</p>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{billingCycle === BillingCycle.MONTHLY ? '30 Day Activation' : '45 Day Industrial Cycle'}</p>
                     <span className="text-2xl md:text-3xl font-black text-aba-dark block">
                       {plan.monthlyAmount === 0 ? 'Starter Hub' : `₦${(billingCycle === BillingCycle.MONTHLY ? plan.monthlyAmount : plan.yearlyAmount).toLocaleString()}`}
                     </span>
