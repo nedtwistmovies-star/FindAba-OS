@@ -27,17 +27,24 @@ export const useGitSync = () => {
 
       const url = targetRepo ? `/api/git/sync?repo=${encodeURIComponent(targetRepo)}` : '/api/git/sync';
       const response = await fetch(url);
-      const result = await response.json();
+      const contentType = response.headers.get("content-type");
       
-      if (response.ok) {
-        setStatus({
-          connected: true,
-          repo: result.repo,
-          lastUpdated: result.lastUpdated,
-          data: result.data
-        });
+      if (contentType && contentType.includes("application/json")) {
+        const result = await response.json();
+        if (response.ok) {
+          setStatus({
+            connected: true,
+            repo: result.repo,
+            lastUpdated: result.lastUpdated,
+            data: result.data
+          });
+        } else {
+          setStatus({ connected: false, error: result.error || 'Sync Failed' });
+        }
       } else {
-        setStatus({ connected: false, error: result.error });
+        const text = await response.text();
+        console.error("[GitSync] Non-JSON response:", text);
+        setStatus({ connected: false, error: `Server Error: ${response.status}` });
       }
     } catch (err) {
       console.warn("Registry sync failed, using fallback state");
@@ -57,11 +64,18 @@ export const useGitSync = () => {
         body: JSON.stringify({ files, message })
       });
       
-      const result = await response.json();
-      if (response.ok) {
-        return { success: true, commit: result.commit };
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const result = await response.json();
+        if (response.ok) {
+          return { success: true, commit: result.commit };
+        } else {
+          return { success: false, error: result.details || result.error || 'Commit Failed' };
+        }
       } else {
-        return { success: false, error: result.details || result.error || 'Commit Failed' };
+        const text = await response.text();
+        console.error("[GitSync] Commit Non-JSON response:", text);
+        return { success: false, error: `Server Error: ${response.status}` };
       }
     } catch (err: any) {
       console.error('Commit Error:', err);
@@ -86,11 +100,18 @@ export const useGitSync = () => {
         body: JSON.stringify({ message })
       });
       
-      const result = await response.json();
-      if (response.ok) {
-        return { success: true, commit: result.commit };
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const result = await response.json();
+        if (response.ok) {
+          return { success: true, commit: result.commit };
+        } else {
+          return { success: false, error: result.details || result.error || 'Full Sync Failed' };
+        }
       } else {
-        return { success: false, error: result.details || result.error || 'Full Sync Failed' };
+        const text = await response.text();
+        console.error("[GitSync] Full Sync Non-JSON response:", text);
+        return { success: false, error: `Server Error: ${response.status}` };
       }
     } catch (err: any) {
       console.error('Full Sync Error:', err);

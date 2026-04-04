@@ -244,7 +244,7 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
 
         <section className="space-y-10 md:space-y-12">
           <ImageUpload 
-             label="Workshop Visual Identification" 
+             label="Business Photos" 
              currentImage={formData.image_url} 
              onUpload={(url) => setFormData({...formData, image_url: url})} 
              className="shadow-inner bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[3rem] border border-slate-100"
@@ -253,11 +253,11 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
             <div className="space-y-6 md:space-y-8">
               <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Trade Legal Name</label>
-                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Master Leather Hub Ltd" />
+                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Business Name</label>
+                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Master Leather Hub" />
               </div>
               <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Industrial Category</label>
+                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Business Category</label>
                 <select className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase text-aba-dark outline-none shadow-sm" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as Category})}>
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -275,12 +275,12 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
                 <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.primary_product_or_service} onChange={e => setFormData({...formData, primary_product_or_service: e.target.value})} placeholder="Premium Leather Footwear" />
               </div>
               <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Contact Protocol (WhatsApp)</label>
+                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Phone Number (WhatsApp)</label>
                 <input type="tel" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all font-mono" value={formData.phone_whatsapp} onChange={e => setFormData({...formData, phone_whatsapp: e.target.value})} placeholder="+234..." />
               </div>
               <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Physical Address</label>
-                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="No. 42 Ariaria International Market" />
+                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Business Location (Aba Address)</label>
+                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="e.g. No. 12 Faulks Road, near Ariaria Market" />
               </div>
               <div className="space-y-2 md:space-y-3">
                 <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Registration Protocol</label>

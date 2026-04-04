@@ -268,7 +268,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
         </div>
       </aside>
 
-      <div className={`flex-1 flex flex-col transition-all duration-500 ${isDarkView ? 'bg-[#050505]' : 'bg-aba-white'} lg:pl-${isSidebarCollapsed ? '24' : '72'}`}>
+      <div className={`flex-1 flex flex-col transition-all duration-500 ${isDarkView ? 'bg-[#050505]' : 'bg-aba-white'} ${isSidebarCollapsed ? 'lg:pl-24' : 'lg:pl-72'}`}>
         {/* GLOBAL ATMOSPHERIC ELEMENTS */}
         {isDarkView && (
           <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -277,7 +277,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           </div>
         )}
 
-        <header className={`fixed top-0 left-0 right-0 z-[1000] px-6 md:px-12 py-4 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 lg:left-${isSidebarCollapsed ? '24' : '72'} ${isDarkView ? 'bg-black/40 border-b border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/80 border-b border-aba-green/5'}`}>
+        <header className={`fixed top-0 left-0 right-0 z-[1000] px-6 md:px-12 py-4 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 ${isSidebarCollapsed ? 'lg:left-24' : 'lg:left-72'} ${isDarkView ? 'bg-black/40 border-b border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/80 border-b border-aba-green/5'}`}>
           <div className="flex items-center gap-4 md:gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
               <Logo src={activeLogo} size={40} className="md:w-14 md:h-14 border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
               <div className="flex flex-col">
@@ -305,6 +305,23 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             <div className="hidden lg:block">
               <GitHubSync />
             </div>
+            
+            {!isAuth ? (
+              <button 
+                onClick={() => setView('login')}
+                className="hidden md:flex px-6 py-3 bg-aba-gold text-aba-dark rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-all"
+              >
+                Join Us
+              </button>
+            ) : (
+              <button 
+                onClick={() => setView('register')}
+                className="hidden md:flex px-6 py-3 bg-aba-green text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 transition-all"
+              >
+                Add Listing
+              </button>
+            )}
+
             <button className="hidden sm:flex p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
               <Search size={20} className="md:w-6 md:h-6" />
             </button>

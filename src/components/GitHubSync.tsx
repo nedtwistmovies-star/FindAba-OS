@@ -61,8 +61,16 @@ export const GitHubSync: React.FC = () => {
 
   const handleConnect = async () => {
     try {
-      const response = await fetch('/api/auth/github/url');
-      const data = await response.json();
+      const response = await fetch(`/api/auth/github/url?origin=${encodeURIComponent(window.location.origin)}`);
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        const text = await response.text();
+        console.error('[GitHub] Server returned non-JSON response:', text);
+        throw new Error(`Server Error: ${text.substring(0, 100)}...`);
+      }
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to get GitHub auth URL');

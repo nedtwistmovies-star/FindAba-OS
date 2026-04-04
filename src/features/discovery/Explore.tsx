@@ -14,15 +14,17 @@ interface ExploreProps {
   loading?: boolean;
 }
 
+import { useOracle } from '../../providers';
+
 const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorites, onToggleFavorite, setView, loading = false }) => {
-  const [search, setSearch] = useState('');
+  const { searchQuery, setSearchQuery } = useOracle();
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [categoryFilter, setCategoryFilter] = useState<string>('All Categories');
   const [statusFilter, setStatusFilter] = useState<string | 'All'>('All');
   const [showFilters, setShowFilters] = useState(false);
 
   const filtered = businesses.filter(b => {
-    const searchLower = search.toLowerCase();
+    const searchLower = searchQuery.toLowerCase();
     const matchesSearch = b.name.toLowerCase().includes(searchLower) || 
                          b.category.toLowerCase().includes(searchLower) ||
                          b.primary_product_or_service?.toLowerCase().includes(searchLower) ||
@@ -44,7 +46,10 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
          <div className="flex justify-between items-center max-w-7xl mx-auto w-full gap-4">
             <div className="flex items-center gap-3 md:gap-4">
                <button 
-                 onClick={() => setView('discover')} 
+                 onClick={() => {
+                   setSearchQuery('');
+                   setView('discover');
+                 }} 
                  className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white/5 rounded-xl md:rounded-2xl text-aba-gold hover:bg-aba-gold hover:text-aba-dark transition-all active:scale-90 border border-white/10"
                >
                  <ArrowLeft size={20} className="md:w-6 md:h-6" />
@@ -76,8 +81,8 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                <input 
                  placeholder="Search factory name or product..." 
                  className="w-full pl-11 md:pl-14 pr-6 md:pr-8 py-3.5 md:py-5 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-xs md:text-sm font-bold outline-none focus:border-aba-gold/50 transition-all shadow-2xl text-white placeholder:text-white/20"
-                 value={search}
-                 onChange={e => setSearch(e.target.value)}
+                 value={searchQuery}
+                 onChange={e => setSearchQuery(e.target.value)}
                />
             </div>
             
@@ -105,7 +110,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
             </button>
          </div>
 
-         {!search && (
+         {!searchQuery && (
             <div className="max-w-7xl mx-auto w-full flex flex-wrap gap-1.5 md:gap-2 px-1">
                {[
                  "Fashion designer",
@@ -114,7 +119,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                ].map((suggestion, idx) => (
                  <button 
                    key={idx}
-                   onClick={() => setSearch(suggestion)}
+                   onClick={() => setSearchQuery(suggestion)}
                    className="text-[8px] md:text-[9px] font-black uppercase tracking-widest px-3 md:px-4 py-1.5 md:py-2 bg-white/5 border border-white/5 rounded-lg md:rounded-xl text-white/30 hover:bg-aba-gold/10 hover:border-aba-gold/30 hover:text-aba-gold transition-all"
                  >
                    {suggestion}

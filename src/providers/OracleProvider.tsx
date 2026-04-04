@@ -7,12 +7,15 @@ interface OracleContextType {
   setIsOracleOpen: (open: boolean) => void;
   view: ViewState;
   setView: (v: ViewState) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
 }
 
 const OracleContext = createContext<OracleContextType | undefined>(undefined);
 
 export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOracleOpen, setIsOracleOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [view, setViewState] = useState<ViewState>(() => {
     const onboarded = localStorage.getItem('findaba_onboarded');
     if (!onboarded) return 'onboarding' as ViewState;
@@ -31,7 +34,7 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   return (
-    <OracleContext.Provider value={{ isOracleOpen, setIsOracleOpen, view, setView }}>
+    <OracleContext.Provider value={{ isOracleOpen, setIsOracleOpen, view, setView, searchQuery, setSearchQuery }}>
       {children}
     </OracleContext.Provider>
   );

@@ -96,6 +96,19 @@ export const authSignIn = async (email: string, pass: string) => {
   return data;
 };
 
+export const authSignInWithGoogle = async () => {
+  const sb = getSupabase();
+  if (!sb) throw new Error("Registry Offline: Industrial signal not detected.");
+  const { data, error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin
+    }
+  });
+  if (error) throw error;
+  return data;
+};
+
 export const fetchUserProfile = async (userId: string) => {
   const sb = getSupabase();
   if (!sb) return null;
@@ -297,7 +310,27 @@ export const fetchMerchantOrders = async (merchantId: string): Promise<Order[]> 
 export const saveLogisticsOrder = async (email: string, order: LogisticsOrder) => {
   const client = getSupabase();
   if (!client) return;
-  await client.from('logistics_orders').insert({ ...order, user_email: email });
+  
+  const { data, error } = await client
+    .from('logistics_orders')
+    .insert({ ...order, user_email: email })
+    .select();
+  
+  if (error) throw error;
+
+  // Trigger Make.com Webhook for logistics order
+  await triggerWebhook(WebhookEvent.LOGISTICS_ORDER_CREATED, {
+    order_id: order.id,
+    tracking_id: order.trackingId,
+    customer_email: email,
+    origin: order.pickupAddress,
+    destination: order.deliveryAddress,
+    carrier: order.carrier,
+    total_amount: order.totalFee,
+    timestamp: new Date().toISOString()
+  });
+
+  return data ? data[0] : null;
 };
 
 export const fetchLogisticsOrders = async (email: string): Promise<LogisticsOrder[]> => {

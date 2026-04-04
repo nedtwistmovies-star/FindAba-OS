@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2 } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
-
+import { useOracle } from '../../providers';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
 
 interface HomeProps {
@@ -78,6 +78,7 @@ const CitySignals: React.FC = () => {
 };
 
 const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], heroVideos = [], myBusiness }) => {
+  const { setSearchQuery: setGlobalSearchQuery } = useOracle();
   const [activeSlide, setActiveSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -88,6 +89,9 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
     
     setIsSearching(true);
     try {
+      // Set global search query for Explore view
+      setGlobalSearchQuery(searchQuery);
+
       // Trigger Make.com Webhook if configured
       await triggerWebhook(WebhookEvent.SEARCH_QUERY, { 
         query: searchQuery,
@@ -192,7 +196,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 onClick={() => setView('register')}
                 className="bg-aba-dark text-white hover:bg-black shadow-[0_10px_30px_rgba(0,0,0,0.3)] text-[10px] md:text-xs"
               >
-                Register New Business
+                List a Business
               </IndustrialButton>
             )}
             
@@ -609,7 +613,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       )}
 
       {/* 2. PROTOCOL QUICK NAV */}
-      <section className="px-4 md:px-8 mt-8 md:mt-12 mb-16 md:mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-4 md:gap-6">
+      <section className="px-4 md:px-8 mt-8 md:mt-12 mb-16 md:mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
         {[
           { id: 'register', label: 'Join', icon: <PlusCircle size={20} className="md:w-6 md:h-6" />, desc: 'Register Business', highlight: true },
           { id: 'feed', label: 'Faces', icon: <Users size={20} className="md:w-6 md:h-6" />, desc: 'City Social' },
@@ -621,6 +625,12 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           { id: 'hardware-audit', label: 'Sentinel', icon: <ShieldCheck size={20} className="md:w-6 md:h-6" />, desc: 'Tech Audit' },
           { id: 'audio-heritage', label: 'Archive', icon: <Radio size={20} className="md:w-6 md:h-6" />, desc: 'Audio Intel' },
           { id: 'about-aba', label: 'History', icon: <BookOpen size={20} className="md:w-6 md:h-6" />, desc: 'Aba Archive' },
+          { id: 'merchant-portal', label: 'Merchant', icon: <Building2 size={20} className="md:w-6 md:h-6" />, desc: 'Merchant Hub' },
+          { id: 'buyer-portal', label: 'Buyer', icon: <Users size={20} className="md:w-6 md:h-6" />, desc: 'Buyer Hub' },
+          { id: 'oracle', label: 'Oracle', icon: <MessageSquare size={20} className="md:w-6 md:h-6" />, desc: 'Oracle AI' },
+          { id: 'editorial', label: 'News', icon: <Newspaper size={20} className="md:w-6 md:h-6" />, desc: 'Industrial News' },
+          { id: 'support', label: 'Support', icon: <LifeBuoy size={20} className="md:w-6 md:h-6" />, desc: 'System Help' },
+          { id: 'explore', label: 'Registry', icon: <Search size={20} className="md:w-6 md:h-6" />, desc: 'Full Directory' },
         ].map(node => (
           <button 
             key={node.id} 

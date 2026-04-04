@@ -5,7 +5,7 @@ import {
   User, Loader2, Zap, AlertTriangle, Eye, EyeOff, Terminal, X
 } from 'lucide-react';
 import { ViewState } from '../../types';
-import { authSignIn, authSignUp, isRegistryConfigured } from '../../services/supabaseService';
+import { authSignIn, authSignUp, authSignInWithGoogle, isRegistryConfigured } from '../../services/supabaseService';
 import Logo from '../../components/Logo';
 
 interface LoginProps {
@@ -36,6 +36,18 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     localStorage.setItem('findaba_supabase_key', configData.key);
     setShowConfig(false);
     window.location.reload(); // Reload to re-initialize Supabase
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await authSignInWithGoogle();
+      // Supabase will redirect, so we don't need to do anything else here
+    } catch (err: any) {
+      setError(err.message || "Google Handshake Failed.");
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -141,7 +153,23 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                  className="w-full py-5 md:py-6 bg-aba-gold text-aba-dark rounded-full font-black uppercase text-[11px] md:text-[12px] tracking-[0.25em] md:tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4 group mt-6 md:mt-10"
                >
                   {loading ? <Loader2 className="animate-spin" /> : <Zap size={20} className="md:w-5.5 md:h-5.5 text-aba-dark fill-current" />}
-                  SYNC PROFILE NODE
+                  {mode === 'signup' ? 'ESTABLISH NODE' : 'SYNC PROFILE NODE'}
+               </button>
+
+               <div className="flex items-center gap-4 py-2">
+                  <div className="h-px flex-1 bg-white/10" />
+                  <span className="text-[8px] font-black uppercase text-white/20 tracking-widest">OR</span>
+                  <div className="h-px flex-1 bg-white/10" />
+               </div>
+
+               <button 
+                 type="button"
+                 onClick={handleGoogleLogin}
+                 disabled={loading}
+                 className="w-full py-4 md:py-5 bg-white/5 border border-white/10 text-white rounded-full font-black uppercase text-[9px] md:text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95 disabled:opacity-30"
+               >
+                 <img src="https://www.google.com/favicon.ico" className="w-4 h-4 md:w-5 md:h-5 grayscale brightness-200" alt="Google" />
+                 Continue with Google
                </button>
             </form>
 

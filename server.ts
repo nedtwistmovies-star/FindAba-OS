@@ -56,14 +56,24 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
 
   // GitHub OAuth URL
   app.get("/api/auth/github/url", (req, res) => {
+    console.log(`[GitHub] Auth URL requested from origin: ${req.query.origin}`);
     const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientOrigin = req.query.origin as string;
+    
     if (!clientId) {
+      console.error("[GitHub] GITHUB_CLIENT_ID is missing in environment");
       return res.status(500).json({ error: "GITHUB_CLIENT_ID not configured" });
     }
 
+    console.log(`[GitHub] Using Client ID: ${clientId.substring(0, 5)}...`);
+
     // Robust redirectUri construction
     let redirectUri: string;
-    if (process.env.APP_URL) {
+    if (clientOrigin) {
+      // Trust the client-provided origin if it looks like a valid URL
+      const baseUrl = clientOrigin.replace(/\/$/, "");
+      redirectUri = `${baseUrl}/api/auth/github/callback`;
+    } else if (process.env.APP_URL) {
       // Use the provided APP_URL, ensuring it doesn't have a trailing slash before adding path
       const baseUrl = process.env.APP_URL.replace(/\/$/, "");
       redirectUri = `${baseUrl}/api/auth/github/callback`;
@@ -73,7 +83,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       redirectUri = `${protocol}://${host}/api/auth/github/callback`;
     }
     
-    console.log(`GitHub Auth: Constructing redirectUri: ${redirectUri}`);
+    console.log(`GitHub Auth: Constructing redirectUri: ${redirectUri} (Origin: ${clientOrigin || 'None'})`);
     
     const params = new URLSearchParams({
       client_id: clientId,
@@ -141,9 +151,10 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
           </body>
         </html>
       `);
-    } catch (error) {
-      console.error("GitHub OAuth Error:", error);
-      res.status(500).send("Internal Server Error during GitHub OAuth");
+    } catch (error: any) {
+      console.error("GitHub OAuth Error:", error.response?.data || error.message);
+      const details = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      res.status(500).send(`Internal Server Error during GitHub OAuth: ${details}`);
     }
   });
 
