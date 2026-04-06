@@ -54,10 +54,10 @@ export const BrandSignature: React.FC<{ light?: boolean; className?: string }> =
       <div className="h-[1px] w-10 bg-current" />
     </div>
     
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center max-w-full">
       <span 
-        className="text-[14px] font-black uppercase leading-none block text-aba-gold"
-        style={{ letterSpacing: '1.2em', marginRight: '-1.2em' }}
+        className="text-[10px] md:text-[14px] font-black uppercase leading-none block text-aba-gold"
+        style={{ letterSpacing: '0.8em', marginRight: '-0.8em' }}
       >
         SANDALSroyalle
       </span>
@@ -298,21 +298,21 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               </div>
           </div>
           
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-2 md:gap-6">
             <SystemClock />
             
             <button 
               onClick={() => setView('register')}
-              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-aba-green text-white rounded-lg md:rounded-xl font-black uppercase text-[8px] md:text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
+              className="hidden sm:flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-aba-green text-white rounded-lg md:rounded-xl font-black uppercase text-[8px] md:text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
             >
               <Plus size={14} className="md:w-4 md:h-4" /> Add Listing
             </button>
 
-            <button className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
+            <button className="hidden sm:block p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
               <Info size={20} className="md:w-6 md:h-6" />
             </button>
 
-            <div className="hidden lg:block">
+            <div className="flex items-center">
               <GitHubSync />
             </div>
 
@@ -332,17 +332,22 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               )}
             </button>
 
-            <button className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
+            <button className="hidden sm:block p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
               <Cpu size={20} className="md:w-6 md:h-6" />
             </button>
 
-            <div className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-xl md:rounded-2xl shrink-0" />
-            
             <button 
               onClick={() => setView('profile')}
               className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl border-2 border-white/10 overflow-hidden shadow-2xl active:scale-90 transition-all hover:border-aba-gold group/profile"
             >
               <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Profile" />
+            </button>
+
+            <button 
+              onClick={() => setIsMenuOpen(true)}
+              className="lg:hidden p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+            >
+              <Menu size={20} className="md:w-6 md:h-6" />
             </button>
           </div>
         </header>
@@ -548,8 +553,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                  <X size={24} />
                </button>
             </div>
-            <div className="px-8 py-4 border-b border-aba-white/5 lg:hidden">
+            <div className="px-8 py-4 border-b border-aba-white/5 lg:hidden flex flex-col gap-4">
                <GitHubSync />
+               <button 
+                 onClick={() => { setView('register'); setIsMenuOpen(false); }}
+                 className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-aba-green text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
+               >
+                 <Plus size={16} /> Add Listing
+               </button>
             </div>
             <div className="flex-1 p-8 space-y-3 overflow-y-auto scrollbar-hide">
                {menuItems.map((item, i) => (

@@ -37,40 +37,40 @@ const CitySignals: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full bg-[#001a0f] border-y border-white/5 py-3 px-4 md:px-8 flex flex-wrap items-center justify-center gap-4 md:gap-16 z-40 relative">
+    <div className="w-full bg-[#001a0f] border-y border-white/5 py-3 px-4 md:px-8 flex flex-wrap items-center justify-center gap-3 md:gap-16 z-40 relative">
       <div className="flex items-center gap-2 md:gap-3 group">
-        <div className="w-7 h-7 md:w-8 md:h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
-          <Calendar size={14} className="md:w-4 md:h-4" />
+        <div className="w-6 h-6 md:w-8 md:h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
+          <Calendar size={12} className="md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] md:text-[13px] font-black text-aba-gold uppercase tracking-[0.15em] md:tracking-[0.2em] mb-0.5">{currentDate}</span>
-          <span className="text-[9px] md:text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
+          <span className="text-[8px] md:text-[13px] font-black text-aba-gold uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5">{currentDate}</span>
+          <span className="text-[7px] md:text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
         </div>
       </div>
 
-      <div className="h-6 w-[1px] bg-white/5 hidden md:block" />
+      <div className="h-6 w-[1px] bg-white/5 hidden sm:block" />
 
       <div className="flex items-center gap-2 md:gap-3 group">
-        <div className="w-7 h-7 md:w-8 md:h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
-          <CloudSun size={14} className="md:w-4 md:h-4" />
+        <div className="w-6 h-6 md:w-8 md:h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
+          <CloudSun size={12} className="md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[7px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
-          <span className="text-[9px] md:text-[11px] font-black text-white uppercase tracking-widest">
+          <span className="text-[6px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
+          <span className="text-[8px] md:text-[11px] font-black text-white uppercase tracking-widest">
             {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
           </span>
         </div>
       </div>
 
-      <div className="h-6 w-[1px] bg-white/5 hidden md:block" />
+      <div className="h-6 w-[1px] bg-white/5 hidden sm:block" />
 
       <div className="flex items-center gap-2 md:gap-3 group">
-        <div className="w-7 h-7 md:w-8 md:h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
-          <Radio size={14} className="animate-pulse md:w-4 md:h-4" />
+        <div className="w-6 h-6 md:w-8 md:h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
+          <Radio size={12} className="animate-pulse md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[7px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
-          <span className="text-[9px] md:text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
+          <span className="text-[6px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
+          <span className="text-[8px] md:text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
         </div>
       </div>
     </div>
@@ -200,10 +200,16 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           </div>
 
           {/* Mastery Text */}
-          <div className="pt-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-6xl md:text-9xl font-black text-aba-deep/10 uppercase tracking-tighter leading-none select-none">
+          <div className="pt-12 animate-slide-up text-center" style={{ animationDelay: '0.2s' }}>
+            <h2 className="text-4xl sm:text-6xl md:text-9xl font-black text-aba-deep/10 uppercase tracking-tighter leading-none select-none">
               MASTERY.
             </h2>
+            <div className="mt-8 max-w-2xl mx-auto px-4">
+              <h3 className="text-aba-deep font-black uppercase text-[10px] md:text-[12px] tracking-[0.3em] mb-2">Scale Protocol</h3>
+              <p className="text-aba-deep/60 text-[9px] md:text-[11px] font-bold uppercase tracking-widest leading-relaxed">
+                Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility within seconds of transfer commitment.
+              </p>
+            </div>
           </div>
         </div>
 
