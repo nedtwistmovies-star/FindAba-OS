@@ -466,7 +466,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
             <div className="flex items-center gap-3">
               <div className={`w-2 h-2 rounded-full ${signalLocked ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse'}`} />
               <span className="text-[15px] font-black uppercase tracking-widest text-white/90 flex items-center gap-3">
-                FindAba AI v6.0 <ChevronDown size={14} className="opacity-40" />
+                FindAba AI (Kalu) v6.0 <ChevronDown size={14} className="opacity-40" />
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1 opacity-40">
@@ -605,7 +605,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
               </div>
               <div className="text-center space-y-1">
                 <h2 className="text-2xl font-bold tracking-tight">How can I help you today?</h2>
-                <p className="text-sm text-white/40 font-medium">Query the FindAba AI Assistant</p>
+                <p className="text-sm text-white/40 font-medium">Query Kalu, the FindAba AI Assistant</p>
               </div>
             </div>
           )}
@@ -800,7 +800,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   e.target.style.height = e.target.scrollHeight + 'px';
                 }} 
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Message FindAba AI..."
+                placeholder="Message Kalu..."
                 className="flex-1 bg-transparent border-none outline-none py-4 px-2 text-[15px] text-white placeholder:text-white/20 resize-none max-h-48 scrollbar-hide"
                 rows={1}
                 disabled={loading || isRefining}

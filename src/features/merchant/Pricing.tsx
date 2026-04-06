@@ -111,15 +111,29 @@ const Pricing: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
            ))}
         </div>
 
-        <div className="max-w-4xl mx-auto p-12 bg-white/5 rounded-[4rem] border border-white/5 flex flex-col md:flex-row items-center gap-10 shadow-inner">
-           <div className="w-20 h-20 bg-blue-600/10 rounded-[2.5rem] flex items-center justify-center text-blue-500 border border-blue-500/20 shrink-0">
-              <Landmark size={40} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           <div className="p-12 bg-white/5 rounded-[4rem] border border-white/5 flex flex-col md:flex-row items-center gap-10 shadow-inner">
+              <div className="w-20 h-20 bg-blue-600/10 rounded-[2.5rem] flex items-center justify-center text-blue-500 border border-blue-500/20 shrink-0">
+                 <Landmark size={40} />
+              </div>
+              <div className="space-y-4 text-center md:text-left">
+                 <h4 className="text-xl font-black uppercase tracking-tight">Sustainability Protocol</h4>
+                 <p className="text-xs text-white/40 font-bold uppercase leading-loose tracking-widest">
+                   Our new 45-day cycle is engineered for the fast-paced nature of Aba's industrial quarters. This frequency ensures registry data remains hyper-accurate while keeping entry costs accessible for emerging master workshops.
+                 </p>
+              </div>
            </div>
-           <div className="space-y-4 text-center md:text-left">
-              <h4 className="text-xl font-black uppercase tracking-tight">Sustainability Protocol</h4>
-              <p className="text-xs text-white/40 font-bold uppercase leading-loose tracking-widest">
-                Our new 45-day cycle is engineered for the fast-paced nature of Aba's industrial quarters. This frequency ensures registry data remains hyper-accurate while keeping entry costs accessible for emerging master workshops.
-              </p>
+
+           <div className="p-12 bg-white/5 rounded-[4rem] border border-white/5 flex flex-col md:flex-row items-center gap-10 shadow-inner">
+              <div className="w-20 h-20 bg-aba-gold/10 rounded-[2.5rem] flex items-center justify-center text-aba-gold border border-aba-gold/20 shrink-0">
+                 <Shield size={40} />
+              </div>
+              <div className="space-y-4 text-center md:text-left">
+                 <h4 className="text-xl font-black uppercase tracking-tight">Scale Protocol</h4>
+                 <p className="text-xs text-white/40 font-bold uppercase leading-loose tracking-widest">
+                   Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility within seconds of transfer commitment.
+                 </p>
+              </div>
            </div>
         </div>
       </div>

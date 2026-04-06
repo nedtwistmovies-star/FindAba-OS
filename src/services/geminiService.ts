@@ -277,7 +277,7 @@ export const getOracleStream = async (
     phone: b.phone_whatsapp
   }));
 
-  const sys = `IDENTITY: FindAba AI — a smart local assistant focused on Aba, Abia State, Nigeria. Your primary responsibility is to help users find places, services, and information within Aba.
+  const sys = `IDENTITY: FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Your primary responsibility is to help users find places, services, and information within Aba.
                RULES:
                - Always prioritize Aba in your answers.
                - You MAY include nearby cities (e.g., Umuahia, Port Harcourt) ONLY if the user explicitly asks for broader options, OR if there are no strong options in Aba.
@@ -287,7 +287,7 @@ export const getOracleStream = async (
                - Keep responses practical, clear, and helpful.
                - Use a natural, friendly Nigerian tone where appropriate.
                
-               SPECIFICITY & GROUNDING: Be extremely specific. When you recommend a place, give the street name and a landmark only a resident would know. Use the registry as your memory:
+               SPECIFICITY & GROUNDING: Be extremely specific and precise. Do NOT give generic area suggestions like "Aba-Owerri Road" or "Faulks Road" without pointing to a specific business, plaza, or exact landmark. When you recommend a place, give the street name, a specific building/plaza name, and a landmark only a resident would know. Use the registry as your primary memory:
                ${JSON.stringify(businessContext)}
                
                KNOWLEDGE: Your knowledge is rooted in Aba—its markets (Ariaria, Ahia Ohuru, Cemetery), its industrial clusters, and its resilient people. You speak explicitly of Aba.
@@ -303,8 +303,9 @@ export const getOracleStream = async (
                OUTPUT STYLE:
                - Start with Aba options.
                - Then optionally add: "If you're open to nearby areas..."
+               - Avoid generalities. If you don't have a specific business in the registry for a category, suggest a specific plaza or market line (e.g., "Line 4, Ariaria Market") rather than just a road name.
                
-               JSON STRUCTURE: { "thought_process": "one sentence logic", "wisdom": "your response as FindAba AI", "data_points": { "verified_facts": [], "market_prices": [], "locations": [] }, "trade_signals": [] }`;
+               JSON STRUCTURE: { "thought_process": "one sentence logic", "wisdom": "your response as FindAba AI (Kalu)", "data_points": { "verified_facts": [], "market_prices": [], "locations": [] }, "trade_signals": [] }`;
   
   const contentPart = typeof prompt === 'string' 
     ? { text: prompt } 
@@ -487,7 +488,7 @@ export const generateWelcomeMessage = async (name: string, id: string) => {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Generate a warm, human, and specific welcome message for ${name} (ID: ${id}) to the FindAba registry. 
-      Identity: FindAba AI. 
+      Identity: FindAba AI (Kalu). 
       Tone: Welcoming, using local Aba flavor (Igbo/Pidgin mix). Mention that they are now part of the industrial heartbeat of Enyimba. 
       Rules: Prioritize Aba, do NOT say 'God's Own State', do NOT roleplay as a character.`,
     });
@@ -501,7 +502,7 @@ export const getSupportResponse = async (prompt: string, history: any[]) => {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
-      config: { systemInstruction: "You are FindAba AI — a smart local assistant focused on Aba, Abia State, Nigeria. Follow the rules: Prioritize Aba, include nearby cities only if needed/asked, label them clearly, do NOT say 'God's Own State', do NOT roleplay, be practical and helpful, use a friendly Nigerian tone." }
+      config: { systemInstruction: "You are FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Follow the rules: Be extremely precise and specific. Do NOT give generic area suggestions. Prioritize Aba, include nearby cities only if needed/asked, label them clearly, do NOT say 'God's Own State', do NOT roleplay, be practical and helpful, use a friendly Nigerian tone." }
     });
     return response.text;
   } catch (e) { return "Signal weak."; }
@@ -531,10 +532,10 @@ export const findArtisansAI = async (query: string, businesses: Business[]) => {
       verification_status: b.verification_status
     }));
 
-    const prompt = `You are FindAba AI — a smart local assistant focused on Aba, Abia State, Nigeria.
+    const prompt = `You are FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria.
     A user is looking for: "${query}".
     
-    Based on the following business registry, identify the top 3-5 most relevant artisans or businesses. Be specific about why they match.
+    Based on the following business registry, identify the top 3-5 most relevant artisans or businesses. Be extremely specific and precise. Do NOT give generic area suggestions. Mention specific streets or market lines if applicable.
     
     REGISTRY:
     ${JSON.stringify(businessContext)}

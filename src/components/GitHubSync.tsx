@@ -144,7 +144,11 @@ export const GitHubSync: React.FC = () => {
       const result = await fullSync(`Full System Sync: ${new Date().toLocaleString()}`);
       
       if (result.success) {
-        addToast('Full Repository Sync Successful', 'success');
+        if (result.warning) {
+          addToast(result.warning, 'info');
+        } else {
+          addToast('Full Repository Sync Successful', 'success');
+        }
         if (result.commit) {
           window.open(result.commit, '_blank');
         }

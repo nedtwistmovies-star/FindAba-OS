@@ -27,9 +27,9 @@ const STEPS: OnboardingStep[] = [
     accent: "text-aba-green"
   },
   {
-    title: "FindAba AI",
+    title: "FindAba AI (Kalu)",
     subtitle: "Smart Local Intelligence",
-    description: "Consult FindAba AI, our smart local assistant, to find specific products, analyze hardware specs, or get real-time market insights from the registry.",
+    description: "Consult Kalu, our smart local assistant, to find specific products, analyze hardware specs, or get real-time market insights from the registry.",
     icon: <Sparkles size={40} className="md:w-12 md:h-12" />,
     color: "bg-aba-gold",
     accent: "text-aba-gold"

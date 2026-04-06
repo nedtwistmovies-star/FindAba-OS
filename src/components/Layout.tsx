@@ -5,7 +5,7 @@ import { useToast } from '../providers/ToastProvider';
 import { 
   Home, Compass, UserCircle, Search, Menu, X, Globe, Building2, Zap, ShieldCheck,
   MessageCircle, BookOpen, Map as MapIcon, Layers, Sparkles, Radio, Info, Loader2, Cpu,
-  Rss, Users, Lock, Unlock, Bell, Car, Key, Truck, Wallet,
+  Rss, Users, Lock, Unlock, Bell, Car, Key, Truck, Wallet, Plus,
   Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft
 } from 'lucide-react';
 import Logo from './Logo';
@@ -299,6 +299,15 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           </div>
           
           <div className="flex items-center gap-3 md:gap-6">
+            <SystemClock />
+            
+            <button 
+              onClick={() => setView('register')}
+              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-aba-green text-white rounded-lg md:rounded-xl font-black uppercase text-[8px] md:text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
+            >
+              <Plus size={14} className="md:w-4 md:h-4" /> Add Listing
+            </button>
+
             <button className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
               <Info size={20} className="md:w-6 md:h-6" />
             </button>

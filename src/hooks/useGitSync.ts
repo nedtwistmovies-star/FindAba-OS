@@ -93,19 +93,27 @@ export const useGitSync = () => {
   const fullSync = async (message?: string) => {
     setLoading(true);
     console.log(`[GitSync] Initiating full sync...`);
+    
+    // Create a timeout controller for 10 minutes
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 600000);
+
     try {
       const repo = localStorage.getItem('findaba_git_repo') || '';
       const response = await fetch(`/api/git/sync-full?repo=${encodeURIComponent(repo)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ message }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         const result = await response.json();
         if (response.ok) {
-          return { success: true, commit: result.commit };
+          return { success: true, commit: result.commit, warning: result.warning };
         } else {
           return { success: false, error: result.details || result.error || 'Full Sync Failed' };
         }
@@ -115,11 +123,17 @@ export const useGitSync = () => {
         return { success: false, error: `Server Error: ${response.status}` };
       }
     } catch (err: any) {
+      clearTimeout(timeoutId);
       console.error('Full Sync Error:', err);
+      
+      if (err.name === 'AbortError') {
+        return { success: false, error: 'Sync timed out after 10 minutes. The operation might still be processing on the server. Please check your GitHub repository in a few moments.' };
+      }
+
       let errorMsg = `Sync Error: ${err.message}`;
       
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        errorMsg = 'Network error: Server unreachable or request timed out. The project might be too large for a single sync.';
+        errorMsg = 'Network error: Server unreachable or request timed out. The project might be too large for a single sync, but it might still be running on the server. Check your GitHub repo in 5 minutes.';
       }
       
       return { 

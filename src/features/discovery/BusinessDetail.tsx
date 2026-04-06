@@ -4,7 +4,7 @@ import {
   ArrowLeft, MapPin, Phone, Globe, ShieldCheck, 
   Star, MessageCircle, ShoppingBag, Share2, 
   Heart, ExternalLink, Award, Package, Clock,
-  ChevronRight, Zap, CheckCircle2, Info
+  ChevronRight, Zap, CheckCircle2, Info, Loader2
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -44,6 +44,23 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
     setSelectedProduct(product);
     setShowPayment(true);
   };
+
+  if (!business) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-20 h-20 bg-aba-gold/10 rounded-[2rem] flex items-center justify-center text-aba-gold animate-pulse mb-6">
+          <Loader2 size={40} className="animate-spin" />
+        </div>
+        <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">Syncing Node...</h2>
+        <button 
+          onClick={() => setView('home')}
+          className="px-8 py-4 bg-white/5 text-white/40 rounded-full font-black uppercase text-[10px] tracking-widest border border-white/10 hover:text-white transition-all"
+        >
+          Return to Registry
+        </button>
+      </div>
+    );
+  }
 
   const mediaUrls = business.catalog_images || [business.image_url];
 

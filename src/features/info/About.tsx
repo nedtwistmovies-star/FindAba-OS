@@ -39,6 +39,13 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
       desc: 'Encrypted financial settlements and merchant thrift protocols settled via Paystack.',
       icon: <Landmark size={24} />,
       color: 'text-blue-600'
+    },
+    { 
+      id: 'scale', 
+      title: 'Scale Protocol', 
+      desc: 'Automatic consensus verifies your signal and grants global visibility within seconds of transfer commitment.',
+      icon: <ShieldCheck size={24} />,
+      color: 'text-aba-gold'
     }
   ];
 

@@ -108,7 +108,7 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
                 <div className="w-24 h-24 rounded-full border-4 border-aba-gold/20 border-t-aba-gold animate-spin"></div>
                 <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-aba-gold animate-pulse" size={32} />
               </div>
-              <p className="text-sm font-black uppercase tracking-[0.3em] text-aba-gold animate-pulse">FindAba AI is consulting the registry...</p>
+              <p className="text-sm font-black uppercase tracking-[0.3em] text-aba-gold animate-pulse">Kalu is consulting the registry...</p>
             </motion.div>
           ) : results ? (
             <motion.div 
@@ -125,8 +125,8 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
                       <Sparkles size={28} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black uppercase tracking-tight text-white">FindAba AI Wisdom</h3>
-                      <p className="text-[10px] font-bold text-aba-gold uppercase tracking-[0.2em]">FindAba AI's Industrial Insight</p>
+                      <h3 className="text-xl font-black uppercase tracking-tight text-white">Kalu's Wisdom</h3>
+                      <p className="text-[10px] font-bold text-aba-gold uppercase tracking-[0.2em]">Kalu's Industrial Insight</p>
                     </div>
                   </div>
                   <p className="text-xl md:text-2xl font-medium leading-relaxed italic text-white/90">
@@ -242,7 +242,7 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
               <div className="space-y-2">
                 <h3 className="text-xl font-black uppercase tracking-tight">Ask the Oracle</h3>
                 <p className="text-white/40 text-sm max-w-md mx-auto leading-relaxed">
-                  Describe what you need, and FindAba AI will search the industrial registry to find the perfect master artisan for you.
+                  Describe what you need, and Kalu will search the industrial registry to find the perfect master artisan for you.
                 </p>
               </div>
               

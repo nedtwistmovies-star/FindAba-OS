@@ -375,8 +375,10 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       // For now, we'll just take the first 1,000 files to ensure success.
       // A more robust solution would be multiple tree requests.
       const syncFiles = files.slice(0, 1000);
+      let warning = null;
       if (files.length > 1000) {
-        console.warn(`[GitSync] Project has ${files.length} files. Only syncing first 1,000 for stability.`);
+        warning = `Project has ${files.length} files. Only syncing first 1,000 for stability.`;
+        console.warn(`[GitSync] ${warning}`);
       }
 
       const treeItems = syncFiles.map(file => ({
@@ -405,7 +407,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       });
 
       console.log(`[GitSync] Sync complete: ${commitRes.data.html_url}`);
-      res.json({ success: true, commit: commitRes.data.html_url });
+      res.json({ success: true, commit: commitRes.data.html_url, warning });
     } catch (error: any) {
       console.error("Full Sync Error:", error.response?.data || error.message);
       res.status(500).json({ error: "Failed to perform full sync", details: error.response?.data?.message || error.message });

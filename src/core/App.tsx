@@ -20,6 +20,9 @@ const AppContent: React.FC = () => {
     loading: businessLoading = false, 
     toggleFavorite = () => {}, 
     refreshData = () => {},
+    selectedBusiness,
+    selectedStory,
+    selectedAdvertorial,
     setSelectedBusiness,
     setSelectedStory
   } = useBusiness();
@@ -47,12 +50,12 @@ const AppContent: React.FC = () => {
     document.body.scrollTo(0, 0);
   }, [view]);
 
-  const myBusiness = businesses?.find ? businesses.find(b => 
+  const myBusiness = (businesses?.find ? businesses.find(b => 
     b.email === userIdentifier || 
     b.phone === userIdentifier || 
     b.phone_whatsapp === userIdentifier ||
     (b.phone_whatsapp && userIdentifier && (b.phone_whatsapp.includes(userIdentifier) || userIdentifier.includes(b.phone_whatsapp)))
-  ) : null;
+  ) : null) || null;
   const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']);
 
   const [showQuickSetup, setShowQuickSetup] = React.useState(false);
@@ -208,6 +211,9 @@ const AppContent: React.FC = () => {
           businesses={businesses} 
           heroImages={heroImages} 
           heroVideos={heroVideos} 
+          business={selectedBusiness}
+          story={selectedStory}
+          advertorial={selectedAdvertorial}
           myBusiness={myBusiness}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
