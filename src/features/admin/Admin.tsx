@@ -236,6 +236,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
 
   // Supabase Config State
   const [dbConfig, setDbConfig] = useState(getRegistryConfig());
+  const [makeWebhookUrl, setMakeWebhookUrl] = useState(() => localStorage.getItem('findaba_make_webhook_url') || '');
   const [dbHealth, setDbHealth] = useState<{
     status: "healthy" | "unhealthy" | "unknown";
     message?: string;
@@ -1161,6 +1162,42 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   >
                     Generate Sync Link
                   </IndustrialButton>
+                </div>
+
+                <div className="border-t border-white/5 pt-10 space-y-8">
+                  <SectionHeader 
+                    title="Industrial Automation" 
+                    icon={Zap} 
+                    subtitle="Make.com Integration"
+                  />
+                  <div className="space-y-4">
+                    <label className="text-[9px] sm:text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">
+                      Make.com Webhook URL
+                    </label>
+                    <div className="flex gap-4">
+                      <input
+                        type="text"
+                        value={makeWebhookUrl}
+                        onChange={(e) => setMakeWebhookUrl(e.target.value)}
+                        className="flex-1 bg-black/40 border border-white/10 p-4 sm:p-6 rounded-2xl sm:rounded-3xl outline-none focus:border-aba-gold transition-all font-mono text-[11px] sm:text-xs"
+                        placeholder="https://hook.eu1.make.com/..."
+                      />
+                      <IndustrialButton
+                        variant="primary"
+                        size="md"
+                        icon={Save}
+                        onClick={() => {
+                          localStorage.setItem('findaba_make_webhook_url', makeWebhookUrl);
+                          addToast("Automation Signal Saved", "success");
+                        }}
+                      >
+                        Save
+                      </IndustrialButton>
+                    </div>
+                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest leading-relaxed px-4">
+                      Events like new registrations, orders, and signals will be transmitted to this endpoint for external processing.
+                    </p>
+                  </div>
                 </div>
 
                 {dbHealth.message && (

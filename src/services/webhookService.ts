@@ -20,13 +20,15 @@ export enum WebhookEvent {
 }
 
 export const triggerWebhook = async (event: WebhookEvent, payload: any) => {
-  if (!MAKE_WEBHOOK_URL) {
-    console.warn(`[Automation] Webhook trigger skipped: VITE_MAKE_WEBHOOK_URL not configured for event: ${event}`);
+  const activeWebhookUrl = localStorage.getItem('findaba_make_webhook_url') || MAKE_WEBHOOK_URL;
+
+  if (!activeWebhookUrl) {
+    console.warn(`[Automation] Webhook trigger skipped: No Webhook URL configured for event: ${event}`);
     return;
   }
 
   try {
-    const response = await fetch(MAKE_WEBHOOK_URL, {
+    const response = await fetch(activeWebhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
