@@ -198,6 +198,13 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     const isOwner = userEmail === 'pastornelsonezi@gmail.com';
     return pinAuth || userRole === "admin" || isOwner;
   });
+
+  useEffect(() => {
+    const isOwner = userEmail === 'pastornelsonezi@gmail.com';
+    if (isOwner || userRole === "admin") {
+      setIsAuthenticated(true);
+    }
+  }, [userEmail, userRole]);
   const [pin, setPin] = useState(["", "", "", ""]);
   const pinRefs = [
     useRef<HTMLInputElement>(null),
@@ -1023,6 +1030,47 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     </div>
                   </div>
                 </div>
+
+                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+                  <SectionHeader 
+                    title="Industrial Automation" 
+                    icon={Zap} 
+                    subtitle="Make.com Integration"
+                  />
+                  <div className="space-y-4">
+                    <label className="text-[9px] sm:text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">
+                      Make.com Webhook URL
+                    </label>
+                    <div className="flex gap-4">
+                      <input
+                        type="text"
+                        value={makeWebhookUrl}
+                        onChange={(e) => setMakeWebhookUrl(e.target.value)}
+                        className="flex-1 bg-black/40 border border-white/10 p-4 sm:p-6 rounded-2xl sm:rounded-3xl outline-none focus:border-aba-gold transition-all font-mono text-[11px] sm:text-xs"
+                        placeholder="https://hook.eu1.make.com/..."
+                      />
+                      <IndustrialButton
+                        variant="primary"
+                        size="md"
+                        icon={Save}
+                        onClick={() => {
+                          let url = makeWebhookUrl.trim();
+                          if (url && !url.startsWith('http')) {
+                            url = 'https://' + url;
+                            setMakeWebhookUrl(url);
+                          }
+                          localStorage.setItem('findaba_make_webhook_url', url);
+                          addToast("Automation Signal Saved", "success");
+                        }}
+                      >
+                        Save
+                      </IndustrialButton>
+                    </div>
+                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest leading-relaxed px-4">
+                      Events like new registrations, orders, and signals will be transmitted to this endpoint for external processing.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1164,39 +1212,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   </IndustrialButton>
                 </div>
 
-                <div className="border-t border-white/5 pt-10 space-y-8">
-                  <SectionHeader 
-                    title="Industrial Automation" 
-                    icon={Zap} 
-                    subtitle="Make.com Integration"
-                  />
-                  <div className="space-y-4">
-                    <label className="text-[9px] sm:text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">
-                      Make.com Webhook URL
-                    </label>
-                    <div className="flex gap-4">
-                      <input
-                        type="text"
-                        value={makeWebhookUrl}
-                        onChange={(e) => setMakeWebhookUrl(e.target.value)}
-                        className="flex-1 bg-black/40 border border-white/10 p-4 sm:p-6 rounded-2xl sm:rounded-3xl outline-none focus:border-aba-gold transition-all font-mono text-[11px] sm:text-xs"
-                        placeholder="https://hook.eu1.make.com/..."
-                      />
-                      <IndustrialButton
-                        variant="primary"
-                        size="md"
-                        icon={Save}
-                        onClick={() => {
-                          localStorage.setItem('findaba_make_webhook_url', makeWebhookUrl);
-                          addToast("Automation Signal Saved", "success");
-                        }}
-                      >
-                        Save
-                      </IndustrialButton>
-                    </div>
-                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest leading-relaxed px-4">
-                      Events like new registrations, orders, and signals will be transmitted to this endpoint for external processing.
-                    </p>
+                <div className="p-6 bg-white/5 rounded-3xl border border-white/10 flex items-center gap-4">
+                  <Zap size={20} className="text-aba-gold" />
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase text-white tracking-widest">Automation Settings Moved</p>
+                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Make.com integration has been moved to the <span className="text-aba-gold">Infrastructure</span> tab for better organization.</p>
                   </div>
                 </div>
 

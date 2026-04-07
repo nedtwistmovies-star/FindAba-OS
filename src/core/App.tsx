@@ -135,81 +135,6 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      {(!getSupabase() || (signalHealth && signalHealth.status === 'unhealthy') || (geminiHealth && geminiHealth.status === 'unhealthy')) && (
-        <div className="bg-red-500/10 border-b border-red-500/20 p-4 text-center animate-fade-in relative z-[5000]">
-          <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4">
-            <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] flex items-center gap-3">
-              <AlertTriangle size={14} /> 
-              {geminiHealth?.status === 'unhealthy' ? geminiHealth.message : (signalHealth?.message || "Industrial Signal Not Detected on this Device.")}
-            </p>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowQuickSetup(true)}
-                className="px-4 py-2 bg-red-500/20 text-red-500 rounded-lg text-[8px] font-black uppercase tracking-widest border border-red-500/30 hover:bg-red-500 hover:text-white transition-all"
-              >
-                Quick Connect
-              </button>
-              <button 
-                onClick={() => setView('admin')}
-                className="px-4 py-2 bg-white/5 text-white/40 rounded-lg text-[8px] font-black uppercase tracking-widest border border-white/10 hover:text-white transition-all"
-              >
-                System Console
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showQuickSetup && (
-        <div className="fixed inset-0 z-[10001] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-8">
-           <div className="w-full max-w-md bg-[#002113] border border-white/10 rounded-[3rem] p-10 space-y-8 shadow-2xl animate-slide-up">
-              <div className="text-center space-y-4">
-                 <h3 className="text-2xl font-black uppercase tracking-tighter text-white">SIGNAL SYNC</h3>
-                 <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Initialize Industrial Registry Node</p>
-              </div>
-
-              <div className="space-y-6">
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Supabase URL</label>
-                    <input 
-                       type="text"
-                       value={quickConfig.url}
-                       onChange={e => setQuickConfig({...quickConfig, url: e.target.value})}
-                       placeholder="https://your-project.supabase.co"
-                       className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all"
-                    />
-                 </div>
-
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Anon Key</label>
-                    <input 
-                       type="password"
-                       value={quickConfig.key}
-                       onChange={e => setQuickConfig({...quickConfig, key: e.target.value})}
-                       placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                       className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all"
-                    />
-                 </div>
-              </div>
-
-              <div className="flex gap-4">
-                 <button 
-                   onClick={() => setShowQuickSetup(false)}
-                   className="flex-1 py-5 bg-white/5 text-white/40 rounded-full font-black uppercase text-[10px] tracking-[0.3em] active:scale-95 transition-all"
-                 >
-                    Cancel
-                 </button>
-                 <button 
-                   onClick={handleQuickSave}
-                   className="flex-1 py-5 bg-aba-gold text-aba-dark rounded-full font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all"
-                 >
-                    Connect
-                 </button>
-              </div>
-           </div>
-        </div>
-      )}
-
       <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-aba-deep"><Loader2 className="animate-spin text-aba-gold" size={40} /></div>}>
         <RouteComponent 
           setView={setView} 
@@ -233,28 +158,6 @@ const AppContent: React.FC = () => {
       </Suspense>
 
       <FeedbackToast toasts={toasts} onRemove={removeToast} />
-
-      {!isOracleOpen && view !== 'carry-go-dash' && (
-        <motion.button 
-          drag
-          dragMomentum={false}
-          dragConstraints={{ left: -window.innerWidth + 100, right: 20, top: -window.innerHeight + 100, bottom: 100 }}
-          whileDrag={{ scale: 1.1, cursor: 'grabbing' }}
-          onClick={() => setIsOracleOpen(true)} 
-          className="fixed sm:right-8 sm:bottom-32 right-4 bottom-24 z-[4000] group outline-none touch-none"
-        >
-          <div className="relative sm:w-18 sm:h-18 w-14 h-14 rounded-full flex items-center justify-center bg-aba-dark border-[3px] border-aba-gold shadow-[0_0_40px_rgba(255,215,0,0.5)] transition-all duration-500 hover:scale-110 group">
-            <div className="sm:w-16 sm:h-16 w-12 h-12 rounded-full border-2 border-aba-gold overflow-hidden bg-black flex items-center justify-center relative z-10">
-               <img src={oracleAvatar} className="w-full h-full object-cover" alt="FindAba AI" />
-            </div>
-            <div className={`absolute bottom-1 right-1 sm:w-5 sm:h-5 w-4 h-4 border-[3px] border-aba-dark rounded-full shadow-lg z-20 transition-all duration-500 ${
-              (signalHealth?.status === 'healthy' && geminiHealth) 
-                ? 'bg-aba-green shadow-[0_0_10px_rgba(34,197,94,0.8)]' 
-                : 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]'
-            }`} />
-          </div>
-        </motion.button>
-      )}
 
       {isOracleOpen && (
         <div className="fixed inset-0 z-[9999] animate-fade-in">
