@@ -65,7 +65,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
   const mediaUrls = business.catalog_images || [business.image_url];
 
   return (
-    <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40 overflow-x-hidden">
+    <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40">
       {/* 1. CINEMATIC HERO HEADER */}
       <section className="relative h-[65vh] w-full group">
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/60 via-transparent to-aba-deep" />

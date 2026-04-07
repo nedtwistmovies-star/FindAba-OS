@@ -18,7 +18,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRole, setUserRole] = useState<string | null>(localStorage.getItem('findaba_user_role'));
   const [isAuth, setIsAuth] = useState<boolean>(!!localStorage.getItem('findaba_user_id'));
 
+  useEffect(() => {
+    const storedId = localStorage.getItem('findaba_user_id');
+    if (storedId === 'pastornelsonezi@gmail.com') {
+      localStorage.setItem('findaba_user_role', 'admin');
+      setUserRole('admin');
+    }
+  }, []);
+
   const handleAuthSuccess = useCallback((identifier: string, name: string, role: string = 'registered') => {
+    // 🔹 Admin Bootstrap Protocol
+    let finalRole = role;
+    if (identifier === 'pastornelsonezi@gmail.com') {
+      finalRole = 'admin';
+    }
+
     localStorage.setItem('findaba_user_id', identifier);
     if (identifier.includes('@')) {
       localStorage.setItem('findaba_user_email', identifier);
@@ -26,11 +40,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('findaba_user_phone', identifier);
     }
     localStorage.setItem('findaba_user_name', name);
-    localStorage.setItem('findaba_user_role', role);
+    localStorage.setItem('findaba_user_role', finalRole);
     localStorage.setItem('findaba_is_auth', 'true');
     setUserIdentifier(identifier);
     setUserName(name);
-    setUserRole(role);
+    setUserRole(finalRole);
     setIsAuth(true);
   }, []);
 

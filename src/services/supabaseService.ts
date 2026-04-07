@@ -141,14 +141,30 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
   if (!client) return { status: 'unhealthy' as const, message: 'No client configuration detected.' };
   
   try {
-    // Attempt to probe the businesses table
-    const { error } = await client.from('businesses').select('id').limit(1);
-    if (error) {
-      console.error("[Supabase] Health probe failed:", error);
-      if (error.code === '42P01') return { status: 'unhealthy' as const, message: 'Schema missing: RUN SQL in Supabase Editor.' };
-      if (error.message.includes('Unexpected token')) return { status: 'unhealthy' as const, message: 'Signal Error: Received HTML instead of JSON. Check Supabase URL.' };
-      return { status: 'unhealthy' as const, message: `Signal Error: ${error.message}` };
+    // Probe multiple tables to ensure full schema health
+    const tables = [
+      'businesses', 'profiles', 'platform_config', 'favorites', 'messages', 
+      'advertorials', 'thrift_accounts', 'ledger', 'hotels', 'rooms', 
+      'bookings', 'buyer_signals', 'vision_history', 'ads', 'hospitality_config', 
+      'drivers', 'vehicles', 'ride_bookings', 'notifications', 'logistics_orders',
+      'signal_interests', 'payments', 'orders', 'quality_audits'
+    ];
+    
+    const results = await Promise.all(tables.map(async (table) => {
+      const { error } = await client!.from(table).select('id').limit(1);
+      if (error && error.code === '42P01') return table;
+      return null;
+    }));
+
+    const missingTables = results.filter(t => t !== null);
+    
+    if (missingTables.length > 0) {
+      return { 
+        status: 'unhealthy' as const, 
+        message: `Schema Incomplete: Missing tables [${missingTables.join(', ')}]. RUN SQL v19.2 in Supabase Editor.` 
+      };
     }
+    
     return { status: 'healthy' as const };
   } catch (e: any) { 
     console.error("[Supabase] Connection error:", e);
@@ -716,14 +732,14 @@ export const fetchMessagesFromDB = async (userEmail: string, targetBusinessId: s
 
 export const getAdvertorials = fetchAllAdvertorials;
 
-export const toggleFavorite = async (userEmail: string, businessId: string) => {
+export const toggleFavorite = async (userId: string, businessId: string) => {
   const client = getSupabase();
   if (!client) return;
-  const { data: existing } = await client.from('favorites').select('*').eq('user_email', userEmail).eq('business_id', businessId).single();
+  const { data: existing } = await client.from('favorites').select('*').eq('user_id', userId).eq('business_id', businessId).maybeSingle();
   if (existing) {
-    await client.from('favorites').delete().eq('user_email', userEmail).eq('business_id', businessId);
+    await client.from('favorites').delete().eq('user_id', userId).eq('business_id', businessId);
   } else {
-    await client.from('favorites').insert({ user_email: userEmail, business_id: businessId });
+    await client.from('favorites').insert({ user_id: userId, business_id: businessId });
   }
 };
 

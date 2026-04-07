@@ -109,7 +109,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
       </div>
 
       {/* TABS NAVIGATION */}
-      <nav className="flex bg-black/20 border-b border-white/5 overflow-x-auto scrollbar-hide shrink-0 px-6">
+      <nav className="flex bg-black/20 border-b border-white/5 overflow-x-auto scrollbar-hide shrink-0 px-6 touch-pan-x whitespace-nowrap">
         {[
           { id: 'overview', label: 'Overview', icon: <BarChart3 size={16} /> },
           { id: 'identity', label: 'Identity', icon: <UserCheck size={16} /> },

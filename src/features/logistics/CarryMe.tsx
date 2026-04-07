@@ -108,7 +108,7 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 animate-fade-in font-sans relative overflow-hidden">
+    <div className="flex-1 flex flex-col bg-slate-50 animate-fade-in font-sans relative">
       <PaystackOverlay 
         isOpen={showCheckout} 
         amount={fare} 

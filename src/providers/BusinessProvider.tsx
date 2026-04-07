@@ -123,7 +123,8 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         const [bizData, favs] = await Promise.race([fetchPromise, timeoutPromise]) as [Business[], string[]];
 
-        if (bizData?.length) {
+        // If fetch was successful (even if empty), update the state
+        if (Array.isArray(bizData)) {
           setBusinesses(prev => {
             // Merge logic: prioritize server data but keep user's own business if missing from server
             const merged = [...bizData];

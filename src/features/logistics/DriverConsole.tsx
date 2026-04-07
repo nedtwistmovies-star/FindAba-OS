@@ -123,7 +123,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0f001a] animate-fade-in font-sans relative overflow-hidden text-white h-screen">
+    <div className="flex-1 flex flex-col bg-[#0f001a] animate-fade-in font-sans relative text-white h-screen">
       
       {/* COMMAND MAP INTERFACE */}
       <div className="h-[45vh] relative shrink-0">

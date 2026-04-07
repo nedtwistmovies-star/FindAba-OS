@@ -94,7 +94,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0f001a] animate-fade-in font-sans relative overflow-hidden text-white h-screen">
+    <div className="flex-1 flex flex-col bg-[#0f001a] animate-fade-in font-sans relative text-white h-screen">
       <PaystackOverlay 
         isOpen={showCheckout} 
         amount={getPrice(selectedCategory)} 

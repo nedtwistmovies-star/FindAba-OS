@@ -50,7 +50,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
   ];
 
   return (
-    <div className="min-h-full bg-white dark:bg-[#00120b] animate-fade-in pb-40 font-sans overflow-x-hidden">
+    <div className="min-h-full bg-white dark:bg-[#00120b] animate-fade-in pb-40 font-sans">
       
       {/* EXECUTIVE HERO */}
       {!isSubView && (

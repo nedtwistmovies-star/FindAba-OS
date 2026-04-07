@@ -82,15 +82,8 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
       setStep('success');
     } catch (e) {
       console.error("Registration error:", e);
-      localStorage.setItem('findaba_my_business_id', finalBusinessData.id);
-      
-      const identifier = registrationType === 'email' ? formData.email : formData.phone;
-      if (identifier && onAuthSuccess) {
-        onAuthSuccess(identifier, formData.name, 'merchant');
-      }
-      
-      onRegister(finalBusinessData);
-      setStep('success');
+      // Don't proceed to success if the database save failed
+      alert("Registry Sync Failed: " + (e instanceof Error ? e.message : "Unknown Error"));
     } finally { 
       setIsFinalizing(false); 
       setShowCheckout(false);

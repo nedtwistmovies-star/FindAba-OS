@@ -216,7 +216,7 @@ const MerchantPortal: React.FC<{
 
       <div className="px-4 md:px-8 -mt-10 md:-mt-12 relative z-30 max-w-6xl mx-auto w-full space-y-6 md:space-y-8">
         {/* Navigation Grid */}
-        <div className="bg-white dark:bg-[#1e293b] p-1 md:p-1.5 rounded-2xl md:rounded-[2.5rem] shadow-2xl flex border-2 border-slate-50 dark:border-white/5 overflow-x-auto scrollbar-hide mb-8 md:mb-12">
+        <div className="bg-white dark:bg-[#1e293b] p-1 md:p-1.5 rounded-2xl md:rounded-[2.5rem] shadow-2xl flex border-2 border-slate-50 dark:border-white/5 overflow-x-auto scrollbar-hide mb-8 md:mb-12 touch-pan-x whitespace-nowrap">
           {[
             { id: 'identity', label: 'Identity', icon: <User size={14}/> },
             { id: 'showroom', label: 'Showroom', icon: <Package size={14}/> },

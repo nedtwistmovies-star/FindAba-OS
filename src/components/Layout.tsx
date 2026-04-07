@@ -237,7 +237,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   );
 
   return (
-    <div className={`flex min-h-screen w-full transition-colors duration-1000 font-sans overflow-x-hidden relative ${isDarkView ? 'bg-[#050505] text-aba-white' : 'bg-aba-white text-aba-deep'}`}>
+    <div className={`flex min-h-screen w-full transition-colors duration-1000 font-sans relative ${isDarkView ? 'bg-[#050505] text-aba-white' : 'bg-aba-white text-aba-deep'}`}>
       <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-[9999] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
       
       {/* DESKTOP SIDEBAR */}

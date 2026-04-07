@@ -77,7 +77,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
   const historyText = `Abia State, popularly known as "God's Own State," is a vibrant commercial, administrative, and cultural powerhouse in southeastern Nigeria. Formed in 1991, it is a land of immense human and natural resources. From the industrial heartbeat of Aba (the "Japan of Africa") to the administrative excellence of Umuahia, and the rich agricultural and cultural heritage of Bende, Ohafia, and Arochukwu, Abia represents the pinnacle of Igbo ingenuity. The state's history is marked by a relentless spirit of enterprise, from the 1929 Women's War to its current status as a global hub for manufacturing, trade, and professional services. Today, the FindAba State OS connects every corner of the state—from the bustling markets of Ariaria to the serene hills of Ohafia—into one unified digital ecosystem.`;
 
   return (
-    <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40 overflow-x-hidden">
+    <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40">
       {/* 1. CINEMATIC HERO */}
       <section className="relative h-[60vh] w-full overflow-hidden">
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/60 via-transparent to-aba-deep" />

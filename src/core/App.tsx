@@ -97,6 +97,8 @@ const AppContent: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
+
   return (
     <Layout 
       currentView={view} 
@@ -113,7 +115,7 @@ const AppContent: React.FC = () => {
         </div>
       )}
 
-      {isVercelDomain && !isCustomDomain && view !== 'admin' && (
+      {isAdmin && isVercelDomain && !isCustomDomain && view !== 'admin' && (
         <div className="bg-aba-gold/10 border-b border-aba-gold/20 p-3 text-center animate-fade-in relative z-[4000]">
           <div className="max-w-4xl mx-auto flex items-center justify-center gap-4">
             <p className="text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] flex items-center gap-3">
@@ -121,7 +123,10 @@ const AppContent: React.FC = () => {
               Custom Domain Setup Incomplete: findaba.com.ng is not yet connected.
             </p>
             <button 
-              onClick={() => setView('admin')}
+              onClick={() => {
+                localStorage.setItem('findaba_admin_tab', 'infrastructure');
+                setView('admin');
+              }}
               className="px-3 py-1.5 bg-aba-gold/20 text-aba-gold rounded-lg text-[8px] font-black uppercase tracking-widest border border-aba-gold/30 hover:bg-aba-gold hover:text-aba-dark transition-all"
             >
               Configure DNS

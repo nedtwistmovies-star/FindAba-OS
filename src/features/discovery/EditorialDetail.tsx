@@ -29,7 +29,7 @@ const EditorialDetail: React.FC<EditorialDetailProps> = ({ story, onBack, setVie
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40 overflow-x-hidden">
+    <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40">
       {/* 1. CINEMATIC HERO HEADER */}
       <section className="relative h-[75vh] w-full group">
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/80 via-transparent to-aba-deep" />

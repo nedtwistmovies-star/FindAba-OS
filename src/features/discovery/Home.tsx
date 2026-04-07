@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
-import { useOracle } from '../../providers';
+import { checkDatabaseHealth } from '../../services/supabaseService';
+import { useOracle, useAuth } from '../../providers';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
 
 interface HomeProps {
@@ -20,10 +21,12 @@ const CitySignals: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [marketDay, setMarketDay] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
+  const [registryStatus, setRegistryStatus] = useState<'online' | 'offline' | 'syncing'>('syncing');
 
   useEffect(() => {
     setMarketDay(getIgboMarketDay());
     getAbaWeather().then(setWeather);
+    checkDatabaseHealth().then(res => setRegistryStatus(res.status === 'healthy' ? 'online' : 'offline'));
     
     const updateDate = () => {
       const now = new Date();
@@ -65,6 +68,20 @@ const CitySignals: React.FC = () => {
       <div className="h-6 w-[1px] bg-white/5 hidden sm:block" />
 
       <div className="flex items-center gap-2 md:gap-3 group">
+        <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center transition-all ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green group-hover:bg-aba-green group-hover:text-white' : 'bg-aba-red/10 text-aba-red group-hover:bg-aba-red group-hover:text-white'}`}>
+          <Database size={12} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[6px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Registry Signal</span>
+          <span className={`text-[8px] md:text-[11px] font-black uppercase tracking-widest ${registryStatus === 'online' ? 'text-aba-green' : 'text-aba-red'}`}>
+            {registryStatus === 'online' ? 'Industrial Node Online' : registryStatus === 'syncing' ? 'Syncing...' : 'Registry Offline'}
+          </span>
+        </div>
+      </div>
+
+      <div className="h-6 w-[1px] bg-white/5 hidden sm:block" />
+
+      <div className="flex items-center gap-2 md:gap-3 group">
         <div className="w-6 h-6 md:w-8 md:h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
           <Radio size={12} className="animate-pulse md:w-4 md:h-4" />
         </div>
@@ -79,7 +96,10 @@ const CitySignals: React.FC = () => {
 
 const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], heroVideos = [], myBusiness }) => {
   const { setSearchQuery: setGlobalSearchQuery } = useOracle();
+  const { userRole, userIdentifier } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
   const [isSearching, setIsSearching] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -120,7 +140,8 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
   const [artisanTab, setArtisanTab] = useState<'featured' | 'new' | 'top'>('new');
   
   const filteredArtisans = useMemo(() => {
-    const allArtisans = [...ARTISANS, ...businesses];
+    // Only use mock data if we have absolutely no businesses in the registry
+    const allArtisans = businesses.length > 0 ? businesses : ARTISANS;
     const uniqueArtisans = Array.from(new Map(allArtisans.map(item => [item.id, item])).values());
 
     switch (artisanTab) {
@@ -144,9 +165,17 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans overflow-x-hidden">
+    <div className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans">
       {/* 🔹 CITY SIGNALS - Top Aligned */}
       <CitySignals />
+
+      {isAdmin && (
+        <div className="bg-aba-gold/5 border-b border-aba-gold/10 py-2 text-center">
+          <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.3em] flex items-center justify-center gap-2">
+            <ShieldCheck size={10} /> Administrative Node Active: {userIdentifier}
+          </p>
+        </div>
+      )}
 
       {/* 1. HERO SECTION - Matching Screenshot Layout */}
       <section className="relative min-h-[70vh] flex flex-col items-center justify-center px-4 md:px-8 py-20 overflow-hidden bg-aba-gold">
@@ -160,7 +189,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               size="md"
               icon={ShieldCheck}
               onClick={() => setView('merchant-portal')}
-              className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20 text-white font-black uppercase tracking-widest"
+              className="bg-aba-deep/5 backdrop-blur-xl border-aba-deep/10 hover:bg-aba-deep/10 text-aba-deep font-black uppercase tracking-widest"
             >
               Manage Wired for Something Leadership Institute
             </IndustrialButton>
@@ -170,10 +199,25 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               size="md"
               icon={Building2}
               onClick={() => setView('explore')}
-              className="bg-white/10 backdrop-blur-xl border-white/20 hover:bg-white/20 text-white font-black uppercase tracking-widest"
+              className="bg-aba-deep/5 backdrop-blur-xl border-aba-deep/10 hover:bg-aba-deep/10 text-aba-deep font-black uppercase tracking-widest"
             >
               Industrial Directory
             </IndustrialButton>
+
+            {isAdmin && (
+              <IndustrialButton 
+                variant="secondary"
+                size="md"
+                icon={Globe}
+                onClick={() => {
+                  localStorage.setItem('findaba_admin_tab', 'infrastructure');
+                  setView('admin');
+                }}
+                className="bg-aba-gold/20 backdrop-blur-xl border-aba-gold/30 hover:bg-aba-gold/30 text-aba-deep font-black uppercase tracking-widest shadow-lg"
+              >
+                Infrastructure Node
+              </IndustrialButton>
+            )}
           </div>
 
           {/* Search Bar - Dark Pill Style */}
@@ -191,7 +235,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 placeholder="SEARCH ABA INDUSTRIAL REGISTRY..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-sm md:text-xl font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
+                className="text-sm md:text-xl font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/40 uppercase"
               />
               <button type="submit" className="text-aba-gold/50 hover:text-aba-gold transition-all hover:translate-x-1 ml-4">
                 <ChevronRight size={32} className="md:w-10 md:h-10" />
@@ -201,12 +245,12 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
           {/* Mastery Text */}
           <div className="pt-12 animate-slide-up text-center" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-4xl sm:text-6xl md:text-9xl font-black text-aba-deep/10 uppercase tracking-tighter leading-none select-none">
+            <h2 className="text-4xl sm:text-6xl md:text-9xl font-black text-aba-deep/20 uppercase tracking-tighter leading-none select-none">
               MASTERY.
             </h2>
             <div className="mt-8 max-w-2xl mx-auto px-4">
               <h3 className="text-aba-deep font-black uppercase text-[10px] md:text-[12px] tracking-[0.3em] mb-2">Scale Protocol</h3>
-              <p className="text-aba-deep/60 text-[9px] md:text-[11px] font-bold uppercase tracking-widest leading-relaxed">
+              <p className="text-aba-deep/80 text-[9px] md:text-[11px] font-bold uppercase tracking-widest leading-relaxed">
                 Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility within seconds of transfer commitment.
               </p>
             </div>
@@ -215,7 +259,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
         {/* Category Cards - Horizontal List at bottom of hero */}
         <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-4 md:px-8 z-20">
-          <div className="max-w-7xl mx-auto flex gap-4 overflow-x-auto pb-8 scrollbar-hide">
+          <div className="max-w-7xl mx-auto flex gap-4 overflow-x-auto pb-8 scrollbar-hide touch-pan-x whitespace-nowrap">
             {categories.map((cat, i) => (
               <button
                 key={i}
@@ -388,7 +432,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             className="mb-0"
           />
           
-          <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl overflow-x-auto scrollbar-hide">
+          <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl overflow-x-auto scrollbar-hide touch-pan-x whitespace-nowrap">
             {[
               { id: 'new', label: 'New Registrations', icon: Clock },
               { id: 'featured', label: 'Featured', icon: Zap },
@@ -562,10 +606,16 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           { id: 'editorial', label: 'News', icon: <Newspaper size={20} className="md:w-6 md:h-6" />, desc: 'Industrial News' },
           { id: 'support', label: 'Support', icon: <LifeBuoy size={20} className="md:w-6 md:h-6" />, desc: 'System Help' },
           { id: 'explore', label: 'Registry', icon: <Search size={20} className="md:w-6 md:h-6" />, desc: 'Full Directory' },
+          ...(isAdmin ? [{ id: 'admin', label: 'Infra', icon: <Globe size={20} className="md:w-6 md:h-6" />, desc: 'Infrastructure' }] : []),
         ].map(node => (
           <button 
             key={node.id} 
-            onClick={() => setView(node.id as any)} 
+            onClick={() => {
+              if (node.id === 'admin') {
+                localStorage.setItem('findaba_admin_tab', 'infrastructure');
+              }
+              setView(node.id as any);
+            }} 
             className={`backdrop-blur-3xl p-4 md:p-8 rounded-2xl md:rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center gap-3 md:gap-5 border transition-all duration-500 active:scale-95 group ${
               node.highlight 
                 ? 'bg-aba-gold border-aba-gold/50 hover:bg-white' 

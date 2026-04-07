@@ -11,13 +11,12 @@ if (container) {
 }
 
 // REGISTER SERVICE WORKER FOR MOBILE INSTALLATION (PWA PROTOCOL)
-if ('serviceWorker' in navigator) {
+// Disabled in preview environment to prevent ServiceWorker state errors
+if ('serviceWorker' in navigator && !window.location.hostname.includes('run.app')) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then(reg => {
         console.log('Registry Signal Active:', reg.scope);
-        // Force update check on refresh
-        reg.update();
       })
       .catch(err => console.warn('Registry Signal Blocked:', err));
   });

@@ -195,7 +195,8 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const pinAuth = localStorage.getItem("findaba_admin_auth") === "true";
-    return pinAuth || userRole === "admin";
+    const isOwner = userEmail === 'pastornelsonezi@gmail.com';
+    return pinAuth || userRole === "admin" || isOwner;
   });
   const [pin, setPin] = useState(["", "", "", ""]);
   const pinRefs = [
@@ -216,7 +217,14 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "users"
     | "infrastructure"
     | "metadata"
-  >("overview");
+  >(() => {
+    const storedTab = localStorage.getItem('findaba_admin_tab');
+    if (storedTab) {
+      localStorage.removeItem('findaba_admin_tab');
+      return storedTab as any;
+    }
+    return "overview";
+  });
   const [loading, setLoading] = useState(false);
   const [platformConfig, setPlatformConfig] = useState<PlatformConfig | null>(
     null,
@@ -343,7 +351,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const isCustomDomainActive = isApexDomain || isWwwDomain;
 
   return (
-    <div className="flex-1 bg-[#020617] flex flex-col text-white animate-fade-in font-sans h-full overflow-hidden">
+    <div className="flex-1 bg-[#020617] flex flex-col text-white animate-fade-in font-sans h-full">
       <header className="px-4 sm:px-8 py-4 sm:py-8 flex justify-between items-center bg-black/40 backdrop-blur-2xl border-b border-white/5 shrink-0">
         <div className="flex items-center gap-3 sm:gap-6">
           <button
@@ -900,6 +908,62 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                       DNS changes can take up to 48 hours to propagate globally. Once updated, Vercel will automatically issue an SSL certificate for secure industrial trade.
                     </p>
                   </div>
+
+                  <div className="bg-black/40 p-8 rounded-[2.5rem] border border-white/5 space-y-8">
+                    <h5 className="text-sm font-black uppercase tracking-widest text-white flex items-center gap-3">
+                      <Terminal size={16} className="text-aba-gold" /> Step-by-Step DNS Deployment
+                    </h5>
+                    
+                    <div className="space-y-6">
+                      <div className="flex gap-6">
+                        <div className="w-8 h-8 rounded-full bg-aba-gold/10 border border-aba-gold/20 flex items-center justify-center shrink-0 text-aba-gold text-[10px] font-black">1</div>
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-black uppercase text-white tracking-widest">Login to Registrar</p>
+                          <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">Access your domain dashboard (e.g., Whogohost, Namecheap, or GoDaddy).</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-6">
+                        <div className="w-8 h-8 rounded-full bg-aba-gold/10 border border-aba-gold/20 flex items-center justify-center shrink-0 text-aba-gold text-[10px] font-black">2</div>
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-black uppercase text-white tracking-widest">Locate DNS Management</p>
+                          <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">Search for "DNS Management", "Nameserver Settings", or "Advanced DNS".</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-6">
+                        <div className="w-8 h-8 rounded-full bg-aba-gold/10 border border-aba-gold/20 flex items-center justify-center shrink-0 text-aba-gold text-[10px] font-black">3</div>
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-black uppercase text-white tracking-widest">Purge Conflicting Records</p>
+                          <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">Delete any existing 'A' records for '@' or 'CNAME' records for 'www' that don't match our values.</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-6">
+                        <div className="w-8 h-8 rounded-full bg-aba-gold/10 border border-aba-gold/20 flex items-center justify-center shrink-0 text-aba-gold text-[10px] font-black">4</div>
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-black uppercase text-white tracking-widest">Insert Industrial Records</p>
+                          <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">Add the A Record (76.76.21.21) and CNAME (cname.vercel-dns.com) as shown above.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-red-500/5 p-8 rounded-[2.5rem] border border-red-500/10 space-y-6">
+                    <h5 className="text-[10px] font-black uppercase tracking-widest text-red-400 flex items-center gap-3">
+                      <AlertTriangle size={14} /> Troubleshooting Connection Faults
+                    </h5>
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black uppercase text-white/60 tracking-widest">ERR_CONNECTION_TIMED_OUT</p>
+                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">This usually means the DNS hasn't propagated yet or the A record is missing. Double check the IP address.</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[9px] font-black uppercase text-white/60 tracking-widest">SSL / HTTPS Errors</p>
+                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">Vercel will automatically generate a certificate once the DNS is valid. This can take 10-30 minutes after propagation.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
@@ -1027,6 +1091,15 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 }
               />
               <div className="bg-white/5 p-6 sm:p-12 rounded-3xl sm:rounded-[4rem] border border-white/5 space-y-6 sm:space-y-10">
+                <div className="bg-black/40 p-6 rounded-3xl border border-white/5 space-y-2">
+                  <p className="text-[10px] font-black uppercase text-white/40 tracking-widest">Registry Population</p>
+                  <div className="flex items-center gap-3">
+                    <Users size={20} className="text-aba-gold" />
+                    <p className="text-2xl font-black uppercase tracking-tight">{businesses.length} Nodes</p>
+                  </div>
+                  <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Total businesses currently registered in the industrial registry.</p>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                   <div className="space-y-3 sm:space-y-4">
                     <label className="text-[9px] sm:text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>FindAba by SANDALSroyalle | City OS</title>
     <meta name="description" content="The industrial-grade city platform for Enyimba City." />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -13,6 +13,28 @@
       :root { --aba-green: #008c52; --aba-gold: #FFD700; --aba-deep: #002113; --aba-red: #FF4444; }
       #root { min-height: 100dvh; }
     </style>
+    <script>
+      // CLEANUP STALE SERVICE WORKERS IN PREVIEW
+      if ('serviceWorker' in navigator && window.location.hostname.includes('run.app')) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+
+      // FORCE ENABLE CONTEXT MENU & ENSURE TOUCH SCROLLING
+      window.oncontextmenu = null;
+      document.oncontextmenu = null;
+      window.addEventListener('contextmenu', (e) => {
+        // Explicitly allow right-click to function
+        return true;
+      }, { capture: true });
+
+      // Ensure touch scrolling is not blocked
+      document.addEventListener('touchstart', function() {}, {passive: true});
+      document.addEventListener('touchmove', function() {}, {passive: true});
+    </script>
 </head>
 <body>
     <div id="root"></div>

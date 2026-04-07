@@ -17,9 +17,11 @@
 html, body {
   height: 100%;
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
   background: #002113;
   color: white;
+  touch-action: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -36,8 +38,25 @@ body {
   flex-direction: column;
 }
 
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+.touch-pan-x {
+  touch-action: pan-x;
+}
+
+.touch-pan-y {
+  touch-action: pan-y;
+}
+
+.touch-auto {
+  touch-action: auto;
 }
 
 @keyframes shimmer {

@@ -404,7 +404,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
   };
 
   return (
-    <div className="absolute inset-0 bg-[#0d0d0d] text-[#ececec] font-sans flex flex-col animate-fade-in overflow-hidden">
+    <div className="absolute inset-0 bg-[#0d0d0d] text-[#ececec] font-sans flex flex-col animate-fade-in">
       
       {/* ATMOSPHERIC BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">

@@ -40,7 +40,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
   const activeFilterCount = (categoryFilter !== 'All Categories' ? 1 : 0) + (statusFilter !== 'All' ? 1 : 0);
 
   return (
-    <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in overflow-hidden h-full">
+    <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in h-full">
       {/* Advanced Registry Header */}
       <div className="px-4 md:px-6 py-4 md:py-6 bg-black/40 backdrop-blur-2xl border-b border-white/5 sticky top-16 md:top-24 z-[1000] shadow-2xl space-y-3 md:space-y-4">
          <div className="flex justify-between items-center max-w-7xl mx-auto w-full gap-4">
