@@ -1,7 +1,41 @@
 {
   "version": "v6.0",
-  "lastUpdated": "2026-04-08T14:48:53.833Z",
+  "lastUpdated": "2026-04-08T15:13:58.135Z",
   "businesses": [
+    {
+      "id": "biz-xqun9fvp72-1775660186182",
+      "name": "FindAba Magazine ",
+      "email": "enquiries@findaba.com.ng",
+      "category": "Media, Studios & Entertainment",
+      "primary_product_or_service": "News and Documentaries ",
+      "area": "Faulks Road Hub",
+      "address": "1 Ibe Nwachukwu Street Ehimiri Estate",
+      "phone_whatsapp": "+2348024101540",
+      "image_url": "https://pqzjkvqmherngispxlzy.supabase.co/storage/v1/object/public/findaba/1775660049631-file_0000000068d871f4abb385c67768a277_(2).png",
+      "rating": 5,
+      "review_count": 0,
+      "status": "active",
+      "verification_status": "Pending",
+      "verification_level": "Listed",
+      "is_export_ready": false,
+      "capacity_indicator": "Active",
+      "premium_features_enabled": false,
+      "active_features": {
+        "priority_score_bonus": 0,
+        "trade_analytics_access": "basic",
+        "verified_exporter_badge": false,
+        "physical_verification_badge": false
+      },
+      "products": [],
+      "latitude": 5.0932155945326425,
+      "longitude": 7.387407517684491,
+      "created_at": "2026-04-08T14:56:26.183+00:00",
+      "owner_id": null,
+      "city": null,
+      "services": null,
+      "phone": "+2348024101540",
+      "description": "FindAba Magazine is a dynamic digital and print publication dedicated to showcasing the heartbeat of Aba’s business, culture, and innovation. As an extension of the FindAba platform, the magazine serves as a curated guide to discovering trusted local businesses, emerging entrepreneurs, and everyday success stories within Aba and beyond.\nIt blends business intelligence with lifestyle content—featuring in-depth profiles, market insights, startup spotlights, industry trends, and community-driven narratives. From the bustling activity of Aba International Market to the rise of modern enterprises, FindAba Magazine captures the energy, resilience, and creativity that define the city.\nWith a focus on visibility and credibility, the magazine empowers businesses by giving them a voice, while helping readers make informed decisions about where to shop, invest, and connect. It is not just a publication—it is a bridge between opportunity and discovery in Aba’s evolving commercial landscape.\n\n...discover Aba. Connect to Opportunity."
+    },
     {
       "id": "biz-fashion-01",
       "name": "Enyimba Fashion House",

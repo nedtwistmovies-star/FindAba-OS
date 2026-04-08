@@ -40,54 +40,54 @@ const CitySignals: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full bg-[#001a0f] border-y border-white/5 py-3 px-4 md:px-8 flex flex-wrap items-center justify-center gap-3 md:gap-16 z-40 relative">
-      <div className="flex items-center gap-2 md:gap-3 group">
-        <div className="w-6 h-6 md:w-8 md:h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
-          <Calendar size={12} className="md:w-4 md:h-4" />
+    <div className="w-full bg-[#001a0f] border-y border-white/10 py-4 px-4 md:px-8 flex flex-wrap items-center justify-center gap-4 md:gap-16 z-40 relative">
+      <div className="flex items-center gap-3 md:gap-3 group">
+        <div className="w-8 h-8 md:w-8 md:h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
+          <Calendar size={14} className="md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[8px] md:text-[13px] font-black text-aba-gold uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5">{currentDate}</span>
-          <span className="text-[7px] md:text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
+          <span className="text-[10px] md:text-[13px] font-black text-aba-gold uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5">{currentDate}</span>
+          <span className="text-[9px] md:text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
         </div>
       </div>
 
-      <div className="h-6 w-[1px] bg-white/5 hidden sm:block" />
+      <div className="h-6 w-[1px] bg-white/10 hidden sm:block" />
 
-      <div className="flex items-center gap-2 md:gap-3 group">
-        <div className="w-6 h-6 md:w-8 md:h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
-          <CloudSun size={12} className="md:w-4 md:h-4" />
+      <div className="flex items-center gap-3 md:gap-3 group">
+        <div className="w-8 h-8 md:w-8 md:h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
+          <CloudSun size={14} className="md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[6px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
-          <span className="text-[8px] md:text-[11px] font-black text-white uppercase tracking-widest">
+          <span className="text-[8px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
+          <span className="text-[10px] md:text-[11px] font-black text-white uppercase tracking-widest">
             {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
           </span>
         </div>
       </div>
 
-      <div className="h-6 w-[1px] bg-white/5 hidden sm:block" />
+      <div className="h-6 w-[1px] bg-white/10 hidden sm:block" />
 
-      <div className="flex items-center gap-2 md:gap-3 group">
-        <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center transition-all ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green group-hover:bg-aba-green group-hover:text-white' : 'bg-aba-red/10 text-aba-red group-hover:bg-aba-red group-hover:text-white'}`}>
-          <Database size={12} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
+      <div className="flex items-center gap-3 md:gap-3 group">
+        <div className={`w-8 h-8 md:w-8 md:h-8 rounded-lg flex items-center justify-center transition-all ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green group-hover:bg-aba-green group-hover:text-white' : 'bg-aba-red/10 text-aba-red group-hover:bg-aba-red group-hover:text-white'}`}>
+          <Database size={14} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[6px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Registry Signal</span>
-          <span className={`text-[8px] md:text-[11px] font-black uppercase tracking-widest ${registryStatus === 'online' ? 'text-aba-green' : 'text-aba-red'}`}>
+          <span className="text-[8px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Registry Signal</span>
+          <span className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest ${registryStatus === 'online' ? 'text-aba-green' : 'text-aba-red'}`}>
             {registryStatus === 'online' ? 'Industrial Node Online' : registryStatus === 'syncing' ? 'Syncing...' : 'Registry Offline'}
           </span>
         </div>
       </div>
 
-      <div className="h-6 w-[1px] bg-white/5 hidden sm:block" />
+      <div className="h-6 w-[1px] bg-white/10 hidden sm:block" />
 
-      <div className="flex items-center gap-2 md:gap-3 group">
-        <div className="w-6 h-6 md:w-8 md:h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
-          <Radio size={12} className="animate-pulse md:w-4 md:h-4" />
+      <div className="flex items-center gap-3 md:gap-3 group">
+        <div className="w-8 h-8 md:w-8 md:h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
+          <Radio size={14} className="animate-pulse md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[6px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
-          <span className="text-[8px] md:text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
+          <span className="text-[8px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
+          <span className="text-[10px] md:text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
         </div>
       </div>
     </div>
@@ -170,7 +170,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       <CitySignals />
 
       {/* 1. HERO SECTION - Matching Screenshot Layout */}
-      <section className="relative min-h-[70vh] flex flex-col items-center justify-center px-4 md:px-8 py-20 overflow-hidden">
+      <section className="relative min-h-[45vh] md:min-h-[70vh] flex flex-col items-center justify-center px-4 md:px-8 py-12 md:py-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <ImageCarousel 
             images={heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES} 
@@ -181,7 +181,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           <div className="absolute inset-0 bg-gradient-to-b from-aba-gold/20 via-transparent to-aba-deep" />
         </div>
         
-        <div className="relative z-10 w-full max-w-5xl flex flex-col items-center text-center space-y-12">
+        <div className="relative z-10 w-full max-w-5xl flex flex-col items-center text-center space-y-8 md:space-y-12">
           {/* Quick Access Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 animate-slide-up px-4">
             <IndustrialButton 
@@ -189,7 +189,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               size="sm"
               icon={ShieldCheck}
               onClick={() => setView('merchant-portal')}
-              className="bg-aba-deep/5 backdrop-blur-xl border-aba-deep/10 hover:bg-aba-deep/10 text-aba-deep font-black uppercase tracking-widest text-[8px] md:text-[10px] py-3 md:py-4"
+              className="bg-aba-deep/10 backdrop-blur-xl border-aba-deep/20 hover:bg-aba-deep/20 text-aba-deep font-black uppercase tracking-widest text-[9px] md:text-[10px] py-4 md:py-4"
             >
               Manage Wired for Something Leadership Institute
             </IndustrialButton>
@@ -199,7 +199,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               size="sm"
               icon={Building2}
               onClick={() => setView('explore')}
-              className="bg-aba-deep/5 backdrop-blur-xl border-aba-deep/10 hover:bg-aba-deep/10 text-aba-deep font-black uppercase tracking-widest text-[8px] md:text-[10px] py-3 md:py-4"
+              className="bg-aba-deep/10 backdrop-blur-xl border-aba-deep/20 hover:bg-aba-deep/20 text-aba-deep font-black uppercase tracking-widest text-[9px] md:text-[10px] py-4 md:py-4"
             >
               Industrial Directory
             </IndustrialButton>
@@ -268,17 +268,17 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
         {/* Category Cards - Horizontal List at bottom of hero */}
         <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-4 md:px-8 z-20">
-          <div className="max-w-7xl mx-auto flex gap-3 md:gap-4 overflow-x-auto pb-8 scrollbar-hide touch-pan-x whitespace-nowrap">
+          <div className="max-w-7xl mx-auto flex gap-4 md:gap-4 overflow-x-auto pb-8 scrollbar-hide touch-pan-x whitespace-nowrap">
             {categories.map((cat, i) => (
               <button
                 key={i}
                 onClick={() => setView(cat.id as any)}
-                className="flex items-center gap-3 md:gap-4 bg-white p-4 md:p-6 rounded-xl md:rounded-2xl shadow-xl min-w-[200px] md:min-w-[240px] group hover:bg-aba-deep transition-all duration-500 active:scale-95"
+                className="flex items-center gap-4 md:gap-4 bg-white p-5 md:p-6 rounded-2xl md:rounded-2xl shadow-xl min-w-[220px] md:min-w-[240px] group hover:bg-aba-deep transition-all duration-500 active:scale-95"
               >
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-lg md:rounded-xl flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-colors">
+                <div className="w-12 h-12 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-xl flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-colors">
                   {cat.icon}
                 </div>
-                <span className="text-xs md:text-sm font-black text-aba-deep group-hover:text-white uppercase tracking-tight text-left">
+                <span className="text-sm md:text-sm font-black text-aba-deep group-hover:text-white uppercase tracking-tight text-left">
                   {cat.label}
                 </span>
               </button>
@@ -599,23 +599,23 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       {/* 2. PROTOCOL QUICK NAV */}
       <section className="px-4 md:px-8 mt-8 md:mt-12 mb-16 md:mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
         {[
-          { id: 'register', label: 'Join Now', icon: <Plus size={20} className="md:w-6 md:h-6" />, desc: 'Register Business', highlight: true },
-          { id: 'feed', label: 'Faces', icon: <Users size={20} className="md:w-6 md:h-6" />, desc: 'City Social' },
-          { id: 'purple-fleet', label: 'Fleet', icon: <Car size={20} className="md:w-6 md:h-6" />, desc: 'Purple Ride' },
-          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={20} className="md:w-6 md:h-6" />, desc: 'Hotels & Suites' },
-          { id: 'cargo', label: 'Cargo', icon: <Truck size={20} className="md:w-6 md:h-6" />, desc: 'Carry-Go' },
-          { id: 'srts-dashboard', label: 'Thrift', icon: <Wallet size={20} className="md:w-6 md:h-6" />, desc: 'Fidelity' },
-          { id: 'lab', label: 'Lab', icon: <Sparkles size={20} className="md:w-6 md:h-6" />, desc: 'Creative Hub' },
-          { id: 'hardware-audit', label: 'Sentinel', icon: <ShieldCheck size={20} className="md:w-6 md:h-6" />, desc: 'Tech Audit' },
-          { id: 'audio-heritage', label: 'Archive', icon: <Radio size={20} className="md:w-6 md:h-6" />, desc: 'Audio Intel' },
-          { id: 'about-aba', label: 'History', icon: <BookOpen size={20} className="md:w-6 md:h-6" />, desc: 'Aba Archive' },
-          { id: 'merchant-portal', label: 'Merchant', icon: <Building2 size={20} className="md:w-6 md:h-6" />, desc: 'Merchant Hub' },
-          { id: 'buyer-portal', label: 'Buyer', icon: <Users size={20} className="md:w-6 md:h-6" />, desc: 'Buyer Hub' },
-          { id: 'oracle', label: 'Oracle', icon: <MessageSquare size={20} className="md:w-6 md:h-6" />, desc: 'Oracle AI' },
-          { id: 'editorial', label: 'News', icon: <Newspaper size={20} className="md:w-6 md:h-6" />, desc: 'Industrial News' },
-          { id: 'support', label: 'Support', icon: <LifeBuoy size={20} className="md:w-6 md:h-6" />, desc: 'System Help' },
-          { id: 'explore', label: 'Registry', icon: <Search size={20} className="md:w-6 md:h-6" />, desc: 'Full Directory' },
-          ...(isAdmin ? [{ id: 'admin', label: 'Infra', icon: <Globe size={20} className="md:w-6 md:h-6" />, desc: 'Infrastructure' }] : []),
+          { id: 'register', label: 'Join Now', icon: <Plus size={24} className="md:w-6 md:h-6" />, desc: 'Register Business', highlight: true },
+          { id: 'feed', label: 'Faces', icon: <Users size={24} className="md:w-6 md:h-6" />, desc: 'City Social' },
+          { id: 'purple-fleet', label: 'Fleet', icon: <Car size={24} className="md:w-6 md:h-6" />, desc: 'Purple Ride' },
+          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={24} className="md:w-6 md:h-6" />, desc: 'Hotels & Suites' },
+          { id: 'cargo', label: 'Cargo', icon: <Truck size={24} className="md:w-6 md:h-6" />, desc: 'Carry-Go' },
+          { id: 'srts-dashboard', label: 'Thrift', icon: <Wallet size={24} className="md:w-6 md:h-6" />, desc: 'Fidelity' },
+          { id: 'lab', label: 'Lab', icon: <Sparkles size={24} className="md:w-6 md:h-6" />, desc: 'Creative Hub' },
+          { id: 'hardware-audit', label: 'Sentinel', icon: <ShieldCheck size={24} className="md:w-6 md:h-6" />, desc: 'Tech Audit' },
+          { id: 'audio-heritage', label: 'Archive', icon: <Radio size={24} className="md:w-6 md:h-6" />, desc: 'Audio Intel' },
+          { id: 'about-aba', label: 'History', icon: <BookOpen size={24} className="md:w-6 md:h-6" />, desc: 'Aba Archive' },
+          { id: 'merchant-portal', label: 'Merchant', icon: <Building2 size={24} className="md:w-6 md:h-6" />, desc: 'Merchant Hub' },
+          { id: 'buyer-portal', label: 'Buyer', icon: <Users size={24} className="md:w-6 md:h-6" />, desc: 'Buyer Hub' },
+          { id: 'oracle', label: 'Oracle', icon: <MessageSquare size={24} className="md:w-6 md:h-6" />, desc: 'Oracle AI' },
+          { id: 'editorial', label: 'News', icon: <Newspaper size={24} className="md:w-6 md:h-6" />, desc: 'Industrial News' },
+          { id: 'support', label: 'Support', icon: <LifeBuoy size={24} className="md:w-6 md:h-6" />, desc: 'System Help' },
+          { id: 'explore', label: 'Registry', icon: <Search size={24} className="md:w-6 md:h-6" />, desc: 'Full Directory' },
+          ...(isAdmin ? [{ id: 'admin', label: 'Infra', icon: <Globe size={24} className="md:w-6 md:h-6" />, desc: 'Infrastructure' }] : []),
         ].map(node => (
           <button 
             key={node.id} 
@@ -625,22 +625,22 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               }
               setView(node.id as any);
             }} 
-            className={`backdrop-blur-3xl p-4 md:p-8 rounded-2xl md:rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center gap-3 md:gap-5 border transition-all duration-500 active:scale-95 group ${
+            className={`backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center gap-4 md:gap-5 border transition-all duration-500 active:scale-95 group ${
               node.highlight 
                 ? 'bg-aba-gold border-aba-gold/50 hover:bg-white' 
                 : 'bg-white/5 border-white/5 hover:border-aba-gold/30'
             }`}
           >
-             <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform ${
+             <div className={`w-12 h-12 md:w-12 md:h-12 rounded-xl md:rounded-xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform ${
                node.highlight ? 'bg-aba-deep text-aba-gold' : 'bg-aba-green/20 text-aba-green'
              }`}>
                 {node.icon}
              </div>
-             <div className="space-y-0.5 md:space-y-1">
-                <h4 className={`text-[9px] md:text-[11px] font-black uppercase tracking-tight transition-colors ${
+             <div className="space-y-1 md:space-y-1">
+                <h4 className={`text-[12px] md:text-[11px] font-black uppercase tracking-tight transition-colors ${
                   node.highlight ? 'text-aba-deep' : 'text-white group-hover:text-aba-gold'
                 }`}>{node.label}</h4>
-                <p className={`text-[6px] md:text-[7px] font-bold uppercase tracking-[0.15em] md:tracking-[0.2em] ${
+                <p className={`text-[8px] md:text-[7px] font-bold uppercase tracking-[0.15em] md:tracking-[0.2em] ${
                   node.highlight ? 'text-aba-deep/60' : 'text-white/30'
                 }`}>{node.desc}</p>
              </div>

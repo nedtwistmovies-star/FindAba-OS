@@ -135,8 +135,8 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
               <img src={cat.img} className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000" alt={cat.title} />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
               <div className="absolute inset-0 p-8 flex flex-col justify-end space-y-3">
-                <h3 className="text-2xl font-black text-aba-gold uppercase tracking-tight leading-tight group-hover:text-white transition-colors">{cat.title}</h3>
-                <p className="text-[11px] font-medium text-white/40 leading-tight group-hover:text-white/70 transition-colors">{cat.desc}</p>
+                <h3 className="text-3xl font-black text-aba-gold uppercase tracking-tight leading-tight group-hover:text-white transition-colors">{cat.title}</h3>
+                <p className="text-[13px] font-medium text-white/40 leading-tight group-hover:text-white/70 transition-colors">{cat.desc}</p>
               </div>
             </div>
           ))}
@@ -169,14 +169,14 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
                 <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/90 to-transparent" />
               </div>
               <div className="p-8 space-y-4">
-                <h4 className="text-base font-black text-white uppercase tracking-tight group-hover:text-aba-gold transition-colors line-clamp-1">{biz.name}</h4>
+                <h4 className="text-lg font-black text-white uppercase tracking-tight group-hover:text-aba-gold transition-colors line-clamp-1">{biz.name}</h4>
                 <div className="flex items-center gap-1">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} size={12} fill={i < Math.floor(biz.rating) ? "#FFD700" : "none"} className={i < Math.floor(biz.rating) ? "text-aba-gold" : "text-white/10"} />
                   ))}
-                  <span className="text-[11px] font-bold text-white/30 ml-2">{biz.reviews_count} reviews</span>
+                  <span className="text-[13px] font-bold text-white/30 ml-2">{biz.reviews_count} reviews</span>
                 </div>
-                <p className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em]">{biz.category}</p>
+                <p className="text-[13px] font-bold text-white/30 uppercase tracking-[0.2em]">{biz.category}</p>
               </div>
             </div>
           ))}

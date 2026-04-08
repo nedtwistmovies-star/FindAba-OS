@@ -38,9 +38,9 @@ const SystemClock: React.FC = () => {
   });
 
   return (
-    <div className="hidden md:flex flex-col items-end px-3 md:px-6 border-x border-white/10 mx-2 md:mx-6">
-      <span className="text-[7px] md:text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] leading-none mb-1">{dateStr}</span>
-      <span className="text-[10px] md:text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
+    <div className="flex flex-col items-center sm:items-end px-3 md:px-6 sm:border-x border-white/10 mx-1 md:mx-6">
+      <span className="text-[8px] md:text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] leading-none mb-1">{dateStr}</span>
+      <span className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
     </div>
   );
 };
@@ -287,17 +287,17 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           </div>
         )}
 
-        <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-12 py-3 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 ${isSidebarCollapsed ? 'lg:left-24' : 'lg:left-72'} ${isDarkView ? 'bg-black/40 border-b border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/80 border-b border-aba-green/5'}`}>
-          <div className="flex items-center gap-3 md:gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
-              <Logo src={activeLogo} size={32} className="md:w-14 md:h-14 border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
+        <header className={`fixed top-0 left-0 right-0 z-[1000] px-3 md:px-12 py-2 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 ${isSidebarCollapsed ? 'lg:left-24' : 'lg:left-72'} ${isDarkView ? 'bg-black/60 border-b border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-b border-aba-green/5'}`}>
+          <div className="flex items-center gap-2 md:gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
+              <Logo src={activeLogo} size={28} className="md:w-14 md:h-14 border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
               <div className="flex flex-col">
-                <h1 className="text-lg md:text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
+                <h1 className="text-base md:text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
                   FindAba
                 </h1>
-                <div className="flex items-center gap-1.5 mt-1 md:mt-2">
-                  <p className="text-aba-gold text-[7px] md:text-[9px] font-black uppercase tracking-[0.4em] md:tracking-[0.6em] opacity-60">SANDALSroyalle</p>
+                <div className="flex items-center gap-1 mt-0.5 md:mt-2">
+                  <p className="text-aba-gold text-[6px] md:text-[9px] font-black uppercase tracking-[0.3em] md:tracking-[0.6em] opacity-80">SANDALSroyalle</p>
                   {isRegistryActive && (
-                    <div className="flex items-center gap-1 md:gap-1.5 border-l border-white/10 pl-1.5 md:pl-2" title={healthMessage}>
+                    <div className="flex items-center gap-1 md:gap-1.5 border-l border-white/10 pl-1 md:pl-2" title={healthMessage}>
                       <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]'}`} />
                     </div>
                   )}
@@ -306,13 +306,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           </div>
           
           <div className="flex items-center gap-1 md:gap-6">
-            <div className="hidden sm:block">
+            <div className="flex items-center">
               <SystemClock />
             </div>
             
             <button 
               onClick={() => setView('register')}
-              className="hidden md:flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-aba-green text-white rounded-lg md:rounded-xl font-black uppercase text-[8px] md:text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
+              className="hidden sm:flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-aba-green text-white rounded-lg md:rounded-xl font-black uppercase text-[8px] md:text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
             >
               <Plus size={14} className="md:w-4 md:h-4" /> Add Listing
             </button>

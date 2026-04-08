@@ -55,8 +55,8 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                  <ArrowLeft size={20} className="md:w-6 md:h-6" />
                </button>
                <div>
-                  <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter text-white leading-none">City Registry</h2>
-                  <p className="text-[7px] md:text-[8px] font-black text-aba-gold/60 uppercase tracking-[0.3em] md:tracking-[0.4em] mt-1.5 md:mt-2">Verified Industrial Nodes</p>
+                  <h2 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-white leading-none">City Registry</h2>
+                  <p className="text-[9px] md:text-[8px] font-black text-aba-gold/60 uppercase tracking-[0.3em] md:tracking-[0.4em] mt-1.5 md:mt-2">Verified Industrial Nodes</p>
                </div>
             </div>
             <div className="flex bg-white/5 p-1 rounded-xl md:rounded-2xl border border-white/10 shadow-inner">
@@ -80,7 +80,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                <Search className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-aba-gold transition-colors md:w-5 md:h-5" size={18} />
                <input 
                  placeholder="Search factory name or product..." 
-                 className="w-full pl-11 md:pl-14 pr-6 md:pr-8 py-3.5 md:py-5 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-xs md:text-sm font-bold outline-none focus:border-aba-gold/50 transition-all shadow-2xl text-white placeholder:text-white/20"
+                 className="w-full pl-11 md:pl-14 pr-6 md:pr-8 py-3.5 md:py-5 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-sm md:text-sm font-bold outline-none focus:border-aba-gold/50 transition-all shadow-2xl text-white placeholder:text-white/20"
                  value={searchQuery}
                  onChange={e => setSearchQuery(e.target.value)}
                />
@@ -101,9 +101,9 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
               className={`px-4 md:px-6 rounded-2xl md:rounded-3xl border transition-all flex items-center gap-2 md:gap-3 relative active:scale-95 ${showFilters || activeFilterCount > 0 ? 'bg-aba-gold border-aba-gold text-aba-dark shadow-2xl' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'}`}
             >
                <Filter size={16} className="md:w-4.5 md:h-4.5" />
-               <span className="hidden md:inline text-[9px] md:text-[10px] font-black uppercase tracking-widest">Filters</span>
+               <span className="hidden md:inline text-[10px] md:text-[10px] font-black uppercase tracking-widest">Filters</span>
                {activeFilterCount > 0 && (
-                 <span className="absolute -top-1.5 -right-1.5 md:-top-2 md:-right-2 w-4 h-4 md:w-5 md:h-5 bg-aba-red text-white text-[8px] md:text-[9px] font-black rounded-full flex items-center justify-center border-2 border-aba-dark shadow-2xl animate-pulse">
+                 <span className="absolute -top-1.5 -right-1.5 md:-top-2 md:-right-2 w-4 h-4 md:w-5 md:h-5 bg-aba-red text-white text-[9px] md:text-[9px] font-black rounded-full flex items-center justify-center border-2 border-aba-dark shadow-2xl animate-pulse">
                    {activeFilterCount}
                  </span>
                )}
@@ -133,13 +133,13 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
             <div className="max-w-7xl mx-auto w-full pt-4 space-y-6 animate-slide-up">
                <div className="flex flex-col md:flex-row md:items-center gap-6 border-t border-white/5 pt-6">
                   <div className="space-y-3 flex-1 overflow-hidden">
-                     <p className="text-[9px] font-black uppercase text-white/20 tracking-[0.3em] ml-1">Industrial Segment</p>
+                     <p className="text-[11px] font-black uppercase text-white/20 tracking-[0.3em] ml-1">Industrial Segment</p>
                      <div className="flex overflow-x-auto gap-2 scrollbar-hide pb-2">
                         {['All Categories', ...CATEGORIES].map(cat => (
                           <button 
                             key={cat}
                             onClick={() => setCategoryFilter(cat)}
-                            className={`px-5 py-2.5 rounded-xl whitespace-nowrap text-[10px] font-black uppercase tracking-widest border transition-all ${categoryFilter === cat ? 'bg-aba-gold border-aba-gold text-aba-dark shadow-2xl' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'}`}
+                            className={`px-5 py-2.5 rounded-xl whitespace-nowrap text-[11px] font-black uppercase tracking-widest border transition-all ${categoryFilter === cat ? 'bg-aba-gold border-aba-gold text-aba-dark shadow-2xl' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'}`}
                           >
                             {cat}
                           </button>
@@ -148,13 +148,13 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                   </div>
 
                   <div className="space-y-3 shrink-0">
-                     <p className="text-[9px] font-black uppercase text-white/20 tracking-[0.3em] ml-1">Trust Clearance</p>
+                     <p className="text-[11px] font-black uppercase text-white/20 tracking-[0.3em] ml-1">Trust Clearance</p>
                      <div className="flex gap-2">
                         {['All', VerificationStatus.VERIFIED, VerificationStatus.UNVERIFIED].map(status => (
                           <button 
                             key={status}
                             onClick={() => setStatusFilter(status)}
-                            className={`px-5 py-2.5 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest border transition-all ${statusFilter === status ? 'bg-aba-green border-aba-green text-white shadow-2xl' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'}`}
+                            className={`px-5 py-2.5 rounded-xl flex items-center gap-2 text-[11px] font-black uppercase tracking-widest border transition-all ${statusFilter === status ? 'bg-aba-green border-aba-green text-white shadow-2xl' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'}`}
                           >
                             {status === VerificationStatus.VERIFIED && <CheckCircle2 size={12}/>}
                             {status}
