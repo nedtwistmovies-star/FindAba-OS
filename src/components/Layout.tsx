@@ -16,20 +16,24 @@ import { getSupabase, fetchNotifications, markNotificationAsRead } from '../serv
 import { useAuth } from '../providers/AuthProvider';
 import { SANDALS_BRAND } from '../constants';
 import NotificationCenter from './NotificationCenter';
+import { getIgboMarketDay, getAbaWeather, WeatherData } from '../services/signalService';
 
 const SystemClock: React.FC = () => {
   const [time, setTime] = useState(new Date());
+  const [marketDay, setMarketDay] = useState<string>('');
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
+    setMarketDay(getIgboMarketDay());
+    getAbaWeather().then(setWeather);
     return () => clearInterval(timer);
   }, []);
 
   const dateStr = time.toLocaleDateString('en-US', { 
     weekday: 'short', 
     day: 'numeric', 
-    month: 'short', 
-    year: 'numeric' 
+    month: 'short'
   });
   const timeStr = time.toLocaleTimeString('en-US', { 
     hour: '2-digit', 
@@ -38,9 +42,19 @@ const SystemClock: React.FC = () => {
   });
 
   return (
-    <div className="flex flex-col items-center sm:items-end px-3 md:px-6 sm:border-x border-white/10 mx-1 md:mx-6">
-      <span className="text-[8px] md:text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] leading-none mb-1">{dateStr}</span>
-      <span className="text-[11px] md:text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
+    <div className="flex flex-col items-center sm:items-end px-2 md:px-6 sm:border-x border-white/10 mx-1 md:mx-6">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-[7px] md:text-[9px] font-black text-aba-gold uppercase tracking-widest leading-none">{dateStr}</span>
+        <span className="text-[7px] md:text-[9px] font-black text-aba-green uppercase tracking-widest leading-none border-l border-white/10 pl-1.5">{marketDay}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] md:text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
+        {weather && (
+          <span className="text-[8px] md:text-[10px] font-bold text-white/40 uppercase tracking-tighter border-l border-white/10 pl-2 hidden sm:block">
+            {weather.temp}
+          </span>
+        )}
+      </div>
     </div>
   );
 };

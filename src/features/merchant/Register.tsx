@@ -10,6 +10,8 @@ import { saveBusinessToDB } from '../../services/supabaseService';
 import { BUSINESS_PLANS, CATEGORIES, ABA_AREAS } from '../../constants';
 import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
+import WelcomeOverlay from '../../components/WelcomeOverlay';
+import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
 
 const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
   const [step, setStep] = useState<'plan' | 'form' | 'success'>('plan');
@@ -17,10 +19,12 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   
   const [registrationType, setRegistrationType] = useState<'email' | 'phone'>('email');
   const [formData, setFormData] = useState({
-    name: '',
+    business_name: '',
+    owner_name: '',
     primary_product_or_service: '',
     category: Category.SHOEMAKING,
     area: ABA_AREAS[0],
@@ -44,7 +48,8 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
     
     const finalBusinessData: any = {
       id: businessId,
-      name: formData.name,
+      name: formData.business_name,
+      owner_name: formData.owner_name,
       primary_product_or_service: formData.primary_product_or_service,
       category: formData.category,
       area: formData.area,
@@ -88,12 +93,23 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
         
         // Update global auth state
         if (onAuthSuccess) {
-          onAuthSuccess(identifier, formData.name, 'merchant');
+          onAuthSuccess(identifier, formData.owner_name || formData.business_name, 'merchant');
         }
       }
 
       onRegister(finalBusinessData);
       setStep('success');
+      setShowWelcome(true);
+
+      // Trigger Instant Welcome Message via Webhook
+      triggerWebhook(WebhookEvent.NEW_REGISTRATION, {
+        business_name: finalBusinessData.name,
+        owner_name: formData.owner_name,
+        email: formData.email,
+        phone: formData.phone_whatsapp,
+        tier: selectedPlan,
+        timestamp: new Date().toISOString()
+      });
     } catch (e) {
       console.error("Registration error:", e);
       // Don't proceed to success if the database save failed
@@ -107,6 +123,12 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
   if (step === 'success') {
     return (
       <div className="fixed inset-0 z-[5000] bg-[#002113] flex flex-col items-center justify-center p-8 text-center animate-fade-in font-sans">
+        {showWelcome && (
+          <WelcomeOverlay 
+            userName={formData.owner_name || formData.business_name} 
+            onClose={() => setShowWelcome(false)} 
+          />
+        )}
         <div className="relative mb-12">
           <div className="absolute inset-0 bg-aba-gold/20 blur-[100px] rounded-full animate-pulse" />
           <div className="w-32 h-32 bg-white rounded-[3.5rem] flex items-center justify-center text-aba-green shadow-[0_0_100px_rgba(255,215,0,0.3)] relative group">
@@ -261,7 +283,11 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
             <div className="space-y-6 md:space-y-8">
               <div className="space-y-2 md:space-y-3">
                 <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Business Name</label>
-                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Master Leather Hub" />
+                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.business_name} onChange={e => setFormData({...formData, business_name: e.target.value})} placeholder="e.g. Master Leather Hub" />
+              </div>
+              <div className="space-y-2 md:space-y-3">
+                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Owner / Contact Name</label>
+                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.owner_name} onChange={e => setFormData({...formData, owner_name: e.target.value})} placeholder="e.g. John Okoro" />
               </div>
               <div className="space-y-2 md:space-y-3">
                 <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Business Category</label>
@@ -337,7 +363,7 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
              <button 
                type="button" 
                onClick={() => totalAmount > 0 ? setShowCheckout(true) : finalRegister()}
-               disabled={isFinalizing || !formData.name || !formData.address || !formData.phone_whatsapp || (registrationType === 'email' ? !formData.email : !formData.phone)} 
+               disabled={isFinalizing || !formData.business_name || !formData.owner_name || !formData.address || !formData.phone_whatsapp || (registrationType === 'email' ? !formData.email : !formData.phone)} 
                className="w-full py-6 md:py-10 bg-aba-dark text-white rounded-2xl md:rounded-[3rem] font-black uppercase text-[10px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all hover:bg-aba-gold hover:text-aba-dark disabled:opacity-30 disabled:cursor-not-allowed group"
              >
                {isFinalizing ? <Loader2 className="animate-spin md:w-6 md:h-6" size={20} /> : (totalAmount > 0 ? 'Initiate Node Sync' : 'Establish Starter Link')}
