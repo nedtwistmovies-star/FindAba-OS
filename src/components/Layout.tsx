@@ -43,14 +43,14 @@ const SystemClock: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center sm:items-end px-2 md:px-6 sm:border-x border-white/10 mx-1 md:mx-6">
-      <div className="flex items-center gap-1.5 mb-0.5">
-        <span className="text-[7px] md:text-[9px] font-black text-aba-gold uppercase tracking-widest leading-none">{dateStr}</span>
-        <span className="text-[7px] md:text-[9px] font-black text-aba-green uppercase tracking-widest leading-none border-l border-white/10 pl-1.5">{marketDay}</span>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[9px] md:text-[9px] font-black text-aba-gold uppercase tracking-widest leading-none">{dateStr}</span>
+        <span className="text-[9px] md:text-[9px] font-black text-aba-green uppercase tracking-widest leading-none border-l border-white/10 pl-2">{marketDay}</span>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] md:text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
+      <div className="flex items-center gap-3">
+        <span className="text-[13px] md:text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
         {weather && (
-          <span className="text-[8px] md:text-[10px] font-bold text-white/40 uppercase tracking-tighter border-l border-white/10 pl-2 hidden sm:block">
+          <span className="text-[10px] md:text-[10px] font-bold text-white/40 uppercase tracking-tighter border-l border-white/10 pl-2 hidden sm:block">
             {weather.temp}
           </span>
         )}
@@ -301,15 +301,15 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           </div>
         )}
 
-        <header className={`fixed top-0 left-0 right-0 z-[1000] px-3 md:px-12 py-2 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 ${isSidebarCollapsed ? 'lg:left-24' : 'lg:left-72'} ${isDarkView ? 'bg-black/60 border-b border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-b border-aba-green/5'}`}>
-          <div className="flex items-center gap-2 md:gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
-              <Logo src={activeLogo} size={28} className="md:w-14 md:h-14 border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
+        <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-12 py-4 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 ${isSidebarCollapsed ? 'lg:left-24' : 'lg:left-72'} ${isDarkView ? 'bg-black/60 border-b border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-b border-aba-green/5'}`}>
+          <div className="flex items-center gap-3 md:gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
+              <Logo src={activeLogo} size={36} className="md:w-14 md:h-14 border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
               <div className="flex flex-col">
-                <h1 className="text-base md:text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
+                <h1 className="text-lg md:text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
                   FindAba
                 </h1>
-                <div className="flex items-center gap-1 mt-0.5 md:mt-2">
-                  <p className="text-aba-gold text-[6px] md:text-[9px] font-black uppercase tracking-[0.3em] md:tracking-[0.6em] opacity-80">SANDALSroyalle</p>
+                <div className="flex items-center gap-1 mt-1 md:mt-2">
+                  <p className="text-aba-gold text-[7px] md:text-[9px] font-black uppercase tracking-[0.4em] md:tracking-[0.6em] opacity-80">SANDALSroyalle</p>
                   {isRegistryActive && (
                     <div className="flex items-center gap-1 md:gap-1.5 border-l border-white/10 pl-1 md:pl-2" title={healthMessage}>
                       <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]'}`} />

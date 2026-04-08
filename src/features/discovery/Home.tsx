@@ -40,54 +40,54 @@ const CitySignals: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full bg-[#001a0f] border-y border-white/10 py-4 px-4 md:px-8 flex flex-wrap items-center justify-center gap-4 md:gap-16 z-40 relative">
-      <div className="flex items-center gap-3 md:gap-3 group">
-        <div className="w-8 h-8 md:w-8 md:h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
-          <Calendar size={14} className="md:w-4 md:h-4" />
+    <div className="w-full bg-[#001a0f] border-y border-white/10 py-6 px-4 md:px-8 flex flex-wrap items-center justify-center gap-6 md:gap-16 z-40 relative">
+      <div className="flex items-center gap-4 md:gap-3 group">
+        <div className="w-10 h-10 md:w-8 md:h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
+          <Calendar size={18} className="md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] md:text-[13px] font-black text-aba-gold uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5">{currentDate}</span>
-          <span className="text-[9px] md:text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
+          <span className="text-[12px] md:text-[13px] font-black text-aba-gold uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5">{currentDate}</span>
+          <span className="text-[10px] md:text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
         </div>
       </div>
 
-      <div className="h-6 w-[1px] bg-white/10 hidden sm:block" />
+      <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
 
-      <div className="flex items-center gap-3 md:gap-3 group">
-        <div className="w-8 h-8 md:w-8 md:h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
-          <CloudSun size={14} className="md:w-4 md:h-4" />
+      <div className="flex items-center gap-4 md:gap-3 group">
+        <div className="w-10 h-10 md:w-8 md:h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
+          <CloudSun size={18} className="md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[8px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
-          <span className="text-[10px] md:text-[11px] font-black text-white uppercase tracking-widest">
+          <span className="text-[9px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
+          <span className="text-[12px] md:text-[11px] font-black text-white uppercase tracking-widest">
             {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
           </span>
         </div>
       </div>
 
-      <div className="h-6 w-[1px] bg-white/10 hidden sm:block" />
+      <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
 
-      <div className="flex items-center gap-3 md:gap-3 group">
-        <div className={`w-8 h-8 md:w-8 md:h-8 rounded-lg flex items-center justify-center transition-all ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green group-hover:bg-aba-green group-hover:text-white' : 'bg-aba-red/10 text-aba-red group-hover:bg-aba-red group-hover:text-white'}`}>
-          <Database size={14} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
+      <div className="flex items-center gap-4 md:gap-3 group">
+        <div className={`w-10 h-10 md:w-8 md:h-8 rounded-lg flex items-center justify-center transition-all ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green group-hover:bg-aba-green group-hover:text-white' : 'bg-aba-red/10 text-aba-red group-hover:bg-aba-red group-hover:text-white'}`}>
+          <Database size={18} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[8px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Registry Signal</span>
-          <span className={`text-[10px] md:text-[11px] font-black uppercase tracking-widest ${registryStatus === 'online' ? 'text-aba-green' : 'text-aba-red'}`}>
+          <span className="text-[9px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Registry Signal</span>
+          <span className={`text-[12px] md:text-[11px] font-black uppercase tracking-widest ${registryStatus === 'online' ? 'text-aba-green' : 'text-aba-red'}`}>
             {registryStatus === 'online' ? 'Industrial Node Online' : registryStatus === 'syncing' ? 'Syncing...' : 'Registry Offline'}
           </span>
         </div>
       </div>
 
-      <div className="h-6 w-[1px] bg-white/10 hidden sm:block" />
+      <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
 
-      <div className="flex items-center gap-3 md:gap-3 group">
-        <div className="w-8 h-8 md:w-8 md:h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
-          <Radio size={14} className="animate-pulse md:w-4 md:h-4" />
+      <div className="flex items-center gap-4 md:gap-3 group">
+        <div className="w-10 h-10 md:w-8 md:h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
+          <Radio size={18} className="animate-pulse md:w-4 md:h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[8px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
-          <span className="text-[10px] md:text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
+          <span className="text-[9px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
+          <span className="text-[12px] md:text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
         </div>
       </div>
     </div>
@@ -170,7 +170,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       <CitySignals />
 
       {/* 1. HERO SECTION - Matching Screenshot Layout */}
-      <section className="relative min-h-[45vh] md:min-h-[70vh] flex flex-col items-center justify-center px-4 md:px-8 py-12 md:py-20 overflow-hidden">
+      <section className="relative min-h-[35vh] md:min-h-[70vh] flex flex-col items-center justify-center px-4 md:px-8 py-10 md:py-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <ImageCarousel 
             images={heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES} 
@@ -183,13 +183,13 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         
         <div className="relative z-10 w-full max-w-5xl flex flex-col items-center text-center space-y-8 md:space-y-12">
           {/* Quick Access Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 animate-slide-up px-4">
+          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 animate-slide-up px-4">
             <IndustrialButton 
               variant="secondary"
               size="sm"
               icon={ShieldCheck}
               onClick={() => setView('merchant-portal')}
-              className="bg-aba-deep/10 backdrop-blur-xl border-aba-deep/20 hover:bg-aba-deep/20 text-aba-deep font-black uppercase tracking-widest text-[9px] md:text-[10px] py-4 md:py-4"
+              className="bg-aba-deep/10 backdrop-blur-xl border-aba-deep/20 hover:bg-aba-deep/20 text-aba-deep font-black uppercase tracking-widest text-[11px] md:text-[10px] py-5 md:py-4"
             >
               Manage Wired for Something Leadership Institute
             </IndustrialButton>
@@ -199,13 +199,13 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               size="sm"
               icon={Building2}
               onClick={() => setView('explore')}
-              className="bg-aba-deep/10 backdrop-blur-xl border-aba-deep/20 hover:bg-aba-deep/20 text-aba-deep font-black uppercase tracking-widest text-[9px] md:text-[10px] py-4 md:py-4"
+              className="bg-aba-deep/10 backdrop-blur-xl border-aba-deep/20 hover:bg-aba-deep/20 text-aba-deep font-black uppercase tracking-widest text-[11px] md:text-[10px] py-5 md:py-4"
             >
               Industrial Directory
             </IndustrialButton>
 
             {isAdmin && (
-              <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+              <div className="flex flex-wrap items-center justify-center gap-4 md:gap-4">
                 <IndustrialButton 
                   variant="secondary"
                   size="sm"
@@ -214,7 +214,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                     localStorage.setItem('findaba_admin_tab', 'infrastructure');
                     setView('admin');
                   }}
-                  className="bg-aba-gold/20 backdrop-blur-xl border-aba-gold/30 hover:bg-aba-gold/30 text-aba-deep font-black uppercase tracking-widest shadow-lg text-[8px] md:text-[10px] py-3 md:py-4"
+                  className="bg-aba-gold/20 backdrop-blur-xl border-aba-gold/30 hover:bg-aba-gold/30 text-aba-deep font-black uppercase tracking-widest shadow-lg text-[10px] md:text-[10px] py-4 md:py-4"
                 >
                   Infrastructure Node
                 </IndustrialButton>
@@ -234,9 +234,9 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             <div className="absolute -inset-4 bg-black/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
             <form 
               onSubmit={handleSearch}
-              className="w-full h-16 md:h-24 px-6 md:px-12 bg-[#002113] rounded-full flex items-center shadow-2xl relative z-10 transition-all border border-white/5"
+              className="w-full h-20 md:h-24 px-6 md:px-12 bg-[#002113] rounded-full flex items-center shadow-2xl relative z-10 transition-all border border-white/5"
             >
-              <div className="w-10 h-10 md:w-14 md:h-14 bg-aba-gold/10 rounded-full flex items-center justify-center mr-4 md:mr-8 group-hover:bg-aba-gold group-hover:text-aba-dark transition-all duration-500">
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-aba-gold/10 rounded-full flex items-center justify-center mr-4 md:mr-8 group-hover:bg-aba-gold group-hover:text-aba-dark transition-all duration-500">
                 {isSearching ? <Loader2 className="animate-spin text-aba-gold" size={24} /> : <Search size={24} className="text-aba-gold md:w-8 md:h-8" strokeWidth={3} />}
               </div>
               <input 
@@ -244,7 +244,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 placeholder="SEARCH ABA INDUSTRIAL REGISTRY..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-sm md:text-xl font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/40 uppercase"
+                className="text-base md:text-xl font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/40 uppercase"
               />
               <button type="submit" className="text-aba-gold/50 hover:text-aba-gold transition-all hover:translate-x-1 ml-4">
                 <ChevronRight size={32} className="md:w-10 md:h-10" />
@@ -254,7 +254,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
           {/* Mastery Text */}
           <div className="pt-12 animate-slide-up text-center" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-4xl sm:text-6xl md:text-9xl font-black text-aba-deep/20 uppercase tracking-tighter leading-none select-none">
+            <h2 className="text-5xl sm:text-6xl md:text-9xl font-black text-aba-deep/20 uppercase tracking-tighter leading-none select-none">
               MASTERY.
             </h2>
             <div className="mt-8 max-w-2xl mx-auto px-4">

@@ -31,7 +31,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
           </h3>
         </div>
         {subtitle && (
-          <p className="text-[11px] sm:text-[11px] font-black text-white/40 uppercase tracking-[0.4em] ml-0 sm:ml-16">
+          <p className="text-[12px] sm:text-[11px] font-black text-white/40 uppercase tracking-[0.4em] ml-0 sm:ml-16">
             {subtitle}
           </p>
         )}
