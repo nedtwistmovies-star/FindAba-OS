@@ -34,6 +34,30 @@
       // Ensure touch scrolling is not blocked
       document.addEventListener('touchstart', function() {}, {passive: true});
       document.addEventListener('touchmove', function() {}, {passive: true});
+
+      // PERMANENTLY REMOVE VERCEL TOOLBAR / OVERLAYS
+      const hideOverlays = () => {
+        const selectors = [
+          'vercel-live-feedback',
+          '#vercel-live-feedback-container',
+          '.vercel-toolbar',
+          '[id^="vercel-live-feedback"]'
+        ];
+        selectors.forEach(s => {
+          const el = document.querySelector(s);
+          if (el) {
+            (el as HTMLElement).style.display = 'none';
+            (el as HTMLElement).style.visibility = 'hidden';
+            el.remove();
+          }
+        });
+        // Also hide via localStorage if the script supports it
+        try { window.localStorage.setItem('vercel_toolbar_hidden', '1'); } catch(e) {}
+      };
+      
+      // Run immediately and periodically
+      hideOverlays();
+      setInterval(hideOverlays, 1000);
     </script>
 </head>
 <body>

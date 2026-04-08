@@ -422,7 +422,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                   <span className="relative flex items-center gap-4">
-                    Register Now <ArrowRight size={20} />
+                    Join Now <ArrowRight size={20} />
                   </span>
                 </button>
               </div>
@@ -599,7 +599,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       {/* 2. PROTOCOL QUICK NAV */}
       <section className="px-4 md:px-8 mt-8 md:mt-12 mb-16 md:mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
         {[
-          { id: 'register', label: 'Join', icon: <PlusCircle size={20} className="md:w-6 md:h-6" />, desc: 'Register Business', highlight: true },
+          { id: 'register', label: 'Join Now', icon: <Plus size={20} className="md:w-6 md:h-6" />, desc: 'Register Business', highlight: true },
           { id: 'feed', label: 'Faces', icon: <Users size={20} className="md:w-6 md:h-6" />, desc: 'City Social' },
           { id: 'purple-fleet', label: 'Fleet', icon: <Car size={20} className="md:w-6 md:h-6" />, desc: 'Purple Ride' },
           { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={20} className="md:w-6 md:h-6" />, desc: 'Hotels & Suites' },

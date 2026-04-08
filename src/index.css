@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PERMANENTLY HIDE VERCEL TOOLBAR / OVERLAYS */
+vercel-live-feedback,
+#vercel-live-feedback-container,
+.vercel-toolbar,
+[id^="vercel-live-feedback"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 :root {
   --aba-green: #008c52;
   --aba-gold: #FFD700;

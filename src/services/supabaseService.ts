@@ -411,14 +411,35 @@ export const fetchAllBusinesses = async (): Promise<Business[]> => {
 export const updateBusinessInDB = async (id: string, updates: Partial<Business>) => {
   const client = getSupabase();
   if (!client) return;
-  await client.from('businesses').update(updates).eq('id', id);
+  const { error } = await client.from('businesses').update(updates).eq('id', id);
+  
+  // Handle missing 'description' column gracefully (PGRST204)
+  if (error && error.code === 'PGRST204' && error.message.includes('description')) {
+    console.warn("[Registry] 'description' column missing in DB, retrying update without it...");
+    const { description, ...rest } = updates;
+    await client.from('businesses').update(rest).eq('id', id);
+  }
 };
 
 export const saveBusinessToDB = async (business: Business) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
+  
   const { error } = await client.from('businesses').insert(business);
+  
   if (error) {
+    // Handle missing 'description' column gracefully (PGRST204)
+    if (error.code === 'PGRST204' && error.message.includes('description')) {
+      console.warn("[Registry] 'description' column missing in DB, retrying insert without it...");
+      const { description, ...businessWithoutDescription } = business;
+      const { error: retryError } = await client.from('businesses').insert(businessWithoutDescription);
+      if (!retryError) {
+        triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);
+        return;
+      }
+      throw new Error(`Registry Sync Error: ${retryError.message} (${retryError.code})`);
+    }
+    
     console.error("[Registry] Save Failure:", error);
     throw new Error(`Registry Sync Error: ${error.message} (${error.code})`);
   }
