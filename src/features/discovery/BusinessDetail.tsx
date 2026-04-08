@@ -304,7 +304,10 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                </div>
 
                <div className="space-y-6">
-                  <button className="w-full flex items-center gap-5 p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-aba-gold/30 hover:bg-white/10 transition-all group">
+                  <button 
+                    onClick={() => window.location.href = `tel:${business.phone_whatsapp}`}
+                    className="w-full flex items-center gap-5 p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-aba-gold/30 hover:bg-white/10 transition-all group"
+                  >
                      <div className="w-12 h-12 bg-aba-green/20 text-aba-green rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                         <Phone size={20} />
                      </div>
@@ -314,13 +317,16 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                      </div>
                   </button>
                   {business.primary_product_or_service && (
-                    <button className="w-full flex items-center gap-5 p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-aba-gold/30 hover:bg-white/10 transition-all group">
+                    <button 
+                      onClick={() => setView('explore')}
+                      className="w-full flex items-center gap-5 p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-aba-gold/30 hover:bg-white/10 transition-all group"
+                    >
                        <div className="w-12 h-12 bg-blue-500/20 text-blue-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                           <Globe size={20} />
                        </div>
                        <div className="text-left">
                           <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Primary Service</p>
-                          <p className="text-sm font-black text-white uppercase tracking-tight truncate max-w-[150px]">{business.primary_product_or_service}</p>
+                          <p className="text-sm font-black text-white uppercase tracking-tight truncate max-w-[180px] md:max-w-[220px]">{business.primary_product_or_service}</p>
                        </div>
                     </button>
                   )}
@@ -338,6 +344,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                      variant="primary"
                      size="lg"
                      icon={Zap}
+                     onClick={() => window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}`, '_blank')}
                      className="w-full bg-aba-gold text-aba-dark hover:bg-white"
                   >
                      Fast Connect

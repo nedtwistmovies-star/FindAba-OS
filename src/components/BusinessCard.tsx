@@ -235,10 +235,22 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
             <MapPin size={14} className="mr-2 text-aba-red" /> {business.area}
           </div>
           <div className="flex items-center gap-3">
-             <button className="w-11 h-11 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-aba-gold hover:text-aba-dark transition-all border border-white/10 group/btn">
+             <button 
+               onClick={(e) => {
+                 e.stopPropagation();
+                 window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}`, '_blank');
+               }}
+               className="w-11 h-11 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-aba-gold hover:text-aba-dark transition-all border border-white/10 group/btn"
+             >
                 <MessageSquare size={18} className="group-hover/btn:scale-110 transition-transform" />
              </button>
-             <button className="w-11 h-11 flex items-center justify-center bg-white text-aba-dark rounded-2xl hover:bg-aba-gold transition-all shadow-2xl group/btn">
+             <button 
+               onClick={(e) => {
+                 e.stopPropagation();
+                 onClick?.(business);
+               }}
+               className="w-11 h-11 flex items-center justify-center bg-white text-aba-dark rounded-2xl hover:bg-aba-gold transition-all shadow-2xl group/btn"
+             >
                 <ChevronRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
              </button>
           </div>
