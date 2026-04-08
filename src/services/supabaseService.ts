@@ -198,10 +198,21 @@ export const seedDatabase = async (artisans: Business[]) => {
   try {
     const { count: configCount } = await client.from('platform_config').select('*', { count: 'exact', head: true });
     if (configCount === 0) await client.from('platform_config').insert([{ id: 1 }]);
+    
     const { count } = await client.from('businesses').select('*', { count: 'exact', head: true });
-    if (count === 0) await client.from('businesses').insert(artisans);
+    if (count === 0) {
+      console.log("[Registry] Seeding initial business nodes...");
+      // Seed one by one to use the robust save logic which handles missing columns
+      for (const artisan of artisans) {
+        try {
+          await saveBusinessToDB(artisan);
+        } catch (e) {
+          console.warn(`[Registry] Failed to seed node ${artisan.name}:`, e);
+        }
+      }
+    }
   } catch (e) {
-    console.warn("Seeding failed: Schema might be missing.");
+    console.warn("Seeding failed: Schema might be missing or incomplete.");
   }
 };
 
@@ -424,7 +435,7 @@ export const updateBusinessInDB = async (id: string, updates: Partial<Business>)
       if (match && match[1]) {
         const columnName = match[1];
         console.warn(`[Registry] Column '${columnName}' missing in DB, removing from update payload...`);
-        const { [columnName]: _, ...rest } = currentPayload;
+        const { [columnName]: _, ...rest } = currentPayload as any;
         currentPayload = rest;
         attempts++;
         continue;
@@ -442,7 +453,7 @@ export const saveBusinessToDB = async (business: Business) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
-  let currentPayload = { ...business };
+  let currentPayload: any = { ...business };
   let attempts = 0;
   const maxAttempts = 10; // Allow for multiple missing columns
 
@@ -457,7 +468,7 @@ export const saveBusinessToDB = async (business: Business) => {
           const columnName = match[1];
           console.warn(`[Registry] Column '${columnName}' missing in DB, retrying insert without it...`);
           const { [columnName]: _, ...rest } = currentPayload;
-          currentPayload = rest as Business;
+          currentPayload = rest;
           attempts++;
           continue;
         }

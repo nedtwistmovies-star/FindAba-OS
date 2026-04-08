@@ -337,8 +337,8 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
              <button 
                type="button" 
                onClick={() => totalAmount > 0 ? setShowCheckout(true) : finalRegister()}
-               disabled={isFinalizing || !formData.name} 
-               className="w-full py-6 md:py-10 bg-aba-dark text-white rounded-2xl md:rounded-[3rem] font-black uppercase text-[10px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all hover:bg-aba-gold hover:text-aba-dark disabled:opacity-30 group"
+               disabled={isFinalizing || !formData.name || !formData.address || !formData.phone_whatsapp || (registrationType === 'email' ? !formData.email : !formData.phone)} 
+               className="w-full py-6 md:py-10 bg-aba-dark text-white rounded-2xl md:rounded-[3rem] font-black uppercase text-[10px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all hover:bg-aba-gold hover:text-aba-dark disabled:opacity-30 disabled:cursor-not-allowed group"
              >
                {isFinalizing ? <Loader2 className="animate-spin md:w-6 md:h-6" size={20} /> : (totalAmount > 0 ? 'Initiate Node Sync' : 'Establish Starter Link')}
                {!isFinalizing && <ShieldCheck size={18} className="group-hover:scale-125 transition-transform md:w-5 md:h-5" />}
