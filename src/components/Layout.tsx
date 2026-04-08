@@ -299,9 +299,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                   {isRegistryActive && (
                     <div className="flex items-center gap-1 md:gap-1.5 border-l border-white/10 pl-1.5 md:pl-2" title={healthMessage}>
                       <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]'}`} />
-                      <span className={`text-[5px] md:text-[6px] font-black uppercase tracking-widest ${isSignalHealthy ? 'text-aba-green/60' : 'text-red-500/60'}`}>
-                        {isSignalHealthy ? 'Live' : 'Lost'}
-                      </span>
                     </div>
                   )}
                 </div>

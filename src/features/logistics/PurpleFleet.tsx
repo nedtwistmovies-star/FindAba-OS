@@ -159,24 +159,59 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
          <div className="max-w-2xl mx-auto w-full">
             {step === 'search' && (
               <div className="space-y-4 animate-fade-in">
-                <div className="bg-[#1a0033]/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_15px_80px_rgba(0,0,0,0.5)] p-6 border border-white/10 space-y-3">
-                   <div className="space-y-1.5">
-                      <div className="relative group bg-white/5 rounded-xl border border-white/10 p-0.5 overflow-hidden focus-within:border-aba-gold/50 transition-all">
-                         <div className="flex items-center">
-                           <div className="p-3"><Navigation className="text-aba-gold" size={16} /></div>
-                           <input placeholder="Secure Pickup Node" className="flex-1 bg-transparent py-3 pr-3 outline-none font-bold text-sm text-white placeholder:text-white/20" value={pickup} onChange={e => setPickup(e.target.value)} />
+                <div className="bg-[#1a0033]/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_15px_80px_rgba(0,0,0,0.5)] p-6 border border-white/10 space-y-4">
+                   <div className="space-y-3">
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black uppercase text-aba-gold/60 tracking-widest ml-1">Pickup Location</label>
+                         <div className="relative group bg-white/5 rounded-xl border border-white/10 p-0.5 overflow-hidden focus-within:border-aba-gold/50 transition-all">
+                            <div className="flex items-center">
+                              <div className="p-3"><Navigation className="text-aba-gold" size={16} /></div>
+                              <input 
+                                placeholder="Enter Pickup Point" 
+                                className="flex-1 bg-transparent py-3 pr-3 outline-none font-bold text-sm text-white placeholder:text-white/20" 
+                                value={pickup} 
+                                onChange={e => setPickup(e.target.value)} 
+                              />
+                              {userLoc && (
+                                <button 
+                                  onClick={() => setPickup("Current Location (GPS Verified)")}
+                                  className="p-3 text-aba-gold/40 hover:text-aba-gold transition-colors"
+                                  title="Use GPS Location"
+                                >
+                                  <Zap size={14} />
+                                </button>
+                              )}
+                            </div>
                          </div>
                       </div>
-                      <div className="relative group bg-white/5 rounded-xl border border-white/10 p-0.5 overflow-hidden focus-within:border-aba-gold/50 transition-all">
-                         <div className="flex items-center">
-                           <div className="p-3"><MapPin className="text-red-500" size={16} /></div>
-                           <input placeholder="Dropoff Perimeter" className="flex-1 bg-transparent py-3 pr-3 outline-none font-bold text-sm text-white placeholder:text-white/20" value={dropoff} onChange={e => setDropoff(e.target.value)} />
+
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black uppercase text-red-500/60 tracking-widest ml-1">Dropoff Location</label>
+                         <div className="relative group bg-white/5 rounded-xl border border-white/10 p-0.5 overflow-hidden focus-within:border-aba-gold/50 transition-all">
+                            <div className="flex items-center">
+                              <div className="p-3"><MapPin className="text-red-500" size={16} /></div>
+                              <input 
+                                placeholder="Enter Destination" 
+                                className="flex-1 bg-transparent py-3 pr-3 outline-none font-bold text-sm text-white placeholder:text-white/20" 
+                                value={dropoff} 
+                                onChange={e => setDropoff(e.target.value)} 
+                              />
+                            </div>
                          </div>
                       </div>
-                      <div className="relative group bg-white/5 rounded-xl border border-white/10 p-0.5 overflow-hidden focus-within:border-aba-gold/50 transition-all">
-                         <div className="flex items-center">
-                           <div className="p-3"><MessageSquare className="text-white/40" size={16} /></div>
-                           <input placeholder="Pickup Instructions (Optional)" className="flex-1 bg-transparent py-3 pr-3 outline-none font-bold text-xs text-white placeholder:text-white/20" value={note} onChange={e => setNote(e.target.value)} />
+
+                      <div className="space-y-1">
+                         <label className="text-[10px] font-black uppercase text-white/20 tracking-widest ml-1">Special Instructions</label>
+                         <div className="relative group bg-white/5 rounded-xl border border-white/10 p-0.5 overflow-hidden focus-within:border-aba-gold/50 transition-all">
+                            <div className="flex items-center">
+                              <div className="p-3"><MessageSquare className="text-white/40" size={16} /></div>
+                              <input 
+                                placeholder="Pickup Instructions (Optional)" 
+                                className="flex-1 bg-transparent py-3 pr-3 outline-none font-bold text-xs text-white placeholder:text-white/20" 
+                                value={note} 
+                                onChange={e => setNote(e.target.value)} 
+                              />
+                            </div>
                          </div>
                       </div>
                    </div>
@@ -207,7 +242,11 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                    <button 
                      onClick={handleRequest}
                      disabled={!pickup || !dropoff || loading}
-                     className="w-full py-5 bg-aba-gold text-aba-dark rounded-xl font-black uppercase text-[9px] tracking-[0.4em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all hover:bg-white disabled:opacity-30"
+                     className={`w-full py-5 rounded-xl font-black uppercase text-[10px] tracking-[0.4em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all
+                       ${(!pickup || !dropoff || loading) 
+                         ? 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5' 
+                         : 'bg-aba-gold text-aba-dark hover:bg-white hover:shadow-aba-gold/20'
+                       }`}
                    >
                       {loading ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} fill="currentColor"/>}
                       {loading ? 'Scanning Fleet Signal...' : 'Engage Secure Fleet'}

@@ -411,13 +411,30 @@ export const fetchAllBusinesses = async (): Promise<Business[]> => {
 export const updateBusinessInDB = async (id: string, updates: Partial<Business>) => {
   const client = getSupabase();
   if (!client) return;
-  const { error } = await client.from('businesses').update(updates).eq('id', id);
   
-  // Handle missing 'description' column gracefully (PGRST204)
-  if (error && error.code === 'PGRST204' && error.message.includes('description')) {
-    console.warn("[Registry] 'description' column missing in DB, retrying update without it...");
-    const { description, ...rest } = updates;
-    await client.from('businesses').update(rest).eq('id', id);
+  let currentPayload = { ...updates };
+  let attempts = 0;
+  const maxAttempts = 5;
+
+  while (attempts < maxAttempts) {
+    const { error } = await client.from('businesses').update(currentPayload).eq('id', id);
+    
+    if (error && error.code === 'PGRST204') {
+      const match = error.message.match(/Could not find the '(.+)' column/);
+      if (match && match[1]) {
+        const columnName = match[1];
+        console.warn(`[Registry] Column '${columnName}' missing in DB, removing from update payload...`);
+        const { [columnName]: _, ...rest } = currentPayload;
+        currentPayload = rest;
+        attempts++;
+        continue;
+      }
+    }
+    
+    if (error) {
+      console.error("[Registry] Update Failure:", error);
+    }
+    break;
   }
 };
 
@@ -425,27 +442,37 @@ export const saveBusinessToDB = async (business: Business) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
-  const { error } = await client.from('businesses').insert(business);
-  
-  if (error) {
-    // Handle missing 'description' column gracefully (PGRST204)
-    if (error.code === 'PGRST204' && error.message.includes('description')) {
-      console.warn("[Registry] 'description' column missing in DB, retrying insert without it...");
-      const { description, ...businessWithoutDescription } = business;
-      const { error: retryError } = await client.from('businesses').insert(businessWithoutDescription);
-      if (!retryError) {
-        triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);
-        return;
+  let currentPayload = { ...business };
+  let attempts = 0;
+  const maxAttempts = 10; // Allow for multiple missing columns
+
+  while (attempts < maxAttempts) {
+    const { error } = await client.from('businesses').insert(currentPayload);
+    
+    if (error) {
+      // Handle missing columns gracefully (PGRST204)
+      if (error.code === 'PGRST204') {
+        const match = error.message.match(/Could not find the '(.+)' column/);
+        if (match && match[1]) {
+          const columnName = match[1];
+          console.warn(`[Registry] Column '${columnName}' missing in DB, retrying insert without it...`);
+          const { [columnName]: _, ...rest } = currentPayload;
+          currentPayload = rest as Business;
+          attempts++;
+          continue;
+        }
       }
-      throw new Error(`Registry Sync Error: ${retryError.message} (${retryError.code})`);
+      
+      console.error("[Registry] Save Failure:", error);
+      throw new Error(`Registry Sync Error: ${error.message} (${error.code})`);
     }
     
-    console.error("[Registry] Save Failure:", error);
-    throw new Error(`Registry Sync Error: ${error.message} (${error.code})`);
+    // Success
+    triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);
+    return;
   }
   
-  // Trigger Automation Webhook
-  triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);
+  throw new Error("Registry Sync Failed: Too many missing columns in database schema.");
 };
 
 export const fetchFavorites = async (userId: string): Promise<string[]> => {
