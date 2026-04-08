@@ -20,6 +20,7 @@ import {
   Terminal,
   Cloud,
   Globe,
+  Truck,
   Copy,
   Check,
   Info,
@@ -1030,47 +1031,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     </div>
                   </div>
                 </div>
-
-                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
-                  <SectionHeader 
-                    title="Industrial Automation" 
-                    icon={Zap} 
-                    subtitle="Make.com Integration"
-                  />
-                  <div className="space-y-4">
-                    <label className="text-[9px] sm:text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">
-                      Make.com Webhook URL
-                    </label>
-                    <div className="flex gap-4">
-                      <input
-                        type="text"
-                        value={makeWebhookUrl}
-                        onChange={(e) => setMakeWebhookUrl(e.target.value)}
-                        className="flex-1 bg-black/40 border border-white/10 p-4 sm:p-6 rounded-2xl sm:rounded-3xl outline-none focus:border-aba-gold transition-all font-mono text-[11px] sm:text-xs"
-                        placeholder="https://hook.eu1.make.com/..."
-                      />
-                      <IndustrialButton
-                        variant="primary"
-                        size="md"
-                        icon={Save}
-                        onClick={() => {
-                          let url = makeWebhookUrl.trim();
-                          if (url && !url.startsWith('http')) {
-                            url = 'https://' + url;
-                            setMakeWebhookUrl(url);
-                          }
-                          localStorage.setItem('findaba_make_webhook_url', url);
-                          addToast("Automation Signal Saved", "success");
-                        }}
-                      >
-                        Save
-                      </IndustrialButton>
-                    </div>
-                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest leading-relaxed px-4">
-                      Events like new registrations, orders, and signals will be transmitted to this endpoint for external processing.
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -1256,6 +1216,32 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   If you see "Bucket not found" errors, run the copied SQL in
                   your Supabase Editor to initialize the 'findaba' bucket and
                   set public permissions.
+                </p>
+              </div>
+
+              <div className="bg-black/40 p-6 sm:p-12 rounded-3xl sm:rounded-[4rem] border border-white/5 space-y-6 sm:space-y-8">
+                <SectionHeader 
+                  title="Logistics Schema Update" 
+                  icon={Truck} 
+                  className="mb-6"
+                  action={
+                    <IndustrialButton
+                      variant="secondary"
+                      size="sm"
+                      icon={Copy}
+                      onClick={() => {
+                        const sql = `-- 1. ADD PICKUP NOTES TO RIDE BOOKINGS\nALTER TABLE ride_bookings ADD COLUMN IF NOT EXISTS pickup_notes TEXT;\n\n-- 2. CREATE RIDE RATINGS TABLE\nCREATE TABLE IF NOT EXISTS ride_ratings (\n  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n  ride_id TEXT NOT NULL,\n  rater_id TEXT NOT NULL,\n  rater_type TEXT CHECK (rater_type IN ('driver', 'passenger')),\n  target_id TEXT NOT NULL,\n  rating INTEGER CHECK (rating >= 1 AND rating <= 5),\n  feedback TEXT,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\n\n-- 3. RLS POLICIES FOR RATINGS\nALTER TABLE ride_ratings ENABLE ROW LEVEL SECURITY;\nCREATE POLICY "Anyone can read ratings" ON ride_ratings FOR SELECT USING (true);\nCREATE POLICY "Authenticated can insert ratings" ON ride_ratings FOR INSERT WITH CHECK (auth.role() = 'authenticated');`;
+                        navigator.clipboard.writeText(sql);
+                        addToast("Logistics SQL Copied", "success");
+                      }}
+                    >
+                      Copy Logistics SQL
+                    </IndustrialButton>
+                  }
+                />
+                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-relaxed">
+                  Run this SQL to add 'pickup_notes' to the ride_bookings table
+                  and create the 'ride_ratings' table for passenger feedback.
                 </p>
               </div>
 

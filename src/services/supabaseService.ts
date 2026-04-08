@@ -147,7 +147,7 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
       'advertorials', 'thrift_accounts', 'ledger', 'hotels', 'rooms', 
       'bookings', 'buyer_signals', 'vision_history', 'ads', 'hospitality_config', 
       'drivers', 'vehicles', 'ride_bookings', 'notifications', 'logistics_orders',
-      'signal_interests', 'payments', 'orders', 'quality_audits'
+      'signal_interests', 'payments', 'orders', 'quality_audits', 'ride_ratings'
     ];
     
     const results = await Promise.all(tables.map(async (table) => {

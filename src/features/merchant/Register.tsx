@@ -42,9 +42,15 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
     
     const finalBusinessData: any = {
       id: `biz-${Date.now()}`,
-      ...formData,
-      email: registrationType === 'email' ? formData.email : undefined,
-      phone: registrationType === 'phone' ? formData.phone : undefined,
+      name: formData.name,
+      primary_product_or_service: formData.primary_product_or_service,
+      category: formData.category,
+      area: formData.area,
+      address: formData.address,
+      phone_whatsapp: formData.phone_whatsapp,
+      description: formData.description,
+      email: formData.email || `${formData.phone_whatsapp || Date.now()}@findaba.com`,
+      image_url: formData.image_url,
       status: 'active',
       verification_status: VerificationStatus.PENDING,
       verification_level: VerificationLevel.LISTED,

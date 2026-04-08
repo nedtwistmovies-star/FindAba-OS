@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
-import { Logo, IndustrialButton, SectionHeader } from '../../components';
+import { Logo, IndustrialButton, SectionHeader, ImageCarousel, GitHubSync, SupabaseSync } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
 import { checkDatabaseHealth } from '../../services/supabaseService';
@@ -169,17 +169,17 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       {/* 🔹 CITY SIGNALS - Top Aligned */}
       <CitySignals />
 
-      {isAdmin && (
-        <div className="bg-aba-gold/5 border-b border-aba-gold/10 py-2 text-center">
-          <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.3em] flex items-center justify-center gap-2">
-            <ShieldCheck size={10} /> Administrative Node Active: {userIdentifier}
-          </p>
-        </div>
-      )}
-
       {/* 1. HERO SECTION - Matching Screenshot Layout */}
-      <section className="relative min-h-[70vh] flex flex-col items-center justify-center px-4 md:px-8 py-20 overflow-hidden bg-aba-gold">
-        <div className="absolute inset-0 opacity-10 industrial-grid pointer-events-none" />
+      <section className="relative min-h-[70vh] flex flex-col items-center justify-center px-4 md:px-8 py-20 overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <ImageCarousel 
+            images={heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES} 
+            className="h-full w-full"
+            interval={6000}
+          />
+          <div className="absolute inset-0 bg-aba-gold/80 mix-blend-multiply" />
+          <div className="absolute inset-0 bg-gradient-to-b from-aba-gold/20 via-transparent to-aba-deep" />
+        </div>
         
         <div className="relative z-10 w-full max-w-5xl flex flex-col items-center text-center space-y-12">
           {/* Quick Access Buttons */}
@@ -205,18 +205,27 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             </IndustrialButton>
 
             {isAdmin && (
-              <IndustrialButton 
-                variant="secondary"
-                size="md"
-                icon={Globe}
-                onClick={() => {
-                  localStorage.setItem('findaba_admin_tab', 'infrastructure');
-                  setView('admin');
-                }}
-                className="bg-aba-gold/20 backdrop-blur-xl border-aba-gold/30 hover:bg-aba-gold/30 text-aba-deep font-black uppercase tracking-widest shadow-lg"
-              >
-                Infrastructure Node
-              </IndustrialButton>
+              <div className="flex flex-wrap items-center justify-center gap-4">
+                <IndustrialButton 
+                  variant="secondary"
+                  size="md"
+                  icon={Globe}
+                  onClick={() => {
+                    localStorage.setItem('findaba_admin_tab', 'infrastructure');
+                    setView('admin');
+                  }}
+                  className="bg-aba-gold/20 backdrop-blur-xl border-aba-gold/30 hover:bg-aba-gold/30 text-aba-deep font-black uppercase tracking-widest shadow-lg"
+                >
+                  Infrastructure Node
+                </IndustrialButton>
+                
+                <div className="flex gap-4">
+                  <div className="bg-aba-deep/20 backdrop-blur-xl p-1 rounded-2xl border border-white/10 flex gap-2">
+                    <SupabaseSync />
+                    <GitHubSync />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 

@@ -75,10 +75,11 @@ export interface RideBooking {
   vehicle_id: string;
   pickup_addr: string;
   dropoff_addr: string;
+  pickup_notes?: string;
   amount: number;
   driver_share: number;
   platform_share: number;
-  status: 'requested' | 'accepted' | 'started' | 'completed' | 'cancelled' | 'emergency';
+  status: 'requested' | 'accepted' | 'navigating_to_pickup' | 'arrived_at_pickup' | 'navigating_to_destination' | 'completed' | 'cancelled' | 'emergency';
   tracking_session_id: string;
   created_at: string;
 }

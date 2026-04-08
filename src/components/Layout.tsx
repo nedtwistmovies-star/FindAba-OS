@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import Logo from './Logo';
 import { GitHubSync } from './GitHubSync';
+import { SupabaseSync } from './SupabaseSync';
 import { generateWelcomeMessage } from '../services/geminiService';
 import { getSupabase, fetchNotifications, markNotificationAsRead } from '../services/supabaseService';
 import { useAuth } from '../providers/AuthProvider';
@@ -258,7 +259,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           ))}
         </div>
 
-        <div className="p-4 border-t border-white/5">
+        <div className="p-4 border-t border-white/5 space-y-3">
+          {!isSidebarCollapsed && (
+            <div className="grid grid-cols-1 gap-2 mb-2">
+              <SupabaseSync />
+              <GitHubSync />
+            </div>
+          )}
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className="w-full p-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/40 flex items-center justify-center transition-all"
@@ -312,10 +319,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               <Info size={20} className="md:w-6 md:h-6" />
             </button>
 
-            <div className="flex items-center">
-              <GitHubSync />
-            </div>
-
             <button className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
               <Search size={20} className="md:w-6 md:h-6" />
             </button>
@@ -335,6 +338,11 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             <button className="hidden sm:block p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
               <Cpu size={20} className="md:w-6 md:h-6" />
             </button>
+
+            <div className="hidden xl:flex items-center gap-4 border-l border-white/10 pl-6">
+              <SupabaseSync />
+              <GitHubSync />
+            </div>
 
             <button 
               onClick={() => setView('profile')}
@@ -521,7 +529,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
         {[
           { id: 'discover', icon: <Sparkles size={20} />, label: 'DISCOVER' },
           { id: 'explore', icon: <Layers size={20} />, label: 'REGISTRY' },
-          { id: 'oracle', icon: <Zap size={20} />, label: 'ORACLE' },
           { id: 'support', icon: <LifeBuoy size={20} />, label: 'SUPPORT' },
           { id: 'profile', icon: <UserCircle size={20} />, label: 'PROFILE' }
         ].map((btn, i) => (
@@ -554,13 +561,17 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                </button>
             </div>
             <div className="px-8 py-4 border-b border-aba-white/5 lg:hidden flex flex-col gap-4">
-               <GitHubSync />
                <button 
                  onClick={() => { setView('register'); setIsMenuOpen(false); }}
                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-aba-green text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
                >
                  <Plus size={16} /> Add Listing
                </button>
+               
+               <div className="grid grid-cols-1 gap-3 pt-2">
+                 <SupabaseSync />
+                 <GitHubSync />
+               </div>
             </div>
             <div className="flex-1 p-8 space-y-3 overflow-y-auto scrollbar-hide">
                {menuItems.map((item, i) => (

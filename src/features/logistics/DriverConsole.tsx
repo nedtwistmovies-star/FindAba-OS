@@ -17,8 +17,14 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   const [driver, setDriver] = useState<any>(null);
   const [online, setOnline] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [rideRequest, setRideRequest] = useState<any>(null);
   const [currentRide, setCurrentRide] = useState<any>(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [passengerRating, setPassengerRating] = useState(5);
+  const [passengerFeedback, setPassengerFeedback] = useState('');
   const [location, setLocation] = useState({ lat: 5.1065, lng: 7.3633 });
   const [panicActive, setPanicActive] = useState(false);
   const [showIncidentReport, setShowIncidentReport] = useState(false);
@@ -57,6 +63,36 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     }
   }, [driver, online]);
 
+  const handleLogin = async () => {
+    if (!authEmail || !authPassword) return;
+    setIsLoggingIn(true);
+    try {
+      const client = getSupabase();
+      if (!client) throw new Error("Registry Offline");
+      
+      const { data, error } = await client.auth.signInWithPassword({
+        email: authEmail,
+        password: authPassword
+      });
+
+      if (error) throw error;
+
+      const d = await fetchDriverByEmail(authEmail);
+      if (d) {
+        setDriver(d);
+        setOnline(d.status === 'online');
+        localStorage.setItem('findaba_user_email', authEmail);
+        addToast("Driver Handshake Verified.", "success");
+      } else {
+        throw new Error("User is not registered as a driver node.");
+      }
+    } catch (e: any) {
+      addToast(e.message || "Auth Signal Failed", "error");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
   const handleToggleOnline = async () => {
     setLoading(true);
     const next = !online;
@@ -78,11 +114,22 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     if (!rideRequest) return;
     try {
       await updateRideBookingStatus(rideRequest.id, 'accepted');
-      setCurrentRide({ ...rideRequest, status: 'navigating_to_pickup' });
+      setCurrentRide({ ...rideRequest, status: 'accepted' });
       setRideRequest(null);
       startMovement();
     } catch (e) {
       addToast("Handshake failed.", "error");
+    }
+  };
+
+  const updateStatus = async (status: string) => {
+    if (!currentRide) return;
+    try {
+      await updateRideBookingStatus(currentRide.id, status);
+      setCurrentRide({ ...currentRide, status });
+      addToast(`Status Updated: ${status.replace(/_/g, ' ')}`, "success");
+    } catch (e) {
+      addToast("Status update failed.", "error");
     }
   };
 
@@ -111,16 +158,86 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     try {
       await updateRideBookingStatus(currentRide.id, 'completed');
       if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
-      addToast("Industrial Handshake Finalized. Registry Settlement committed.", "success");
-      setCurrentRide(null);
+      setShowRatingModal(true);
     } catch (e) {
       addToast("Settlement error.", "error");
+    }
+  };
+
+  const submitRating = async () => {
+    if (!currentRide) return;
+    setLoading(true);
+    try {
+      const client = getSupabase();
+      if (client) {
+        await client.from('ride_ratings').insert({
+          ride_id: currentRide.id,
+          rater_id: driver.id,
+          rater_type: 'driver',
+          target_id: currentRide.passenger_email, // Or passenger_id if available
+          rating: passengerRating,
+          feedback: passengerFeedback,
+          created_at: new Date().toISOString()
+        });
+      }
+      addToast("Passenger Rating Committed to Registry.", "success");
+      setShowRatingModal(false);
+      setCurrentRide(null);
+      setPassengerRating(5);
+      setPassengerFeedback('');
+    } catch (e) {
+      addToast("Rating sync failed.", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     return () => { if (moveIntervalRef.current) clearInterval(moveIntervalRef.current); };
   }, []);
+
+  if (!driver && !loading) {
+    return (
+      <div className="flex-1 flex flex-col bg-[#0f001a] items-center justify-center p-8 text-center space-y-8 h-screen">
+        <div className="w-20 h-20 bg-aba-gold/10 rounded-[2rem] flex items-center justify-center border border-aba-gold/20">
+          <Shield size={40} className="text-aba-gold" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black uppercase tracking-tight">Driver Command</h2>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Secure Node Authentication Required</p>
+        </div>
+        
+        <div className="w-full max-w-sm space-y-4">
+          <input 
+            type="email" 
+            placeholder="Registered Email" 
+            className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold outline-none focus:border-aba-gold transition-all"
+            value={authEmail}
+            onChange={e => setAuthEmail(e.target.value)}
+          />
+          <input 
+            type="password" 
+            placeholder="Secure Key" 
+            className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold outline-none focus:border-aba-gold transition-all"
+            value={authPassword}
+            onChange={e => setAuthPassword(e.target.value)}
+          />
+          <button 
+            onClick={handleLogin}
+            disabled={isLoggingIn}
+            className="w-full py-5 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-[10px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
+          >
+            {isLoggingIn ? <Loader2 size={16} className="animate-spin" /> : <Power size={16} />}
+            Initialize Handshake
+          </button>
+        </div>
+
+        <button onClick={() => setView('home')} className="text-[9px] font-black uppercase text-white/20 tracking-widest hover:text-white transition-colors">
+          Return to Civilian View
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col bg-[#0f001a] animate-fade-in font-sans relative text-white h-screen">
@@ -278,11 +395,28 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                     </div>
                  </div>
 
-                 <div className="grid grid-cols-2 gap-3 relative z-10">
-                    <button onClick={completeRide} className="col-span-2 py-5 bg-aba-green text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-                       <CheckCircle2 size={18} /> Signal Arrival
-                    </button>
-                 </div>
+                  <div className="grid grid-cols-2 gap-3 relative z-10">
+                    {currentRide.status === 'accepted' && (
+                      <button onClick={() => updateStatus('navigating_to_pickup')} className="col-span-2 py-5 bg-aba-gold text-aba-dark rounded-xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                        <Navigation size={18} /> Start Navigation
+                      </button>
+                    )}
+                    {currentRide.status === 'navigating_to_pickup' && (
+                      <button onClick={() => updateStatus('arrived_at_pickup')} className="col-span-2 py-5 bg-aba-gold text-aba-dark rounded-xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                        <MapPin size={18} /> Arrived at Pickup
+                      </button>
+                    )}
+                    {currentRide.status === 'arrived_at_pickup' && (
+                      <button onClick={() => updateStatus('navigating_to_destination')} className="col-span-2 py-5 bg-aba-gold text-aba-dark rounded-xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                        <Zap size={18} /> Start Trip
+                      </button>
+                    )}
+                    {currentRide.status === 'navigating_to_destination' && (
+                      <button onClick={completeRide} className="col-span-2 py-5 bg-aba-green text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                        <CheckCircle2 size={18} /> Complete Mission
+                      </button>
+                    )}
+                  </div>
               </div>
             )}
 
@@ -408,6 +542,46 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                 className="w-full py-6 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all"
               >
                  Confirm Bind
+              </button>
+           </div>
+        </div>
+      )}
+
+      {/* Passenger Rating Modal */}
+      {showRatingModal && (
+        <div className="fixed inset-0 z-[5000] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
+           <div className="w-full max-w-sm bg-aba-deep rounded-[2.5rem] p-8 space-y-8 shadow-2xl border border-white/10">
+              <div className="text-center space-y-2">
+                 <h3 className="text-xl font-black uppercase tracking-tight text-white">Rate Passenger</h3>
+                 <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Registry Integrity Assessment</p>
+              </div>
+              
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button 
+                    key={star} 
+                    onClick={() => setPassengerRating(star)}
+                    className={`p-2 transition-all ${passengerRating >= star ? 'text-aba-gold scale-110' : 'text-white/10'}`}
+                  >
+                    <Star size={32} fill={passengerRating >= star ? "currentColor" : "none"} />
+                  </button>
+                ))}
+              </div>
+
+              <textarea 
+                placeholder="Optional Feedback (e.g. Punctuality, Conduct)"
+                className="w-full p-5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white outline-none focus:border-aba-gold h-32 resize-none"
+                value={passengerFeedback}
+                onChange={e => setPassengerFeedback(e.target.value)}
+              />
+
+              <button 
+                onClick={submitRating}
+                disabled={loading}
+                className="w-full py-6 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                 {loading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                 Commit Rating
               </button>
            </div>
         </div>

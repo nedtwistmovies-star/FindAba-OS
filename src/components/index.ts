@@ -7,6 +7,8 @@ import { MessageInput as ChatInput } from './ChatInput';
 import ErrorBoundary from './ErrorBoundary';
 import FeedbackToast from './FeedbackToast';
 import ImageCarousel from './ImageCarousel';
+import { GitHubSync } from './GitHubSync';
+import { SupabaseSync } from './SupabaseSync';
 import { ImageUpload, MultiImageUpload } from './ImageUpload';
 import IndustrialButton from './IndustrialButton';
 import Layout from './Layout';
@@ -30,6 +32,8 @@ export {
   ChatInput,
   ErrorBoundary,
   FeedbackToast,
+  GitHubSync,
+  SupabaseSync,
   ImageCarousel,
   ImageUpload, MultiImageUpload,
   IndustrialButton,

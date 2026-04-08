@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS businesses (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ENABLE RLS ON BUSINESSES
+ALTER TABLE businesses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read businesses" ON businesses FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert businesses" ON businesses FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update businesses" ON businesses FOR UPDATE USING (true);
+
 -- 2. PLATFORM CONFIG
 CREATE TABLE IF NOT EXISTS platform_config (
   id INTEGER PRIMARY KEY DEFAULT 1,
@@ -49,6 +55,10 @@ CREATE TABLE IF NOT EXISTS platform_config (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE platform_config ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read platform_config" ON platform_config FOR SELECT USING (true);
+CREATE POLICY "Admins can update platform_config" ON platform_config FOR ALL USING (true); -- Simplified for now
+
 -- 3. FAVORITES
 CREATE TABLE IF NOT EXISTS favorites (
   id BIGSERIAL PRIMARY KEY,
@@ -56,6 +66,9 @@ CREATE TABLE IF NOT EXISTS favorites (
   business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can manage favorites" ON favorites FOR ALL USING (true);
 
 -- 4. MESSAGES
 CREATE TABLE IF NOT EXISTS messages (
@@ -66,6 +79,9 @@ CREATE TABLE IF NOT EXISTS messages (
   status TEXT DEFAULT 'sent',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can manage messages" ON messages FOR ALL USING (true);
 
 -- 5. ADVERTORIALS
 CREATE TABLE IF NOT EXISTS advertorials (
@@ -79,6 +95,10 @@ CREATE TABLE IF NOT EXISTS advertorials (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE advertorials ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read advertorials" ON advertorials FOR SELECT USING (true);
+CREATE POLICY "Anyone can manage advertorials" ON advertorials FOR ALL USING (true);
+
 -- 6. THRIFT ACCOUNTS
 CREATE TABLE IF NOT EXISTS thrift_accounts (
   user_email TEXT PRIMARY KEY,
@@ -91,6 +111,9 @@ CREATE TABLE IF NOT EXISTS thrift_accounts (
   account_name TEXT,
   swift_code TEXT
 );
+
+ALTER TABLE thrift_accounts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can manage thrift" ON thrift_accounts FOR ALL USING (true);
 
 -- 7. LEDGER
 CREATE TABLE IF NOT EXISTS ledger (
@@ -106,6 +129,9 @@ CREATE TABLE IF NOT EXISTS ledger (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE ledger ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can manage ledger" ON ledger FOR ALL USING (true);
+
 -- 8. HOTELS
 CREATE TABLE IF NOT EXISTS hotels (
   id TEXT PRIMARY KEY,
@@ -120,6 +146,10 @@ CREATE TABLE IF NOT EXISTS hotels (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE hotels ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read hotels" ON hotels FOR SELECT USING (true);
+CREATE POLICY "Anyone can manage hotels" ON hotels FOR ALL USING (true);
+
 -- 9. ROOMS
 CREATE TABLE IF NOT EXISTS rooms (
   id TEXT PRIMARY KEY,
@@ -129,6 +159,10 @@ CREATE TABLE IF NOT EXISTS rooms (
   base_price FLOAT NOT NULL,
   status TEXT DEFAULT 'available'
 );
+
+ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read rooms" ON rooms FOR SELECT USING (true);
+CREATE POLICY "Anyone can manage rooms" ON rooms FOR ALL USING (true);
 
 -- 10. BOOKINGS
 CREATE TABLE IF NOT EXISTS bookings (
@@ -143,6 +177,9 @@ CREATE TABLE IF NOT EXISTS bookings (
   guest_name TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can manage bookings" ON bookings FOR ALL USING (true);
 
 -- 11. BUYER SIGNALS
 CREATE TABLE IF NOT EXISTS buyer_signals (
@@ -159,6 +196,10 @@ CREATE TABLE IF NOT EXISTS buyer_signals (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE buyer_signals ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read buyer_signals" ON buyer_signals FOR SELECT USING (true);
+CREATE POLICY "Anyone can manage signals" ON buyer_signals FOR ALL USING (true);
+
 -- 12. VISION HISTORY
 CREATE TABLE IF NOT EXISTS vision_history (
   id BIGSERIAL PRIMARY KEY,
@@ -168,6 +209,9 @@ CREATE TABLE IF NOT EXISTS vision_history (
   mode TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE vision_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can manage vision" ON vision_history FOR ALL USING (true);
 
 -- 13. ADS
 CREATE TABLE IF NOT EXISTS ads (
@@ -180,6 +224,10 @@ CREATE TABLE IF NOT EXISTS ads (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE ads ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read ads" ON ads FOR SELECT USING (true);
+CREATE POLICY "Anyone can manage ads" ON ads FOR ALL USING (true);
+
 -- 14. HOSPITALITY CONFIG
 CREATE TABLE IF NOT EXISTS hospitality_config (
   id TEXT PRIMARY KEY DEFAULT 'current',
@@ -189,6 +237,9 @@ CREATE TABLE IF NOT EXISTS hospitality_config (
   sr_exec_markup FLOAT DEFAULT 1.2,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE hospitality_config ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read hospitality_config" ON hospitality_config FOR SELECT USING (true);
 
 -- 15. DRIVERS
 CREATE TABLE IF NOT EXISTS drivers (
@@ -209,6 +260,9 @@ CREATE TABLE IF NOT EXISTS drivers (
   account_name TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE drivers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can manage drivers" ON drivers FOR ALL USING (true);
 
 -- 16. VEHICLES
 CREATE TABLE IF NOT EXISTS vehicles (
@@ -231,6 +285,10 @@ CREATE TABLE IF NOT EXISTS vehicles (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE vehicles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read vehicles" ON vehicles FOR SELECT USING (true);
+CREATE POLICY "Anyone can manage vehicles" ON vehicles FOR ALL USING (true);
+
 -- 17. RIDE BOOKINGS
 CREATE TABLE IF NOT EXISTS ride_bookings (
   id TEXT PRIMARY KEY,
@@ -248,6 +306,9 @@ CREATE TABLE IF NOT EXISTS ride_bookings (
   tracking_session_id TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE ride_bookings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can manage ride_bookings" ON ride_bookings FOR ALL USING (true);
 
 -- 18. USER PROFILES & ROLES
 CREATE TABLE IF NOT EXISTS profiles (

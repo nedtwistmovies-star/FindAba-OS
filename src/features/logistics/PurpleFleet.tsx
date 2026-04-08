@@ -2,12 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Car, Shield, MapPin, ArrowLeft, Navigation, 
-  ShieldCheck, Loader2, Zap, Truck
+  ShieldCheck, Loader2, Zap, Truck, MessageSquare
 } from 'lucide-react';
 import { ViewState, Vehicle, VehicleCategory, RideBooking } from '../../types';
 import MapView from '../../components/MapView';
 import PaystackOverlay from '../../components/PaystackOverlay';
-import { fetchAvailableVehicles, createRideBooking, fetchAllVehicles } from '../../services/supabaseService';
+import { fetchAvailableVehicles, createRideBooking, fetchAllVehicles, getSupabase } from '../../services/supabaseService';
 import { getCurrentPosition, calculateDistance } from '../../services/locationService';
 
 const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
@@ -25,9 +25,34 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
   const [userLoc, setUserLoc] = useState<{ latitude: number, longitude: number } | null>(null);
 
   useEffect(() => {
-    getCurrentPosition().then(setUserLoc).catch(() => {});
+    getCurrentPosition().then(pos => {
+      setUserLoc(pos);
+      if (pos && !pickup) {
+        setPickup("Current Location (GPS Verified)");
+      }
+    }).catch(() => {});
     fetchAllVehicles().then(setAllVehicles);
   }, []);
+
+  useEffect(() => {
+    if (currentRide && step === 'live') {
+      const client = getSupabase();
+      if (!client) return;
+
+      const channel = client.channel(`ride_status:${currentRide.id}`)
+        .on('postgres_changes', { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'ride_bookings',
+          filter: `id=eq.${currentRide.id}`
+        }, (payload: any) => {
+          setCurrentRide(payload.new as RideBooking);
+        })
+        .subscribe();
+
+      return () => { channel.unsubscribe(); };
+    }
+  }, [currentRide?.id, step]);
 
   const handleRequest = async () => {
     if (!pickup || !dropoff) return;
@@ -70,6 +95,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
       vehicle_id: selectedVehicle?.id || availableVehicles[0]?.id,
       pickup_addr: pickup,
       dropoff_addr: dropoff,
+      pickup_notes: note,
       amount: getPrice(selectedCategory),
       status: 'requested',
       created_at: new Date().toISOString()
@@ -145,6 +171,12 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                          <div className="flex items-center">
                            <div className="p-3"><MapPin className="text-red-500" size={16} /></div>
                            <input placeholder="Dropoff Perimeter" className="flex-1 bg-transparent py-3 pr-3 outline-none font-bold text-sm text-white placeholder:text-white/20" value={dropoff} onChange={e => setDropoff(e.target.value)} />
+                         </div>
+                      </div>
+                      <div className="relative group bg-white/5 rounded-xl border border-white/10 p-0.5 overflow-hidden focus-within:border-aba-gold/50 transition-all">
+                         <div className="flex items-center">
+                           <div className="p-3"><MessageSquare className="text-white/40" size={16} /></div>
+                           <input placeholder="Pickup Instructions (Optional)" className="flex-1 bg-transparent py-3 pr-3 outline-none font-bold text-xs text-white placeholder:text-white/20" value={note} onChange={e => setNote(e.target.value)} />
                          </div>
                       </div>
                    </div>
@@ -230,25 +262,51 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                        <Zap size={32} fill="currentColor" />
                     </div>
                     <div className="space-y-3">
-                       <h3 className="text-xl font-black uppercase tracking-tight text-white">Vessel En Route</h3>
+                       <div className="flex items-center justify-center gap-2">
+                          <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                            currentRide?.status === 'completed' ? 'bg-aba-green text-white' :
+                            currentRide?.status === 'cancelled' ? 'bg-red-500 text-white' :
+                            'bg-aba-gold text-aba-dark'
+                          }`}>
+                            {currentRide?.status?.replace(/_/g, ' ') || 'Syncing Signal'}
+                          </span>
+                       </div>
+                       <h3 className="text-xl font-black uppercase tracking-tight text-white">
+                         {currentRide?.status === 'requested' ? 'Scanning for Node' : 
+                          currentRide?.status === 'accepted' ? 'Vessel Assigned' :
+                          currentRide?.status === 'navigating_to_pickup' ? 'En Route to Pickup' :
+                          currentRide?.status === 'arrived_at_pickup' ? 'Vessel Arrived' :
+                          currentRide?.status === 'navigating_to_destination' ? 'En Route to Dropoff' :
+                          currentRide?.status === 'completed' ? 'Mission Finalized' :
+                          'Signal Active'}
+                       </h3>
                        <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.4em] leading-loose">
-                          Officer Node is navigating to your pickup node. <br/>
-                          Registry Handshake Verified.
+                          {currentRide?.status === 'completed' ? 'Registry Settlement Committed. Thank you for using Purple Fleet.' : 
+                           'Officer Node is navigating to your pickup node. Registry Handshake Verified.'}
                        </p>
                     </div>
-                    <div className="flex flex-col gap-3">
-                       <div className="bg-white/5 p-3 rounded-xl border border-white/10 flex justify-between items-center">
-                          <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 rounded-full bg-aba-gold/20 flex items-center justify-center text-aba-gold text-[10px] font-black">09</div>
-                             <div className="text-left">
-                                <p className="text-[9px] font-black uppercase text-white">{availableVehicles[0]?.driver_name || 'Officer Node'}</p>
-                                <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{availableVehicles[0]?.vehicle_model} • {availableVehicles[0]?.plate_number}</p>
-                             </div>
-                          </div>
-                          <button className="p-2.5 bg-aba-gold text-aba-dark rounded-lg active:scale-90 transition-transform"><Zap size={14} /></button>
-                       </div>
-                       <button onClick={() => setStep('search')} className="w-full py-3 bg-white/5 border border-white/10 rounded-xl font-black uppercase text-[8px] tracking-widest text-white/40 hover:text-white transition-all">Cancel Signal</button>
-                    </div>
+                    
+                    {currentRide?.status !== 'completed' && (
+                      <div className="flex flex-col gap-3">
+                        <div className="bg-white/5 p-3 rounded-xl border border-white/10 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-aba-gold/20 flex items-center justify-center text-aba-gold text-[10px] font-black">09</div>
+                              <div className="text-left">
+                                  <p className="text-[9px] font-black uppercase text-white">{availableVehicles.find(v => v.id === currentRide?.vehicle_id)?.driver_name || 'Officer Node'}</p>
+                                  <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{availableVehicles.find(v => v.id === currentRide?.vehicle_id)?.vehicle_model || 'Vessel Node'}</p>
+                              </div>
+                            </div>
+                            <button className="p-2.5 bg-aba-gold text-aba-dark rounded-lg active:scale-90 transition-transform"><Zap size={14} /></button>
+                        </div>
+                        <button onClick={() => setStep('search')} className="w-full py-3 bg-white/5 border border-white/10 rounded-xl font-black uppercase text-[8px] tracking-widest text-white/40 hover:text-white transition-all">Cancel Signal</button>
+                      </div>
+                    )}
+
+                    {currentRide?.status === 'completed' && (
+                      <button onClick={() => setView('home')} className="w-full py-5 bg-aba-gold text-aba-dark rounded-xl font-black uppercase text-[10px] tracking-[0.4em] shadow-xl active:scale-95 transition-all">
+                        Return to Command
+                      </button>
+                    )}
                  </div>
               </div>
             )}

@@ -109,32 +109,6 @@ const AppContent: React.FC = () => {
     >
       {/* Non-blocking loading indicator removed for faster launch */}
       
-      {loading && businesses.length > 0 && (
-        <div className="fixed top-0 left-0 right-0 h-1 z-[10000] overflow-hidden bg-aba-deep/20">
-          <div className="h-full bg-aba-gold animate-progress-indefinite w-full shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
-        </div>
-      )}
-
-      {isAdmin && isVercelDomain && !isCustomDomain && view !== 'admin' && (
-        <div className="bg-aba-gold/10 border-b border-aba-gold/20 p-3 text-center animate-fade-in relative z-[4000]">
-          <div className="max-w-4xl mx-auto flex items-center justify-center gap-4">
-            <p className="text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] flex items-center gap-3">
-              <Globe size={12} /> 
-              Custom Domain Setup Incomplete: findaba.com.ng is not yet connected.
-            </p>
-            <button 
-              onClick={() => {
-                localStorage.setItem('findaba_admin_tab', 'infrastructure');
-                setView('admin');
-              }}
-              className="px-3 py-1.5 bg-aba-gold/20 text-aba-gold rounded-lg text-[8px] font-black uppercase tracking-widest border border-aba-gold/30 hover:bg-aba-gold hover:text-aba-dark transition-all"
-            >
-              Configure DNS
-            </button>
-          </div>
-        </div>
-      )}
-
       <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-aba-deep"><Loader2 className="animate-spin text-aba-gold" size={40} /></div>}>
         <RouteComponent 
           setView={setView} 
