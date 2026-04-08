@@ -40,16 +40,19 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
   const finalRegister = async () => {
     setIsFinalizing(true);
     
+    const businessId = `biz-${Math.random().toString(36).substring(2, 15)}-${Date.now()}`;
+    
     const finalBusinessData: any = {
-      id: `biz-${Date.now()}`,
+      id: businessId,
       name: formData.name,
       primary_product_or_service: formData.primary_product_or_service,
       category: formData.category,
       area: formData.area,
       address: formData.address,
+      phone: formData.phone || formData.phone_whatsapp,
       phone_whatsapp: formData.phone_whatsapp,
       description: formData.description,
-      email: formData.email || `${formData.phone_whatsapp || Date.now()}@findaba.com`,
+      email: formData.email || `${formData.phone_whatsapp.replace(/\D/g, '') || Date.now()}@findaba.com`,
       image_url: formData.image_url,
       status: 'active',
       verification_status: VerificationStatus.PENDING,
@@ -64,7 +67,12 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
       longitude: 7.3633 + (Math.random() - 0.5) * 0.05,
       created_at: new Date().toISOString(),
       products: [],
-      active_features: activePlanObj?.features || {}
+      active_features: {
+        physical_verification_badge: selectedPlan !== SubscriptionTier.FREE,
+        verified_exporter_badge: selectedPlan === SubscriptionTier.PREMIUM,
+        trade_analytics_access: selectedPlan === SubscriptionTier.PREMIUM ? 'advanced' : 'basic',
+        priority_score_bonus: selectedPlan === SubscriptionTier.GROWTH ? 10 : (selectedPlan === SubscriptionTier.PREMIUM ? 25 : 0)
+      }
     };
     
     try {

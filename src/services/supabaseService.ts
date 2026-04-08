@@ -418,7 +418,10 @@ export const saveBusinessToDB = async (business: Business) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   const { error } = await client.from('businesses').insert(business);
-  if (error) throw error;
+  if (error) {
+    console.error("[Registry] Save Failure:", error);
+    throw new Error(`Registry Sync Error: ${error.message} (${error.code})`);
+  }
   
   // Trigger Automation Webhook
   triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);

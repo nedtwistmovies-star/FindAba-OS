@@ -6,7 +6,7 @@ import {
   Home, Compass, UserCircle, Search, Menu, X, Globe, Building2, Zap, ShieldCheck,
   MessageCircle, BookOpen, Map as MapIcon, Layers, Sparkles, Radio, Info, Loader2, Cpu,
   Rss, Users, Lock, Unlock, Bell, Car, Key, Truck, Wallet, Plus,
-  Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft
+  Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft, RefreshCw
 } from 'lucide-react';
 import Logo from './Logo';
 import { GitHubSync } from './GitHubSync';
@@ -323,6 +323,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               <Search size={20} className="md:w-6 md:h-6" />
             </button>
             
+            <button 
+              onClick={() => window.location.reload()}
+              className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+              title="Refresh Application"
+            >
+              <RefreshCw size={20} className="md:w-6 md:h-6" />
+            </button>
+
             <button 
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               className="relative p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"

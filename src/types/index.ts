@@ -255,6 +255,7 @@ export interface Business {
   capacity_indicator: string;
   premium_features_enabled: boolean;
   commission_rate?: number; 
+  subscription_tier?: SubscriptionTier;
   active_features: {
     physical_verification_badge?: boolean;
     priority_score_bonus?: number;
@@ -279,7 +280,6 @@ export interface Business {
     image_before?: string;
     image_after?: string;
   };
-  subscription_tier?: SubscriptionTier;
   catalog_images?: string[];
   videos?: { url: string; caption: string }[];
   bank_name?: string;
