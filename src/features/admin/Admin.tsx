@@ -761,6 +761,27 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   </div>
 
                   <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Make.com Webhook URL</label>
+                    <div className="flex gap-4">
+                      <input 
+                        type="text"
+                        value={makeWebhookUrl}
+                        placeholder="https://hook.make.com/..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all font-mono"
+                        onChange={(e) => setMakeWebhookUrl(e.target.value)}
+                        onBlur={(e) => {
+                          const val = e.target.value.trim();
+                          localStorage.setItem('findaba_make_webhook_url', val);
+                          addToast("Webhook URL Updated Locally", "success");
+                        }}
+                      />
+                    </div>
+                    <p className="text-[9px] font-bold text-white/20 uppercase leading-relaxed tracking-widest">
+                      Configure the Make.com webhook for industrial automation signals.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Gemini API Key</label>
                     <div className="flex gap-4">
                       <input 

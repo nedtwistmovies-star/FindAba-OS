@@ -12,6 +12,26 @@
     <style>
       :root { --aba-green: #008c52; --aba-gold: #FFD700; --aba-deep: #002113; --aba-red: #FF4444; }
       #root { min-height: 100dvh; }
+      
+      /* AGGRESSIVE OVERLAY REMOVAL */
+      vercel-live-feedback,
+      #vercel-live-feedback-container,
+      .vercel-toolbar,
+      [id^="vercel-live-feedback"],
+      [class*="vercel-toolbar"],
+      #vercel-toolbar,
+      [data-vercel-toolbar] {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        position: fixed !important;
+        top: -9999px !important;
+        left: -9999px !important;
+        z-index: -9999 !important;
+      }
     </style>
     <script>
       // CLEANUP STALE SERVICE WORKERS IN PREVIEW
@@ -41,23 +61,75 @@
           'vercel-live-feedback',
           '#vercel-live-feedback-container',
           '.vercel-toolbar',
-          '[id^="vercel-live-feedback"]'
+          '[id^="vercel-live-feedback"]',
+          '[class*="vercel-toolbar"]',
+          '#vercel-toolbar',
+          '[data-vercel-toolbar]',
+          '[data-vercel-live-feedback]'
         ];
         selectors.forEach(s => {
-          const el = document.querySelector(s);
-          if (el) {
-            (el as HTMLElement).style.display = 'none';
-            (el as HTMLElement).style.visibility = 'hidden';
+          const els = document.querySelectorAll(s);
+          els.forEach(el => {
+            (el as HTMLElement).style.setProperty('display', 'none', 'important');
+            (el as HTMLElement).style.setProperty('visibility', 'hidden', 'important');
+            (el as HTMLElement).style.setProperty('opacity', '0', 'important');
+            (el as HTMLElement).style.setProperty('pointer-events', 'none', 'important');
+            (el as HTMLElement).style.setProperty('z-index', '-9999', 'important');
             el.remove();
+          });
+        });
+
+        // Aggressive text-based removal for "Launch!" pill
+        const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+        let node;
+        const nodesToRemove: Node[] = [];
+        while(node = walk.nextNode()) {
+          if (node.textContent && (node.textContent.includes('Launch!') || node.textContent.includes('Vercel'))) {
+            nodesToRemove.push(node);
+          }
+        }
+        nodesToRemove.forEach(n => {
+          let parent = n.parentElement;
+          while (parent && parent !== document.body) {
+            if (parent.tagName === 'BUTTON' || parent.classList.contains('vercel-toolbar') || parent.getAttribute('id')?.includes('vercel') || parent.hasAttribute('data-vercel-toolbar')) {
+              parent.remove();
+              break;
+            }
+            parent = parent.parentElement;
           }
         });
-        // Also hide via localStorage if the script supports it
+
         try { window.localStorage.setItem('vercel_toolbar_hidden', '1'); } catch(e) {}
       };
       
-      // Run immediately and periodically
+      // Run immediately
       hideOverlays();
-      setInterval(hideOverlays, 1000);
+      
+      // Watch for new elements
+      const observer = new MutationObserver((mutations) => {
+        hideOverlays();
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+
+      // Block Vercel script injection and any script that looks like a toolbar
+      const originalCreateElement = document.createElement;
+      document.createElement = function(tagName: string, options?: ElementCreationOptions) {
+        const element = originalCreateElement.call(document, tagName, options);
+        if (tagName.toLowerCase() === 'script') {
+          const scriptObserver = new MutationObserver(() => {
+            const src = (element as HTMLScriptElement).src;
+            const id = (element as HTMLElement).id;
+            const data = (element as HTMLElement).getAttribute('data-vercel-toolbar');
+            if (src.includes('vercel') || src.includes('toolbar') || id.includes('vercel') || data !== null) {
+              console.log('[Security] Blocked Vercel/Toolbar script:', src || id || 'data-attr');
+              (element as HTMLScriptElement).src = '';
+              element.remove();
+            }
+          });
+          scriptObserver.observe(element, { attributes: true, attributeFilter: ['src', 'id', 'data-vercel-toolbar'] });
+        }
+        return element;
+      } as any;
     </script>
 </head>
 <body>

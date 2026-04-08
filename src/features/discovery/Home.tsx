@@ -183,43 +183,43 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         
         <div className="relative z-10 w-full max-w-5xl flex flex-col items-center text-center space-y-12">
           {/* Quick Access Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 animate-slide-up">
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 animate-slide-up px-4">
             <IndustrialButton 
               variant="secondary"
-              size="md"
+              size="sm"
               icon={ShieldCheck}
               onClick={() => setView('merchant-portal')}
-              className="bg-aba-deep/5 backdrop-blur-xl border-aba-deep/10 hover:bg-aba-deep/10 text-aba-deep font-black uppercase tracking-widest"
+              className="bg-aba-deep/5 backdrop-blur-xl border-aba-deep/10 hover:bg-aba-deep/10 text-aba-deep font-black uppercase tracking-widest text-[8px] md:text-[10px] py-3 md:py-4"
             >
               Manage Wired for Something Leadership Institute
             </IndustrialButton>
             
             <IndustrialButton 
               variant="secondary"
-              size="md"
+              size="sm"
               icon={Building2}
               onClick={() => setView('explore')}
-              className="bg-aba-deep/5 backdrop-blur-xl border-aba-deep/10 hover:bg-aba-deep/10 text-aba-deep font-black uppercase tracking-widest"
+              className="bg-aba-deep/5 backdrop-blur-xl border-aba-deep/10 hover:bg-aba-deep/10 text-aba-deep font-black uppercase tracking-widest text-[8px] md:text-[10px] py-3 md:py-4"
             >
               Industrial Directory
             </IndustrialButton>
 
             {isAdmin && (
-              <div className="flex flex-wrap items-center justify-center gap-4">
+              <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
                 <IndustrialButton 
                   variant="secondary"
-                  size="md"
+                  size="sm"
                   icon={Globe}
                   onClick={() => {
                     localStorage.setItem('findaba_admin_tab', 'infrastructure');
                     setView('admin');
                   }}
-                  className="bg-aba-gold/20 backdrop-blur-xl border-aba-gold/30 hover:bg-aba-gold/30 text-aba-deep font-black uppercase tracking-widest shadow-lg"
+                  className="bg-aba-gold/20 backdrop-blur-xl border-aba-gold/30 hover:bg-aba-gold/30 text-aba-deep font-black uppercase tracking-widest shadow-lg text-[8px] md:text-[10px] py-3 md:py-4"
                 >
                   Infrastructure Node
                 </IndustrialButton>
                 
-                <div className="flex gap-4">
+                <div className="flex gap-3 md:gap-4">
                   <div className="bg-aba-deep/20 backdrop-blur-xl p-1 rounded-2xl border border-white/10 flex gap-2">
                     <SupabaseSync />
                     <GitHubSync />
@@ -268,17 +268,17 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
         {/* Category Cards - Horizontal List at bottom of hero */}
         <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-4 md:px-8 z-20">
-          <div className="max-w-7xl mx-auto flex gap-4 overflow-x-auto pb-8 scrollbar-hide touch-pan-x whitespace-nowrap">
+          <div className="max-w-7xl mx-auto flex gap-3 md:gap-4 overflow-x-auto pb-8 scrollbar-hide touch-pan-x whitespace-nowrap">
             {categories.map((cat, i) => (
               <button
                 key={i}
                 onClick={() => setView(cat.id as any)}
-                className="flex items-center gap-4 bg-white p-6 rounded-2xl shadow-xl min-w-[240px] group hover:bg-aba-deep transition-all duration-500 active:scale-95"
+                className="flex items-center gap-3 md:gap-4 bg-white p-4 md:p-6 rounded-xl md:rounded-2xl shadow-xl min-w-[200px] md:min-w-[240px] group hover:bg-aba-deep transition-all duration-500 active:scale-95"
               >
-                <div className="w-12 h-12 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-colors">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-lg md:rounded-xl flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-colors">
                   {cat.icon}
                 </div>
-                <span className="text-sm font-black text-aba-deep group-hover:text-white uppercase tracking-tight text-left">
+                <span className="text-xs md:text-sm font-black text-aba-deep group-hover:text-white uppercase tracking-tight text-left">
                   {cat.label}
                 </span>
               </button>

@@ -38,9 +38,9 @@ const SystemClock: React.FC = () => {
   });
 
   return (
-    <div className="hidden md:flex flex-col items-end px-6 border-x border-white/10 mx-6">
-      <span className="text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] leading-none mb-1">{dateStr}</span>
-      <span className="text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
+    <div className="hidden md:flex flex-col items-end px-3 md:px-6 border-x border-white/10 mx-2 md:mx-6">
+      <span className="text-[7px] md:text-[9px] font-black text-aba-gold uppercase tracking-[0.2em] leading-none mb-1">{dateStr}</span>
+      <span className="text-[10px] md:text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
     </div>
   );
 };
@@ -132,6 +132,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRegistryActive, setIsRegistryActive] = useState(false);
   const [isSignalHealthy, setIsSignalHealthy] = useState(true);
+  const [healthMessage, setHealthMessage] = useState<string>('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
@@ -171,7 +172,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
       const dbHealth = await checkDatabaseHealth();
       const gHealth = await syncGeminiConfig();
       
-      setIsSignalHealthy(dbHealth.status === 'healthy' && gHealth.status !== 'unhealthy');
+      const healthy = dbHealth.status === 'healthy' && gHealth.status !== 'unhealthy';
+      setIsSignalHealthy(healthy);
+      setHealthMessage(dbHealth.message || gHealth.message || '');
     };
     
     checkHealth();
@@ -284,19 +287,19 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           </div>
         )}
 
-        <header className={`fixed top-0 left-0 right-0 z-[1000] px-6 md:px-12 py-4 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 ${isSidebarCollapsed ? 'lg:left-24' : 'lg:left-72'} ${isDarkView ? 'bg-black/40 border-b border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/80 border-b border-aba-green/5'}`}>
-          <div className="flex items-center gap-4 md:gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
-              <Logo src={activeLogo} size={40} className="md:w-14 md:h-14 border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
+        <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-12 py-3 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 ${isSidebarCollapsed ? 'lg:left-24' : 'lg:left-72'} ${isDarkView ? 'bg-black/40 border-b border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/80 border-b border-aba-green/5'}`}>
+          <div className="flex items-center gap-3 md:gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
+              <Logo src={activeLogo} size={32} className="md:w-14 md:h-14 border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
               <div className="flex flex-col">
-                <h1 className="text-xl md:text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
+                <h1 className="text-lg md:text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
                   FindAba
                 </h1>
-                <div className="flex items-center gap-2 mt-2">
-                  <p className="text-aba-gold text-[9px] font-black uppercase tracking-[0.6em] opacity-60">SANDALSroyalle</p>
+                <div className="flex items-center gap-1.5 mt-1 md:mt-2">
+                  <p className="text-aba-gold text-[7px] md:text-[9px] font-black uppercase tracking-[0.4em] md:tracking-[0.6em] opacity-60">SANDALSroyalle</p>
                   {isRegistryActive && (
-                    <div className="flex items-center gap-1.5 border-l border-white/10 pl-2">
+                    <div className="flex items-center gap-1 md:gap-1.5 border-l border-white/10 pl-1.5 md:pl-2" title={healthMessage}>
                       <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]'}`} />
-                      <span className={`text-[6px] font-black uppercase tracking-widest ${isSignalHealthy ? 'text-aba-green/60' : 'text-red-500/60'}`}>
+                      <span className={`text-[5px] md:text-[6px] font-black uppercase tracking-widest ${isSignalHealthy ? 'text-aba-green/60' : 'text-red-500/60'}`}>
                         {isSignalHealthy ? 'Live' : 'Lost'}
                       </span>
                     </div>
@@ -305,65 +308,67 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               </div>
           </div>
           
-          <div className="flex items-center gap-2 md:gap-6">
-            <SystemClock />
+          <div className="flex items-center gap-1 md:gap-6">
+            <div className="hidden sm:block">
+              <SystemClock />
+            </div>
             
             <button 
               onClick={() => setView('register')}
-              className="hidden sm:flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-aba-green text-white rounded-lg md:rounded-xl font-black uppercase text-[8px] md:text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
+              className="hidden md:flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-aba-green text-white rounded-lg md:rounded-xl font-black uppercase text-[8px] md:text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
             >
               <Plus size={14} className="md:w-4 md:h-4" /> Add Listing
             </button>
 
-            <button className="hidden sm:block p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
+            <button className="hidden lg:block p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
               <Info size={20} className="md:w-6 md:h-6" />
             </button>
 
-            <button className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
-              <Search size={20} className="md:w-6 md:h-6" />
+            <button className="p-1.5 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
+              <Search size={18} className="md:w-6 md:h-6" />
             </button>
             
             <button 
               onClick={() => window.location.reload()}
-              className="p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+              className="p-1.5 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
               title="Refresh Application"
             >
-              <RefreshCw size={20} className="md:w-6 md:h-6" />
+              <RefreshCw size={18} className="md:w-6 md:h-6" />
             </button>
 
             <button 
               onClick={() => setNotificationsOpen(!notificationsOpen)}
-              className="relative p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+              className="relative p-1.5 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
             >
-              <Bell size={20} className="md:w-6 md:h-6" />
+              <Bell size={18} className="md:w-6 md:h-6" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 md:top-2 md:right-2 w-4 h-4 md:w-5 md:h-5 bg-aba-gold text-aba-deep text-[8px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-black shadow-lg">
+                <span className="absolute top-0 right-0 md:top-2 md:right-2 w-3.5 h-3.5 md:w-5 md:h-5 bg-aba-gold text-aba-deep text-[7px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-black shadow-lg">
                   {unreadCount}
                 </span>
               )}
             </button>
 
-            <button className="hidden sm:block p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
+            <button className="hidden lg:block p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
               <Cpu size={20} className="md:w-6 md:h-6" />
             </button>
 
-            <div className="hidden xl:flex items-center gap-4 border-l border-white/10 pl-6">
+            <div className="hidden 2xl:flex items-center gap-4 border-l border-white/10 pl-6">
               <SupabaseSync />
               <GitHubSync />
             </div>
 
             <button 
               onClick={() => setView('profile')}
-              className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl border-2 border-white/10 overflow-hidden shadow-2xl active:scale-90 transition-all hover:border-aba-gold group/profile"
+              className="w-8 h-8 md:w-14 md:h-14 rounded-lg md:rounded-2xl border-2 border-white/10 overflow-hidden shadow-2xl active:scale-90 transition-all hover:border-aba-gold group/profile"
             >
               <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Profile" />
             </button>
 
             <button 
               onClick={() => setIsMenuOpen(true)}
-              className="lg:hidden p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+              className="lg:hidden p-1.5 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
             >
-              <Menu size={20} className="md:w-6 md:h-6" />
+              <Menu size={18} className="md:w-6 md:h-6" />
             </button>
           </div>
         </header>
