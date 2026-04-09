@@ -332,7 +332,9 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                     </div>
                     <div className="flex items-center gap-2 md:gap-3">
                        <ShieldCheck size={16} className="text-aba-green md:w-4.5 md:h-4.5" />
-                       <span className="text-[8px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">Verified Hub</span>
+                       <span className="text-[8px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">
+                         {businessOfTheDay.integrity_grade === 'A' || businessOfTheDay.integrity_grade === 'A+' ? 'Verified Hub' : 'Partner Hub'}
+                       </span>
                     </div>
                  </div>
                  <IndustrialButton
@@ -380,7 +382,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                <div className="space-y-4 text-center md:text-left">
                   <h3 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter leading-tight">FindAba <span className="text-aba-gold italic">Verified.</span></h3>
                   <p className="text-white/70 text-sm md:text-base max-w-2xl font-medium leading-relaxed">
-                     Our trust badge isn't just a symbol—it's a guarantee of physical existence, industrial integrity, and trade reliability. Every verified node has been physically inspected by our registry team.
+                     Our trust badge isn't just a symbol—it's a guarantee of physical existence, industrial integrity, and trade reliability. Every verified partner has been physically inspected by our registry team.
                   </p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
                      {['Physical Inspection', 'Identity Cleared', 'Trade Integrity'].map((tag, i) => (
@@ -498,7 +500,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 
                 <div className="absolute top-5 right-5">
                   <div className="w-10 h-10 bg-aba-deep/80 backdrop-blur-md text-aba-gold rounded-2xl flex items-center justify-center border border-white/10 shadow-2xl group-hover:rotate-12 transition-transform">
-                    {artisan.verification_level === VerificationLevel.SIGNATURE ? <ShieldCheck size={18} /> : <Users size={18} />}
+                    {artisan.integrity_grade === 'A' || artisan.integrity_grade === 'A+' ? <ShieldCheck size={18} /> : <Users size={18} />}
                   </div>
                 </div>
               </div>
@@ -515,8 +517,10 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 
                 <div className="flex items-center justify-between pt-4 border-t border-white/5">
                   <div className="flex items-center gap-1.5">
-                    <Star size={12} fill="#FFD700" className="text-aba-gold" />
-                    <span className="text-[10px] font-black text-white/60">{artisan.rating}</span>
+                    <Star size={12} fill={artisan.review_count > 0 ? "#FFD700" : "none"} className={artisan.review_count > 0 ? "text-aba-gold" : "text-white/20"} />
+                    <span className="text-[10px] font-black text-white/60">
+                      {artisan.review_count > 0 ? artisan.rating.toFixed(1) : 'No reviews yet'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5 text-white/30">
                     <MapPin size={12} />

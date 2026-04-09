@@ -181,6 +181,11 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
                  <MapPin size={10} /> Physically Verified
               </div>
            )}
+           {business.verification_level === VerificationLevel.DOCUMENT_VERIFIED && (
+              <div className="bg-aba-green/80 text-white text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-aba-green/20 backdrop-blur-md">
+                 <CheckCircle2 size={10} /> Document Verified
+              </div>
+           )}
            {features.verified_exporter_badge && (
               <div className="bg-aba-dark/80 text-aba-gold text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-aba-gold/20 backdrop-blur-md">
                  <Globe size={10} fill="currentColor" /> Exporter

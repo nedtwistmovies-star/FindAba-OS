@@ -74,7 +74,6 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
       created_at: new Date().toISOString(),
       products: [],
       active_features: {
-        physical_verification_badge: selectedPlan !== SubscriptionTier.FREE,
         verified_exporter_badge: selectedPlan === SubscriptionTier.PREMIUM,
         trade_analytics_access: selectedPlan === SubscriptionTier.PREMIUM ? 'advanced' : 'basic',
         priority_score_bonus: selectedPlan === SubscriptionTier.GROWTH ? 10 : (selectedPlan === SubscriptionTier.PREMIUM ? 25 : 0)

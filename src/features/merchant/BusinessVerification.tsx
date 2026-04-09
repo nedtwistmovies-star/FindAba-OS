@@ -28,6 +28,8 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
       case VerificationLevel.SIGNATURE: return <Star className="text-aba-gold" size={24} />;
       case VerificationLevel.EDITORIAL: return <Zap className="text-blue-500" size={24} />;
       case VerificationLevel.VERIFIED: return <ShieldCheck className="text-aba-green" size={24} />;
+      case VerificationLevel.PHYSICALLY_VERIFIED: return <MapPin className="text-blue-600" size={24} />;
+      case VerificationLevel.DOCUMENT_VERIFIED: return <CheckCircle2 className="text-aba-green" size={24} />;
       default: return <Shield className="text-slate-300" size={24} />;
     }
   };
@@ -90,7 +92,9 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
                        <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">{biz.category}</span>
                           <div className="w-1 h-1 bg-slate-200 rounded-full" />
-                          <span className="text-[8px] font-black uppercase tracking-widest text-aba-gold">{biz.verification_level} Partner</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest text-aba-gold">Grade {biz.integrity_grade}</span>
+                          <div className="w-1 h-1 bg-slate-200 rounded-full" />
+                          <span className="text-[8px] font-black uppercase tracking-widest text-aba-gold">{biz.verification_level}</span>
                        </div>
                     </div>
                  </div>
@@ -126,19 +130,19 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
                        <div className="grid grid-cols-4 gap-2">
                           {[
                             { id: VerificationLevel.LISTED, label: 'Listed' },
-                            { id: VerificationLevel.VERIFIED, label: 'Verified' },
-                            { id: VerificationLevel.EDITORIAL, label: 'Editorial' },
-                            { id: VerificationLevel.SIGNATURE, label: 'Signature' }
+                            { id: VerificationLevel.DOCUMENT_VERIFIED, label: 'Doc Verified' },
+                            { id: VerificationLevel.PHYSICALLY_VERIFIED, label: 'Physical' },
+                            { id: VerificationLevel.VERIFIED, label: 'Verified' }
                           ].map((tier, idx) => {
-                            const isCurrent = selectedBiz.verification_level === tier.id;
-                            const isPast = idx <= [VerificationLevel.LISTED, VerificationLevel.VERIFIED, VerificationLevel.EDITORIAL, VerificationLevel.SIGNATURE].indexOf(selectedBiz.verification_level);
-                            
-                            return (
-                              <div key={tier.id} className="space-y-2">
-                                 <div className={`h-1.5 rounded-full transition-all duration-1000 ${isPast ? 'bg-aba-gold' : 'bg-slate-100'}`} />
-                                 <p className={`text-[7px] font-black uppercase tracking-widest text-center ${isPast ? 'text-aba-dark' : 'text-slate-300'}`}>{tier.label}</p>
-                              </div>
-                            );
+                             const levels = [VerificationLevel.LISTED, VerificationLevel.DOCUMENT_VERIFIED, VerificationLevel.PHYSICALLY_VERIFIED, VerificationLevel.VERIFIED, VerificationLevel.EDITORIAL, VerificationLevel.SIGNATURE];
+                             const isPast = levels.indexOf(selectedBiz.verification_level) >= levels.indexOf(tier.id);
+                             
+                             return (
+                               <div key={tier.id} className="space-y-2">
+                                  <div className={`h-1.5 rounded-full transition-all duration-1000 ${isPast ? 'bg-aba-gold' : 'bg-slate-100'}`} />
+                                  <p className={`text-[7px] font-black uppercase tracking-widest text-center ${isPast ? 'text-aba-dark' : 'text-slate-300'}`}>{tier.label}</p>
+                               </div>
+                             );
                           })}
                        </div>
                     </div>
