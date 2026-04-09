@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Star, Heart, Crown, ShieldCheck, Phone, MessageSquare, Map as MapIcon, Maximize2, X, Play, Sparkles, Loader2, Video, Zap, Activity, Award, Globe, ChevronRight, CheckCircle2, ShoppingBag, Landmark, CreditCard, Clock, AlertCircle } from 'lucide-react';
-import { SubscriptionTier, Business, VerificationStatus, VerificationLevel, Order, OrderStatus } from '../types';
+import { SubscriptionTier, Business, VerificationStatus, VerificationLevel, IntegrityGrade, Order, OrderStatus } from '../types';
 import { BusinessCardSkeleton } from './SkeletonLoader';
 
 interface BusinessCardProps {
@@ -50,6 +50,19 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
   }, [business.id]);
 
   const features = business.active_features || {};
+
+  const getGradeColor = (grade: IntegrityGrade) => {
+    switch(grade) {
+      case IntegrityGrade.A_PLUS: return 'bg-aba-gold text-aba-dark border-aba-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.3)]';
+      case IntegrityGrade.A: return 'bg-aba-green text-white border-aba-green/50';
+      case IntegrityGrade.B: return 'bg-blue-600 text-white border-blue-400/50';
+      case IntegrityGrade.C: return 'bg-slate-600 text-white border-slate-400/50';
+      case IntegrityGrade.D: return 'bg-aba-red text-white border-aba-red/50';
+      default: return 'bg-slate-600 text-white border-slate-400/50';
+    }
+  };
+
+  const isVerified = business.integrity_grade === IntegrityGrade.A || business.integrity_grade === IntegrityGrade.A_PLUS;
 
   const handleCardClick = () => {
     if (activeOrder) {
@@ -155,14 +168,22 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
         )}
 
         <div className={`absolute top-6 left-6 flex flex-col gap-2 z-20 ${activeOrder ? 'mt-12' : ''}`}>
+           <div className={`text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border backdrop-blur-md transition-all duration-500 ${getGradeColor(business.integrity_grade)}`}>
+              Grade {business.integrity_grade}
+           </div>
+           {isVerified && (
+              <div className="bg-aba-dark/80 text-aba-gold text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-aba-gold/20 backdrop-blur-md">
+                 <ShieldCheck size={10} fill="currentColor" className="text-aba-gold" /> Verified Hub
+              </div>
+           )}
+           {business.verification_level === VerificationLevel.PHYSICALLY_VERIFIED && (
+              <div className="bg-blue-600/80 text-white text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-blue-400/20 backdrop-blur-md">
+                 <MapPin size={10} /> Physically Verified
+              </div>
+           )}
            {features.verified_exporter_badge && (
               <div className="bg-aba-dark/80 text-aba-gold text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-aba-gold/20 backdrop-blur-md">
                  <Globe size={10} fill="currentColor" /> Exporter
-              </div>
-           )}
-           {features.physical_verification_badge && (
-              <div className="bg-blue-600/80 text-white text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-blue-400/20 backdrop-blur-md">
-                 <ShieldCheck size={10} /> Trusted
               </div>
            )}
         </div>
@@ -178,8 +199,10 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
 
         <div className="absolute bottom-6 left-8 right-8 z-20 flex justify-between items-end">
            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-2xl">
-              <Star size={12} fill="#FFD700" className="text-aba-gold" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{business.rating?.toFixed(1) || '5.0'}</span>
+              <Star size={12} fill={business.review_count > 0 ? "#FFD700" : "none"} className={business.review_count > 0 ? "text-aba-gold" : "text-white/20"} />
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                {business.review_count > 0 ? business.rating.toFixed(1) : 'No reviews yet'}
+              </span>
            </div>
            {features.sponsored_badge && (
              <div className="bg-aba-gold text-aba-dark text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5">

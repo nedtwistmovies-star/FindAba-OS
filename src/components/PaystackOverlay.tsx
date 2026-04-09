@@ -137,7 +137,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
             {isPaystackActive ? 'Paystack' : 'FindAba Auth'}
           </h2>
           <p className="text-white/60 text-[9px] font-black uppercase tracking-[0.4em] mt-2">
-            {step === 'auth_scan' ? 'AI Sentinel Active' : 'Registry Settlement Node'}
+            {step === 'auth_scan' ? 'AI Sentinel Active' : 'Registry Settlement Gateway'}
           </p>
         </div>
 
@@ -154,7 +154,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
               <div className="space-y-4">
                 <button onClick={handlePay} className={`w-full py-8 rounded-[2rem] font-black uppercase text-[11px] tracking-[0.4em] shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-4 ${isPaystackActive ? 'bg-aba-gold text-aba-dark' : 'bg-aba-gold text-aba-dark'}`}>
                   {isPaystackActive ? <ShieldCheck size={22} /> : <Zap size={22} />}
-                  {isPaystackActive ? 'Select Payment Method' : 'Open Transfer Node'}
+                  {isPaystackActive ? 'Select Payment Method' : 'Open Transfer Gateway'}
                 </button>
                 <button onClick={onCancel} className="w-full py-4 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors">Cancel Protocol</button>
               </div>
@@ -199,7 +199,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                     </div>
                     <div className="text-left">
                       <p className="text-[9px] font-black uppercase tracking-widest">AI Verified Transfer</p>
-                      <p className="text-[7px] font-bold text-blue-400 uppercase tracking-widest">Manual Node Activation</p>
+                      <p className="text-[7px] font-bold text-blue-400 uppercase tracking-widest">Manual Hub Activation</p>
                     </div>
                   </div>
                   <ChevronRight size={16} className="text-blue-300 group-hover:translate-x-1 transition-transform" />
@@ -270,7 +270,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
           {step === 'processing' && (
             <div className="py-20 flex flex-col items-center justify-center text-center space-y-8">
                <Loader2 className="w-16 h-16 text-aba-gold animate-spin" />
-               <p className="text-[9px] font-bold text-slate-300 uppercase animate-pulse">Synchronizing Node Registry...</p>
+               <p className="text-[9px] font-bold text-slate-300 uppercase animate-pulse">Synchronizing Partner Registry...</p>
             </div>
           )}
 

@@ -51,7 +51,7 @@ const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ userName, onClose }) =>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
                 <ShieldCheck size={20} className="text-aba-green" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Verified Hub</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Registry Partner</span>
               </div>
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
                 <Zap size={20} className="text-aba-gold" />
@@ -79,7 +79,7 @@ const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ userName, onClose }) =>
                 <Sparkles size={20} />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Node Active: {userName}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Partner Active: {userName}</p>
                 <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Registry Signal Synchronized</p>
               </div>
             </div>

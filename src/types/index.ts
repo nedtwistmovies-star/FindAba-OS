@@ -5,7 +5,7 @@ export type ViewState =
   | 'register' | 'admin' | 'srts-dashboard' | 'editorial' | 'editorial-detail'
   | 'buyer-portal' | 'ad-manager' | 'feed' | 'registry-setup' | 'sandals-hotels' 
   | 'contact' | 'audio-heritage' | 'srts-office' | 'booking-ledger' 
-  | 'hotel-detail' | 'hotel-node-control' | 'pricing' | 'ad-checkout' | 'about'
+  | 'hotel-detail' | 'hotel-partner-control' | 'pricing' | 'ad-checkout' | 'about'
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
   | 'orders' | 'dispute-center' | 'login' | 'signup' | 'carry-me' | 'driver-registry'
   | 'purple-fleet' | 'driver-console' | 'fleet-admin' | 'legal' | 'hardware-audit' | 'business-verification'
@@ -28,7 +28,7 @@ export enum ComplianceLevel {
   LEVEL_3 = 'Level 3: Shield'
 }
 
-export interface DriverNode {
+export interface DriverPartner {
   id: string;
   user_email: string;
   full_name: string;
@@ -214,8 +214,19 @@ export enum VerificationStatus {
   VERIFIED = 'Verified'
 }
 
+export enum IntegrityGrade {
+  A_PLUS = 'A+',
+  A = 'A',
+  B = 'B',
+  C = 'C',
+  D = 'D'
+}
+
 export enum VerificationLevel {
+  NONE = 'None',
   LISTED = 'Listed',
+  DOCUMENT_VERIFIED = 'Document Verified',
+  PHYSICALLY_VERIFIED = 'Physically Verified',
   VERIFIED = 'Verified',
   EDITORIAL = 'Editorial',
   SIGNATURE = 'Signature'
@@ -251,6 +262,7 @@ export interface Business {
   status: 'pending' | 'approved' | 'rejected' | 'active' | 'suspended';
   verification_status: VerificationStatus;
   verification_level: VerificationLevel;
+  integrity_grade: IntegrityGrade;
   is_export_ready: boolean;
   capacity_indicator: string;
   premium_features_enabled: boolean;

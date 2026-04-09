@@ -71,7 +71,7 @@ const BuyerPortal: React.FC<Props> = ({ userRole, verificationStatus, isExportRe
       });
       setShowForm(false);
       refreshSignals();
-      alert("Trade Signal Synchronized. Verified Nodes are being alerted.");
+      alert("Trade Signal Synchronized. Verified Partners are being alerted.");
     } catch (e) {
       alert("Hub signal failure.");
     } finally {
@@ -236,7 +236,7 @@ const BuyerPortal: React.FC<Props> = ({ userRole, verificationStatus, isExportRe
                   </div>
                </div>
                <button onClick={() => setView('registry-setup')} className="w-full md:w-auto px-10 py-6 bg-aba-dark text-white rounded-full font-black uppercase text-[10px] tracking-[0.3em] shadow-2xl hover:bg-aba-gold hover:text-aba-dark transition-all flex items-center gap-3">
-                  Verify Factory Node <ArrowRight size={18} />
+                  Verify Factory Partner <ArrowRight size={18} />
                </button>
             </div>
 
@@ -295,7 +295,7 @@ const BuyerPortal: React.FC<Props> = ({ userRole, verificationStatus, isExportRe
                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-aba-green w-[72%] transition-all duration-1000" /></div>
                         </div>
                         <div className="space-y-3">
-                           <div className="flex justify-between items-end"><span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Node Response Rate</span><span className="text-[10px] font-black text-aba-dark">88%</span></div>
+                           <div className="flex justify-between items-end"><span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Partner Response Rate</span><span className="text-[10px] font-black text-aba-dark">88%</span></div>
                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-aba-dark w-[88%] transition-all duration-1000" /></div>
                         </div>
                      </div>

@@ -78,8 +78,8 @@ const HotelLedger: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
           </div>
         </div>
         <div className="hidden md:flex gap-3">
-           <button onClick={() => setView('hotel-node-control')} className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-aba-gold hover:text-aba-dark transition-all">
-              <Building2 size={14} /> Node Command
+           <button onClick={() => setView('hotel-partner-control')} className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-aba-gold hover:text-aba-dark transition-all">
+              <Building2 size={14} /> Partner Command
            </button>
            <button onClick={refreshData} className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all">
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh Ledger
@@ -175,7 +175,7 @@ const HotelLedger: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                        <tr className="text-[8px] font-black uppercase text-white/20 tracking-widest">
                           <th className="px-6 py-2">Reference</th>
                           <th className="px-6 py-2">Gross Value</th>
-                          <th className="px-6 py-2">Node Split</th>
+                          <th className="px-6 py-2">Partner Split</th>
                           <th className="px-6 py-2">Status</th>
                           <th className="px-6 py-2 text-right">Execution</th>
                        </tr>
@@ -190,7 +190,7 @@ const HotelLedger: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                              <td className="px-6 py-6 font-black text-xs text-white">₦{Number(item.gross_amount).toLocaleString()}</td>
                              <td className="px-6 py-6">
                                 <p className="font-black text-xs text-aba-gold">₦{Number(item.sandalsroyalle_share).toLocaleString()} (SR)</p>
-                                <p className="text-[8px] font-bold text-white/40 uppercase mt-1">₦{Number(item.hotel_share).toLocaleString()} (Node)</p>
+                                <p className="text-[8px] font-bold text-white/40 uppercase mt-1">₦{Number(item.hotel_share).toLocaleString()} (Partner)</p>
                              </td>
                              <td className="px-6 py-6">
                                 <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest inline-flex items-center gap-1.5 ${item.settlement_status === 'paid' ? 'bg-aba-green/10 text-aba-green' : 'bg-aba-gold/10 text-aba-gold'}`}>

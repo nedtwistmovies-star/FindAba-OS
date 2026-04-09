@@ -40,7 +40,7 @@ const ProductDetailOverlay: React.FC<ProductDetailOverlayProps> = ({ product, on
                    )}
                 </div>
                 <h3 className="text-3xl font-black uppercase tracking-tight text-slate-900 leading-tight">{product.name}</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">SKU Node: {product.sku || 'N/A'}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">SKU Partner: {product.sku || 'N/A'}</p>
               </div>
               <button 
                 onClick={onClose} 

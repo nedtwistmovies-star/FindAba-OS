@@ -97,6 +97,22 @@ const AppContent: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleBack = () => {
+    if (view === 'detail') setView('explore');
+    else if (view === 'editorial-detail') setView('editorial');
+    else if (view === 'editorial') setView('discover');
+    else if (view === 'about-aba') setView('discover');
+    else if (view === 'feed') setView('discover');
+    else if (view === 'explore') setView('home');
+    else if (view === 'discover') setView('home');
+    else if (view === 'merchant-portal') setView('home');
+    else if (view === 'register') setView('home');
+    else if (view === 'pricing') setView('merchant-portal');
+    else if (view === 'ad-checkout') setView('pricing');
+    else if (view === 'business-verification') setView('discover');
+    else setView('home');
+  };
+
   const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
 
   return (
@@ -112,6 +128,7 @@ const AppContent: React.FC = () => {
       <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-aba-deep"><Loader2 className="animate-spin text-aba-gold" size={40} /></div>}>
         <RouteComponent 
           setView={setView} 
+          onBack={handleBack}
           businesses={businesses} 
           heroImages={heroImages} 
           heroVideos={heroVideos} 

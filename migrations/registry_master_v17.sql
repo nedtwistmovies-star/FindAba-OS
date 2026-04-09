@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.platform_config (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Industrial Nodes
+-- Industrial Partners
 CREATE TABLE IF NOT EXISTS public.businesses (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

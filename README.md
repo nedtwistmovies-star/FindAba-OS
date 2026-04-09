@@ -10,18 +10,18 @@ FindAba by **SANDALSroyalle** is the industrial-grade city platform built for En
 ### 1. The Oracle (FindAba AI)
 - **Intelligence Engine**: Powered by Google Gemini 3 Pro (Reasoning) & Gemini 3 Flash (Logic).
 - **Capabilities**: Real-time market intelligence, leather price indexing via Google Search grounding, and multi-lingual trade wisdom (Igbo, Pidgin, English).
-- **Access**: Floating Pulse Node (Round Oracle vessel).
+- **Access**: Floating Pulse Unit (Round Oracle vessel).
 
 ### 2. Carry-Go Logistics
 - **Function**: A secure hub-to-hub waybill generation and tracking protocol.
-- **Backbone**: Moves high-value cargo across Enyimba’s primary industrial nodes (Ariaria, Powerline, Ogbete) with verified rider authentication.
+- **Backbone**: Moves high-value cargo across Enyimba’s primary industrial hubs (Ariaria, Powerline, Ogbete) with verified rider authentication.
 
 ### 3. Creative Lab (Visual Synthesis)
 - **Engine**: Utilizing Veo 3.1 & Gemini 3 Pro Image.
 - **Protocols**: AI-powered prototyping for industrial designs and cinematic "Process Films" that document workshop mastery for global procurement.
 
 ### 4. Fidelity Mesh (Settlement)
-- **Partner**: Paystack Settlement Node.
+- **Partner**: Paystack Settlement Gateway.
 - **Security**: Escrow-protected industrial orders, automated 60/40 revenue splits, and the **SrTS Global Thrift** savings protocol.
 
 ### 5. Heritage Archive (Oral History)
@@ -40,13 +40,13 @@ FindAba by **SANDALSroyalle** is the industrial-grade city platform built for En
 
 ---
 
-## 📁 Node Architecture (Repository Map)
+## 📁 System Architecture (Repository Map)
 
 ```text
 FindAba/
-├── components/          # Reusable UI Nodes (Oracle, Paystack Overlays, Layout)
+├── components/          # Reusable UI Units (Oracle, Paystack Overlays, Layout)
 ├── services/            # Signal Handlers (AI Logic, Database Auth, Settlement)
-├── views/               # Node Interfaces (Home, Discover, Admin, Merchant Portal)
+├── views/               # System Interfaces (Home, Discover, Admin, Merchant Portal)
 ├── types.ts             # Registry Schema Definitions (v19.0)
 ├── constants.ts         # Brand Identity & Default Industrial Data
 └── sw.js                # Offline Service Worker (PWA Protocol)

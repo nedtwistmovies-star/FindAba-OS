@@ -15,7 +15,7 @@ const ABA_HUBS = [
   { id: 'ariaria', name: 'Ariaria Export Hub', area: 'Faulks Road', capacity: '85%', status: 'optimal' },
   { id: 'ahiaohuru', name: 'Ahia Ohuru Central', area: 'Ngwa Road', capacity: '92%', status: 'congested' },
   { id: 'ogbete', name: 'Ogbete Textile Hub', area: 'Enugu Road', capacity: '45%', status: 'optimal' },
-  { id: 'powerline', name: 'Powerline Industrial Node', area: 'Port Harcourt Road', capacity: '70%', status: 'optimal' }
+  { id: 'powerline', name: 'Powerline Industrial Partner', area: 'Port Harcourt Road', capacity: '70%', status: 'optimal' }
 ];
 
 const STATUS_STEPS: ShipmentStatus[] = ['requested', 'pickup-scheduled', 'at-hub', 'in-transit', 'delivered'];
@@ -347,7 +347,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                            </div>
                            <div>
                              <h4 className="text-2xl font-black text-aba-dark uppercase tracking-tighter italic">{o.trackingId}</h4>
-                             <p className="text-[8px] font-black text-slate-400 uppercase mt-2 tracking-widest">{o.carrier || 'Carry-Go Express'} • Node: {o.id.slice(-6)}</p>
+                             <p className="text-[8px] font-black text-slate-400 uppercase mt-2 tracking-widest">{o.carrier || 'Carry-Go Express'} • Partner: {o.id.slice(-6)}</p>
                            </div>
                          </div>
                          <div className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-lg flex items-center gap-2 ${o.status === 'delivered' ? 'bg-aba-green text-white border-aba-green' : 'bg-blue-600/10 text-blue-600 border-blue-600/20'}`}>
@@ -359,7 +359,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                       <div className="space-y-4">
                          <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-[0.4em] text-slate-300">
                             <span>Registry Point</span>
-                            <span>Destination Node</span>
+                            <span>Destination Partner</span>
                          </div>
                          <div className="relative h-1 w-full bg-slate-100 rounded-full overflow-hidden">
                             <div 
@@ -447,7 +447,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                 <div className="space-y-4">
                   {[
                     { label: "Raw Material Sourcing", status: "Verified", color: "text-aba-green" },
-                    { label: "Manufacturing Node", status: "Active", color: "text-aba-gold" },
+                    { label: "Manufacturing Partner", status: "Active", color: "text-aba-gold" },
                     { label: "Quality Audit", status: "Pending", color: "text-white/40" },
                     { label: "Export Clearance", status: "Locked", color: "text-white/20" }
                   ].map((item, i) => (

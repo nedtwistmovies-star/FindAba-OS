@@ -1,5 +1,5 @@
 
-import { Business, Category, VerificationStatus, VerificationLevel, EditorialStory, BusinessPlan, SubscriptionTier, AdType, LegalDocType } from './types';
+import { Business, Category, VerificationStatus, VerificationLevel, IntegrityGrade, EditorialStory, BusinessPlan, SubscriptionTier, AdType, LegalDocType } from './types';
 
 export const SANDALS_BRAND = {
   name: "FindAba",
@@ -17,12 +17,12 @@ export const SANDALS_BRAND = {
   country: "Nigeria"
 };
 
-// MANUAL SETTLEMENT NODE v1.0
+// MANUAL SETTLEMENT GATEWAY v1.0
 export const OFFICIAL_BANK_DETAILS = {
   bankName: "SANDALSROYALLE OFFICIAL BANK",
   accountNumber: import.meta.env.VITE_ACCOUNT_NUMBER || "0000000000",
   accountName: "SANDALSroyalle Special Events Hub",
-  transferNote: "Include Node-ID in Transfer Memo"
+  transferNote: "Include Partner-ID in Transfer Memo"
 };
 
 export const CATEGORIES = Object.values(Category);
@@ -44,7 +44,7 @@ export const MOCK_EDITORIAL_STORIES: EditorialStory[] = [
     body_text: "In the heart of Ariaria, perfection isn't an option—it's the only currency that matters. This is the chronicle of the leather masters who have built an empire on the strength of a single thread.",
     why_selected: "Recognized for maintaining industrial footwear standards for over three decades.",
     specialization: "Export-Grade Leather Footwear",
-    trust_signals: "Registry Node Verified, ISO Standards Ready.",
+    trust_signals: "Registry Partner, Integrity Grade A+.",
     best_time_to_engage: "Direct consultation: 09:00 - 12:00 daily.",
     category_tags: ["Leather", "Craft", "Legacy"],
     linked_business_id: "biz-leather-01",
@@ -63,7 +63,7 @@ export const ARTISANS: Business[] = [
     primary_product_or_service: 'Industrial Safety Boots',
     active_features: { verified_exporter_badge: true, physical_verification_badge: true },
     area: 'Ariaria International',
-    description: 'Precision manufacturing node for leather goods and industrial footwear exports.',
+    description: 'Precision manufacturing partner for leather goods and industrial footwear exports.',
     address: 'Block 4, Ariaria Market, Aba',
     phone_whatsapp: '+2348011111111',
     image_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800',
@@ -73,14 +73,15 @@ export const ARTISANS: Business[] = [
     longitude: 7.335,
     status: 'approved',
     verification_status: VerificationStatus.VERIFIED,
-    verification_level: VerificationLevel.SIGNATURE,
+    verification_level: VerificationLevel.PHYSICALLY_VERIFIED,
+    integrity_grade: IntegrityGrade.A_PLUS,
     is_export_ready: true,
     capacity_indicator: 'High Volume',
     premium_features_enabled: true,
     is_hidden_gem: false,
     transformation_story: {
       before: "Started with a single manual sewing machine in a small stall.",
-      after: "Now operates a 12-node industrial manufacturing hub with export-grade machinery.",
+      after: "Now operates a 12-unit industrial manufacturing hub with export-grade machinery.",
       image_before: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?q=80&w=400",
       image_after: "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=400"
     },
@@ -95,7 +96,7 @@ export const ARTISANS: Business[] = [
     primary_product_or_service: 'Bespoke Kaftans & Suits',
     active_features: { verified_exporter_badge: true },
     area: 'Ngwa Road Hub',
-    description: 'High-end fashion node specializing in traditional and corporate attire for the modern master.',
+    description: 'High-end fashion partner specializing in traditional and corporate attire for the modern master.',
     address: 'Ngwa Road, Aba',
     phone_whatsapp: '+2348022222222',
     image_url: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=800',
@@ -105,7 +106,8 @@ export const ARTISANS: Business[] = [
     longitude: 7.365,
     status: 'approved',
     verification_status: VerificationStatus.VERIFIED,
-    verification_level: VerificationLevel.VERIFIED,
+    verification_level: VerificationLevel.DOCUMENT_VERIFIED,
+    integrity_grade: IntegrityGrade.A,
     is_export_ready: true,
     capacity_indicator: 'Bespoke & Batch',
     premium_features_enabled: true,
@@ -121,7 +123,7 @@ export const ARTISANS: Business[] = [
     primary_product_or_service: 'Advanced Logic Board Repair',
     active_features: { physical_verification_badge: true },
     area: 'Azikiwe Road Central',
-    description: 'The most trusted node for complex mobile and laptop repairs. If it has a signal, we can fix it.',
+    description: 'The most trusted partner for complex mobile and laptop repairs. If it has a signal, we can fix it.',
     address: '45 Azikiwe Road, Aba',
     phone_whatsapp: '+2348099999999',
     image_url: 'https://images.unsplash.com/photo-1581092921461-eab62e92c73e?q=80&w=800',
@@ -131,7 +133,8 @@ export const ARTISANS: Business[] = [
     longitude: 7.361,
     status: 'approved',
     verification_status: VerificationStatus.VERIFIED,
-    verification_level: VerificationLevel.VERIFIED,
+    verification_level: VerificationLevel.PHYSICALLY_VERIFIED,
+    integrity_grade: IntegrityGrade.A_PLUS,
     is_export_ready: false,
     capacity_indicator: 'High Precision',
     premium_features_enabled: true,
@@ -147,7 +150,7 @@ export const ARTISANS: Business[] = [
     primary_product_or_service: 'Vanguard Grade Migration Laptops',
     active_features: { physical_verification_badge: true, sponsored_badge: true },
     area: 'Azikiwe Road Central',
-    description: 'The primary tech node for fairly used ThinkPads, Latitudes, and MacBooks. Specialists in the EliteBook 840 G4 Migration spec.',
+    description: 'The primary tech partner for fairly used ThinkPads, Latitudes, and MacBooks. Specialists in the EliteBook 840 G4 Migration spec.',
     address: '12 Azikiwe Road, Aba',
     phone_whatsapp: '+2349012345678',
     image_url: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=800',
@@ -157,14 +160,15 @@ export const ARTISANS: Business[] = [
     longitude: 7.362,
     status: 'approved',
     verification_status: VerificationStatus.VERIFIED,
-    verification_level: VerificationLevel.VERIFIED,
+    verification_level: VerificationLevel.DOCUMENT_VERIFIED,
+    integrity_grade: IntegrityGrade.A,
     is_export_ready: false,
     capacity_indicator: 'Retail & Wholesale',
     premium_features_enabled: true,
     products: [
       { id: 'p-tech-1', name: 'HP EliteBook 840 G4 (Vanguard SSD Spec)', price: 270000, imageUrl: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?q=80&w=400', condition: 'Refurbished', status: 'active', description: '7th Gen i5, 8GB RAM, 256GB NVMe SSD. Migration Ready.' },
       { id: 'p-tech-2', name: 'ThinkPad T480 (Workhorse)', price: 310000, imageUrl: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?q=80&w=400', condition: 'Fairly Used', status: 'active' },
-      { id: 'p-tech-3', name: 'Panasonic CF-SV (Migration Node)', price: 98500, imageUrl: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?q=80&w=400', condition: 'Fairly Used', status: 'active', description: '8th Gen i5-8265U, 8GB RAM, 256GB SSD. Note: Internal speaker fault. Perfect for industrial terminal use.' }
+      { id: 'p-tech-3', name: 'Panasonic CF-SV (Migration Partner)', price: 98500, imageUrl: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?q=80&w=400', condition: 'Fairly Used', status: 'active', description: '8th Gen i5-8265U, 8GB RAM, 256GB SSD. Note: Internal speaker fault. Perfect for industrial terminal use.' }
     ],
     created_at: new Date().toISOString()
   },
@@ -186,7 +190,8 @@ export const ARTISANS: Business[] = [
     longitude: 7.368,
     status: 'approved',
     verification_status: VerificationStatus.VERIFIED,
-    verification_level: VerificationLevel.EDITORIAL,
+    verification_level: VerificationLevel.PHYSICALLY_VERIFIED,
+    integrity_grade: IntegrityGrade.A_PLUS,
     is_export_ready: false,
     capacity_indicator: 'Wholesale Bales',
     premium_features_enabled: true,
@@ -213,7 +218,8 @@ export const ARTISANS: Business[] = [
     longitude: 7.335,
     status: 'approved',
     verification_status: VerificationStatus.VERIFIED,
-    verification_level: VerificationLevel.VERIFIED,
+    verification_level: VerificationLevel.DOCUMENT_VERIFIED,
+    integrity_grade: IntegrityGrade.B,
     subscription_tier: SubscriptionTier.VERIFIED,
     is_export_ready: true,
     capacity_indicator: 'Verified Hub',
@@ -226,10 +232,10 @@ export const ARTISANS: Business[] = [
     name: 'Enyimba Local Trust Hub',
     email: 'trusthub@findaba.com',
     category: Category.TAILORING,
-    primary_product_or_service: 'Verified Tailoring Node',
+    primary_product_or_service: 'Verified Tailoring Partner',
     active_features: { physical_verification_badge: true },
     area: 'Ngwa Road Hub',
-    description: 'A verified Local Trust Hub node specializing in industrial garment production. Payment confirmed and verified.',
+    description: 'A verified Local Trust Hub partner specializing in industrial garment production. Payment confirmed and verified.',
     address: 'Ngwa Road, Aba',
     phone_whatsapp: '+2348000000001',
     image_url: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=800',
@@ -239,7 +245,8 @@ export const ARTISANS: Business[] = [
     longitude: 7.365,
     status: 'approved',
     verification_status: VerificationStatus.VERIFIED,
-    verification_level: VerificationLevel.VERIFIED,
+    verification_level: VerificationLevel.DOCUMENT_VERIFIED,
+    integrity_grade: IntegrityGrade.B,
     subscription_tier: SubscriptionTier.VERIFIED,
     is_export_ready: true,
     capacity_indicator: 'Verified Hub',
@@ -252,7 +259,7 @@ export const ARTISANS: Business[] = [
 export const BUSINESS_PLANS: BusinessPlan[] = [
   {
     id: SubscriptionTier.FREE,
-    name: 'Starter Node',
+    name: 'Starter Partner',
     monthlyAmount: 0,
     yearlyAmount: 0,
     slots: 1,
@@ -264,7 +271,7 @@ export const BUSINESS_PLANS: BusinessPlan[] = [
     monthlyAmount: 2500,
     yearlyAmount: 2500, // 45 Day Cycle
     slots: 15,
-    features: ['Trusted Node Badge', 'Verified Hub Profile', 'Local Signal Priority']
+    features: ['Trusted Partner Badge', 'Verified Hub Profile', 'Local Signal Priority']
   },
   {
     id: SubscriptionTier.GROWTH,
@@ -272,7 +279,7 @@ export const BUSINESS_PLANS: BusinessPlan[] = [
     monthlyAmount: 5000,
     yearlyAmount: 5000, // 45 Day Cycle
     slots: 40,
-    features: ['Search Priority Node', 'Advanced Creative Lab Access', 'City Pulse Insights']
+    features: ['Search Priority Partner', 'Advanced Creative Lab Access', 'City Pulse Insights']
   },
   {
     id: SubscriptionTier.PREMIUM,
@@ -280,7 +287,7 @@ export const BUSINESS_PLANS: BusinessPlan[] = [
     monthlyAmount: 10000,
     yearlyAmount: 10000, // 45 Day Cycle
     slots: 100,
-    features: ['Verified Exporter Node', 'Unlimited Discovery Ranking', 'Global Buyer Signals', 'Direct Trade Intelligence']
+    features: ['Verified Exporter Partner', 'Unlimited Discovery Ranking', 'Global Buyer Signals', 'Direct Trade Intelligence']
   }
 ];
 

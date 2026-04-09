@@ -247,7 +247,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
               <div className="absolute top-0 right-0 p-12 opacity-5 rotate-12"><Activity size={300} /></div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-12 relative z-10">
                  {[
-                   { label: 'Active Nodes', val: '1,240+' },
+                   { label: 'Active Partners', val: '1,240+' },
                    { label: 'Trade Volume', val: '₦880M+' },
                    { label: 'Uptime Score', val: '99.9%' },
                    { label: 'Export Hubs', val: '12' }

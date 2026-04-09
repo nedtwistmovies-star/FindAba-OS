@@ -64,7 +64,7 @@ export const BrandSignature: React.FC<{ light?: boolean; className?: string }> =
     <div className={`flex items-center gap-4 opacity-30 ${light ? 'text-aba-white' : 'text-aba-deep'}`}>
       <div className="h-[1px] w-10 bg-current" />
       <span className="text-[8px] font-black uppercase tracking-[0.6em] flex items-center gap-1">
-        <span className="font-black">Find</span><span className="font-medium opacity-60">ABA</span> OS Node v6.0
+        <span className="font-black">Find</span><span className="font-medium opacity-60">ABA</span> OS Partner v6.0
       </span>
       <div className="h-[1px] w-10 bg-current" />
     </div>
@@ -153,7 +153,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const [activeLogo, setActiveLogo] = useState<string>(appLogo || SANDALS_BRAND.logo);
   
   const [notifications, setNotifications] = useState<AppNotification[]>([
-    { id: '1', title: 'Registry Synchronized', message: 'Industrial Node v6.0 mesh established.', type: 'info', read: false, timestamp: new Date().toISOString() },
+    { id: '1', title: 'Registry Synchronized', message: 'Industrial Partner v6.0 mesh established.', type: 'info', read: false, timestamp: new Date().toISOString() },
     { id: '2', title: 'Security Protocol', message: 'Fidelity Handshake verified via Paystack.', type: 'success', read: false, timestamp: new Date().toISOString() }
   ]);
 
@@ -407,7 +407,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                 <h4 className="text-aba-green text-[14px] font-bold uppercase tracking-widest">Registry</h4>
                 <div className="space-y-4">
                   <button onClick={() => setView('explore')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Verified Hubs</button>
-                  <button onClick={() => setView('explore')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Industrial Nodes</button>
+                  <button onClick={() => setView('explore')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Industrial Partners</button>
                   <button onClick={() => setView('explore')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Export Readiness</button>
                   <button onClick={() => setView('explore')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Trade Analytics</button>
                 </div>

@@ -540,7 +540,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
 
             <div className="space-y-6">
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Select Voice Node</label>
+                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Select Voice Partner</label>
                 <div className="grid grid-cols-2 gap-3">
                   {(['Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'] as const).map(v => (
                     <button 
@@ -824,7 +824,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
             </div>
           </div>
           <p className="text-[10px] text-center mt-4 text-white/20 font-black uppercase tracking-[0.2em]">
-            Institutional Oracle Node • FindAba City OS v6.0
+            Institutional Oracle Partner • FindAba City OS v6.0
           </p>
         </div>
       </footer>

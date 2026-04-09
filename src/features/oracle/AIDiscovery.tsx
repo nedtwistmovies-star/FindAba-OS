@@ -175,7 +175,7 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
                               <div className="flex items-center gap-3">
                                 <h4 className="text-2xl font-black uppercase tracking-tight group-hover:text-aba-gold transition-colors">{biz.name}</h4>
                                 {matchScore > 90 && (
-                                  <div className="bg-aba-gold text-aba-dark p-1 rounded-full shadow-lg" title="Master Artisan Node">
+                                  <div className="bg-aba-gold text-aba-dark p-1 rounded-full shadow-lg" title="Master Artisan Partner">
                                     <Award size={14} fill="currentColor" />
                                   </div>
                                 )}

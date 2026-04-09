@@ -5,7 +5,7 @@ import {
   Store, ChevronRight, Info, Shield, Landmark, 
   CheckCircle2, Sparkles, Building2, Zap, LayoutGrid
 } from 'lucide-react';
-import { SubscriptionTier, ViewState, BillingCycle, Category, VerificationStatus, VerificationLevel } from '../../types';
+import { SubscriptionTier, ViewState, BillingCycle, Category, VerificationStatus, VerificationLevel, IntegrityGrade } from '../../types';
 import { saveBusinessToDB } from '../../services/supabaseService';
 import { BUSINESS_PLANS, CATEGORIES, ABA_AREAS } from '../../constants';
 import { ImageUpload } from '../../components/ImageUpload';
@@ -60,13 +60,14 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
       email: formData.email || `${formData.phone_whatsapp.replace(/\D/g, '') || Date.now()}@findaba.com`,
       image_url: formData.image_url,
       status: 'active',
-      verification_status: VerificationStatus.PENDING,
-      verification_level: VerificationLevel.LISTED,
+      verification_status: VerificationStatus.UNVERIFIED,
+      verification_level: VerificationLevel.NONE,
+      integrity_grade: IntegrityGrade.C,
       subscription_tier: selectedPlan,
       is_export_ready: selectedPlan === SubscriptionTier.PREMIUM,
       capacity_indicator: 'Active',
       premium_features_enabled: selectedPlan !== SubscriptionTier.FREE,
-      rating: 5.0,
+      rating: 0,
       review_count: 0,
       latitude: 5.1065 + (Math.random() - 0.5) * 0.05,
       longitude: 7.3633 + (Math.random() - 0.5) * 0.05,
@@ -137,7 +138,7 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
         </div>
         
         <div className="space-y-6 max-w-md">
-          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none">Node <br/><span className="text-aba-gold italic">Activated.</span></h2>
+          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none">Hub <br/><span className="text-aba-gold italic">Activated.</span></h2>
           <p className="text-white/40 text-xs md:text-sm font-bold uppercase tracking-widest leading-relaxed">
             Your hub is now live in the global registry. Industrial scaling protocol initialized.
           </p>
@@ -189,7 +190,7 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
         <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
           <div className="flex justify-center">
             <div className="bg-white p-1 md:p-1.5 rounded-2xl md:rounded-[2.5rem] border border-slate-200 flex shadow-sm">
-              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}>30 Day Node</button>
+              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}>30 Day Hub</button>
               <button onClick={() => setBillingCycle(BillingCycle.YEARLY)} className={`px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}>45 Day Cycle <span className="bg-aba-green text-white px-1.5 py-0.5 rounded text-[7px] md:text-[8px]">PRO</span></button>
             </div>
           </div>
@@ -224,7 +225,7 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
                     onClick={() => { setSelectedPlan(plan.id); setStep('form'); }}
                     className={`w-full py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.25em] md:tracking-[0.3em] transition-all shadow-xl ${selectedPlan === plan.id ? 'bg-aba-dark text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-aba-gold group-hover:text-aba-dark'}`}
                   >
-                    Select Node
+                    Select Hub
                   </button>
                 </div>
               </div>
@@ -253,7 +254,7 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
         isOpen={showCheckout}
         amount={totalAmount}
         email={formData.email}
-        label={`Establish Node: ${activePlanObj?.name}`}
+        label={`Establish Hub: ${activePlanObj?.name}`}
         onSuccess={() => finalRegister()}
         onCancel={() => setShowCheckout(false)}
       />
@@ -356,7 +357,7 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
              <div className="p-4 md:p-6 bg-aba-gold/5 rounded-xl md:rounded-[2rem] border border-aba-gold/20 flex gap-3 md:gap-4 items-center">
                 <Info size={18} className="text-aba-gold shrink-0 md:w-5 md:h-5" />
                 <p className="text-[9px] md:text-[10px] font-black uppercase text-aba-dark/60 tracking-widest leading-relaxed">
-                   Synchronizing with the Enyimba Master Signal... Node activation is **Instant** upon transfer signal commitment.
+                   Synchronizing with the Enyimba Master Signal... Hub activation is **Instant** upon transfer signal commitment.
                 </p>
              </div>
 
@@ -366,7 +367,7 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
                disabled={isFinalizing || !formData.business_name || !formData.owner_name || !formData.address || !formData.phone_whatsapp || (registrationType === 'email' ? !formData.email : !formData.phone)} 
                className="w-full py-6 md:py-10 bg-aba-dark text-white rounded-2xl md:rounded-[3rem] font-black uppercase text-[10px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all hover:bg-aba-gold hover:text-aba-dark disabled:opacity-30 disabled:cursor-not-allowed group"
              >
-               {isFinalizing ? <Loader2 className="animate-spin md:w-6 md:h-6" size={20} /> : (totalAmount > 0 ? 'Initiate Node Sync' : 'Establish Starter Link')}
+               {isFinalizing ? <Loader2 className="animate-spin md:w-6 md:h-6" size={20} /> : (totalAmount > 0 ? 'Initiate Hub Sync' : 'Establish Starter Link')}
                {!isFinalizing && <ShieldCheck size={18} className="group-hover:scale-125 transition-transform md:w-5 md:h-5" />}
              </button>
           </div>

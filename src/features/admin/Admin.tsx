@@ -51,7 +51,7 @@ import { ARTISANS } from "../../constants";
 import { useToast } from "../../providers/ToastProvider";
 import { triggerWebhook, WebhookEvent } from "../../services/webhookService";
 import { paymentService } from "../../services/paymentService";
-import { PlatformConfig, Business, BuyerSignal, LedgerEntry } from "../../types";
+import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel } from "../../types";
 import { ImageUpload, MultiImageUpload } from "../../components/ImageUpload";
 import { MultiVideoUpload } from "../../components/VideoUpload";
 import StatCard from "../../components/StatCard";
@@ -309,6 +309,38 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     setLoading(false);
   };
 
+  const [selectedGrades, setSelectedGrades] = useState<Record<string, IntegrityGrade>>({});
+  const [selectedLevels, setSelectedLevels] = useState<Record<string, VerificationLevel>>({});
+
+  const handleApprove = async (business: Business) => {
+    const client = getSupabase();
+    if (!client) return;
+
+    const grade = selectedGrades[business.id] || IntegrityGrade.C;
+    const level = selectedLevels[business.id] || VerificationLevel.NONE;
+
+    // Only allow Grade A and above to be "Verified"
+    const isVerified = grade === IntegrityGrade.A || grade === IntegrityGrade.A_PLUS;
+
+    const { error } = await client
+      .from("businesses")
+      .update({
+        verification_status: isVerified ? "Verified" : "Unverified",
+        is_verified: isVerified,
+        status: "active",
+        integrity_grade: grade,
+        verification_level: level,
+      })
+      .eq("id", business.id);
+
+    if (error) {
+      addToast("Approval Fault: " + error.message, "error");
+    } else {
+      addToast(`${business.name} Approved with Grade ${grade}`, "success");
+      refreshAllData();
+    }
+  };
+
   if (!isAuthenticated)
     return (
       <div className="fixed inset-0 z-[6000] bg-[#020617] flex flex-col items-center justify-center p-8 font-sans text-white">
@@ -442,7 +474,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
             <div className="animate-slide-up space-y-12">
               <SectionHeader 
                 title="Industrial Overview" 
-                subtitle="Real-time platform metrics and node status"
+                subtitle="Real-time platform metrics and partner status"
                 icon={Activity}
               />
               
@@ -452,7 +484,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   value={businesses.length} 
                   icon={Users} 
                   trend={{ value: "12%", isPositive: true }}
-                  description="Verified nodes in the industrial registry"
+                  description="Verified partners in the industrial registry"
                 />
                 <StatCard 
                   title="Buyer Signals" 
@@ -491,7 +523,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                       </span>
                     </div>
                     <div className="flex items-center justify-between py-4 border-b border-white/5">
-                      <span className="text-[10px] font-black uppercase text-white/40 tracking-widest">Storage Node</span>
+                      <span className="text-[10px] font-black uppercase text-white/40 tracking-widest">Storage Unit</span>
                       <span className="text-[10px] font-black uppercase tracking-widest text-aba-green">Active</span>
                     </div>
                     <div className="flex items-center justify-between py-4 border-b border-white/5">
@@ -531,7 +563,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     Audit Queue
                   </IndustrialButton>
                   <IndustrialButton variant="secondary" size="md" icon={Settings} onClick={() => setActiveTab('supabase')} fullWidth>
-                    Node Config
+                    Partner Config
                   </IndustrialButton>
                 </div>
               </div>
@@ -570,7 +602,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     </div>
                   </div>
                   <div className="space-y-6 sm:space-y-10 bg-white/5 p-6 sm:p-10 rounded-3xl sm:rounded-[3rem] border border-white/5">
-                    <SectionHeader title="Social Nodes" icon={Globe} className="mb-6" />
+                    <SectionHeader title="Social Partners" icon={Globe} className="mb-6" />
                     <div className="space-y-6">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">
@@ -705,7 +737,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 </div>
               ) : (
                 <div className="p-20 text-center opacity-40 italic">
-                  Registry Identity Node Not Initialized.
+                  Registry Identity Partner Not Initialized.
                 </div>
               )}
             </div>
@@ -793,7 +825,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                           const val = e.target.value.trim();
                           if (val) {
                             localStorage.setItem('findaba_gemini_key', val);
-                            addToast("Signal Key Updated. Refreshing Node...", "success");
+                            addToast("Signal Key Updated. Refreshing Partner...", "success");
                             setTimeout(() => window.location.reload(), 1500);
                           }
                         }}
@@ -1010,7 +1042,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                         <div className="space-y-1">
                           <p className="text-[10px] font-black uppercase text-white tracking-widest">findabaos-six.vercel.app</p>
                           <p className={`text-[8px] font-bold uppercase tracking-widest ${isProductionVercel || isVercelDomain ? 'text-aba-green' : 'text-white/40'}`}>
-                            {isProductionVercel || isVercelDomain ? 'Valid Configuration' : 'Secondary Node'}
+                            {isProductionVercel || isVercelDomain ? 'Valid Configuration' : 'Secondary Partner'}
                           </p>
                         </div>
                       </div>
@@ -1060,7 +1092,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
             <div className="animate-slide-up space-y-6 sm:space-y-12">
               <SectionHeader 
                 title="Signal Registry Config" 
-                subtitle="Configure your Supabase Industrial Node"
+                subtitle="Configure your Supabase Industrial Partner"
                 icon={Database}
                 action={
                   <div className="flex gap-4">
@@ -1125,7 +1157,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   <p className="text-[10px] font-black uppercase text-white/40 tracking-widest">Registry Population</p>
                   <div className="flex items-center gap-3">
                     <Users size={20} className="text-aba-gold" />
-                    <p className="text-2xl font-black uppercase tracking-tight">{businesses.length} Nodes</p>
+                    <p className="text-2xl font-black uppercase tracking-tight">{businesses.length} Partners</p>
                   </div>
                   <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Total businesses currently registered in the industrial registry.</p>
                 </div>
@@ -1351,57 +1383,66 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4 w-full md:w-auto">
-                          <IndustrialButton 
-                            variant="primary" 
-                            size="md" 
-                            onClick={async () => {
-                              const client = getSupabase();
-                              if (client) {
-                                const { error } = await client
-                                  .from("businesses")
-                                  .update({
-                                    verification_status: "Verified",
-                                    is_verified: true,
-                                    status: "active",
-                                    verification_level: "Silver",
-                                  })
-                                  .eq("id", b.id);
-                                
-                                if (error) addToast("Approval Fault: " + error.message, "error");
-                                else {
-                                  addToast(`${b.name} Approved`, "success");
-                                  refreshAllData();
+                        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                          <div className="flex flex-col gap-2 w-full md:w-40">
+                            <label className="text-[8px] font-black uppercase text-white/40 tracking-widest ml-1">Integrity Grade</label>
+                            <select 
+                              value={selectedGrades[b.id] || IntegrityGrade.C}
+                              onChange={(e) => setSelectedGrades({...selectedGrades, [b.id]: e.target.value as IntegrityGrade})}
+                              className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-black uppercase text-aba-gold outline-none focus:border-aba-gold transition-all"
+                            >
+                              {Object.values(IntegrityGrade).map(grade => (
+                                <option key={grade} value={grade} className="bg-aba-dark">{grade}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="flex flex-col gap-2 w-full md:w-48">
+                            <label className="text-[8px] font-black uppercase text-white/40 tracking-widest ml-1">Verification Level</label>
+                            <select 
+                              value={selectedLevels[b.id] || VerificationLevel.NONE}
+                              onChange={(e) => setSelectedLevels({...selectedLevels, [b.id]: e.target.value as VerificationLevel})}
+                              className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-[10px] font-black uppercase text-aba-gold outline-none focus:border-aba-gold transition-all"
+                            >
+                              {Object.values(VerificationLevel).map(level => (
+                                <option key={level} value={level} className="bg-aba-dark">{level}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="flex items-center gap-4 pt-4 md:pt-0">
+                            <IndustrialButton 
+                              variant="primary" 
+                              size="md" 
+                              onClick={() => handleApprove(b)}
+                            >
+                              Approve
+                            </IndustrialButton>
+                            <IndustrialButton 
+                              variant="danger" 
+                              size="md" 
+                              onClick={async () => {
+                                const client = getSupabase();
+                                if (client) {
+                                  const { error } = await client
+                                    .from("businesses")
+                                    .update({
+                                      verification_status: "Rejected",
+                                      status: "rejected",
+                                    })
+                                    .eq("id", b.id);
+                                  
+                                  if (error) addToast("Rejection Fault: " + error.message, "error");
+                                  else {
+                                    addToast(`${b.name} Rejected`, "info");
+                                    refreshAllData();
+                                  }
                                 }
-                              }
-                            }}
-                          >
-                            Approve
-                          </IndustrialButton>
-                          <IndustrialButton 
-                            variant="danger" 
-                            size="md" 
-                            onClick={async () => {
-                              const client = getSupabase();
-                              if (client) {
-                                const { error } = await client
-                                  .from("businesses")
-                                  .update({
-                                    verification_status: "Rejected",
-                                    status: "rejected",
-                                  })
-                                  .eq("id", b.id);
-                                
-                                if (error) addToast("Rejection Fault: " + error.message, "error");
-                                else {
-                                  addToast(`${b.name} Rejected`, "info");
-                                  refreshAllData();
-                                }
-                              }
-                            }}
-                          >
-                            Reject
-                          </IndustrialButton>
+                              }}
+                            >
+                              Reject
+                            </IndustrialButton>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -1418,12 +1459,12 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 icon={Landmark}
               />
 
-              {/* Paystack Node Config */}
+              {/* Paystack Gateway Config */}
               <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
                 <div className="flex justify-between items-center">
                   <div className="space-y-1">
                     <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-                      <CreditCard className="text-aba-gold" /> Paystack Node
+                      <CreditCard className="text-aba-gold" /> Paystack Gateway
                     </h4>
                     <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Configure Industrial Settlement Gateway</p>
                   </div>
@@ -1448,7 +1489,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                           if (e.target.value) {
                             const success = paymentService.setApiKey(e.target.value);
                             if (success) {
-                              addToast("Paystack Node Synchronized", "success");
+                              addToast("Paystack Gateway Synchronized", "success");
                               refreshAllData();
                             } else {
                               addToast("Invalid Key Format. Must start with pk_live_ or pk_test_", "error");
@@ -1462,7 +1503,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                         icon={Trash2}
                         onClick={() => {
                           localStorage.removeItem('findaba_paystack_public_key');
-                          addToast("Paystack Node Purged", "info");
+                          addToast("Paystack Gateway Purged", "info");
                           refreshAllData();
                         }}
                       >
@@ -1555,7 +1596,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-white/5 border-b border-white/10">
-                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-white/40">User Node</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-widest text-white/40">User Account</th>
                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-white/40">Role</th>
                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-white/40">Joined</th>
                       <th className="p-6 text-[10px] font-black uppercase tracking-widest text-white/40">Actions</th>
@@ -1570,7 +1611,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                               <Users size={16} className="text-white/40" />
                             </div>
                             <div>
-                              <p className="text-[10px] font-black text-white uppercase tracking-tight">{profile.full_name || 'Anonymous Node'}</p>
+                              <p className="text-[10px] font-black text-white uppercase tracking-tight">{profile.full_name || 'Anonymous Partner'}</p>
                               <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">{profile.email}</p>
                             </div>
                           </div>
@@ -1611,8 +1652,8 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
           {activeTab === "registry" && (
             <div className="animate-slide-up space-y-8">
               <SectionHeader 
-                title="Artisan Registry" 
-                subtitle={`Managing ${businesses.length} industrial nodes`}
+                title="Artisan Directory" 
+                subtitle={`Managing ${businesses.length} industrial partners`}
                 icon={Database}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

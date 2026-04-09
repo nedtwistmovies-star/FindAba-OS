@@ -61,13 +61,13 @@ export const getMockTrackingDetails = (trackingId: string, carrier: string = 'DH
     events: [
       {
         status: 'requested',
-        location: 'Ariaria Node',
+        location: 'Ariaria Partner',
         timestamp: new Date(Date.now() - 86400000).toISOString(),
         description: 'Shipment information received'
       },
       {
         status: 'pickup-scheduled',
-        location: 'Ariaria Node',
+        location: 'Ariaria Partner',
         timestamp: new Date(Date.now() - 72000000).toISOString(),
         description: 'Courier assigned for pickup'
       },

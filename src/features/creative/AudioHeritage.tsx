@@ -291,7 +291,7 @@ const AudioHeritage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
          <span className="text-[36px] font-black uppercase tracking-[2.5em] text-white">FindABA ARCHIVE</span>
          <div className="flex items-center gap-5">
             <ShieldCheck size={32} className="text-aba-gold" />
-            <p className="text-[14px] font-black uppercase tracking-[1.2em] text-aba-gold">SANDALSroyalle City OS • Tribal Heritage Node</p>
+            <p className="text-[14px] font-black uppercase tracking-[1.2em] text-aba-gold">SANDALSroyalle City OS • Tribal Heritage Unit</p>
          </div>
       </div>
     </div>

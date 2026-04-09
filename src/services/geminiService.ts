@@ -116,7 +116,7 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
 
         if (config.geminiKey && config.geminiKey !== 'undefined' && config.geminiKey.trim() !== '') {
           localStorage.setItem('findaba_gemini_key', config.geminiKey);
-          console.log("[Oracle] Signal Synchronized via Server Node.");
+          console.log("[Oracle] Signal Synchronized via Server Partner.");
           if (synced) resetSupabaseInstance();
           return { status: 'healthy', message: 'Oracle Signal Synchronized (Server)', source: 'server' };
         }

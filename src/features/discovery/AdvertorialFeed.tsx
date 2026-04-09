@@ -213,7 +213,7 @@ const AdvertorialFeed: React.FC<Props> = ({ onBack, setView, onPostClick }) => {
                          <div className="absolute top-6 left-6 flex gap-2">
                             <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2 ${isPulse ? 'bg-blue-600 text-white' : 'bg-aba-gold text-aba-dark'}`}>
                                {isPulse ? <Sparkles size={10} fill="currentColor" /> : <ShieldCheck size={10} />}
-                               {isPulse ? 'Neural Insight' : 'Verified Node'}
+                               {isPulse ? 'Neural Insight' : 'Verified Partner'}
                             </div>
                          </div>
                          <div className="absolute bottom-8 left-8 right-8">

@@ -68,7 +68,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({ label, onUpload, curre
       {label && (
         <div className="flex justify-between items-end px-1">
           <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{label}</p>
-          {status === 'success' && <span className="text-[8px] font-black text-aba-green uppercase flex items-center gap-1"><CheckCircle2 size={10} /> Node Synced</span>}
+          {status === 'success' && <span className="text-[8px] font-black text-aba-green uppercase flex items-center gap-1"><CheckCircle2 size={10} /> Partner Synced</span>}
           {status === 'error' && <span className="text-[8px] font-black text-red-500 uppercase flex items-center gap-1"><AlertCircle size={10} /> Signal Error</span>}
         </div>
       )}

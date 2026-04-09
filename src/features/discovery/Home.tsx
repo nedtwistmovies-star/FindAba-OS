@@ -74,7 +74,7 @@ const CitySignals: React.FC = () => {
         <div className="flex flex-col">
           <span className="text-[9px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Registry Signal</span>
           <span className={`text-[12px] md:text-[11px] font-black uppercase tracking-widest ${registryStatus === 'online' ? 'text-aba-green' : 'text-aba-red'}`}>
-            {registryStatus === 'online' ? 'Industrial Node Online' : registryStatus === 'syncing' ? 'Syncing...' : 'Registry Offline'}
+            {registryStatus === 'online' ? 'Industrial Partner Online' : registryStatus === 'syncing' ? 'Syncing...' : 'Directory Offline'}
           </span>
         </div>
       </div>
@@ -216,7 +216,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                   }}
                   className="bg-aba-gold/20 backdrop-blur-xl border-aba-gold/30 hover:bg-aba-gold/30 text-aba-deep font-black uppercase tracking-widest shadow-lg text-[10px] md:text-[10px] py-4 md:py-4"
                 >
-                  Infrastructure Node
+                  Infrastructure Unit
                 </IndustrialButton>
                 
                 <div className="flex gap-3 md:gap-4">
@@ -313,7 +313,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                  <div className="absolute inset-0 bg-gradient-to-r from-aba-deep/80 via-aba-deep/20 to-transparent" />
                  <div className="absolute top-4 left-4 md:top-8 md:left-8">
                     <div className="bg-aba-gold text-aba-deep text-[8px] md:text-[10px] font-black px-3 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl uppercase tracking-widest shadow-2xl flex items-center gap-2 md:gap-3">
-                       <Star size={12} className="md:w-3.5 md:h-3.5" fill="currentColor" /> Featured Node
+                       <Star size={12} className="md:w-3.5 md:h-3.5" fill="currentColor" /> Featured Partner
                     </div>
                  </div>
               </div>
@@ -436,7 +436,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
           <SectionHeader 
             title="Artisan Registry" 
-            subtitle="Industrial Nodes"
+            subtitle="Industrial Partners"
             icon={Users}
             className="mb-0"
           />
@@ -491,7 +491,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 {artisanTab === 'new' && (
                   <div className="absolute top-5 left-5">
                     <div className="bg-aba-green text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl">
-                      New Node
+                      New Partner
                     </div>
                   </div>
                 )}
@@ -675,7 +675,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             {/* Technical Overlay Details */}
             <div className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 md:gap-3">
               <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-[7px] md:text-[8px] font-black text-white/40 uppercase tracking-widest">Live Industrial Feed // Node_042</span>
+              <span className="text-[7px] md:text-[8px] font-black text-white/40 uppercase tracking-widest">Live Industrial Feed // Partner_042</span>
             </div>
           </div>
         </div>

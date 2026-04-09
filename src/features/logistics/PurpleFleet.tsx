@@ -260,8 +260,8 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                  <div className="bg-[#1a0033]/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_15px_80px_rgba(0,0,0,0.5)] p-6 border border-white/10 space-y-4">
                     <div className="flex justify-between items-center">
                        <div className="space-y-0.5">
-                          <h3 className="text-lg font-black uppercase tracking-tight text-white">Select Vessel Node</h3>
-                          <p className="text-[7px] font-black text-white/40 uppercase tracking-widest">{availableVehicles.length} Elite Nodes Detected Nearby</p>
+                          <h3 className="text-lg font-black uppercase tracking-tight text-white">Select Vessel Unit</h3>
+                          <p className="text-[7px] font-black text-white/40 uppercase tracking-widest">{availableVehicles.length} Elite Partners Detected Nearby</p>
                        </div>
                        <button onClick={() => setStep('search')} className="text-[7px] font-black text-aba-gold uppercase tracking-widest border-b border-aba-gold/30 pb-0.5">Edit Route</button>
                     </div>
@@ -274,7 +274,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                                   {v.category === VehicleCategory.STANDARD ? <Car size={18}/> : <Shield size={18}/>}
                                 </div>
                                <div className="text-left">
-                                  <h4 className="text-xs font-black uppercase text-white">{v.driver_name || 'Officer Node'}</h4>
+                                  <h4 className="text-xs font-black uppercase text-white">{v.driver_name || 'Officer Partner'}</h4>
                                   <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest mt-0.5">{v.vehicle_model} • {v.plate_number}</p>
                                </div>
                             </div>
@@ -311,7 +311,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                           </span>
                        </div>
                        <h3 className="text-xl font-black uppercase tracking-tight text-white">
-                         {currentRide?.status === 'requested' ? 'Scanning for Node' : 
+                         {currentRide?.status === 'requested' ? 'Scanning for Partner' : 
                           currentRide?.status === 'accepted' ? 'Vessel Assigned' :
                           currentRide?.status === 'navigating_to_pickup' ? 'En Route to Pickup' :
                           currentRide?.status === 'arrived_at_pickup' ? 'Vessel Arrived' :
@@ -321,7 +321,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                        </h3>
                        <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.4em] leading-loose">
                           {currentRide?.status === 'completed' ? 'Registry Settlement Committed. Thank you for using Purple Fleet.' : 
-                           'Officer Node is navigating to your pickup node. Registry Handshake Verified.'}
+                           'Officer Partner is navigating to your pickup partner. Registry Handshake Verified.'}
                        </p>
                     </div>
                     
@@ -331,8 +331,8 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-aba-gold/20 flex items-center justify-center text-aba-gold text-[10px] font-black">09</div>
                               <div className="text-left">
-                                  <p className="text-[9px] font-black uppercase text-white">{availableVehicles.find(v => v.id === currentRide?.vehicle_id)?.driver_name || 'Officer Node'}</p>
-                                  <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{availableVehicles.find(v => v.id === currentRide?.vehicle_id)?.vehicle_model || 'Vessel Node'}</p>
+                                  <p className="text-[9px] font-black uppercase text-white">{availableVehicles.find(v => v.id === currentRide?.vehicle_id)?.driver_name || 'Officer Partner'}</p>
+                                  <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">{availableVehicles.find(v => v.id === currentRide?.vehicle_id)?.vehicle_model || 'Vessel Unit'}</p>
                               </div>
                             </div>
                             <button className="p-2.5 bg-aba-gold text-aba-dark rounded-lg active:scale-90 transition-transform"><Zap size={14} /></button>

@@ -74,7 +74,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
           </button>
           <div className="flex items-center gap-2">
             <ShieldCheck size={18} className="text-blue-600" />
-            <h1 className="text-sm font-black uppercase tracking-widest">Node Verification Flow</h1>
+            <h1 className="text-sm font-black uppercase tracking-widest">Partner Verification Flow</h1>
           </div>
           <div className="w-10" />
         </div>
@@ -258,7 +258,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
       {/* FOOTER WATERMARK */}
       <footer className="mt-auto py-10 flex flex-col items-center gap-4 opacity-10 select-none">
          <span className="text-[14px] font-black uppercase tracking-[1em]">SANDALSroyalle</span>
-         <p className="text-[8px] font-black uppercase tracking-widest">Registry Protocol Node v9.5</p>
+         <p className="text-[8px] font-black uppercase tracking-widest">Registry Protocol Partner v9.5</p>
       </footer>
     </div>
   );

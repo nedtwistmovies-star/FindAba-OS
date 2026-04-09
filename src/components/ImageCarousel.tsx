@@ -52,7 +52,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, className, interv
         >
           <img 
             src={img} 
-            alt={`Industrial Node ${idx + 1}`}
+            alt={`Industrial Partner ${idx + 1}`}
             className="w-full h-full object-cover select-none"
             loading={idx === 0 ? "eager" : "lazy"}
           />

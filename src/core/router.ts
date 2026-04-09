@@ -37,7 +37,7 @@ export const ThriftDashboard = lazy(() => import('../features/finance/ThriftDash
 
 export const SandalsHotels = lazy(() => import('../features/hospitality/SandalsHotels'));
 export const HotelLedger = lazy(() => import('../features/hospitality/HotelLedger'));
-export const HotelNodeControl = lazy(() => import('../features/hospitality/HotelNodeControl'));
+export const HotelPartnerControl = lazy(() => import('../features/hospitality/HotelPartnerControl'));
 
 export const AboutAba = lazy(() => import('../features/info/AboutAba'));
 export const About = lazy(() => import('../features/info/About'));
@@ -84,7 +84,7 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'sandals-hotels': SandalsHotels,
   'booking-ledger': HotelLedger,
   'hotel-detail': SandalsHotels,
-  'hotel-node-control': HotelNodeControl,
+  'hotel-partner-control': HotelPartnerControl,
   'about-aba': AboutAba,
   'about': About,
   'about-who': About,

@@ -666,7 +666,7 @@ export const updateRoomProtocol = async (id: string, updates: Partial<Room>) => 
   await client.from('rooms').update(updates).eq('id', id);
 };
 
-export const addRoomToNode = async (room: Partial<Room>) => {
+export const addRoomToPartner = async (room: Partial<Room>) => {
   const client = getSupabase();
   if (!client) return;
   await client.from('rooms').insert(room);

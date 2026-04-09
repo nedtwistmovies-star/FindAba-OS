@@ -83,7 +83,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ label, onUpload, curre
         <div className={`w-full h-full bg-slate-900/50 rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center overflow-hidden transition-all duration-500 relative z-0 ${status === 'error' ? 'border-red-500/50' : 'border-white/5 group-hover:border-aba-gold/50'}`}>
           {currentImage ? (
             <>
-              <img src={currentImage} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Identity Node" />
+              <img src={currentImage} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Identity Partner" />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-[2px]">
                  <div className="bg-white/20 p-4 rounded-full border border-white/20 backdrop-blur-xl">
                     <UploadCloud size={24} className="text-white" />
@@ -93,7 +93,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({ label, onUpload, curre
           ) : (
             <div className="flex flex-col items-center gap-3">
               <ImageIcon size={32} className="text-white/20" />
-              <span className="text-[9px] font-black uppercase text-white/20 tracking-widest">Select Node Asset</span>
+              <span className="text-[9px] font-black uppercase text-white/20 tracking-widest">Select Partner Asset</span>
             </div>
           )}
           
@@ -155,7 +155,7 @@ export const MultiImageUpload: React.FC<any> = ({ label, urls, onAdd, onRemove, 
       <div className="grid grid-cols-3 gap-3">
         {urls.map((url: string, idx: number) => (
           <div key={idx} className="relative aspect-square rounded-[1.5rem] overflow-hidden border border-white/5 group shadow-sm bg-slate-900">
-            <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="Node asset" />
+            <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="Partner asset" />
             <button type="button" onClick={() => onRemove(idx)} className="absolute top-2 right-2 p-1.5 bg-black/60 backdrop-blur-md text-white rounded-lg hover:bg-red-500 transition-all opacity-0 group-hover:opacity-100 z-10"><ImageIcon size={12} /></button>
           </div>
         ))}

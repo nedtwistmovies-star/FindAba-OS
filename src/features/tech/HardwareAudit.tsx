@@ -61,7 +61,7 @@ const HardwareAudit: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               className="w-full bg-aba-gold text-aba-deep py-8 rounded-[2rem] font-black uppercase text-sm tracking-[0.4em] flex items-center justify-center gap-4 active:scale-95 transition-all shadow-[0_20px_50px_rgba(255,215,0,0.2)] disabled:opacity-30 group overflow-hidden relative"
             >
                 {loading ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
-                {loading ? 'Analyzing Node...' : 'Initialize Audit'}
+                {loading ? 'Analyzing Partner...' : 'Initialize Audit'}
             </button>
 
             <div className="grid grid-cols-2 gap-4 opacity-40">

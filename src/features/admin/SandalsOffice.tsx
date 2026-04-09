@@ -31,7 +31,7 @@ const SandalsOffice: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   };
 
   const stats = [
-    { label: 'Active Nodes', value: '12', icon: <Hotel size={14} />, color: 'text-aba-gold' },
+    { label: 'Active Partners', value: '12', icon: <Hotel size={14} />, color: 'text-aba-gold' },
     { label: 'Market Reach', value: '88%', icon: <TrendingUp size={14} />, color: 'text-aba-green' },
     { label: 'Network Uptime', value: `${hubUptime.toFixed(2)}%`, icon: <Activity size={14} />, color: 'text-blue-500' },
     { label: 'Corporate Staff', value: '45+', icon: <Users size={14} />, color: 'text-aba-gold' }
@@ -75,7 +75,7 @@ const SandalsOffice: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                      <Zap size={28} fill="currentColor" />
                    </div>
                    <div>
-                      <h4 className="text-2xl font-black uppercase tracking-tight text-white">Operational Node</h4>
+                      <h4 className="text-2xl font-black uppercase tracking-tight text-white">Operational Partner</h4>
                       <p className="text-[10px] font-bold text-white/40 uppercase leading-relaxed tracking-widest mt-4">
                         Execute master registry protocols for this division.
                       </p>

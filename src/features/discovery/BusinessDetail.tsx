@@ -9,7 +9,7 @@ import {
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Business, Product, ViewState } from '../../types';
+import { Business, Product, ViewState, IntegrityGrade, VerificationLevel } from '../../types';
 import { ImageCarousel, PaystackOverlay, IndustrialButton, SectionHeader } from '../../components';
 import { useAuth } from '../../providers/AuthProvider';
 
@@ -36,6 +36,19 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
   const [showPayment, setShowPayment] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'location' | 'reviews'>('overview');
 
+  const getGradeColor = (grade: IntegrityGrade) => {
+    switch(grade) {
+      case IntegrityGrade.A_PLUS: return 'bg-aba-gold text-aba-dark border-aba-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.3)]';
+      case IntegrityGrade.A: return 'bg-aba-green text-white border-aba-green/50';
+      case IntegrityGrade.B: return 'bg-blue-600 text-white border-blue-400/50';
+      case IntegrityGrade.C: return 'bg-slate-600 text-white border-slate-400/50';
+      case IntegrityGrade.D: return 'bg-aba-red text-white border-aba-red/50';
+      default: return 'bg-slate-600 text-white border-slate-400/50';
+    }
+  };
+
+  const isVerified = business.integrity_grade === IntegrityGrade.A || business.integrity_grade === IntegrityGrade.A_PLUS;
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -51,7 +64,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
         <div className="w-20 h-20 bg-aba-gold/10 rounded-[2rem] flex items-center justify-center text-aba-gold animate-pulse mb-6">
           <Loader2 size={40} className="animate-spin" />
         </div>
-        <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">Syncing Node...</h2>
+        <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">Syncing Partner...</h2>
         <button 
           onClick={() => setView('home')}
           className="px-8 py-4 bg-white/5 text-white/40 rounded-full font-black uppercase text-[10px] tracking-widest border border-white/10 hover:text-white transition-all"
@@ -97,9 +110,19 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
               <div className="space-y-6 animate-slide-up">
                  <div className="flex flex-wrap gap-3">
-                    <div className="bg-aba-gold text-aba-dark text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest shadow-2xl flex items-center gap-2">
-                       <ShieldCheck size={14} /> Verified Hub
+                    <div className={`text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest shadow-2xl flex items-center gap-2 border backdrop-blur-md ${getGradeColor(business.integrity_grade)}`}>
+                       Grade {business.integrity_grade}
                     </div>
+                    {isVerified && (
+                      <div className="bg-aba-gold text-aba-dark text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest shadow-2xl flex items-center gap-2">
+                         <ShieldCheck size={14} /> Verified Hub
+                      </div>
+                    )}
+                    {business.verification_level === VerificationLevel.PHYSICALLY_VERIFIED && (
+                      <div className="bg-blue-600 text-white text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest shadow-2xl flex items-center gap-2">
+                         <MapPin size={14} /> Physically Verified
+                      </div>
+                    )}
                     <div className="bg-white/10 backdrop-blur-xl text-white text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest border border-white/10">
                        {business.category}
                     </div>
@@ -109,9 +132,13 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                  </h1>
                  <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
-                       <Star size={18} fill="#FFD700" className="text-aba-gold" />
-                       <span className="text-lg font-black text-white">{business.rating}</span>
-                       <span className="text-sm font-bold text-white/40 uppercase tracking-widest">({business.review_count} Reviews)</span>
+                       <Star size={18} fill={business.review_count > 0 ? "#FFD700" : "none"} className={business.review_count > 0 ? "text-aba-gold" : "text-white/20"} />
+                       <span className="text-lg font-black text-white">
+                         {business.review_count > 0 ? business.rating.toFixed(1) : 'No reviews yet'}
+                       </span>
+                       {business.review_count > 0 && (
+                         <span className="text-sm font-bold text-white/40 uppercase tracking-widest">({business.review_count} Reviews)</span>
+                       )}
                     </div>
                     <div className="h-6 w-[1px] bg-white/10" />
                     <div className="flex items-center gap-2">
@@ -128,7 +155,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                     onClick={() => setView('feed')}
                     className="bg-white text-aba-deep hover:bg-aba-gold shadow-2xl"
                  >
-                    Contact Node
+                    Contact Partner
                  </IndustrialButton>
               </div>
            </div>
@@ -299,7 +326,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
             {/* Contact Card */}
             <div className="bg-white/5 backdrop-blur-2xl p-10 rounded-[3rem] border border-white/10 shadow-2xl space-y-10">
                <div className="space-y-4">
-                  <h4 className="text-xl font-black text-white uppercase tracking-tighter">Node Connectivity</h4>
+                  <h4 className="text-xl font-black text-white uppercase tracking-tighter">Partner Connectivity</h4>
                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.3em]">Official Registry Channels</p>
                </div>
 
@@ -353,14 +380,18 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
             </div>
 
             {/* Trust Badge */}
-            <div className="bg-aba-green/10 border border-aba-green/20 p-8 rounded-[2.5rem] flex items-center gap-6">
-               <div className="w-16 h-16 bg-aba-green text-white rounded-2xl flex items-center justify-center shadow-2xl shrink-0">
-                  <ShieldCheck size={32} />
+            <div className={`p-8 rounded-[2.5rem] flex items-center gap-6 border transition-all duration-500 ${isVerified ? 'bg-aba-green/10 border-aba-green/20' : 'bg-white/5 border-white/10'}`}>
+               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-2xl shrink-0 ${isVerified ? 'bg-aba-green text-white' : 'bg-white/10 text-white/40'}`}>
+                  {isVerified ? <ShieldCheck size={32} /> : <Info size={32} />}
                </div>
                <div className="space-y-1">
-                  <h5 className="text-sm font-black text-white uppercase tracking-tight">Verified Hub</h5>
+                  <h5 className="text-sm font-black text-white uppercase tracking-tight">
+                    {isVerified ? 'Verified Hub' : 'Integrity Partner'}
+                  </h5>
                   <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest leading-relaxed">
-                     This node has passed the physical integrity inspection.
+                     {isVerified 
+                       ? 'This hub has passed the physical integrity inspection and document verification.' 
+                       : 'This partner is currently undergoing the integrity verification protocol. Grade C by default.'}
                   </p>
                </div>
             </div>

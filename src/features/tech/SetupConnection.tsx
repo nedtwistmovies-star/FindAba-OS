@@ -140,7 +140,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
               {step === 'database' ? <Database size={28} /> : step === 'git' ? <Github size={28} /> : <Landmark size={28} />}
             </div>
             <h1 className="text-2xl font-black text-white uppercase tracking-tighter">
-              {step === 'database' ? 'Cloud Registry' : step === 'git' ? 'Git Repository' : 'Settlement Node'}
+              {step === 'database' ? 'Cloud Registry' : step === 'git' ? 'Git Repository' : 'Settlement Gateway'}
             </h1>
           </div>
         ) : (
@@ -167,7 +167,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
               </div>
               {errorMessage && <p className="text-[9px] font-black uppercase text-aba-red text-center">{errorMessage}</p>}
               <button type="submit" disabled={isTestingDB} className="w-full bg-white text-aba-dark py-5 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all">
-                {isTestingDB ? <Loader2 className="animate-spin" size={16} /> : 'Sync Registry Node'}
+                {isTestingDB ? <Loader2 className="animate-spin" size={16} /> : 'Sync Registry Partner'}
               </button>
             </form>
           )}
@@ -198,7 +198,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
 
                   <div className="space-y-2">
                     <p className="text-[8px] text-white/50 uppercase tracking-widest leading-relaxed">
-                      2. Authenticate Industrial Node:
+                      2. Authenticate Industrial Partner:
                     </p>
                     <button 
                       onClick={handleGitHubLogin}
@@ -265,7 +265,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                 <p className="text-[8px] text-white/30 uppercase tracking-widest text-center px-4 leading-relaxed">Required for industrial settlement protocols.</p>
               </div>
               <button type="submit" disabled={isTestingPS} className="w-full bg-aba-gold text-aba-dark py-5 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all">
-                  {isTestingPS ? <Loader2 className="animate-spin" size={16} /> : 'Link Financial Node'}
+                  {isTestingPS ? <Loader2 className="animate-spin" size={16} /> : 'Link Financial Gateway'}
               </button>
             </form>
           )}

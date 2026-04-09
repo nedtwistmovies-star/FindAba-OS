@@ -56,7 +56,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                </button>
                <div>
                   <h2 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-white leading-none">City Registry</h2>
-                  <p className="text-[9px] md:text-[8px] font-black text-aba-gold/60 uppercase tracking-[0.3em] md:tracking-[0.4em] mt-1.5 md:mt-2">Verified Industrial Nodes</p>
+                  <p className="text-[9px] md:text-[8px] font-black text-aba-gold/60 uppercase tracking-[0.3em] md:tracking-[0.4em] mt-1.5 md:mt-2">Verified Industrial Partners</p>
                </div>
             </div>
             <div className="flex bg-white/5 p-1 rounded-xl md:rounded-2xl border border-white/10 shadow-inner">
@@ -93,7 +93,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                onClick={() => setView('business-verification')}
                className="hidden lg:flex bg-aba-gold/10 border-aba-gold/20 text-aba-gold hover:bg-aba-gold hover:text-aba-dark"
             >
-               Verify Hub
+               Verify Partner
             </IndustrialButton>
 
             <button 
@@ -201,7 +201,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
             {filtered.length === 0 && (
               <div className="col-span-full py-40 text-center opacity-20 flex flex-col items-center">
                  <Search size={64} className="mb-6 text-aba-gold" />
-                 <h3 className="text-2xl font-black uppercase tracking-widest text-white leading-none">No Node Detected</h3>
+                 <h3 className="text-2xl font-black uppercase tracking-widest text-white leading-none">No Partner Detected</h3>
                  <p className="text-[10px] font-bold uppercase mt-4 text-aba-gold tracking-[0.3em]">Adjust registry filters for active signals.</p>
               </div>
             )}

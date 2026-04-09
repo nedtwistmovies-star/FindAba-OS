@@ -187,7 +187,7 @@ const Feed: React.FC<FeedProps> = ({ onBack, setView }) => {
       const newPost: Post = {
           id: `p-${Date.now()}`,
           user: userName,
-          role: 'Citizen Node',
+          role: 'Citizen Partner',
           avatar: 'https://images.unsplash.com/photo-1540562760343-6902269a9b13?q=80&w=400',
           content: shoutout,
           timestamp: 'Just now',
@@ -514,7 +514,7 @@ const Feed: React.FC<FeedProps> = ({ onBack, setView }) => {
                     <div className="space-y-2">
                        <h4 className="text-xl font-black uppercase tracking-tight text-aba-dark dark:text-white">Commercial Detected</h4>
                        <p className="text-[10px] font-bold text-aba-dark/60 dark:text-white/40 uppercase leading-relaxed tracking-widest px-4">
-                          Direct advertisements are restricted to Premium Nodes. Please use the official Ad Mesh to synchronize your business signal.
+                          Direct advertisements are restricted to Premium Partners. Please use the official Ad Mesh to synchronize your business signal.
                        </p>
                     </div>
                     <button 

@@ -18,7 +18,7 @@ export default function PresenceList() {
   return (
     <div className="flex items-center gap-3">
       {presence.map(p => (
-        <div key={p.key} className="flex items-center gap-2 group cursor-help" title={p.role || 'Registry Node'}>
+        <div key={p.key} className="flex items-center gap-2 group cursor-help" title={p.role || 'Registry Partner'}>
           <div className="w-8 h-8 rounded-2xl bg-slate-800 border border-white/5 flex items-center justify-center overflow-hidden transition-transform group-hover:scale-110 shadow-lg relative">
             {p.avatarUrl ? (
               <img src={p.avatarUrl} alt={p.displayName} className="w-full h-full object-cover" />

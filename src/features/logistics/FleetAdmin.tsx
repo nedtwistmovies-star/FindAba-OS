@@ -17,7 +17,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
   const [categoryFilter, setCategoryFilter] = useState('All');
 
   const mockIncidents = [
-    { id: 'inc-1', driver: 'Officer Node 09', type: 'Panic Signal', timestamp: '2m ago', lat: 5.11, lng: 7.36 }
+    { id: 'inc-1', driver: 'Officer Partner 09', type: 'Panic Signal', timestamp: '2m ago', lat: 5.11, lng: 7.36 }
   ];
 
   const mockRoute: [number, number][] = [
@@ -30,7 +30,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
   const activeVehicles = [
     { 
       id: 'v1', 
-      driver_name: 'Node-SIG-109', 
+      driver_name: 'Partner-SIG-109', 
       phone: '08012345678',
       latitude: 5.1125, 
       longitude: 7.3663, 
@@ -41,7 +41,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
     },
     { 
       id: 'v2', 
-      driver_name: 'Node-SIG-209', 
+      driver_name: 'Partner-SIG-209', 
       phone: '08098765432',
       latitude: 5.1085, 
       longitude: 7.3643, 
@@ -52,7 +52,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
     },
     { 
       id: 'v3', 
-      driver_name: 'Node-SIG-309', 
+      driver_name: 'Partner-SIG-309', 
       phone: '07011223344',
       latitude: 5.11, 
       longitude: 7.36, 
@@ -63,7 +63,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
     },
     { 
       id: 'v4', 
-      driver_name: 'Node-SIG-409', 
+      driver_name: 'Partner-SIG-409', 
       phone: '09055667788',
       latitude: 5.105, 
       longitude: 7.362, 
@@ -74,7 +74,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
     },
     { 
       id: 'v5', 
-      driver_name: 'Node-SIG-509', 
+      driver_name: 'Partner-SIG-509', 
       phone: '08122334455',
       latitude: 5.102, 
       longitude: 7.368, 
@@ -99,8 +99,8 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
   }, []);
 
   const handleApprove = (id: string) => {
-    if (!confirm("Confirm industrial clearance for this driver node?")) return;
-    alert("Node Approved. Signal dispatched to Driver Console.");
+    if (!confirm("Confirm industrial clearance for this driver partner?")) return;
+    alert("Partner Approved. Signal dispatched to Driver Console.");
   };
 
   return (
@@ -156,7 +156,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
             {activeTab === 'monitor' && (
               <div className="space-y-10 animate-fade-in">
                  <div className="h-[60vh] rounded-[4rem] overflow-hidden border-8 border-white/5 shadow-2xl relative z-10">
-                    <MapView businesses={activeVehicles} onBusinessClick={(v) => alert(`Inspecting Node ${v.driver_name}`)} route={mockRoute} />
+                    <MapView businesses={activeVehicles} onBusinessClick={(v) => alert(`Inspecting Partner ${v.driver_name}`)} route={mockRoute} />
                     <div className="absolute bottom-10 left-10 p-10 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-[3.5rem] shadow-2xl max-w-sm space-y-6 z-20">
                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
@@ -193,7 +193,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
                              <p className="text-sm font-bold text-red-400 uppercase tracking-widest">{inc.driver} • {inc.timestamp}</p>
                           </div>
                        </div>
-                       <button onClick={() => alert("Dispatching Rapid Response Node...")} className="px-10 py-5 bg-white text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Engage Response</button>
+                       <button onClick={() => alert("Dispatching Rapid Response Partner...")} className="px-10 py-5 bg-white text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Engage Response</button>
                     </div>
                  ))}
                  {mockIncidents.length === 0 && (
@@ -223,7 +223,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
                           </div>
                           <div className="flex items-center gap-4">
                              <button onClick={() => alert("Opening Registry Artifacts: NIN, License, and Vessel Fingerprint documents are being retrieved from Supabase Storage...")} className="px-10 py-5 bg-white/5 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-white/10 flex items-center gap-2"><Eye size={16}/> View Docs</button>
-                             <button onClick={() => handleApprove(i.toString())} className="px-10 py-5 bg-aba-green text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2"><Check size={16}/> Approve Node</button>
+                             <button onClick={() => handleApprove(i.toString())} className="px-10 py-5 bg-aba-green text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2"><Check size={16}/> Approve Partner</button>
                              <button className="p-5 bg-red-600/10 text-red-500 rounded-2xl border border-red-500/20"><XCircle size={20}/></button>
                           </div>
                        </div>

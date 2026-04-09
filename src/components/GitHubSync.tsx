@@ -189,7 +189,7 @@ export const GitHubSync: React.FC = () => {
       localStorage.setItem('findaba_git_repo', repoInput.trim());
       sync(repoInput.trim());
       setIsEditingRepo(false);
-      addToast('Repository Node Updated', 'success');
+      addToast('Repository Partner Updated', 'success');
     }
   };
 

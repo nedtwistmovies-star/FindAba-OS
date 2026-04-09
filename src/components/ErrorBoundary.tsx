@@ -67,7 +67,7 @@ class ErrorBoundary extends Component<Props, State> {
                 onClick={() => window.location.reload()}
                 fullWidth
               >
-                Retry Node
+                Retry Partner
               </IndustrialButton>
               <IndustrialButton 
                 variant="primary" 

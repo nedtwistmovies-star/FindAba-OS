@@ -87,7 +87,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                <User size={48} className="relative z-10" />
             </div>
             <div className="text-white">
-              <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{isAuth ? 'Verified Node' : 'Guest Citizen'}</h2>
+              <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{isAuth ? 'Verified Partner' : 'Guest Citizen'}</h2>
               <div className="flex items-center gap-3 mt-3">
                 <p className="text-aba-gold text-[10px] font-black uppercase tracking-[0.5em] opacity-60">{userEmail?.toUpperCase() || 'ANONYMOUS'}</p>
                 {userRole && (
@@ -142,7 +142,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   color={dbHealth.status === 'healthy' ? 'text-aba-green' : 'text-red-500'}
                 />
                 <StatCard 
-                  title="Node Identity" 
+                  title="Partner Identity" 
                   value={isAuth ? 'Verified' : 'Guest'} 
                   icon={ShieldCheck} 
                   color="text-aba-gold"
@@ -150,7 +150,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
               </BentoGrid>
 
               <div className="space-y-4">
-                <SectionHeader title="Active Nodes" icon={Zap} />
+                <SectionHeader title="Active Partners" icon={Zap} />
                 
                 {myBusiness && (
                   <button 
@@ -163,7 +163,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                         </div>
                         <div className="text-left">
                            <h4 className="text-xl font-black uppercase tracking-tight text-white leading-none group-hover:text-aba-gold transition-colors">Merchant Portal</h4>
-                           <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.5em] mt-2">Manage {myBusiness.name} Node</p>
+                           <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.5em] mt-2">Manage {myBusiness.name} Partner</p>
                         </div>
                      </div>
                      <ChevronRight size={24} className="text-aba-gold group-hover:translate-x-1 transition-transform" />
@@ -181,7 +181,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                         </div>
                         <div className="text-left">
                            <h4 className="text-xl font-black uppercase tracking-tight text-white leading-none">Registry User Auth</h4>
-                           <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.5em] mt-2">Establish Personal Node ID</p>
+                           <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.5em] mt-2">Establish Personal Partner ID</p>
                         </div>
                      </div>
                      <ChevronRight size={24} className="text-white/20 group-hover:text-aba-gold transition-all group-hover:translate-x-1" />
@@ -252,7 +252,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   </div>
 
                   <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-10">
-                    <SectionHeader title="Social Nodes" icon={Globe} />
+                    <SectionHeader title="Social Partners" icon={Globe} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {['facebook_url', 'instagram_url', 'twitter_url', 'tiktok_url'].map((field) => (
                         <div key={field} className="space-y-2">
@@ -324,7 +324,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                 </div>
               ) : (
                 <div className="p-20 text-center opacity-40 italic bg-white/5 rounded-[3rem] border border-dashed border-white/10">
-                  Registry Identity Node Not Initialized.
+                  Registry Identity Partner Not Initialized.
                 </div>
               )}
             </div>
@@ -401,7 +401,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                     Reconnect Signal
                   </IndustrialButton>
                   <IndustrialButton variant="danger" size="md" icon={Trash2} onClick={() => { purgeLocalRegistry(); setDbConfig({url:'', key:''}); }} fullWidth>
-                    Purge Local Node
+                    Purge Local Partner
                   </IndustrialButton>
                 </div>
               </div>

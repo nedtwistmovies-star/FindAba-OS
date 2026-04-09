@@ -140,7 +140,7 @@ const MapView: React.FC<MapViewProps> = ({ businesses, onBusinessClick, userLoca
           })
         }).addTo(mapRef.current);
 
-        // Registry Node Interactive Popup
+        // Registry Partner Interactive Popup
         const popupEl = document.createElement('div');
         popupEl.className = 'p-0 w-64 rounded-3xl overflow-hidden bg-white border border-slate-100 shadow-2xl';
         popupEl.innerHTML = `
@@ -148,7 +148,7 @@ const MapView: React.FC<MapViewProps> = ({ businesses, onBusinessClick, userLoca
             <img src="${b.image_url || 'https://picsum.photos/seed/node/400/200'}" class="w-full h-full object-cover" />
             <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
             <div className="absolute bottom-2 left-3 flex items-center gap-2">
-              <p class="text-[8px] font-black uppercase text-aba-gold tracking-widest leading-none">${b.category || 'Vessel Node'}</p>
+              <p class="text-[8px] font-black uppercase text-aba-gold tracking-widest leading-none">${b.category || 'Vessel Unit'}</p>
               ${b.verification_level ? `<span class="px-1.5 py-0.5 ${b.verification_level === 'Signature' ? 'bg-aba-gold text-aba-dark' : b.verification_level === 'Editorial' ? 'bg-blue-500 text-white' : 'bg-aba-green text-white'} text-[6px] font-black rounded-full uppercase">${b.verification_level}</span>` : ''}
               ${b.nin_verified ? '<span class="px-1.5 py-0.5 bg-aba-gold text-aba-dark text-[6px] font-black rounded-full uppercase">NIN</span>' : ''}
               ${b.license_verified ? '<span class="px-1.5 py-0.5 bg-aba-green text-white text-[6px] font-black rounded-full uppercase">License</span>' : ''}
@@ -156,13 +156,13 @@ const MapView: React.FC<MapViewProps> = ({ businesses, onBusinessClick, userLoca
           </div>
           <div class="p-4 space-y-4">
             <div>
-              <h4 class="text-sm font-black uppercase tracking-tight text-slate-900 leading-none">${b.name || b.driver_name || 'Node ' + b.id.substring(0,4)}</h4>
+              <h4 class="text-sm font-black uppercase tracking-tight text-slate-900 leading-none">${b.name || b.driver_name || 'Partner ' + b.id.substring(0,4)}</h4>
               <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1 flex items-center gap-1">
-                <span class="w-1 h-1 rounded-full ${markerColor}"></span> ${b.area || b.plate_number || 'Registry Node'}
+                <span class="w-1 h-1 rounded-full ${markerColor}"></span> ${b.area || b.plate_number || 'Registry Partner'}
               </p>
             </div>
             <button id="view-node-${b.id}" class="w-full py-3 bg-aba-dark text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-aba-gold hover:text-aba-dark transition-all shadow-lg active:scale-95">
-              Select Node <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              Select Partner <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             </button>
           </div>
         `;

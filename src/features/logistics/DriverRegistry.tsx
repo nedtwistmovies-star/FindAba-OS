@@ -215,7 +215,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
              </div>
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <ImageUpload label="Node Master Visual (Selfie)" currentImage={formData.avatar_url} onUpload={(url) => setFormData({...formData, avatar_url: url})} />
+                <ImageUpload label="Partner Master Visual (Selfie)" currentImage={formData.avatar_url} onUpload={(url) => setFormData({...formData, avatar_url: url})} />
                 <ImageUpload label="Ownership Documentation" currentImage={formData.ownership_url} onUpload={(url) => setFormData({...formData, ownership_url: url})} />
                 <ImageUpload label="Registry License" currentImage={formData.license_url} onUpload={(url) => setFormData({...formData, license_url: url})} />
                 <ImageUpload label="Insurance Registry" currentImage={formData.insurance_url} onUpload={(url) => setFormData({...formData, insurance_url: url})} />

@@ -85,14 +85,14 @@ const MerchantPortal: React.FC<{
           <Loader2 size={48} className="animate-spin" />
         </div>
         <div className="space-y-4">
-          <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Syncing Node...</h2>
+          <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Syncing Partner...</h2>
           <p className="text-white/40 text-xs font-bold uppercase tracking-widest max-w-xs leading-relaxed">
             Establishing secure handshake with the Enyimba Registry. Please wait while we activate your industrial hub.
           </p>
           {showRetry && (
             <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl mt-4">
               <p className="text-red-400 text-[10px] font-black uppercase tracking-widest">
-                Registry Handshake Timeout. Signal is weak or node is unregistered.
+                Registry Handshake Timeout. Signal is weak or partner is unregistered.
               </p>
             </div>
           )}
@@ -155,7 +155,7 @@ const MerchantPortal: React.FC<{
     try {
       await updateBusinessInDB(business.id, updates);
       setBusiness(prev => prev ? ({ ...prev, ...updates }) : null);
-      addToast("Registry Node Updated Successfully.", "success");
+      addToast("Registry Partner Updated Successfully.", "success");
     } catch (e) {
       addToast("Sync Signal Failed. Check Connectivity.", "error");
     } finally {
@@ -176,7 +176,7 @@ const MerchantPortal: React.FC<{
           try {
             await updateBusinessInDB(business.id, { subscription_tier: selectedUpgradePlan.id });
             setBusiness({ ...business, subscription_tier: selectedUpgradePlan.id });
-            addToast(`Node Upgraded to ${selectedUpgradePlan.name} Tier.`, "success");
+            addToast(`Partner Upgraded to ${selectedUpgradePlan.name} Tier.`, "success");
           } catch (e) {
             addToast("Upgrade Signal Failed. Check Connectivity.", "error");
           } finally {
@@ -206,7 +206,10 @@ const MerchantPortal: React.FC<{
                  <Activity size={18} />
                  <div className="absolute top-2 right-2 md:top-3 md:right-3 w-3.5 h-3.5 md:w-4 md:h-4 bg-aba-gold rounded-full flex items-center justify-center text-[7px] md:text-[8px] font-black text-aba-dark border-2 border-aba-dark">2</div>
               </div>
-              <button className="p-3 md:p-4 bg-aba-gold text-aba-dark rounded-xl md:rounded-2xl shadow-xl active:scale-90 transition-all flex-1 md:flex-none flex items-center justify-center gap-2">
+              <button 
+                onClick={() => addToast("Registry Task List Synchronizing...", "info")}
+                className="p-3 md:p-4 bg-aba-gold text-aba-dark rounded-xl md:rounded-2xl shadow-xl active:scale-90 transition-all flex-1 md:flex-none flex items-center justify-center gap-2"
+              >
                  <ListChecks size={20} />
                  <span className="md:hidden text-[10px] font-black uppercase tracking-widest">Tasks</span>
               </button>
@@ -418,7 +421,7 @@ const MerchantPortal: React.FC<{
                   disabled={syncing}
                   className="w-full py-6 md:py-8 bg-aba-dark text-white rounded-2xl md:rounded-[2.5rem] font-black uppercase text-[10px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all"
                 >
-                   {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Identity Node
+                   {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Identity Partner
                 </button>
               </div>
             </div>
@@ -525,7 +528,7 @@ const MerchantPortal: React.FC<{
                     setSyncing(true);
                     try {
                       await updateBusinessInDB(business.id, { products: business.products });
-                      addToast("Showroom Synced with Global Node.", "success");
+                      addToast("Showroom Synced with Global Hub.", "success");
                     } catch (e) {
                       addToast("Sync Signal Failed. Check Connectivity.", "error");
                     } finally {
@@ -635,7 +638,12 @@ const MerchantPortal: React.FC<{
                       </div>
                       
                       <div className="w-full md:w-auto">
-                         <button className="w-full px-8 md:px-10 py-4 md:py-5 bg-white dark:bg-slate-700 border dark:border-white/10 rounded-xl md:rounded-2xl text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-aba-dark hover:text-white transition-all shadow-sm">View Hub Details</button>
+                         <button 
+                           onClick={() => addToast("Fetching detailed hub signal for order #" + o.id.slice(-8), "info")}
+                           className="w-full px-8 md:px-10 py-4 md:py-5 bg-white dark:bg-slate-700 border dark:border-white/10 rounded-xl md:rounded-2xl text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-aba-dark hover:text-white transition-all shadow-sm"
+                         >
+                           View Hub Details
+                         </button>
                       </div>
                    </div>
                 ))}
@@ -659,13 +667,13 @@ const MerchantPortal: React.FC<{
                         <Landmark size={20} className="md:w-6 md:h-6" />
                       </div>
                       <div>
-                        <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Settlement Node</h4>
+                        <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Settlement Gateway</h4>
                         <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configure Your Payout Destination</p>
                       </div>
                    </div>
                    <div className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full border flex items-center gap-2 ${business.bank_name ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${business.bank_name ? 'bg-aba-green animate-pulse' : 'bg-red-500'}`} />
-                      <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest">{business.bank_name ? 'Node Bound' : 'Node Unbound'}</span>
+                      <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest">{business.bank_name ? 'Gateway Bound' : 'Gateway Unbound'}</span>
                    </div>
                 </div>
 
@@ -734,7 +742,7 @@ const MerchantPortal: React.FC<{
                         account_number: business.account_number,
                         account_name: business.account_name
                       });
-                      addToast("Settlement Node Bound Successfully.", "success");
+                      addToast("Settlement Gateway Bound Successfully.", "success");
                     } catch (e) {
                       addToast("Sync Signal Failed. Check Connectivity.", "error");
                     } finally {
@@ -744,7 +752,7 @@ const MerchantPortal: React.FC<{
                   disabled={syncing}
                   className="w-full py-6 md:py-8 bg-aba-gold text-aba-dark rounded-2xl md:rounded-[2.5rem] font-black uppercase text-[10px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all"
                 >
-                   {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Settlement Node
+                   {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Settlement Gateway
                 </button>
              </div>
           </div>
@@ -760,7 +768,7 @@ const MerchantPortal: React.FC<{
                     <Zap size={20} fill="currentColor" className="md:w-6 md:h-6" />
                   </div>
                   <div>
-                    <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Subscription Node</h4>
+                    <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Subscription Hub</h4>
                     <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Current Tier: <span className="text-aba-gold">{business.subscription_tier || 'Free'}</span></p>
                   </div>
                 </div>
@@ -770,7 +778,7 @@ const MerchantPortal: React.FC<{
                     onClick={() => setBillingCycle(BillingCycle.MONTHLY)} 
                     className={`flex-1 md:flex-none px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-[1.5rem] text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}
                   >
-                    30 Day Node
+                    30 Day Hub
                   </button>
                   <button 
                     onClick={() => setBillingCycle(BillingCycle.YEARLY)} 
@@ -817,7 +825,7 @@ const MerchantPortal: React.FC<{
                         }}
                         className={`mt-8 md:mt-10 w-full py-4 md:py-6 rounded-xl md:rounded-[2rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.2em] md:tracking-[0.3em] transition-all shadow-xl ${isCurrent ? 'bg-aba-green/20 text-aba-green cursor-default' : 'bg-aba-dark text-white hover:bg-aba-gold hover:text-aba-dark active:scale-95'}`}
                       >
-                        {isCurrent ? 'Current Active Node' : 'Initialize Upgrade'}
+                        {isCurrent ? 'Current Active Hub' : 'Initialize Upgrade'}
                       </button>
                     </div>
                   );
@@ -829,36 +837,60 @@ const MerchantPortal: React.FC<{
 
         {activeTab === 'trust' && (
           <div className="space-y-6 md:space-y-8 animate-slide-up pb-20">
-            {/* Trust Score Card */}
+            {/* Integrity Grade Card */}
             <div className="bg-white dark:bg-[#1e293b] p-6 md:p-10 rounded-2xl md:rounded-[3rem] shadow-xl border border-slate-100 dark:border-white/5 flex flex-col md:flex-row gap-8 md:gap-10 items-center">
               <div className="relative shrink-0">
-                <svg className="w-32 h-32 md:w-40 md:h-40 transform -rotate-90">
-                  <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-slate-100 dark:text-white/5 md:hidden" />
-                  <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="10" fill="transparent" strokeDasharray={352} strokeDashoffset={352 - (352 * trustScore) / 100} className="text-aba-green transition-all duration-1000 md:hidden" />
-                  
-                  <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-slate-100 dark:text-white/5 hidden md:block" />
-                  <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={440} strokeDashoffset={440 - (440 * trustScore) / 100} className="text-aba-green transition-all duration-1000 hidden md:block" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl md:text-4xl font-black text-aba-dark dark:text-white">{trustScore}</span>
-                  <span className="text-[7px] md:text-[8px] font-black uppercase text-slate-400 tracking-widest">Trust Index</span>
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-8 border-aba-gold/20 flex items-center justify-center relative">
+                  <div className="absolute inset-0 border-8 border-aba-gold rounded-full" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)', transform: 'rotate(-45deg)' }}></div>
+                  <span className="text-5xl md:text-6xl font-black text-aba-gold">{business?.integrity_grade || 'C'}</span>
                 </div>
               </div>
               <div className="flex-1 space-y-4 md:space-y-6 text-center md:text-left">
                 <div className="space-y-1 md:space-y-2">
-                  <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-aba-dark dark:text-white">Industrial Trust Rating</h3>
-                  <p className="text-[11px] md:text-sm text-slate-500 dark:text-white/40 leading-relaxed">Your rating is based on successful handshakes, fulfillment speed, and dispute-free history in the Aba mesh.</p>
+                  <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-aba-dark dark:text-white">Industrial Integrity Grade</h3>
+                  <p className="text-[11px] md:text-sm text-slate-500 dark:text-white/40 leading-relaxed">
+                    Your grade represents the platform's trust in your business operations. 
+                    {business?.integrity_grade === 'A+' || business?.integrity_grade === 'A' 
+                      ? " You are a high-trust partner in the Aba mesh." 
+                      : " Complete more verifications to improve your grade."}
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div className="p-3 md:p-4 bg-slate-50 dark:bg-black/20 rounded-xl md:rounded-2xl border border-slate-100 dark:border-white/5">
-                    <p className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest">Handshake Success</p>
-                    <p className="text-base md:text-lg font-black text-aba-green">100%</p>
+                    <p className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest">Verification Level</p>
+                    <p className="text-base md:text-lg font-black text-aba-green uppercase">{business?.verification_level || 'None'}</p>
                   </div>
                   <div className="p-3 md:p-4 bg-slate-50 dark:bg-black/20 rounded-xl md:rounded-2xl border border-slate-100 dark:border-white/5">
-                    <p className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest">Avg. Fulfillment</p>
-                    <p className="text-base md:text-lg font-black text-aba-dark dark:text-white">1.2 Days</p>
+                    <p className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest">Trust Index</p>
+                    <p className="text-base md:text-lg font-black text-aba-dark dark:text-white">{trustScore}%</p>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Verification Status */}
+            <div className="bg-white dark:bg-[#1e293b] p-6 md:p-10 rounded-2xl md:rounded-[3rem] shadow-xl border border-slate-100 dark:border-white/5">
+              <div className="flex items-center gap-4 mb-8">
+                <ShieldCheck className="text-aba-gold" size={32} />
+                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-aba-dark dark:text-white">Verification Status</h3>
+              </div>
+              
+              <div className="space-y-4">
+                {[
+                  { label: 'Identity Verification', status: business?.verification_level !== 'None', desc: 'Government issued ID and business registration documents.' },
+                  { label: 'Physical Inspection', status: business?.verification_level === 'Physically Verified', desc: 'On-site audit of workshop and production capacity.' },
+                  { label: 'Trade Integrity', status: trustScore > 80, desc: 'History of successful transactions and zero disputes.' }
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center justify-between p-6 bg-slate-50 dark:bg-black/20 rounded-[2rem] border border-slate-100 dark:border-white/5">
+                    <div className="space-y-1">
+                      <p className="text-sm font-black text-aba-dark dark:text-white uppercase tracking-tight">{item.label}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-white/40 font-medium">{item.desc}</p>
+                    </div>
+                    <div className={`px-4 py-2 rounded-full text-[8px] font-black uppercase tracking-widest ${item.status ? 'bg-aba-green/20 text-aba-green' : 'bg-slate-200 dark:bg-white/5 text-slate-400'}`}>
+                      {item.status ? 'Verified' : 'Pending'}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -876,7 +908,12 @@ const MerchantPortal: React.FC<{
                       <p className="text-[9px] md:text-[10px] font-bold text-red-500 uppercase tracking-[0.2em]">0 Active Disputes</p>
                     </div>
                   </div>
-                  <button className="w-full sm:w-auto px-5 md:px-6 py-2.5 md:py-3 bg-white/5 border border-white/10 rounded-full text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">View Archive</button>
+                  <button 
+                    onClick={() => addToast("Accessing Dispute Archive... Signal established.", "info")}
+                    className="w-full sm:w-auto px-5 md:px-6 py-2.5 md:py-3 bg-white/5 border border-white/10 rounded-full text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                  >
+                    View Archive
+                  </button>
                 </div>
                 
                 <div className="bg-white/5 rounded-xl md:rounded-[2rem] p-6 md:p-8 border border-white/10 text-center space-y-3 md:space-y-4">
@@ -884,7 +921,7 @@ const MerchantPortal: React.FC<{
                     <CheckCircle2 size={24} className="text-aba-green md:w-8 md:h-8" />
                   </div>
                   <h4 className="text-white font-black uppercase tracking-tight text-sm md:text-base">Clean Ledger Signal</h4>
-                  <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto">Your industrial node is operating within optimal parameters. No trade disputes detected in the current cycle.</p>
+                  <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto">Your industrial hub is operating within optimal parameters. No trade disputes detected in the current cycle.</p>
                 </div>
               </div>
             </div>

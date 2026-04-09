@@ -60,7 +60,7 @@ const AdCheckout: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
         </div>
         
         <div className="space-y-6 max-w-md relative z-10">
-          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none">Node <br/><span className="text-aba-gold italic">Synchronized.</span></h2>
+          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none">Partner <br/><span className="text-aba-gold italic">Synchronized.</span></h2>
           <p className="text-white/40 text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] leading-relaxed">
             Commercial Tier: {plan.name} <br/> 
             45-Day Industrial Cycle Activated
@@ -121,7 +121,7 @@ const AdCheckout: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
                <Calendar size={12} /> Industrial Cycle Protocol
             </div>
             <h3 className="text-5xl font-black uppercase tracking-tighter leading-none">{plan.name}</h3>
-            <p className="text-[11px] font-bold text-white/30 uppercase tracking-[0.4em]">Node Deployment: Sprint 45</p>
+            <p className="text-[11px] font-bold text-white/30 uppercase tracking-[0.4em]">Partner Deployment: Sprint 45</p>
          </div>
 
          <div className="bg-white/5 rounded-[4rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] border border-white/5 p-12 space-y-12 relative overflow-hidden">
@@ -174,7 +174,7 @@ const AdCheckout: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
 
       <footer className="mt-auto py-12 flex flex-col items-center gap-6 opacity-10 select-none grayscale">
          <span className="text-[16px] font-black uppercase tracking-[1.2em]">SANDALSroyalle</span>
-         <p className="text-[8px] font-black uppercase tracking-widest">Registry Protocol Node v9.8</p>
+         <p className="text-[8px] font-black uppercase tracking-widest">Registry Protocol Partner v9.8</p>
       </footer>
     </div>
   );

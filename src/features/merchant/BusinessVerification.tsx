@@ -59,7 +59,7 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-aba-gold transition-colors" size={18} />
                <input 
                  type="text" 
-                 placeholder="Search Business Name, RC, or Node ID..." 
+                 placeholder="Search Business Name, RC, or Partner ID..." 
                  className="w-full pl-12 pr-24 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-aba-gold transition-all shadow-inner"
                  value={search}
                  onChange={e => setSearch(e.target.value)}
@@ -90,7 +90,7 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
                        <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">{biz.category}</span>
                           <div className="w-1 h-1 bg-slate-200 rounded-full" />
-                          <span className="text-[8px] font-black uppercase tracking-widest text-aba-gold">{biz.verification_level} Node</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest text-aba-gold">{biz.verification_level} Partner</span>
                        </div>
                     </div>
                  </div>
@@ -110,7 +110,7 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
                        </div>
                        <div>
                           <h3 className="text-lg font-black uppercase tracking-tight">{selectedBiz.name}</h3>
-                          <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Registry Node: {selectedBiz.id}</p>
+                          <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Registry Partner: {selectedBiz.id}</p>
                        </div>
                     </div>
                     <button onClick={() => setSelectedBiz(null)} className="p-2.5 bg-white/5 rounded-xl text-white/40 hover:text-white transition-colors"><X size={20}/></button>

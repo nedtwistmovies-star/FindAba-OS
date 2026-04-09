@@ -301,7 +301,7 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
             <div className="pt-8 border-t border-slate-50 flex flex-col items-center gap-6 opacity-30 select-none grayscale">
                <span className="text-[14px] font-black uppercase tracking-[1em]">SANDALSroyalle</span>
                <div className="flex items-center gap-3 text-[7px] font-black uppercase tracking-widest">
-                  <ShieldCheck size={12} /> Registry Verified Hub Nodes
+                  <ShieldCheck size={12} /> Registry Integrity Partners
                </div>
             </div>
 

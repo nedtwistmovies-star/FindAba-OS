@@ -93,7 +93,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
               </div>
               <div>
                 <h3 className="text-sm font-black uppercase tracking-tight dark:text-white">SANDALSroyalle Support</h3>
-                <p className="text-[10px] font-bold text-aba-green uppercase tracking-widest">Online • Enyimba Node</p>
+                <p className="text-[10px] font-bold text-aba-green uppercase tracking-widest">Online • Enyimba Partner</p>
               </div>
             </div>
           </div>

@@ -89,7 +89,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       await updateThriftAccountSettlement(userEmail, bankDetails);
       await refreshAccount();
       setShowBankForm(false);
-      alert("Settlement Signal Locked: Bound via Paystack Node.");
+      alert("Settlement Signal Locked: Bound via Paystack Gateway.");
     } catch (err: any) {
       alert(`UPDATE FAILED: ${err.message}`);
     } finally {
@@ -132,7 +132,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   if (loading) return (
     <div className="h-full flex flex-col items-center justify-center bg-[#020617]">
       <Loader2 className="animate-spin text-[#FFD700] mb-4" size={48} />
-      <p className="text-[10px] font-black uppercase text-[#FFD700] tracking-[0.4em] animate-pulse">Syncing Financial Node...</p>
+      <p className="text-[10px] font-black uppercase text-[#FFD700] tracking-[0.4em] animate-pulse">Syncing Financial Unit...</p>
     </div>
   );
 
@@ -241,7 +241,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                     <Landmark size={24} />
                  </div>
                  <div>
-                    <h4 className="text-sm font-black uppercase tracking-tight">Settlement Node</h4>
+                    <h4 className="text-sm font-black uppercase tracking-tight">Settlement Unit</h4>
                     <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-1">Paystack Exit Portal</p>
                  </div>
               </div>
@@ -259,7 +259,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
               </div>
               
               <button onClick={() => setShowBankForm(true)} className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.3em] hover:bg-[#FFD700] hover:text-[#002113] transition-all">
-                {account.bank_name ? 'Update Node' : 'Bind Settlement Node'}
+                {account.bank_name ? 'Update Unit' : 'Bind Settlement Unit'}
               </button>
            </div>
 
@@ -298,7 +298,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
            <div className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-6">
               <div className="w-full max-w-md bg-aba-dark rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden animate-slide-up">
                  <div className="p-8 border-b border-white/5 flex justify-between items-center">
-                    <h3 className="text-xl font-black uppercase tracking-tight">Node Settlement Bind</h3>
+                    <h3 className="text-xl font-black uppercase tracking-tight">Unit Settlement Bind</h3>
                     <button onClick={() => setShowBankForm(false)} className="p-2 text-white/30 hover:text-white"><X size={24} /></button>
                  </div>
                  <form onSubmit={handleSaveBankDetails} className="p-8 space-y-6">

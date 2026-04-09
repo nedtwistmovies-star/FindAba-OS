@@ -244,7 +244,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
           <div className="absolute inset-0 bg-gradient-to-t from-[#002113] via-[#002113]/20 to-transparent" />
           <button onClick={() => setSelectedHotel(null)} className="absolute top-8 left-8 p-4 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl active:scale-90 transition-transform z-20"><ArrowLeft size={24}/></button>
           <div className="absolute bottom-10 left-10 right-10">
-             <div className="flex items-center gap-3 mb-3"><div className="px-4 py-1.5 bg-aba-gold text-aba-dark rounded-full text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2"><ShieldCheck size={14} /> SR Master Node</div></div>
+             <div className="flex items-center gap-3 mb-3"><div className="px-4 py-1.5 bg-aba-gold text-aba-dark rounded-full text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2"><ShieldCheck size={14} /> SR Master Partner</div></div>
              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-none">{selectedHotel?.name}</h2>
              <div className="flex items-center gap-3 mt-4 text-white/40"><MapPin size={16} className="text-aba-gold" /><span className="text-[11px] font-bold uppercase tracking-widest leading-none">{selectedHotel?.address}</span></div>
           </div>
@@ -260,7 +260,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
               {rooms.length === 0 ? (
                 <div className="py-20 text-center opacity-20 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[3rem]">
                    <Hash size={48} className="mb-4" />
-                   <p className="text-[10px] font-black uppercase tracking-widest">No SR_EXEC Nodes Allocated at this Hub</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest">No SR_EXEC Partners Allocated at this Hub</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -289,7 +289,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
           <div><div className="flex items-center gap-2 mb-0.5"><Building2 size={12} className="text-aba-gold" /><span className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em]">Executive Hospitality Protocol</span></div><h2 className="text-xl md:text-2xl font-black uppercase tracking-tighter leading-none">FindABA by <span className="text-aba-gold">SANDALSroyalle</span></h2></div>
         </div>
         <div className="bg-white/5 p-1 rounded-2xl border border-white/10 flex shadow-xl self-start lg:self-center">
-           <button onClick={() => setActiveTab('registry')} className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'registry' ? 'bg-aba-gold text-aba-dark shadow-lg' : 'text-white/40 hover:text-white'}`}><Globe size={14} /> Node Registry</button>
+           <button onClick={() => setActiveTab('registry')} className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'registry' ? 'bg-aba-gold text-aba-dark shadow-lg' : 'text-white/40 hover:text-white'}`}><Globe size={14} /> Partner Registry</button>
            <button onClick={() => setActiveTab('concierge')} className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'concierge' ? 'bg-aba-gold text-aba-dark shadow-lg' : 'text-white/40 hover:text-white'}`}><Sparkles size={14} /> Concierge AI</button>
            <button onClick={() => setActiveTab('history')} className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'history' ? 'bg-aba-gold text-aba-dark shadow-lg' : 'text-white/40 hover:text-white'}`}><Calendar size={14} /> Official History {userBookings.length > 0 && <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[7px] font-black ml-1">{userBookings.length}</span>}</button>
         </div>
@@ -301,7 +301,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
             {hotels.length === 0 && !loading ? (
               <div className="py-24 text-center opacity-20 border-2 border-dashed border-white/10 rounded-[3rem] flex flex-col items-center justify-center">
                  <HotelIcon size={64} className="mb-6" />
-                 <h3 className="text-xl font-black uppercase tracking-widest">No Active Nodes Detected</h3>
+                 <h3 className="text-xl font-black uppercase tracking-widest">No Active Partners Detected</h3>
                  <p className="text-[9px] font-bold uppercase tracking-[0.4em] mt-3">The hospitality registry is currently syncing with global hubs.</p>
               </div>
             ) : (
@@ -311,7 +311,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                     <div className="h-80 overflow-hidden relative">
                       <img src={hotel.image_url} className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110" alt={hotel.name} />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#002113] via-transparent to-transparent" />
-                      <div className="absolute top-6 left-6 bg-[#FFD700] text-[#002113] text-[7px] font-black px-4 py-2 rounded-lg uppercase tracking-[0.2em] shadow-xl flex items-center gap-2"><ShieldCheck size={12} /> SR Master Node</div>
+                      <div className="absolute top-6 left-6 bg-[#FFD700] text-[#002113] text-[7px] font-black px-4 py-2 rounded-lg uppercase tracking-[0.2em] shadow-xl flex items-center gap-2"><ShieldCheck size={12} /> SR Master Partner</div>
                       <div className="absolute bottom-8 left-8 right-8">
                         <div className="flex items-center gap-2 mb-2">
                            {[1,2,3,4,5].map(s => <Star key={s} size={10} className="text-aba-gold fill-aba-gold" />)}

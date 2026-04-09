@@ -6,7 +6,7 @@ import {
   ShieldCheck, Zap, Bell, Landmark, Star, X, Camera, AlertOctagon,
   Car, Navigation, CheckCircle2, Phone, MessageSquare, ShieldAlert
 } from 'lucide-react';
-import { ViewState, DriverNode, ComplianceLevel } from '../../types';
+import { ViewState, DriverPartner, ComplianceLevel } from '../../types';
 import { useToast } from '../../providers/ToastProvider';
 import MapView from '../../components/MapView';
 import { fetchDriverByEmail, updateDriverStatus, subscribeToRideRequests, updateRideBookingStatus, getSupabase } from '../../services/supabaseService';
@@ -139,7 +139,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   };
 
   const handleReportIncident = () => {
-    addToast(`INCIDENT LOGGED: ${incidentType} at Node Perimeter. Signal dispatched to Fleet Control.`, "info");
+    addToast(`INCIDENT LOGGED: ${incidentType} at Partner Perimeter. Signal dispatched to Fleet Control.`, "info");
     setShowIncidentReport(false);
   };
 
@@ -204,7 +204,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-black uppercase tracking-tight">Driver Command</h2>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Secure Node Authentication Required</p>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Secure Partner Authentication Required</p>
         </div>
         
         <div className="w-full max-w-sm space-y-4">
@@ -288,7 +288,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                      <User size={28} className="text-aba-gold" />
                   </div>
                   <div>
-                     <h3 className="text-lg font-black uppercase tracking-tight text-white">Node: {driver?.full_name || 'SIG-09'}</h3>
+                     <h3 className="text-lg font-black uppercase tracking-tight text-white">Partner: {driver?.full_name || 'SIG-09'}</h3>
                      <div className="flex items-center gap-2 mt-0.5">
                         <div className="flex items-center gap-1">
                            <ShieldCheck size={12} className="text-aba-gold" />
@@ -358,7 +358,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                        <div className="flex items-center gap-2">
                           <Car size={14} className="text-aba-gold" />
                           <div>
-                            <p className="text-[8px] font-black uppercase tracking-widest leading-none">Vehicle Node</p>
+                            <p className="text-[8px] font-black uppercase tracking-widest leading-none">Vehicle Unit</p>
                             <p className="text-[10px] font-bold uppercase text-white/60 mt-0.5">{rideRequest.vehicle_class}</p>
                           </div>
                        </div>
@@ -432,9 +432,9 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                  onClick={() => setShowBankForm(true)}
                  className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 space-y-3 shadow-inner group text-left hover:border-aba-gold/30 transition-all"
                >
-                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest group-hover:text-aba-gold transition-colors">Settlement Node</p>
+                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest group-hover:text-aba-gold transition-colors">Settlement Gateway</p>
                   <h4 className="text-xs font-black text-white uppercase tracking-tight leading-tight">
-                    {driver?.bank_name ? driver.bank_name : 'Bind Bank Node'}
+                    {driver?.bank_name ? driver.bank_name : 'Bind Bank Gateway'}
                   </h4>
                   <div className="flex items-center gap-2 text-[7px] font-black uppercase text-white/20 tracking-widest">
                      <Landmark size={10} /> {driver?.account_number ? `****${driver.account_number.slice(-4)}` : 'Unconfigured'}
@@ -530,7 +530,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                     if (client) {
                       await client.from('drivers').update(bankDetails).eq('email', userEmail);
                       setDriver({...driver, ...bankDetails});
-                      addToast("Settlement Node Bound Successfully.", "success");
+                      addToast("Settlement Gateway Bound Successfully.", "success");
                       setShowBankForm(false);
                     }
                   } catch (e) {
