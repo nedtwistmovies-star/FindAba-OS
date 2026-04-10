@@ -333,7 +333,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                     <div className="flex items-center gap-2 md:gap-3">
                        <ShieldCheck size={16} className="text-aba-green md:w-4.5 md:h-4.5" />
                        <span className="text-[8px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">
-                         {businessOfTheDay.integrity_grade === 'A' || businessOfTheDay.integrity_grade === 'A+' ? 'Verified Hub' : 'Partner Hub'}
+                         {businessOfTheDay?.integrity_grade === 'A' || businessOfTheDay?.integrity_grade === 'A+' ? 'Verified Hub' : 'Partner Hub'}
                        </span>
                     </div>
                  </div>
@@ -500,7 +500,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 
                 <div className="absolute top-5 right-5">
                   <div className="w-10 h-10 bg-aba-deep/80 backdrop-blur-md text-aba-gold rounded-2xl flex items-center justify-center border border-white/10 shadow-2xl group-hover:rotate-12 transition-transform">
-                    {artisan.integrity_grade === 'A' || artisan.integrity_grade === 'A+' ? <ShieldCheck size={18} /> : <Users size={18} />}
+                    {artisan?.integrity_grade === 'A' || artisan?.integrity_grade === 'A+' ? <ShieldCheck size={18} /> : <Users size={18} />}
                   </div>
                 </div>
               </div>

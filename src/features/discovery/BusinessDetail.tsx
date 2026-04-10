@@ -47,17 +47,6 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
     }
   };
 
-  const isVerified = business.integrity_grade === IntegrityGrade.A || business.integrity_grade === IntegrityGrade.A_PLUS;
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  const handlePurchase = (product: Product) => {
-    setSelectedProduct(product);
-    setShowPayment(true);
-  };
-
   if (!business) {
     return (
       <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-8 text-center">
@@ -74,6 +63,17 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
       </div>
     );
   }
+
+  const isVerified = business.integrity_grade === IntegrityGrade.A || business.integrity_grade === IntegrityGrade.A_PLUS;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  const handlePurchase = (product: Product) => {
+    setSelectedProduct(product);
+    setShowPayment(true);
+  };
 
   const mediaUrls = business.catalog_images || [business.image_url];
 

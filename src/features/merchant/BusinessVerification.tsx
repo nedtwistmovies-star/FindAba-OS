@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ArrowLeft, ShieldCheck, CheckCircle2, ChevronDown, Filter, LayoutGrid, Map as MapIcon, X, Check, ArrowRight, Shield, Star, Zap, Activity, Globe, Lock } from 'lucide-react';
+import { Search, ArrowLeft, ShieldCheck, CheckCircle2, ChevronDown, Filter, LayoutGrid, Map as MapIcon, X, Check, ArrowRight, Shield, Star, Zap, Activity, Globe, Lock, MapPin } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { fetchAllBusinesses } from '../../services/supabaseService';
 

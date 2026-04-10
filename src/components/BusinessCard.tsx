@@ -23,10 +23,6 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
   isLoading = false,
   activeOrder
 }) => {
-  if (isLoading || !business) {
-    return <BusinessCardSkeleton />;
-  }
-
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -35,7 +31,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
   
   useEffect(() => {
     const L = (window as any).L;
-    if (L && mapContainerRef.current && !mapRef.current && business.latitude && business.longitude) {
+    if (L && mapContainerRef.current && !mapRef.current && business?.latitude && business?.longitude) {
       mapRef.current = L.map(mapContainerRef.current, { 
         zoomControl: false, attributionControl: false, dragging: false,
         touchZoom: false, scrollWheelZoom: false, doubleClickZoom: false
@@ -47,7 +43,11 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
       }).addTo(mapRef.current);
     }
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
-  }, [business.id]);
+  }, [business?.id]);
+
+  if (isLoading || !business) {
+    return <BusinessCardSkeleton />;
+  }
 
   const features = business.active_features || {};
 
