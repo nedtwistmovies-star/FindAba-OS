@@ -87,49 +87,48 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
       onClick={handleCardClick} 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`bg-white/5 backdrop-blur-xl rounded-[2.5rem] border overflow-hidden flex flex-col cursor-pointer transition-all duration-700 active:scale-95 group h-full relative ${
+      className={`bg-white/5 backdrop-blur-xl rounded-2xl border overflow-hidden flex flex-col cursor-pointer transition-standard active:scale-[0.98] group h-full relative ${
         activeOrder 
-          ? 'border-aba-gold shadow-[0_0_50px_rgba(255,215,0,0.2)] scale-[1.02]' 
+          ? 'border-aba-gold shadow-lg scale-[1.02]' 
           : features.sponsored_badge 
-            ? 'border-aba-gold/30 shadow-2xl' 
-            : 'border-white/5 shadow-2xl'
-      } hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] hover:-translate-y-2 hover:border-white/20`}
+            ? 'border-aba-gold/30 shadow-sm' 
+            : 'border-white/5 shadow-sm'
+      } hover:shadow-md hover:-translate-y-1 hover:border-white/20`}
     >
-      {/* TRADE SIGNAL OVERLAY */}
       {showOrderSignal && activeOrder && (
-        <div className="absolute inset-0 z-50 bg-aba-dark/95 backdrop-blur-2xl animate-fade-in p-8 flex flex-col justify-between text-white border-2 border-aba-gold/30 rounded-[2.4rem]">
-           <div className="flex justify-between items-start animate-slide-up">
-              <div className="space-y-2">
-                 <div className="flex items-center gap-3">
-                    <Activity size={14} className="text-aba-gold animate-pulse" />
-                    <h4 className="text-[10px] font-black uppercase text-aba-gold tracking-[0.3em]">Trade Signal</h4>
+        <div className="absolute inset-0 z-50 bg-aba-deep/95 backdrop-blur-2xl animate-fade-in p-6 flex flex-col justify-between text-white border border-aba-gold/30 rounded-2xl">
+           <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                 <div className="flex items-center gap-2">
+                    <Activity size={12} className="text-aba-gold" />
+                    <h4 className="text-[10px] font-bold uppercase text-aba-gold tracking-widest">Trade Signal</h4>
                  </div>
-                 <p className="text-[9px] font-bold uppercase tracking-widest opacity-30 font-mono">ID: {activeOrder.id.slice(-8).toUpperCase()}</p>
+                 <p className="text-[9px] font-medium uppercase tracking-widest opacity-30 font-mono">ID: {activeOrder.id.slice(-8).toUpperCase()}</p>
               </div>
               <button 
                 onClick={(e) => { e.stopPropagation(); setShowOrderSignal(false); }} 
-                className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-all border border-white/10"
+                className="p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-standard border border-white/10"
               >
-                <X size={20}/>
+                <X size={16}/>
               </button>
            </div>
 
-           <div className="flex flex-col items-center justify-center space-y-6 py-4 animate-slide-up">
-              <div className="w-20 h-20 rounded-3xl bg-aba-gold/10 border border-aba-gold/30 flex items-center justify-center text-aba-gold shadow-[0_0_40px_rgba(255,215,0,0.1)]">
-                 <ShoppingBag size={36} />
+           <div className="flex flex-col items-center justify-center space-y-4 py-4">
+              <div className="w-16 h-16 rounded-2xl bg-aba-gold/10 border border-aba-gold/30 flex items-center justify-center text-aba-gold">
+                 <ShoppingBag size={32} />
               </div>
-              <div className="text-center space-y-2">
-                 <p className="text-[10px] font-black uppercase text-aba-gold/60 tracking-[0.4em]">Volume</p>
-                 <h3 className="text-4xl font-black tracking-tighter text-white">₦{activeOrder.amount.toLocaleString()}</h3>
+              <div className="text-center">
+                 <p className="text-[10px] font-bold uppercase text-aba-gold/60 tracking-widest mb-1">Volume</p>
+                 <h3 className="text-3xl font-bold tracking-tight text-white">₦{activeOrder.amount.toLocaleString()}</h3>
               </div>
            </div>
 
-           <div className="space-y-4 animate-slide-up">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+           <div className="space-y-4">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                  <div className="flex justify-between items-center">
-                    <span className="text-[8px] font-black uppercase text-white/30 tracking-[0.3em]">Status</span>
-                    <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-2 ${getStatusColor(activeOrder.status)}`}>
-                       {activeOrder.status === OrderStatus.PAID ? <Landmark size={12} /> : <CheckCircle2 size={12} />}
+                    <span className="text-[9px] font-bold uppercase text-white/30 tracking-widest">Status</span>
+                    <div className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-2 ${getStatusColor(activeOrder.status)}`}>
+                       {activeOrder.status === OrderStatus.PAID ? <Landmark size={10} /> : <CheckCircle2 size={10} />}
                        {activeOrder.status.replace('_', ' ')}
                     </div>
                  </div>
@@ -137,7 +136,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
 
               <button 
                 onClick={(e) => { e.stopPropagation(); onClick?.(business); }}
-                className="w-full py-5 bg-white text-aba-dark rounded-full font-black uppercase text-[10px] tracking-[0.4em] shadow-2xl hover:bg-aba-gold transition-all active:scale-95"
+                className="w-full py-4 bg-white text-aba-deep rounded-xl font-bold uppercase text-[10px] tracking-widest shadow-sm hover:bg-aba-gold transition-standard active:scale-95"
               >
                 Open Hub <ChevronRight size={14} className="inline ml-1" />
               </button>
@@ -145,141 +144,116 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
         </div>
       )}
 
-      <div className="h-56 bg-black/20 relative overflow-hidden shrink-0">
+      <div className="h-48 bg-black/20 relative overflow-hidden shrink-0">
         {!imageLoaded && <div className="absolute inset-0 shimmer bg-white/5 z-10" />}
         
         <img 
           src={business.image_url} 
-          className={`w-full h-full object-cover transition-all duration-[3s] group-hover:scale-110 ${imageLoaded ? 'opacity-100 blur-0' : 'opacity-0 blur-lg'}`} 
+          className={`w-full h-full object-cover transition-standard duration-[2s] group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} 
           alt={business.name} 
           loading="lazy"
           onLoad={() => setImageLoaded(true)}
         />
         
-        <div className="absolute inset-0 bg-gradient-to-t from-aba-dark/90 via-aba-dark/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
+        <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/80 via-transparent to-transparent opacity-60" />
 
         {/* ACTIVE ORDER LIVE BADGE */}
         {activeOrder && !showOrderSignal && (
-          <div className="absolute top-6 left-6 z-20">
-            <div className="relative bg-aba-gold text-aba-dark text-[8px] font-black px-4 py-2 rounded-xl uppercase tracking-widest shadow-2xl flex items-center gap-2 border border-white/10 backdrop-blur-md">
-              <Activity size={12} className="animate-pulse" /> Trade Signal
+          <div className="absolute top-4 left-4 z-20">
+            <div className="bg-aba-gold text-aba-deep text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-2 border border-white/10 backdrop-blur-md">
+              <Activity size={10} className="animate-pulse" /> Trade Signal
             </div>
           </div>
         )}
 
-        <div className={`absolute top-6 left-6 flex flex-col gap-2 z-20 ${activeOrder ? 'mt-12' : ''}`}>
-           <div className={`text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border backdrop-blur-md transition-all duration-500 ${getGradeColor(business.integrity_grade)}`}>
+        <div className={`absolute top-4 left-4 flex flex-col gap-1.5 z-20 ${activeOrder ? 'mt-10' : ''}`}>
+           <div className={`text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-1.5 border backdrop-blur-md transition-standard ${getGradeColor(business.integrity_grade)}`}>
               Grade {business.integrity_grade}
            </div>
            {isVerified && (
-              <div className="bg-aba-dark/80 text-aba-gold text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-aba-gold/20 backdrop-blur-md">
-                 <ShieldCheck size={10} fill="currentColor" className="text-aba-gold" /> Verified Hub
-              </div>
-           )}
-           {business.verification_level === VerificationLevel.PHYSICALLY_VERIFIED && (
-              <div className="bg-blue-600/80 text-white text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-blue-400/20 backdrop-blur-md">
-                 <MapPin size={10} /> Physically Verified
-              </div>
-           )}
-           {business.verification_level === VerificationLevel.DOCUMENT_VERIFIED && (
-              <div className="bg-aba-green/80 text-white text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-aba-green/20 backdrop-blur-md">
-                 <CheckCircle2 size={10} /> Document Verified
-              </div>
-           )}
-           {features.verified_exporter_badge && (
-              <div className="bg-aba-dark/80 text-aba-gold text-[7px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5 border border-aba-gold/20 backdrop-blur-md">
-                 <Globe size={10} fill="currentColor" /> Exporter
+              <div className="bg-aba-deep/80 text-aba-gold text-[8px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-aba-gold/20 backdrop-blur-md">
+                 <ShieldCheck size={10} fill="currentColor" className="text-aba-gold" /> Verified
               </div>
            )}
         </div>
 
         <button 
           onClick={e => { e.stopPropagation(); onToggleFavorite?.(business.id); }} 
-          className={`absolute top-6 right-6 p-3 rounded-2xl backdrop-blur-md z-20 transition-all duration-700 shadow-2xl border border-white/10 ${
-            isFavorite ? 'bg-aba-red text-white' : 'bg-black/40 text-white hover:bg-aba-gold hover:text-aba-dark'
+          className={`absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-md z-20 transition-standard border border-white/10 ${
+            isFavorite ? 'bg-aba-red text-white' : 'bg-black/40 text-white hover:bg-aba-gold hover:text-aba-deep'
           }`}
         >
-          <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
+          <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} />
         </button>
 
-        <div className="absolute bottom-6 left-8 right-8 z-20 flex justify-between items-end">
-           <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-2xl">
-              <Star size={12} fill={business.review_count > 0 ? "#FFD700" : "none"} className={business.review_count > 0 ? "text-aba-gold" : "text-white/20"} />
-              <span className="text-[10px] font-black uppercase tracking-widest">
-                {business.review_count > 0 ? business.rating.toFixed(1) : 'No reviews yet'}
+        <div className="absolute bottom-4 left-4 right-4 z-20 flex justify-between items-end">
+           <div className="flex items-center gap-2 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 text-white shadow-sm">
+              <Star size={10} fill={business.review_count > 0 ? "var(--aba-gold)" : "none"} className={business.review_count > 0 ? "text-aba-gold" : "text-white/20"} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                {business.review_count > 0 ? business.rating.toFixed(1) : 'New'}
               </span>
            </div>
            {features.sponsored_badge && (
-             <div className="bg-aba-gold text-aba-dark text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl flex items-center gap-1.5">
+             <div className="bg-aba-gold text-aba-deep text-[8px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-1">
                 <Zap size={10} fill="currentColor" /> Sponsored
              </div>
            )}
         </div>
       </div>
       
-      <div className="p-8 flex-1 flex flex-col space-y-6">
-        <div className="space-y-2">
+      <div className="p-6 flex-1 flex flex-col space-y-4">
+        <div className="space-y-1">
            <div className="flex justify-between items-start gap-4">
-              <h3 className="font-black text-xl uppercase tracking-tight leading-tight text-white group-hover:text-aba-gold transition-colors duration-500 line-clamp-1">
+              <h3 className="font-bold text-lg tracking-tight leading-tight text-white group-hover:text-aba-gold transition-standard line-clamp-1">
                 {business.name}
               </h3>
-              {(features.priority_score_bonus || 0) > 1 && <Award size={20} className="text-aba-gold shrink-0" />}
+              {(features.priority_score_bonus || 0) > 1 && <Award size={18} className="text-aba-gold shrink-0" />}
            </div>
-           <p className="text-[10px] font-black text-aba-gold/60 uppercase tracking-[0.4em]">{business.category}</p>
+           <p className="text-[10px] font-bold text-aba-gold/60 uppercase tracking-widest">{business.category}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 border-y border-white/5 py-6">
-           <div className="space-y-2">
-              <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">Readiness</p>
-              <div className={`text-[10px] font-black uppercase flex items-center gap-2 ${business.is_export_ready ? 'text-aba-green' : 'text-white/40'}`}>
-                {business.is_export_ready ? <Globe size={12} /> : <div className="w-1.5 h-1.5 rounded-full bg-white/20" />}
-                {business.is_export_ready ? 'Global' : 'Regional'}
+        <div className="grid grid-cols-2 gap-4 border-y border-white/5 py-4">
+           <div className="space-y-1">
+              <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">Readiness</p>
+              <div className={`text-[10px] font-bold uppercase flex items-center gap-2 ${business.is_export_ready ? 'text-aba-green' : 'text-white/40'}`}>
+                {business.is_export_ready ? <Globe size={12} /> : <div className="w-1 h-1 rounded-full bg-white/20" />}
+                {business.is_export_ready ? 'Global' : 'Local'}
               </div>
            </div>
-           <div className="space-y-2">
-              <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">Capacity</p>
-              <p className="text-[10px] font-black uppercase text-white/80">{business.capacity_indicator}</p>
+           <div className="space-y-1">
+              <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest">Capacity</p>
+              <p className="text-[10px] font-bold uppercase text-white/80">{business.capacity_indicator}</p>
            </div>
         </div>
 
-        {business.skills && business.skills.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 overflow-hidden h-6">
-            {business.skills.slice(0, 3).map((skill, i) => (
-              <span key={i} className="px-2 py-0.5 bg-aba-gold/5 text-aba-gold/60 border border-aba-gold/10 rounded-md text-[7px] font-black uppercase tracking-widest whitespace-nowrap">
-                {skill}
-              </span>
-            ))}
-            {business.skills.length > 3 && <span className="text-[7px] text-white/20 font-black">+{business.skills.length - 3}</span>}
-          </div>
-        )}
 
-        <div className="overflow-hidden rounded-3xl border border-white/5 group/map relative h-28 shadow-inner">
-           <div ref={mapContainerRef} className="w-full h-full pointer-events-none grayscale brightness-[0.7] transition-all duration-1000 group-hover:grayscale-0 group-hover:scale-110 group-hover:brightness-100" />
-           <div className="absolute inset-0 bg-gradient-to-t from-aba-dark/40 to-transparent" />
+        <div className="overflow-hidden rounded-xl border border-white/5 group/map relative h-24">
+           <div ref={mapContainerRef} className="w-full h-full pointer-events-none grayscale brightness-[0.7] transition-standard group-hover:grayscale-0 group-hover:scale-105 group-hover:brightness-100" />
+           <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/40 to-transparent" />
         </div>
 
-        <div className="mt-auto flex items-center justify-between pt-6 border-t border-white/5">
-          <div className="flex items-center text-[10px] text-white/40 font-black uppercase tracking-widest">
-            <MapPin size={14} className="mr-2 text-aba-red" /> {business.area}
+        <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
+          <div className="flex items-center text-[10px] text-white/40 font-bold uppercase tracking-widest">
+            <MapPin size={12} className="mr-1.5 text-aba-red" /> {business.area}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
              <button 
                onClick={(e) => {
                  e.stopPropagation();
                  window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}`, '_blank');
                }}
-               className="w-11 h-11 flex items-center justify-center bg-white/5 rounded-2xl hover:bg-aba-gold hover:text-aba-dark transition-all border border-white/10 group/btn"
+               className="w-9 h-9 flex items-center justify-center bg-white/5 rounded-xl hover:bg-aba-gold hover:text-aba-deep transition-standard border border-white/10 group/btn"
              >
-                <MessageSquare size={18} className="group-hover/btn:scale-110 transition-transform" />
+                <MessageSquare size={16} className="group-hover/btn:scale-110 transition-standard" />
              </button>
              <button 
                onClick={(e) => {
                  e.stopPropagation();
                  onClick?.(business);
                }}
-               className="w-11 h-11 flex items-center justify-center bg-white text-aba-dark rounded-2xl hover:bg-aba-gold transition-all shadow-2xl group/btn"
+               className="w-9 h-9 flex items-center justify-center bg-white text-aba-deep rounded-xl hover:bg-aba-gold transition-standard shadow-sm group/btn"
              >
-                <ChevronRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
+                <ChevronRight size={18} className="group-hover/btn:translate-x-0.5 transition-standard" />
              </button>
           </div>
         </div>

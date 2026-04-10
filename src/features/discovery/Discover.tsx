@@ -20,7 +20,7 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
     {
       title: "About Aba",
       desc: "The Forge of African Enterprise",
-      img: "https://storage.googleapis.com/generativeai-downloads/images/ais-dev-5q7nnribbp3c77pxgx2ejy-5850429325.europe-west2.run.app/step-96-0.png"
+      img: "https://images.unsplash.com/photo-1540562760343-6902269a9b13?q=80&w=800"
     },
     {
       title: "Industries",
@@ -40,39 +40,35 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
   ];
 
   const featuredBusinesses = [
-    { id: '1', name: 'Andress Shoes Ltd.', rating: 5, reviews_count: 85, category: 'Footwear', image_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=600' },
-    { id: '2', name: 'Chimex Textiles', rating: 5, reviews_count: 79, category: 'Textiles', image_url: 'https://images.unsplash.com/photo-1524292332623-3a5a730cc0df?q=80&w=600' },
-    { id: '3', name: 'Royale Furniture Co.', rating: 5, reviews_count: 64, category: 'Furniture', image_url: 'https://images.unsplash.com/photo-1538688543467-f9697d36ca3b?q=80&w=600' },
-    { id: '4', name: 'Bay Energy Solutions', rating: 5, reviews_count: 74, category: 'Renewable Energy', image_url: 'https://images.unsplash.com/photo-1509391366360-fe5bb58583bb?q=80&w=600' },
+    { id: '1', name: 'Andress Shoes Ltd.', rating: 5, review_count: 85, category: 'Footwear', image_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=600', area: 'Ariaria', integrity_grade: 'A+' },
+    { id: '2', name: 'Chimex Textiles', rating: 5, review_count: 79, category: 'Textiles', image_url: 'https://images.unsplash.com/photo-1524292332623-3a5a730cc0df?q=80&w=600', area: 'Ngwa Road', integrity_grade: 'A' },
+    { id: '3', name: 'Royale Furniture Co.', rating: 5, review_count: 64, category: 'Furniture', image_url: 'https://images.unsplash.com/photo-1538688543467-f9697d36ca3b?q=80&w=600', area: 'Osisioma', integrity_grade: 'A' },
+    { id: '4', name: 'Bay Energy Solutions', rating: 5, review_count: 74, category: 'Renewable Energy', image_url: 'https://images.unsplash.com/photo-1509391366360-fe5bb58583bb?q=80&w=600', area: 'Umuahia Road', integrity_grade: 'A+' },
   ];
 
   return (
-    <div className="flex flex-col bg-[#00120b] min-h-screen pb-40 animate-fade-in font-sans text-white">
+    <div className="flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans text-white">
       {/* 🔹 SEARCH AREA */}
-      <section className="px-8 pt-16 pb-12 w-full bg-aba-gold flex flex-col items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20 industrial-grid pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent pointer-events-none" />
+      <section className="px-8 pt-24 pb-16 w-full bg-aba-gold flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 industrial-grid pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-transparent pointer-events-none" />
         <div className="relative z-10 w-full max-w-2xl">
-          <div className="w-full h-20 px-10 bg-[#002113]/90 backdrop-blur-2xl text-white/70 rounded-full flex items-center shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] border border-white/10 group transition-all hover:border-white/30">
-            <div className="w-12 h-12 bg-aba-gold/10 rounded-full flex items-center justify-center mr-6 group-hover:bg-aba-gold group-hover:text-aba-dark transition-all duration-500">
-              <Search size={24} className="text-aba-gold group-hover:text-aba-dark" strokeWidth={3} />
-            </div>
-            <span className="text-base font-bold tracking-tight flex-1 text-left uppercase">Search Aba Industrial Registry...</span>
+          <div className="w-full h-20 px-10 bg-aba-deep/90 backdrop-blur-2xl text-white/70 rounded-2xl flex items-center shadow-2xl border border-white/10 group transition-all hover:border-white/30">
+            <Search size={20} className="text-aba-gold mr-6" />
+            <span className="text-sm font-bold tracking-widest flex-1 text-left uppercase">Search Aba Industrial Registry...</span>
             <div className="h-10 w-[1px] bg-white/10 mx-6" />
-            <div className="w-12 h-12 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors">
-              <ChevronRight size={28} className="text-aba-gold/50 group-hover:text-aba-gold group-hover:translate-x-1 transition-all" />
-            </div>
+            <ChevronRight size={24} className="text-aba-gold/50 group-hover:text-aba-gold group-hover:translate-x-1 transition-all" />
           </div>
         </div>
       </section>
 
       {/* 🔹 HERO TEXT */}
-      <section className="px-8 py-12 max-w-7xl mx-auto w-full space-y-4">
-        <h1 className="text-5xl md:text-8xl font-black text-white uppercase tracking-tighter leading-none">
-          ABA <span className="text-aba-gold italic">MASTERY.</span>
+      <section className="px-8 py-20 max-w-7xl mx-auto w-full space-y-6 text-center md:text-left">
+        <h1 className="text-5xl md:text-9xl font-bold text-white uppercase tracking-tighter leading-[0.8]">
+          ABA <span className="text-aba-gold">MASTERY.</span>
         </h1>
-        <p className="text-lg md:text-2xl text-white/50 font-medium max-w-2xl leading-relaxed">
-          A curated chronicle of industrial innovation and growth in Aba!
+        <p className="text-lg md:text-xl text-white/40 font-medium max-w-2xl leading-relaxed uppercase tracking-widest">
+          A curated chronicle of industrial innovation and growth in Aba.
         </p>
       </section>
 
@@ -98,9 +94,10 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
       </section>
 
       {/* 🔹 DISCOVER SECTION */}
-      <section className="px-8 mb-24 max-w-7xl mx-auto w-full">
+      <section className="px-8 mb-32 max-w-7xl mx-auto w-full">
         <SectionHeader 
           title="Discover" 
+          subtitle="Industrial Chronicles"
           icon={Sparkles}
           action={
             <IndustrialButton
@@ -112,7 +109,6 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
               View All
             </IndustrialButton>
           }
-          className="mb-12"
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -130,13 +126,13 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
                   setView('feed');
                 }
               }}
-              className="group cursor-pointer relative aspect-[4/5] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl transition-all hover:-translate-y-3 hover:shadow-aba-gold/10"
+              className="group cursor-pointer relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/5 shadow-sm transition-standard hover:-translate-y-2 hover:border-aba-gold/30"
             >
-              <img src={cat.img} className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000" alt={cat.title} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-              <div className="absolute inset-0 p-8 flex flex-col justify-end space-y-3">
-                <h3 className="text-3xl font-black text-aba-gold uppercase tracking-tight leading-tight group-hover:text-white transition-colors">{cat.title}</h3>
-                <p className="text-[13px] font-medium text-white/40 leading-tight group-hover:text-white/70 transition-colors">{cat.desc}</p>
+              <img src={cat.img} className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-standard duration-1000" alt={cat.title} />
+              <div className="absolute inset-0 bg-gradient-to-t from-aba-deep via-transparent to-transparent" />
+              <div className="absolute inset-0 p-8 flex flex-col justify-end space-y-2">
+                <h3 className="text-2xl font-bold text-white uppercase tracking-tight group-hover:text-aba-gold transition-colors">{cat.title}</h3>
+                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-tight group-hover:text-white/70 transition-colors">{cat.desc}</p>
               </div>
             </div>
           ))}
@@ -146,7 +142,8 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
       {/* 🔹 FEATURED BUSINESSES SECTION */}
       <section className="px-8 mb-40 max-w-7xl mx-auto w-full">
         <SectionHeader 
-          title="Featured Businesses of Aba" 
+          title="Featured Partners" 
+          subtitle="Verified Industrial Hubs"
           icon={Gem}
           action={
             <IndustrialButton
@@ -158,25 +155,32 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
               View All
             </IndustrialButton>
           }
-          className="mb-12"
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {featuredBusinesses.map((biz) => (
-            <div key={biz.id} onClick={() => onBusinessClick(biz as any)} className="group cursor-pointer bg-white/5 backdrop-blur-2xl rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95 shadow-xl">
+            <div key={biz.id} onClick={() => onBusinessClick(biz as any)} className="group cursor-pointer bg-white/5 backdrop-blur-2xl rounded-3xl overflow-hidden border border-white/5 hover:border-aba-gold/30 transition-standard active:scale-95 shadow-sm">
               <div className="h-56 relative overflow-hidden">
-                <img src={biz.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={biz.name} />
+                <img src={biz.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-standard duration-1000" alt={biz.name} />
                 <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/90 to-transparent" />
+                <div className="absolute top-4 left-4">
+                  <div className="bg-aba-gold text-aba-deep text-[8px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-sm border border-white/10">
+                    Grade {biz.integrity_grade}
+                  </div>
+                </div>
               </div>
               <div className="p-8 space-y-4">
-                <h4 className="text-lg font-black text-white uppercase tracking-tight group-hover:text-aba-gold transition-colors line-clamp-1">{biz.name}</h4>
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={12} fill={i < Math.floor(biz.rating) ? "#FFD700" : "none"} className={i < Math.floor(biz.rating) ? "text-aba-gold" : "text-white/10"} />
-                  ))}
-                  <span className="text-[13px] font-bold text-white/30 ml-2">{biz.reviews_count} reviews</span>
+                <div className="space-y-1">
+                  <h4 className="text-lg font-bold text-white uppercase tracking-tight group-hover:text-aba-gold transition-colors line-clamp-1">{biz.name}</h4>
+                  <p className="text-[10px] font-bold text-aba-gold/60 uppercase tracking-widest">{biz.category}</p>
                 </div>
-                <p className="text-[13px] font-bold text-white/30 uppercase tracking-[0.2em]">{biz.category}</p>
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-1">
+                    <Star size={12} fill="#FFD700" className="text-aba-gold" />
+                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{biz.rating.toFixed(1)}</span>
+                  </div>
+                  <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{biz.area}</div>
+                </div>
               </div>
             </div>
           ))}

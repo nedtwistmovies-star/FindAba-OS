@@ -106,8 +106,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           localStorage.setItem('findaba_businesses_cache', JSON.stringify(updated));
           return updated;
         });
-      } else if (businesses.length === 0) {
-        setLoading(true);
+      } else {
+        // Only show full-screen loader if we have NO cached data
+        const saved = localStorage.getItem('findaba_businesses_cache');
+        if (!saved) setLoading(true);
       }
 
       // Add a safety timeout to ensure loading state doesn't hang forever
@@ -163,7 +165,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } finally {
         setLoading(false);
       }
-    }, [userIdentifier, addToast, businesses.length]);
+    }, [userIdentifier, addToast]);
 
   useEffect(() => {
     refreshData();

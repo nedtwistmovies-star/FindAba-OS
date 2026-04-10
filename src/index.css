@@ -25,8 +25,22 @@ vercel-live-feedback,
 :root {
   --aba-green: #008c52;
   --aba-gold: #FFD700;
-  --aba-deep: #002113;
-  --aba-red: #FF4444;
+  --aba-deep: #0a0a0a;
+  --aba-red: #ef4444;
+  --aba-white: #f8fafc;
+  --aba-gray: #64748b;
+}
+
+@theme {
+  --color-aba-green: var(--aba-green);
+  --color-aba-gold: var(--aba-gold);
+  --color-aba-deep: var(--aba-deep);
+  --color-aba-red: var(--aba-red);
+  --color-aba-white: var(--aba-white);
+  --color-aba-gray: var(--aba-gray);
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Libre Baskerville", serif;
 }
 
 * {
@@ -37,8 +51,8 @@ vercel-live-feedback,
 html, body {
   height: 100%;
   width: 100%;
-  overflow-x: auto;
-  background: #002113;
+  overflow-x: hidden;
+  background: var(--aba-deep);
   color: white;
   touch-action: auto;
   -webkit-overflow-scrolling: touch;
@@ -47,8 +61,9 @@ html, body {
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -58,57 +73,57 @@ body {
   flex-direction: column;
 }
 
+/* Standardized Transitions */
+.transition-standard {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Clean Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
-.touch-pan-x {
-  touch-action: pan-x;
-}
-
-.touch-pan-y {
-  touch-action: pan-y;
-}
-
-.touch-auto {
-  touch-action: auto;
-}
-
+/* Shimmer Effect */
 @keyframes shimmer {
-  0% { background-position: -468px 0; }
-  100% { background-position: 468px 0; }
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
 }
 
 .shimmer {
-  background: linear-gradient(to right, rgba(255,215,0,0.05) 8%, rgba(255,215,0,0.1) 18%, rgba(255,215,0,0.05) 33%);
-  background-size: 800px 104px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);
+  background-size: 1000px 100%;
   animation: shimmer 2s infinite linear;
 }
 
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.1); }
+/* Subtle Pulse */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
-.animate-pulse-slow {
-  animation: pulse-slow 8s ease-in-out infinite;
-}
-
-@keyframes progress-indefinite {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(0); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-progress-indefinite {
-  animation: progress-indefinite 2s ease-in-out infinite;
-}
-
-.font-serif {
-  font-family: 'Libre Baskerville', serif;
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
 }

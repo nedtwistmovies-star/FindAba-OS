@@ -3,226 +3,169 @@ import React, { useState } from 'react';
 import { 
   CheckCircle, Loader2, ShieldCheck, ArrowLeft, ArrowRight,
   Store, ChevronRight, Info, Shield, Landmark, 
-  CheckCircle2, Sparkles, Building2, Zap, LayoutGrid
+  CheckCircle2, Sparkles, Building2, Zap, LayoutGrid, Plus,
+  MapPin, Phone, Mail, Globe, Camera, Briefcase, Award
 } from 'lucide-react';
-import { SubscriptionTier, ViewState, BillingCycle, Category, VerificationStatus, VerificationLevel, IntegrityGrade } from '../../types';
+import { SubscriptionTier, ViewState, BillingCycle, Category, VerificationStatus, VerificationLevel, IntegrityGrade, Business } from '../../types';
 import { saveBusinessToDB } from '../../services/supabaseService';
 import { BUSINESS_PLANS, CATEGORIES, ABA_AREAS } from '../../constants';
 import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import WelcomeOverlay from '../../components/WelcomeOverlay';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
+import IndustrialButton from '../../components/IndustrialButton';
 
-const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
+interface RegisterProps {
+  setView: (view: ViewState) => void;
+  onRegister: (business: Business) => void;
+  onAuthSuccess?: (user: any) => void;
+}
+
+const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess }) => {
   const [step, setStep] = useState<'plan' | 'form' | 'success'>('plan');
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(SubscriptionTier.FREE);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
-  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  
-  const [registrationType, setRegistrationType] = useState<'email' | 'phone'>('email');
+  const [registeredBusiness, setRegisteredBusiness] = useState<Business | null>(null);
+
   const [formData, setFormData] = useState({
-    business_name: '',
-    owner_name: '',
-    primary_product_or_service: '',
+    name: '',
+    email: '',
+    phone: '',
+    whatsapp: '',
     category: Category.SHOEMAKING,
     area: ABA_AREAS[0],
     address: '',
-    phone_whatsapp: '',
+    primary_product: '',
     description: '',
-    email: localStorage.getItem('findaba_user_email') || '',
-    phone: localStorage.getItem('findaba_user_phone') || '',
-    image_url: '',
+    image_url: ''
   });
 
-  const activePlanObj = BUSINESS_PLANS.find(p => p.id === selectedPlan);
-  const totalAmount = billingCycle === BillingCycle.MONTHLY 
-    ? (activePlanObj?.monthlyAmount || 0) 
-    : (activePlanObj?.yearlyAmount || 0);
-
-  const finalRegister = async () => {
-    setIsFinalizing(true);
-    
-    const businessId = `biz-${Math.random().toString(36).substring(2, 15)}-${Date.now()}`;
-    
-    const finalBusinessData: any = {
-      id: businessId,
-      name: formData.business_name,
-      owner_name: formData.owner_name,
-      primary_product_or_service: formData.primary_product_or_service,
-      category: formData.category,
-      area: formData.area,
-      address: formData.address,
-      phone: formData.phone || formData.phone_whatsapp,
-      phone_whatsapp: formData.phone_whatsapp,
-      description: formData.description,
-      email: formData.email || `${formData.phone_whatsapp.replace(/\D/g, '') || Date.now()}@findaba.com`,
-      image_url: formData.image_url,
-      status: 'active',
-      verification_status: VerificationStatus.UNVERIFIED,
-      verification_level: VerificationLevel.NONE,
-      integrity_grade: IntegrityGrade.C,
-      subscription_tier: selectedPlan,
-      is_export_ready: selectedPlan === SubscriptionTier.PREMIUM,
-      capacity_indicator: 'Active',
-      premium_features_enabled: selectedPlan !== SubscriptionTier.FREE,
-      rating: 0,
-      review_count: 0,
-      latitude: 5.1065 + (Math.random() - 0.5) * 0.05,
-      longitude: 7.3633 + (Math.random() - 0.5) * 0.05,
-      created_at: new Date().toISOString(),
-      products: [],
-      active_features: {
-        verified_exporter_badge: selectedPlan === SubscriptionTier.PREMIUM,
-        trade_analytics_access: selectedPlan === SubscriptionTier.PREMIUM ? 'advanced' : 'basic',
-        priority_score_bonus: selectedPlan === SubscriptionTier.GROWTH ? 10 : (selectedPlan === SubscriptionTier.PREMIUM ? 25 : 0)
-      }
-    };
-    
-    try {
-      await saveBusinessToDB(finalBusinessData);
-      localStorage.setItem('findaba_my_business_id', finalBusinessData.id);
-      
-      const identifier = registrationType === 'email' ? formData.email : formData.phone;
-      if (identifier) {
-        localStorage.setItem('findaba_user_id', identifier);
-        localStorage.setItem('findaba_user_email', formData.email);
-        localStorage.setItem('findaba_user_phone', formData.phone);
-        localStorage.setItem('findaba_is_auth', 'true');
-        
-        // Update global auth state
-        if (onAuthSuccess) {
-          onAuthSuccess(identifier, formData.owner_name || formData.business_name, 'merchant');
-        }
-      }
-
-      onRegister(finalBusinessData);
-      setStep('success');
-      setShowWelcome(true);
-
-      // Trigger Instant Welcome Message via Webhook
-      triggerWebhook(WebhookEvent.NEW_REGISTRATION, {
-        business_name: finalBusinessData.name,
-        owner_name: formData.owner_name,
-        email: formData.email,
-        phone: formData.phone_whatsapp,
-        tier: selectedPlan,
-        timestamp: new Date().toISOString()
-      });
-    } catch (e) {
-      console.error("Registration error:", e);
-      // Don't proceed to success if the database save failed
-      alert("Registry Sync Failed: " + (e instanceof Error ? e.message : "Unknown Error"));
-    } finally { 
-      setIsFinalizing(false); 
-      setShowCheckout(false);
+  const handlePlanSelect = (planId: SubscriptionTier) => {
+    setSelectedPlan(planId);
+    if (planId === SubscriptionTier.FREE) {
+      setStep('form');
+    } else {
+      setShowCheckout(true);
     }
   };
 
-  if (step === 'success') {
-    return (
-      <div className="fixed inset-0 z-[5000] bg-[#002113] flex flex-col items-center justify-center p-8 text-center animate-fade-in font-sans">
-        {showWelcome && (
-          <WelcomeOverlay 
-            userName={formData.owner_name || formData.business_name} 
-            onClose={() => setShowWelcome(false)} 
-          />
-        )}
-        <div className="relative mb-12">
-          <div className="absolute inset-0 bg-aba-gold/20 blur-[100px] rounded-full animate-pulse" />
-          <div className="w-32 h-32 bg-white rounded-[3.5rem] flex items-center justify-center text-aba-green shadow-[0_0_100px_rgba(255,215,0,0.3)] relative group">
-            <CheckCircle2 size={64} className="group-hover:scale-110 transition-transform duration-700" />
-          </div>
-        </div>
-        
-        <div className="space-y-6 max-w-md">
-          <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none">Hub <br/><span className="text-aba-gold italic">Activated.</span></h2>
-          <p className="text-white/40 text-xs md:text-sm font-bold uppercase tracking-widest leading-relaxed">
-            Your hub is now live in the global registry. Industrial scaling protocol initialized.
-          </p>
-        </div>
+  const handlePaymentSuccess = () => {
+    setShowCheckout(false);
+    setStep('form');
+  };
 
-        <div className="mt-16 w-full max-w-sm space-y-4">
-          <button 
-            onClick={() => setView('merchant-portal')}
-            className="w-full bg-aba-gold text-aba-dark py-8 rounded-full font-black uppercase text-[11px] tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
-          >
-            Enter Merchant Portal <ArrowRight size={20} />
-          </button>
-          <button 
-            onClick={() => setView('explore')}
-            className="w-full bg-white/5 text-white/40 py-6 rounded-full font-black uppercase text-[10px] tracking-[0.4em] border border-white/10 hover:text-white transition-all"
-          >
-            View My Listing
-          </button>
-        </div>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-        <div className="absolute bottom-16 flex flex-col items-center gap-4 opacity-20">
-           <div className="flex items-center gap-3">
-              <ShieldCheck size={18} className="text-aba-gold" />
-              <span className="text-[10px] font-black uppercase tracking-[0.8em] text-white">Registry Excellence</span>
-           </div>
-        </div>
-      </div>
-    );
-  }
+    const newBusiness: Business = {
+      id: `biz-${Math.random().toString(36).substr(2, 9)}`,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      phone_whatsapp: formData.whatsapp,
+      category: formData.category,
+      area: formData.area,
+      address: formData.address,
+      primary_product_or_service: formData.primary_product,
+      description: formData.description,
+      image_url: formData.image_url || 'https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=800',
+      rating: 0,
+      review_count: 0,
+      status: 'pending',
+      verification_status: VerificationStatus.UNVERIFIED,
+      verification_level: VerificationLevel.NONE,
+      integrity_grade: IntegrityGrade.C,
+      is_export_ready: false,
+      capacity_indicator: 'Standard',
+      premium_features_enabled: selectedPlan !== SubscriptionTier.FREE,
+      subscription_tier: selectedPlan,
+      active_features: {
+        physical_verification_badge: selectedPlan !== SubscriptionTier.FREE
+      },
+      products: [],
+      created_at: new Date().toISOString()
+    };
+
+    try {
+      await saveBusinessToDB(newBusiness);
+      setRegisteredBusiness(newBusiness);
+      setStep('success');
+      onRegister(newBusiness);
+    } catch (error) {
+      console.error("Registration failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (step === 'plan') {
     return (
-      <div className="p-4 md:p-8 pb-40 bg-[#F8FAFC] min-h-screen animate-fade-in font-sans">
-        <header className="max-w-5xl mx-auto flex items-center justify-between mb-10 md:mb-20">
-          <button onClick={() => setView('home')} className="p-3 md:p-4 bg-white rounded-xl md:rounded-2xl border border-slate-200 text-slate-400 active:scale-90 transition-all">
+      <div className="p-4 md:p-8 pb-40 bg-aba-deep min-h-screen animate-fade-in font-sans">
+        <PaystackOverlay 
+          isOpen={showCheckout}
+          amount={BUSINESS_PLANS.find(p => p.id === selectedPlan)?.monthlyAmount || 0}
+          email="billing@sandalsroyalle.com"
+          label={`Hub Enrollment: ${BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name}`}
+          onSuccess={handlePaymentSuccess}
+          onCancel={() => setShowCheckout(false)}
+        />
+
+        <header className="max-w-5xl mx-auto flex items-center justify-between mb-10 md:mb-24">
+          <button onClick={() => setView('home')} className="p-3 md:p-4 bg-white/5 rounded-xl md:rounded-2xl border border-white/10 text-white/40 active:scale-90 transition-standard">
             <ArrowLeft size={20} className="md:w-6 md:h-6" />
           </button>
           <div className="text-center">
-            <h2 className="text-xl md:text-3xl font-black text-aba-dark uppercase tracking-tighter">Hub Enrollment</h2>
-            <div className="flex items-center justify-center gap-1.5 md:gap-2 mt-1.5 md:mt-2">
-               <div className="h-1 w-6 md:w-8 bg-aba-gold rounded-full" />
-               <div className="h-1 w-1.5 md:w-2 bg-slate-200 rounded-full" />
-               <div className="h-1 w-1.5 md:w-2 bg-slate-200 rounded-full" />
+            <h2 className="text-xl md:text-4xl font-bold text-white uppercase tracking-tighter">Hub Enrollment</h2>
+            <div className="flex items-center justify-center gap-2 mt-3">
+               <div className="h-1 w-10 bg-aba-gold rounded-full" />
+               <div className="h-1 w-2 bg-white/10 rounded-full" />
+               <div className="h-1 w-2 bg-white/10 rounded-full" />
             </div>
           </div>
           <div className="w-10 md:w-14" />
         </header>
 
-        <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
+        <div className="max-w-6xl mx-auto space-y-12 md:space-y-20">
           <div className="flex justify-center">
-            <div className="bg-white p-1 md:p-1.5 rounded-2xl md:rounded-[2.5rem] border border-slate-200 flex shadow-sm">
-              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}>30 Day Hub</button>
-              <button onClick={() => setBillingCycle(BillingCycle.YEARLY)} className={`px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}>45 Day Cycle <span className="bg-aba-green text-white px-1.5 py-0.5 rounded text-[7px] md:text-[8px]">PRO</span></button>
+            <div className="bg-white/5 p-1.5 rounded-2xl md:rounded-[2.5rem] border border-white/10 flex shadow-sm backdrop-blur-xl">
+              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>30 Day Hub</button>
+              <button onClick={() => setBillingCycle(BillingCycle.YEARLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard flex items-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>45 Day Cycle <span className="bg-aba-green text-white px-2 py-0.5 rounded text-[8px]">PRO</span></button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
             {BUSINESS_PLANS.map(plan => (
               <div 
                 key={plan.id} 
-                className={`bg-white p-8 md:p-10 rounded-[2.5rem] md:rounded-[4rem] border-2 transition-all flex flex-col justify-between group hover:-translate-y-2 duration-500 ${selectedPlan === plan.id ? 'border-aba-dark shadow-[0_40px_100px_rgba(0,0,0,0.08)]' : 'border-slate-100 opacity-60 hover:opacity-100'}`}
+                className={`bg-white/5 backdrop-blur-xl p-10 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] border-2 transition-standard flex flex-col justify-between group hover:-translate-y-2 duration-500 ${selectedPlan === plan.id ? 'border-aba-gold shadow-2xl' : 'border-white/5 opacity-60 hover:opacity-100'}`}
               >
-                <div className="space-y-8 md:space-y-10">
+                <div className="space-y-10 md:space-y-12">
                   <div className="flex justify-between items-start">
-                    <h3 className="font-black text-xl md:text-2xl uppercase tracking-tight text-aba-dark">{plan.name}</h3>
-                    {selectedPlan === plan.id && <CheckCircle size={20} className="text-aba-green md:w-6 md:h-6" />}
+                    <h3 className="font-bold text-2xl md:text-3xl uppercase tracking-tight text-white">{plan.name}</h3>
+                    {selectedPlan === plan.id && <CheckCircle size={24} className="text-aba-green" />}
                   </div>
-                  <div className="space-y-4 md:space-y-6">
+                  <div className="space-y-5 md:space-y-6">
                     {plan.features.map((f, i) => (
-                      <div key={i} className="flex items-start gap-3 md:gap-4 text-[11px] md:text-[12px] font-bold text-slate-500 uppercase tracking-tight leading-tight">
-                        <Zap size={12} className="text-aba-gold shrink-0 mt-0.5 md:w-3.5 md:h-3.5" fill="currentColor" /> {f}
+                      <div key={i} className="flex items-start gap-4 text-[11px] md:text-[12px] font-bold text-white/60 uppercase tracking-tight leading-tight">
+                        <Zap size={14} className="text-aba-gold shrink-0 mt-0.5" fill="currentColor" /> {f}
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="mt-12 md:mt-16 space-y-6 md:space-y-8">
-                  <div className="border-t border-slate-100 pt-6 md:pt-8">
-                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{billingCycle === BillingCycle.MONTHLY ? '30 Day Activation' : '45 Day Industrial Cycle'}</p>
-                    <span className="text-2xl md:text-3xl font-black text-aba-dark block">
+                <div className="mt-16 md:mt-20 space-y-8 md:space-y-10">
+                  <div className="border-t border-white/10 pt-8 md:pt-10">
+                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-2">{billingCycle === BillingCycle.MONTHLY ? '30 Day Activation' : '45 Day Industrial Cycle'}</p>
+                    <span className="text-3xl md:text-4xl font-bold text-white block">
                       {plan.monthlyAmount === 0 ? 'Starter Hub' : `₦${(billingCycle === BillingCycle.MONTHLY ? plan.monthlyAmount : plan.yearlyAmount).toLocaleString()}`}
                     </span>
                   </div>
                   <button 
-                    onClick={() => { setSelectedPlan(plan.id); setStep('form'); }}
-                    className={`w-full py-5 md:py-6 rounded-2xl md:rounded-[2rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.25em] md:tracking-[0.3em] transition-all shadow-xl ${selectedPlan === plan.id ? 'bg-aba-dark text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-aba-gold group-hover:text-aba-dark'}`}
+                    onClick={() => handlePlanSelect(plan.id)}
+                    className={`w-full py-6 md:py-7 rounded-2xl md:rounded-[2rem] font-bold uppercase text-[10px] tracking-[0.3em] transition-standard shadow-lg ${selectedPlan === plan.id ? 'bg-aba-gold text-aba-deep' : 'bg-white/5 text-white/40 group-hover:bg-white group-hover:text-aba-deep'}`}
                   >
                     Select Hub
                   </button>
@@ -231,13 +174,13 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
             ))}
           </div>
 
-          <div className="max-w-2xl mx-auto p-8 md:p-12 bg-white rounded-[2.5rem] md:rounded-[4rem] border border-slate-100 shadow-sm flex flex-col sm:flex-row gap-6 md:gap-8 items-center text-center sm:text-left">
-             <div className="w-14 h-14 md:w-16 md:h-16 bg-blue-50 rounded-2xl md:rounded-3xl flex items-center justify-center text-blue-600 shadow-inner">
-                <Shield size={28} className="md:w-8 md:h-8" />
+          <div className="max-w-2xl mx-auto p-10 md:p-16 bg-white/5 backdrop-blur-xl rounded-[3rem] md:rounded-[4rem] border border-white/10 shadow-sm flex flex-col sm:flex-row gap-8 md:gap-12 items-center text-center sm:text-left">
+             <div className="w-16 h-16 md:w-20 md:h-20 bg-aba-gold/10 rounded-2xl md:rounded-3xl flex items-center justify-center text-aba-gold shadow-inner border border-aba-gold/20">
+                <Shield size={32} className="md:w-10 md:h-10" />
              </div>
-             <div className="space-y-2 md:space-y-3">
-                <h4 className="text-base md:text-lg font-black uppercase tracking-tight text-aba-dark">Scale Protocol</h4>
-                <p className="text-[10px] md:text-[11px] text-slate-400 font-bold leading-relaxed uppercase tracking-[0.15em] md:tracking-widest">
+             <div className="space-y-3 md:space-y-4">
+                <h4 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Scale Protocol</h4>
+                <p className="text-[10px] md:text-[11px] text-white/40 font-bold leading-relaxed uppercase tracking-widest">
                   Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility within seconds of transfer commitment.
                 </p>
              </div>
@@ -247,133 +190,226 @@ const Register: React.FC<any> = ({ setView, onRegister, onAuthSuccess }) => {
     );
   }
 
-  return (
-    <div className="p-4 md:p-8 pb-40 bg-white min-h-screen font-sans relative text-aba-deep">
-      <PaystackOverlay 
-        isOpen={showCheckout}
-        amount={totalAmount}
-        email={formData.email}
-        label={`Establish Hub: ${activePlanObj?.name}`}
-        onSuccess={() => finalRegister()}
-        onCancel={() => setShowCheckout(false)}
-      />
-
-      <div className="max-w-4xl mx-auto space-y-10 md:space-y-16 animate-slide-up">
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-4 md:gap-8">
-             <button onClick={() => setStep('plan')} className="p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-200 text-slate-400 active:scale-90 transition-all">
-               <ArrowLeft size={20} className="md:w-6 md:h-6" />
-             </button>
-             <div>
-               <h2 className="text-xl md:text-3xl font-black text-aba-dark uppercase tracking-tighter leading-none">Operational Data</h2>
-               <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] md:tracking-[0.4em] mt-2 md:mt-3 font-mono">Registry Packet Phase 2</p>
-             </div>
+  if (step === 'form') {
+    return (
+      <div className="p-4 md:p-8 pb-40 bg-aba-deep min-h-screen animate-fade-in font-sans">
+        <header className="max-w-5xl mx-auto flex items-center justify-between mb-10 md:mb-24">
+          <button onClick={() => setStep('plan')} className="p-3 md:p-4 bg-white/5 rounded-xl md:rounded-2xl border border-white/10 text-white/40 active:scale-90 transition-standard">
+            <ArrowLeft size={20} className="md:w-6 md:h-6" />
+          </button>
+          <div className="text-center">
+            <h2 className="text-xl md:text-4xl font-bold text-white uppercase tracking-tighter">Hub Specifications</h2>
+            <div className="flex items-center justify-center gap-2 mt-3">
+               <div className="h-1 w-2 bg-aba-gold/20 rounded-full" />
+               <div className="h-1 w-10 bg-aba-gold rounded-full" />
+               <div className="h-1 w-2 bg-white/10 rounded-full" />
+            </div>
           </div>
+          <div className="w-10 md:w-14" />
         </header>
 
-        <section className="space-y-10 md:space-y-12">
-          <ImageUpload 
-             label="Business Photos" 
-             currentImage={formData.image_url} 
-             onUpload={(url) => setFormData({...formData, image_url: url})} 
-             className="shadow-inner bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[3rem] border border-slate-100"
-          />
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-10 md:space-y-16">
+          <div className="bg-white/5 backdrop-blur-xl p-8 md:p-16 rounded-[3rem] md:rounded-[4rem] border border-white/10 shadow-2xl space-y-12 md:space-y-20">
+            {/* 🔹 IDENTITY SECTION */}
+            <div className="space-y-10 md:space-y-12">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
+                  <Store size={20} className="md:w-6 md:h-6" />
+                </div>
+                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Identity Matrix</h3>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
-            <div className="space-y-6 md:space-y-8">
-              <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Business Name</label>
-                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.business_name} onChange={e => setFormData({...formData, business_name: e.target.value})} placeholder="e.g. Master Leather Hub" />
-              </div>
-              <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Owner / Contact Name</label>
-                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.owner_name} onChange={e => setFormData({...formData, owner_name: e.target.value})} placeholder="e.g. John Okoro" />
-              </div>
-              <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Business Category</label>
-                <select className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase text-aba-dark outline-none shadow-sm" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as Category})}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Trade Area</label>
-                <select className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase text-aba-dark outline-none shadow-sm" value={formData.area} onChange={e => setFormData({...formData, area: e.target.value})}>
-                    {ABA_AREAS.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="space-y-6 md:space-y-8">
-              <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Primary Industrial Output</label>
-                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.primary_product_or_service} onChange={e => setFormData({...formData, primary_product_or_service: e.target.value})} placeholder="Premium Leather Footwear" />
-              </div>
-              <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Phone Number (WhatsApp)</label>
-                <input type="tel" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all font-mono" value={formData.phone_whatsapp} onChange={e => setFormData({...formData, phone_whatsapp: e.target.value})} placeholder="+234..." />
-              </div>
-              <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Business Location (Aba Address)</label>
-                <input type="text" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="e.g. No. 12 Faulks Road, near Ariaria Market" />
-              </div>
-              <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Registration Protocol</label>
-                <div className="flex gap-2 p-1 bg-slate-100 rounded-xl md:rounded-2xl">
-                  <button 
-                    type="button"
-                    onClick={() => setRegistrationType('email')}
-                    className={`flex-1 py-2.5 md:py-3 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${registrationType === 'email' ? 'bg-white text-aba-dark shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Workshop Name</label>
+                  <input 
+                    required
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    placeholder="e.g. Master-Link Leather Hub"
+                    className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Industrial Category</label>
+                  <select 
+                    value={formData.category}
+                    onChange={e => setFormData({...formData, category: e.target.value as Category})}
+                    className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight appearance-none"
                   >
-                    Email
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setRegistrationType('phone')}
-                    className={`flex-1 py-2.5 md:py-3 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${registrationType === 'phone' ? 'bg-white text-aba-dark shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    Phone
-                  </button>
+                    {CATEGORIES.map(c => <option key={c} value={c} className="bg-aba-deep text-white">{c}</option>)}
+                  </select>
                 </div>
               </div>
-              <div className="space-y-2 md:space-y-3">
-                <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">
-                  {registrationType === 'email' ? 'Contact Email' : 'Contact Phone'}
-                </label>
-                {registrationType === 'email' ? (
-                  <input type="email" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all font-mono" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="artisan@example.com" />
-                ) : (
-                  <input type="tel" className="w-full p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl text-sm font-bold text-aba-dark outline-none focus:border-aba-gold shadow-sm transition-all font-mono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="+234..." />
-                )}
+            </div>
+
+            {/* 🔹 SIGNAL SECTION */}
+            <div className="space-y-10 md:space-y-12">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
+                  <Zap size={20} className="md:w-6 md:h-6" />
+                </div>
+                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Signal Protocol</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Primary Email</label>
+                  <input 
+                    required
+                    type="email"
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    placeholder="master@hub.com"
+                    className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">WhatsApp Signal</label>
+                  <input 
+                    required
+                    value={formData.whatsapp}
+                    onChange={e => setFormData({...formData, whatsapp: e.target.value})}
+                    placeholder="+234..."
+                    className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 🔹 LOGISTICS SECTION */}
+            <div className="space-y-10 md:space-y-12">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
+                  <MapPin size={20} className="md:w-6 md:h-6" />
+                </div>
+                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Logistics Grid</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Industrial Area</label>
+                  <select 
+                    value={formData.area}
+                    onChange={e => setFormData({...formData, area: e.target.value})}
+                    className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight appearance-none"
+                  >
+                    {ABA_AREAS.map(a => <option key={a} value={a} className="bg-aba-deep text-white">{a}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Physical Address</label>
+                  <input 
+                    required
+                    value={formData.address}
+                    onChange={e => setFormData({...formData, address: e.target.value})}
+                    placeholder="Block 4, Ariaria Market"
+                    className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 🔹 ASSETS SECTION */}
+            <div className="space-y-10 md:space-y-12">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
+                  <Camera size={20} className="md:w-6 md:h-6" />
+                </div>
+                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Visual Assets</h3>
+              </div>
+
+              <div className="space-y-6">
+                <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Workshop Hero Image</label>
+                <ImageUpload 
+                  label="Workshop Asset"
+                  onUpload={(url) => setFormData({...formData, image_url: url})} 
+                  currentImage={formData.image_url}
+                />
               </div>
             </div>
           </div>
 
-          <div className="space-y-2 md:space-y-3">
-            <label className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Registry Narrative</label>
-            <textarea rows={5} className="w-full p-6 md:p-8 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-[2.5rem] text-sm font-medium text-slate-600 outline-none focus:border-aba-gold shadow-sm resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Describe your manufacturing capacity..." />
+          <div className="flex flex-col gap-6">
+            <IndustrialButton 
+              type="submit"
+              variant="primary"
+              size="lg"
+              disabled={loading}
+              className="w-full py-8 text-sm tracking-[0.4em]"
+            >
+              {loading ? <Loader2 className="animate-spin" /> : 'Commit Hub to Registry'}
+            </IndustrialButton>
+            <p className="text-[10px] text-center text-white/20 font-bold uppercase tracking-widest">
+              By committing, you agree to the Enyimba Industrial Protocol and SANDALSroyalle Terms of Trade.
+            </p>
           </div>
-
-          <div className="pt-6 md:pt-10 flex flex-col gap-4 md:gap-6">
-             <div className="p-4 md:p-6 bg-aba-gold/5 rounded-xl md:rounded-[2rem] border border-aba-gold/20 flex gap-3 md:gap-4 items-center">
-                <Info size={18} className="text-aba-gold shrink-0 md:w-5 md:h-5" />
-                <p className="text-[9px] md:text-[10px] font-black uppercase text-aba-dark/60 tracking-widest leading-relaxed">
-                   Synchronizing with the Enyimba Master Signal... Hub activation is **Instant** upon transfer signal commitment.
-                </p>
-             </div>
-
-             <button 
-               type="button" 
-               onClick={() => totalAmount > 0 ? setShowCheckout(true) : finalRegister()}
-               disabled={isFinalizing || !formData.business_name || !formData.owner_name || !formData.address || !formData.phone_whatsapp || (registrationType === 'email' ? !formData.email : !formData.phone)} 
-               className="w-full py-6 md:py-10 bg-aba-dark text-white rounded-2xl md:rounded-[3rem] font-black uppercase text-[10px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all hover:bg-aba-gold hover:text-aba-dark disabled:opacity-30 disabled:cursor-not-allowed group"
-             >
-               {isFinalizing ? <Loader2 className="animate-spin md:w-6 md:h-6" size={20} /> : (totalAmount > 0 ? 'Initiate Hub Sync' : 'Establish Starter Link')}
-               {!isFinalizing && <ShieldCheck size={18} className="group-hover:scale-125 transition-transform md:w-5 md:h-5" />}
-             </button>
-          </div>
-        </section>
+        </form>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (step === 'success') {
+    return (
+      <div className="p-4 md:p-8 flex items-center justify-center min-h-screen bg-aba-deep animate-fade-in font-sans">
+        {showWelcome && (
+          <WelcomeOverlay 
+            onClose={() => {
+              setShowWelcome(false);
+              setView('merchant-portal');
+            }}
+            userName={formData.name}
+          />
+        )}
+        
+        <div className="max-w-2xl w-full text-center space-y-12 md:space-y-16">
+          <div className="relative inline-block">
+            <div className="w-32 h-32 md:w-48 md:h-48 bg-aba-green/20 rounded-[3rem] md:rounded-[4rem] flex items-center justify-center text-aba-green shadow-[0_0_100px_rgba(0,135,81,0.2)] border border-aba-green/20 animate-pulse-subtle">
+              <ShieldCheck size={64} className="md:w-24 md:h-24" />
+            </div>
+            <div className="absolute -top-4 -right-4 w-12 h-12 md:w-16 md:h-16 bg-aba-gold rounded-2xl md:rounded-3xl flex items-center justify-center text-aba-deep shadow-xl animate-bounce">
+              <Sparkles size={24} className="md:w-8 md:h-8" />
+            </div>
+          </div>
+
+          <div className="space-y-6 md:space-y-8">
+            <h2 className="text-3xl md:text-6xl font-bold text-white uppercase tracking-tighter leading-none">Signal Locked</h2>
+            <p className="text-sm md:text-lg text-white/40 font-bold uppercase tracking-widest leading-relaxed max-w-lg mx-auto">
+              Your workshop has been successfully integrated into the FindAba Industrial Grid. Consensus reached.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+            <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 text-left space-y-4">
+               <div className="w-10 h-10 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold">
+                  <LayoutGrid size={20} />
+               </div>
+               <h4 className="text-sm font-bold text-white uppercase tracking-tight">Access Terminal</h4>
+               <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-relaxed">Manage your assets, products, and trade signals from your dedicated portal.</p>
+            </div>
+            <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 text-left space-y-4">
+               <div className="w-10 h-10 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold">
+                  <Globe size={20} />
+               </div>
+               <h4 className="text-sm font-bold text-white uppercase tracking-tight">Global Visibility</h4>
+               <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-relaxed">Your hub is now visible to the global trade community. Prepare for incoming signals.</p>
+            </div>
+          </div>
+
+          <IndustrialButton 
+            onClick={() => setShowWelcome(true)}
+            variant="primary"
+            size="lg"
+            className="w-full py-8 text-sm tracking-[0.4em]"
+          >
+            Enter Control Center
+          </IndustrialButton>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default Register;

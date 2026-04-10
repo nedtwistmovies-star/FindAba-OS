@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
-import { Logo, IndustrialButton, SectionHeader, ImageCarousel, GitHubSync, SupabaseSync } from '../../components';
+import { Logo, IndustrialButton, SectionHeader, ImageCarousel, GitHubSync, SupabaseSync, BusinessCard } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
 import { checkDatabaseHealth } from '../../services/supabaseService';
@@ -35,59 +35,47 @@ const CitySignals: React.FC = () => {
     };
 
     updateDate();
-    const interval = setInterval(updateDate, 60000); // Update every minute
+    const interval = setInterval(updateDate, 60000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="w-full bg-[#001a0f] border-y border-white/10 py-6 px-4 md:px-8 flex flex-wrap items-center justify-center gap-6 md:gap-16 z-40 relative">
-      <div className="flex items-center gap-4 md:gap-3 group">
-        <div className="w-10 h-10 md:w-8 md:h-8 bg-aba-gold/10 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-dark transition-all">
-          <Calendar size={18} className="md:w-4 md:h-4" />
+    <div className="w-full bg-aba-deep border-b border-white/5 py-4 px-6 md:px-12 flex flex-wrap items-center justify-center gap-8 md:gap-12 z-40 relative">
+      <div className="flex items-center gap-3 group">
+        <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-standard border border-white/5">
+          <Calendar size={14} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[12px] md:text-[13px] font-black text-aba-gold uppercase tracking-[0.1em] md:tracking-[0.2em] mb-0.5">{currentDate}</span>
-          <span className="text-[10px] md:text-[11px] font-black text-white/60 uppercase tracking-widest">Igbo Market Day: {marketDay || '...'}</span>
+          <span className="text-[11px] font-bold text-white uppercase tracking-wider">{currentDate}</span>
+          <span className="text-[9px] font-medium text-white/40 uppercase tracking-widest">{marketDay || '...'} Market Day</span>
         </div>
       </div>
 
-      <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
+      <div className="h-4 w-px bg-white/10 hidden md:block" />
 
-      <div className="flex items-center gap-4 md:gap-3 group">
-        <div className="w-10 h-10 md:w-8 md:h-8 bg-aba-green/10 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-all">
-          <CloudSun size={18} className="md:w-4 md:h-4" />
+      <div className="flex items-center gap-3 group">
+        <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-standard border border-white/5">
+          <CloudSun size={14} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[9px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Aba Weather Signal</span>
-          <span className="text-[12px] md:text-[11px] font-black text-white uppercase tracking-widest">
+          <span className="text-[11px] font-bold text-white uppercase tracking-wider">
             {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
           </span>
+          <span className="text-[9px] font-medium text-white/40 uppercase tracking-widest">Aba Weather</span>
         </div>
       </div>
 
-      <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
+      <div className="h-4 w-px bg-white/10 hidden md:block" />
 
-      <div className="flex items-center gap-4 md:gap-3 group">
-        <div className={`w-10 h-10 md:w-8 md:h-8 rounded-lg flex items-center justify-center transition-all ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green group-hover:bg-aba-green group-hover:text-white' : 'bg-aba-red/10 text-aba-red group-hover:bg-aba-red group-hover:text-white'}`}>
-          <Database size={18} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
+      <div className="flex items-center gap-3 group">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-standard border border-white/5 ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green' : 'bg-aba-red/10 text-aba-red'}`}>
+          <Database size={14} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[9px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Registry Signal</span>
-          <span className={`text-[12px] md:text-[11px] font-black uppercase tracking-widest ${registryStatus === 'online' ? 'text-aba-green' : 'text-aba-red'}`}>
-            {registryStatus === 'online' ? 'Industrial Partner Online' : registryStatus === 'syncing' ? 'Syncing...' : 'Directory Offline'}
+          <span className="text-[11px] font-bold uppercase tracking-wider text-white">
+            {registryStatus === 'online' ? 'Registry Online' : 'Registry Offline'}
           </span>
-        </div>
-      </div>
-
-      <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
-
-      <div className="flex items-center gap-4 md:gap-3 group">
-        <div className="w-10 h-10 md:w-8 md:h-8 bg-aba-red/10 rounded-lg flex items-center justify-center text-aba-red group-hover:bg-aba-red group-hover:text-white transition-all">
-          <Radio size={18} className="animate-pulse md:w-4 md:h-4" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[9px] md:text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">City Status</span>
-          <span className="text-[12px] md:text-[11px] font-black text-aba-green uppercase tracking-widest">Industrial Active</span>
+          <span className="text-[9px] font-medium text-white/40 uppercase tracking-widest">System Status</span>
         </div>
       </div>
     </div>
@@ -170,28 +158,27 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       <CitySignals />
 
       {/* 1. HERO SECTION - Matching Screenshot Layout */}
-      <section className="relative min-h-[35vh] md:min-h-[70vh] flex flex-col items-center justify-center px-4 md:px-8 py-10 md:py-20 overflow-hidden">
+      <section className="relative min-h-[50vh] md:min-h-[80vh] flex flex-col items-center justify-center px-6 md:px-12 py-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <ImageCarousel 
             images={heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES} 
             className="h-full w-full"
             interval={6000}
           />
-          <div className="absolute inset-0 bg-aba-gold/80 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-b from-aba-gold/20 via-transparent to-aba-deep" />
+          <div className="absolute inset-0 bg-aba-deep/60 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-aba-deep/20 to-aba-deep" />
         </div>
         
-        <div className="relative z-10 w-full max-w-5xl flex flex-col items-center text-center space-y-8 md:space-y-12">
-          {/* Quick Access Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 animate-slide-up px-4">
+        <div className="relative z-10 w-full max-w-6xl flex flex-col items-center text-center space-y-12">
+          <div className="flex flex-wrap items-center justify-center gap-4 animate-fade-in">
             <IndustrialButton 
               variant="secondary"
               size="sm"
               icon={ShieldCheck}
               onClick={() => setView('merchant-portal')}
-              className="bg-aba-deep/10 backdrop-blur-xl border-aba-deep/20 hover:bg-aba-deep/20 text-aba-deep font-black uppercase tracking-widest text-[11px] md:text-[10px] py-5 md:py-4"
+              className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20 text-white"
             >
-              Manage Wired for Something Leadership Institute
+              Merchant Hub
             </IndustrialButton>
             
             <IndustrialButton 
@@ -199,86 +186,58 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               size="sm"
               icon={Building2}
               onClick={() => setView('explore')}
-              className="bg-aba-deep/10 backdrop-blur-xl border-aba-deep/20 hover:bg-aba-deep/20 text-aba-deep font-black uppercase tracking-widest text-[11px] md:text-[10px] py-5 md:py-4"
+              className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20 text-white"
             >
               Industrial Directory
             </IndustrialButton>
-
-            {isAdmin && (
-              <div className="flex flex-wrap items-center justify-center gap-4 md:gap-4">
-                <IndustrialButton 
-                  variant="secondary"
-                  size="sm"
-                  icon={Globe}
-                  onClick={() => {
-                    localStorage.setItem('findaba_admin_tab', 'infrastructure');
-                    setView('admin');
-                  }}
-                  className="bg-aba-gold/20 backdrop-blur-xl border-aba-gold/30 hover:bg-aba-gold/30 text-aba-deep font-black uppercase tracking-widest shadow-lg text-[10px] md:text-[10px] py-4 md:py-4"
-                >
-                  Infrastructure Unit
-                </IndustrialButton>
-                
-                <div className="flex gap-3 md:gap-4">
-                  <div className="bg-aba-deep/20 backdrop-blur-xl p-1 rounded-2xl border border-white/10 flex gap-2">
-                    <SupabaseSync />
-                    <GitHubSync />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Search Bar - Dark Pill Style */}
-          <div className="w-full max-w-3xl relative group animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <div className="absolute -inset-4 bg-black/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          <div className="space-y-6 max-w-4xl mx-auto">
+            <h1 className="text-5xl md:text-8xl font-bold text-white tracking-tight leading-[0.9] uppercase">
+              The Industrial <br/>
+              <span className="text-aba-gold">Pulse of Aba.</span>
+            </h1>
+            <p className="text-white/60 text-sm md:text-lg font-medium max-w-2xl mx-auto uppercase tracking-widest leading-relaxed">
+              Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility.
+            </p>
+          </div>
+
+          <div className="w-full max-w-2xl relative group">
             <form 
               onSubmit={handleSearch}
-              className="w-full h-20 md:h-24 px-6 md:px-12 bg-[#002113] rounded-full flex items-center shadow-2xl relative z-10 transition-all border border-white/5"
+              className="w-full h-16 md:h-20 px-8 bg-white/5 backdrop-blur-xl rounded-2xl flex items-center shadow-2xl relative z-10 transition-standard border border-white/10 focus-within:border-aba-gold/50"
             >
-              <div className="w-12 h-12 md:w-14 md:h-14 bg-aba-gold/10 rounded-full flex items-center justify-center mr-4 md:mr-8 group-hover:bg-aba-gold group-hover:text-aba-dark transition-all duration-500">
-                {isSearching ? <Loader2 className="animate-spin text-aba-gold" size={24} /> : <Search size={24} className="text-aba-gold md:w-8 md:h-8" strokeWidth={3} />}
-              </div>
+              <Search size={20} className="text-aba-gold mr-4 shrink-0" />
               <input 
                 type="text"
-                placeholder="SEARCH ABA INDUSTRIAL REGISTRY..."
+                placeholder="Search Aba Industrial Registry..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-base md:text-xl font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/40 uppercase"
+                className="text-sm md:text-lg font-bold tracking-wider flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
               />
-              <button type="submit" className="text-aba-gold/50 hover:text-aba-gold transition-all hover:translate-x-1 ml-4">
-                <ChevronRight size={32} className="md:w-10 md:h-10" />
-              </button>
+              {isSearching ? (
+                <Loader2 className="animate-spin text-aba-gold ml-4" size={20} />
+              ) : (
+                <button type="submit" className="text-white/40 hover:text-aba-gold transition-standard ml-4">
+                  <ArrowRight size={24} />
+                </button>
+              )}
             </form>
-          </div>
-
-          {/* Mastery Text */}
-          <div className="pt-12 animate-slide-up text-center" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-5xl sm:text-6xl md:text-9xl font-black text-aba-deep/20 uppercase tracking-tighter leading-none select-none">
-              MASTERY.
-            </h2>
-            <div className="mt-8 max-w-2xl mx-auto px-4">
-              <h3 className="text-aba-deep font-black uppercase text-[10px] md:text-[12px] tracking-[0.3em] mb-2">Scale Protocol</h3>
-              <p className="text-aba-deep/80 text-[9px] md:text-[11px] font-bold uppercase tracking-widest leading-relaxed">
-                Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility within seconds of transfer commitment.
-              </p>
-            </div>
           </div>
         </div>
 
-        {/* Category Cards - Horizontal List at bottom of hero */}
-        <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-4 md:px-8 z-20">
-          <div className="max-w-7xl mx-auto flex gap-4 md:gap-4 overflow-x-auto pb-8 scrollbar-hide touch-pan-x whitespace-nowrap">
+        <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-6 md:px-12 z-20">
+          <div className="max-w-7xl mx-auto flex gap-4 overflow-x-auto pb-8 scrollbar-hide">
             {categories.map((cat, i) => (
               <button
                 key={i}
                 onClick={() => setView(cat.id as any)}
-                className="flex items-center gap-4 md:gap-4 bg-white p-5 md:p-6 rounded-2xl md:rounded-2xl shadow-xl min-w-[220px] md:min-w-[240px] group hover:bg-aba-deep transition-all duration-500 active:scale-95"
+                className="flex items-center gap-4 bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/5 min-w-[240px] group hover:bg-white transition-standard"
               >
-                <div className="w-12 h-12 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-xl flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-colors">
+                <div className="w-10 h-10 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-standard">
                   {cat.icon}
                 </div>
-                <span className="text-sm md:text-sm font-black text-aba-deep group-hover:text-white uppercase tracking-tight text-left">
+                <span className="text-sm font-bold text-white group-hover:text-aba-deep uppercase tracking-wider text-left">
                   {cat.label}
                 </span>
               </button>
@@ -291,49 +250,49 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       
       {/* 🔹 BUSINESS OF THE DAY */}
       {businessOfTheDay && (
-        <section className="px-4 md:px-8 mb-16 md:mb-24 max-w-7xl mx-auto w-full">
+        <section className="px-6 md:px-12 mb-24 max-w-7xl mx-auto w-full">
            <SectionHeader 
               title="Business of the Day" 
               subtitle="Daily Industrial Spotlight"
               icon={Sparkles}
-              className="mb-6 md:mb-10"
+              className="mb-10"
            />
 
            <div 
              onClick={() => setView('explore')}
-             className="bg-white/5 backdrop-blur-2xl rounded-2xl md:rounded-[3rem] overflow-hidden flex flex-col md:flex-row shadow-[0_40px_80px_-20px_rgba(0,0,0,0.6)] border border-white/10 group cursor-pointer active:scale-[0.99] transition-all duration-700 hover:border-aba-gold/30"
+             className="bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-xl border border-white/5 group cursor-pointer active:scale-[0.99] transition-standard hover:border-aba-gold/30"
            >
               <div className="h-64 md:h-auto md:w-1/2 relative overflow-hidden">
                  <img 
                     src={businessOfTheDay.image_url} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3s] ease-out" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-standard duration-[2s]" 
                     alt={businessOfTheDay.name} 
                     loading="lazy"
                  />
-                 <div className="absolute inset-0 bg-gradient-to-r from-aba-deep/80 via-aba-deep/20 to-transparent" />
-                 <div className="absolute top-4 left-4 md:top-8 md:left-8">
-                    <div className="bg-aba-gold text-aba-deep text-[8px] md:text-[10px] font-black px-3 md:px-5 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl uppercase tracking-widest shadow-2xl flex items-center gap-2 md:gap-3">
-                       <Star size={12} className="md:w-3.5 md:h-3.5" fill="currentColor" /> Featured Partner
+                 <div className="absolute inset-0 bg-gradient-to-r from-aba-deep/80 via-transparent to-transparent" />
+                 <div className="absolute top-6 left-6">
+                    <div className="bg-aba-gold text-aba-deep text-[10px] font-bold px-4 py-2 rounded-xl uppercase tracking-widest shadow-sm flex items-center gap-2">
+                       <Star size={12} fill="currentColor" /> Featured Partner
                     </div>
                  </div>
               </div>
-              <div className="p-8 md:p-12 md:w-1/2 bg-aba-dark/40 flex flex-col justify-center space-y-6 md:space-y-8">
-                 <div className="space-y-2 md:space-y-3">
-                    <p className="text-[8px] md:text-[10px] font-black text-aba-gold uppercase tracking-[0.3em] md:tracking-[0.5em]">{businessOfTheDay.category}</p>
-                    <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">{businessOfTheDay.name}</h2>
+              <div className="p-8 md:p-12 md:w-1/2 flex flex-col justify-center space-y-6">
+                 <div className="space-y-2">
+                    <p className="text-[10px] font-bold text-aba-gold/60 uppercase tracking-widest">{businessOfTheDay.category}</p>
+                    <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight leading-none group-hover:text-aba-gold transition-standard">{businessOfTheDay.name}</h2>
                  </div>
                  <p className="text-white/50 text-sm md:text-base leading-relaxed line-clamp-3 font-medium">
                     {businessOfTheDay.description}
                  </p>
-                 <div className="flex flex-wrap items-center gap-4 md:gap-8 pt-4 md:pt-6 border-t border-white/5">
-                    <div className="flex items-center gap-2 md:gap-3">
-                       <MapPin size={16} className="text-aba-red md:w-4.5 md:h-4.5" />
-                       <span className="text-[8px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">{businessOfTheDay.area}</span>
+                 <div className="flex flex-wrap items-center gap-8 pt-6 border-t border-white/5">
+                    <div className="flex items-center gap-2">
+                       <MapPin size={16} className="text-aba-red" />
+                       <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{businessOfTheDay.area}</span>
                     </div>
-                    <div className="flex items-center gap-2 md:gap-3">
-                       <ShieldCheck size={16} className="text-aba-green md:w-4.5 md:h-4.5" />
-                       <span className="text-[8px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">
-                         {businessOfTheDay?.integrity_grade === 'A' || businessOfTheDay?.integrity_grade === 'A+' ? 'Verified Hub' : 'Partner Hub'}
+                    <div className="flex items-center gap-2">
+                       <ShieldCheck size={16} className="text-aba-green" />
+                       <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                         Verified Hub
                        </span>
                     </div>
                  </div>
@@ -345,48 +304,30 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                       e.stopPropagation();
                       setView('explore');
                     }}
-                    className="w-full md:w-fit bg-white text-aba-deep hover:bg-aba-gold"
+                    className="w-full md:w-fit"
                  >
                     View Profile
                  </IndustrialButton>
-              </div>
-           </div>
-
-           {/* Repayment Indicator */}
-           <div className="mt-8 flex justify-end">
-              <div className="bg-white/5 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-3xl flex items-center gap-4 shadow-xl">
-                <div className="relative w-10 h-10 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="20" cy="20" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
-                    <circle cx="20" cy="20" r="18" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={113} strokeDashoffset={113 * 0.25} className="text-aba-gold" />
-                  </svg>
-                  <span className="absolute text-[8px] font-black text-white">75%</span>
-                </div>
-                <div>
-                  <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Repayment Progress</p>
-                  <p className="text-[10px] font-black text-aba-green uppercase">Healthy Status</p>
-                </div>
               </div>
            </div>
         </section>
       )}
 
       {/* 🔹 FINDABA VERIFIED TRUST BANNER */}
-      <section className="px-8 mb-20 max-w-7xl mx-auto w-full">
-         <div className="bg-aba-green rounded-[2.5rem] p-10 md:p-16 relative overflow-hidden shadow-2xl border border-white/10">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+      <section className="px-6 md:px-12 mb-24 max-w-7xl mx-auto w-full">
+         <div className="bg-aba-green rounded-3xl p-10 md:p-16 relative overflow-hidden shadow-xl border border-white/5">
             <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-               <div className="w-24 h-24 md:w-32 md:h-32 bg-white/10 backdrop-blur-xl rounded-[2.5rem] border border-white/20 flex items-center justify-center text-white shadow-2xl shrink-0">
-                  <ShieldCheck size={48} className="animate-pulse" />
+               <div className="w-24 h-24 md:w-28 md:h-28 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 flex items-center justify-center text-white shadow-sm shrink-0">
+                  <ShieldCheck size={40} />
                </div>
                <div className="space-y-4 text-center md:text-left">
-                  <h3 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter leading-tight">FindAba <span className="text-aba-gold italic">Verified.</span></h3>
-                  <p className="text-white/70 text-sm md:text-base max-w-2xl font-medium leading-relaxed">
-                     Our trust badge isn't just a symbol—it's a guarantee of physical existence, industrial integrity, and trade reliability. Every verified partner has been physically inspected by our registry team.
+                  <h3 className="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight uppercase">FindAba <span className="text-aba-gold">Verified.</span></h3>
+                  <p className="text-white/70 text-sm md:text-base max-w-2xl font-medium leading-relaxed uppercase tracking-wider">
+                     Our trust badge isn't just a symbol—it's a guarantee of physical existence, industrial integrity, and trade reliability.
                   </p>
-                  <div className="flex flex-wrap justify-center md:justify-start gap-4 pt-2">
+                  <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-2">
                      {['Physical Inspection', 'Identity Cleared', 'Trade Integrity'].map((tag, i) => (
-                       <div key={i} className="px-4 py-2 bg-white/10 rounded-full border border-white/10 text-[8px] font-black text-white uppercase tracking-widest">
+                       <div key={i} className="px-4 py-2 bg-white/5 rounded-lg border border-white/10 text-[9px] font-bold text-white uppercase tracking-widest">
                           {tag}
                        </div>
                      ))}
@@ -398,34 +339,28 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
       {/* 🔹 JOIN THE REGISTRY CTA - CONSPICUOUS SECTION */}
       {!myBusiness && (
-        <section className="px-8 mb-24 max-w-7xl mx-auto w-full">
-          <div className="bg-aba-gold rounded-[3rem] p-12 md:p-20 relative overflow-hidden shadow-[0_50px_100px_-20px_rgba(255,215,0,0.3)] group">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white/20 rounded-full -mr-48 -mt-48 blur-3xl group-hover:scale-110 transition-transform duration-1000" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-aba-deep/5 rounded-full -ml-32 -mb-32 blur-2xl" />
-            
+        <section className="px-6 md:px-12 mb-24 max-w-7xl mx-auto w-full">
+          <div className="bg-aba-gold rounded-3xl p-12 md:p-20 relative overflow-hidden shadow-xl group">
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
               <div className="space-y-6 text-center md:text-left max-w-2xl">
-                <div className="inline-flex items-center gap-3 px-4 py-2 bg-aba-deep text-aba-gold rounded-full text-[10px] font-black uppercase tracking-widest">
-                  <Sparkles size={14} /> Industrial Opportunity
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-aba-deep text-aba-gold rounded-lg text-[10px] font-bold uppercase tracking-widest">
+                  <Sparkles size={12} /> Industrial Opportunity
                 </div>
-                <h2 className="text-4xl md:text-6xl font-black text-aba-deep uppercase tracking-tighter leading-[0.9]">
+                <h2 className="text-4xl md:text-6xl font-bold text-aba-deep uppercase tracking-tight leading-[0.9]">
                   Bring Your Business <br/>
-                  <span className="italic opacity-80">To The Global Stage.</span>
+                  <span className="opacity-80">To The Global Stage.</span>
                 </h2>
-                <p className="text-aba-deep/70 text-base md:text-lg font-medium leading-relaxed">
-                  Join 5,000+ Aba artisans already synchronized with the global industrial mesh. Get verified, accept secure payments, and scale your production.
+                <p className="text-aba-deep/70 text-base md:text-lg font-medium leading-relaxed uppercase tracking-wider">
+                  Join 5,000+ Aba artisans already synchronized with the global industrial mesh.
                 </p>
               </div>
               
               <div className="shrink-0">
                 <button 
                   onClick={() => setView('register')}
-                  className="group relative px-12 py-8 bg-aba-deep text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl hover:bg-black transition-all active:scale-95 overflow-hidden"
+                  className="group relative px-10 py-6 bg-aba-deep text-white rounded-2xl font-bold uppercase text-xs tracking-widest shadow-lg hover:bg-black transition-standard active:scale-95"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                  <span className="relative flex items-center gap-4">
-                    Join Now <ArrowRight size={20} />
-                  </span>
+                  Join Now <ArrowRight size={18} className="inline ml-2" />
                 </button>
               </div>
             </div>
@@ -476,59 +411,11 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {filteredArtisans.map(artisan => (
-            <div 
+            <BusinessCard 
               key={artisan.id}
+              business={artisan}
               onClick={() => setView('explore')}
-              className="bg-white/5 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-white/5 group cursor-pointer hover:border-aba-gold/30 transition-all duration-500 active:scale-95 shadow-2xl flex flex-col h-full"
-            >
-              <div className="h-48 relative overflow-hidden shrink-0">
-                <img 
-                  src={artisan.image_url} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
-                  alt={artisan.name} 
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/90 via-aba-deep/20 to-transparent" />
-                
-                {artisanTab === 'new' && (
-                  <div className="absolute top-5 left-5">
-                    <div className="bg-aba-green text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-2xl">
-                      New Partner
-                    </div>
-                  </div>
-                )}
-                
-                <div className="absolute top-5 right-5">
-                  <div className="w-10 h-10 bg-aba-deep/80 backdrop-blur-md text-aba-gold rounded-2xl flex items-center justify-center border border-white/10 shadow-2xl group-hover:rotate-12 transition-transform">
-                    {artisan?.integrity_grade === 'A' || artisan?.integrity_grade === 'A+' ? <ShieldCheck size={18} /> : <Users size={18} />}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-8 space-y-4 flex-1 flex flex-col">
-                <div className="space-y-1">
-                  <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em]">{artisan.category}</p>
-                  <h4 className="text-sm font-black text-white uppercase tracking-tight group-hover:text-aba-gold transition-colors line-clamp-1">{artisan.name}</h4>
-                </div>
-                
-                <p className="text-[11px] text-white/40 line-clamp-2 leading-relaxed flex-1">
-                  {artisan.description}
-                </p>
-                
-                <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                  <div className="flex items-center gap-1.5">
-                    <Star size={12} fill={artisan.review_count > 0 ? "#FFD700" : "none"} className={artisan.review_count > 0 ? "text-aba-gold" : "text-white/20"} />
-                    <span className="text-[10px] font-black text-white/60">
-                      {artisan.review_count > 0 ? artisan.rating.toFixed(1) : 'No reviews yet'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-white/30">
-                    <MapPin size={12} />
-                    <span className="text-[9px] font-bold uppercase tracking-widest">{artisan.area.split(' ')[0]}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            />
           ))}
         </div>
         
@@ -567,59 +454,36 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {hiddenGems.map(gem => (
-                <div 
+                <BusinessCard 
                   key={gem.id}
+                  business={gem}
                   onClick={() => setView('explore')}
-                  className="bg-white/5 backdrop-blur-xl rounded-[2.5rem] overflow-hidden border border-white/5 group cursor-pointer hover:border-aba-gold/30 transition-all duration-500 active:scale-95 shadow-2xl"
-                >
-                   <div className="h-48 relative overflow-hidden">
-                      <img 
-                        src={gem.image_url} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
-                        alt={gem.name} 
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/90 via-aba-deep/20 to-transparent" />
-                      <div className="absolute top-5 right-5">
-                         <div className="w-10 h-10 bg-aba-gold text-aba-deep rounded-2xl flex items-center justify-center shadow-2xl group-hover:rotate-12 transition-transform">
-                            <Gem size={18} />
-                         </div>
-                      </div>
-                   </div>
-                   <div className="p-8 space-y-3">
-                      <h4 className="text-sm font-black text-white uppercase tracking-tight group-hover:text-aba-gold transition-colors line-clamp-1">{gem.name}</h4>
-                      <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{gem.category}</p>
-                      <div className="flex items-center gap-2 pt-3">
-                         <Star size={12} fill="#FFD700" className="text-aba-gold" />
-                         <span className="text-[10px] font-black text-white/60">{gem.rating}</span>
-                      </div>
-                   </div>
-                </div>
+                />
               ))}
            </div>
         </section>
       )}
 
       {/* 2. PROTOCOL QUICK NAV */}
-      <section className="px-4 md:px-8 mt-8 md:mt-12 mb-16 md:mb-20 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+      <section className="px-6 md:px-12 mt-12 mb-24 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
         {[
-          { id: 'register', label: 'Join Now', icon: <Plus size={24} className="md:w-6 md:h-6" />, desc: 'Register Business', highlight: true },
-          { id: 'feed', label: 'Faces', icon: <Users size={24} className="md:w-6 md:h-6" />, desc: 'City Social' },
-          { id: 'purple-fleet', label: 'Fleet', icon: <Car size={24} className="md:w-6 md:h-6" />, desc: 'Purple Ride' },
-          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={24} className="md:w-6 md:h-6" />, desc: 'Hotels & Suites' },
-          { id: 'cargo', label: 'Cargo', icon: <Truck size={24} className="md:w-6 md:h-6" />, desc: 'Carry-Go' },
-          { id: 'srts-dashboard', label: 'Thrift', icon: <Wallet size={24} className="md:w-6 md:h-6" />, desc: 'Fidelity' },
-          { id: 'lab', label: 'Lab', icon: <Sparkles size={24} className="md:w-6 md:h-6" />, desc: 'Creative Hub' },
-          { id: 'hardware-audit', label: 'Sentinel', icon: <ShieldCheck size={24} className="md:w-6 md:h-6" />, desc: 'Tech Audit' },
-          { id: 'audio-heritage', label: 'Archive', icon: <Radio size={24} className="md:w-6 md:h-6" />, desc: 'Audio Intel' },
-          { id: 'about-aba', label: 'History', icon: <BookOpen size={24} className="md:w-6 md:h-6" />, desc: 'Aba Archive' },
-          { id: 'merchant-portal', label: 'Merchant', icon: <Building2 size={24} className="md:w-6 md:h-6" />, desc: 'Merchant Hub' },
-          { id: 'buyer-portal', label: 'Buyer', icon: <Users size={24} className="md:w-6 md:h-6" />, desc: 'Buyer Hub' },
-          { id: 'oracle', label: 'Oracle', icon: <MessageSquare size={24} className="md:w-6 md:h-6" />, desc: 'Oracle AI' },
-          { id: 'editorial', label: 'News', icon: <Newspaper size={24} className="md:w-6 md:h-6" />, desc: 'Industrial News' },
-          { id: 'support', label: 'Support', icon: <LifeBuoy size={24} className="md:w-6 md:h-6" />, desc: 'System Help' },
-          { id: 'explore', label: 'Registry', icon: <Search size={24} className="md:w-6 md:h-6" />, desc: 'Full Directory' },
-          ...(isAdmin ? [{ id: 'admin', label: 'Infra', icon: <Globe size={24} className="md:w-6 md:h-6" />, desc: 'Infrastructure' }] : []),
+          { id: 'register', label: 'Join Now', icon: <Plus size={20} />, desc: 'Register Business', highlight: true },
+          { id: 'feed', label: 'Faces', icon: <Users size={20} />, desc: 'City Social' },
+          { id: 'purple-fleet', label: 'Fleet', icon: <Car size={20} />, desc: 'Purple Ride' },
+          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={20} />, desc: 'Hotels & Suites' },
+          { id: 'cargo', label: 'Cargo', icon: <Truck size={20} />, desc: 'Carry-Go' },
+          { id: 'srts-dashboard', label: 'Thrift', icon: <Wallet size={20} />, desc: 'Fidelity' },
+          { id: 'lab', label: 'Lab', icon: <Sparkles size={20} />, desc: 'Creative Hub' },
+          { id: 'hardware-audit', label: 'Sentinel', icon: <ShieldCheck size={20} />, desc: 'Tech Audit' },
+          { id: 'audio-heritage', label: 'Archive', icon: <Radio size={20} />, desc: 'Audio Intel' },
+          { id: 'about-aba', label: 'History', icon: <BookOpen size={20} />, desc: 'Aba Archive' },
+          { id: 'merchant-portal', label: 'Merchant', icon: <Building2 size={20} />, desc: 'Merchant Hub' },
+          { id: 'buyer-portal', label: 'Buyer', icon: <Users size={20} />, desc: 'Buyer Hub' },
+          { id: 'oracle', label: 'Oracle', icon: <MessageSquare size={20} />, desc: 'Oracle AI' },
+          { id: 'editorial', label: 'News', icon: <Newspaper size={20} />, desc: 'Industrial News' },
+          { id: 'support', label: 'Support', icon: <LifeBuoy size={20} />, desc: 'System Help' },
+          { id: 'explore', label: 'Registry', icon: <Search size={20} />, desc: 'Full Directory' },
+          ...(isAdmin ? [{ id: 'admin', label: 'Infra', icon: <Globe size={20} />, desc: 'Infrastructure' }] : []),
         ].map(node => (
           <button 
             key={node.id} 
@@ -629,22 +493,22 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               }
               setView(node.id as any);
             }} 
-            className={`backdrop-blur-3xl p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center gap-4 md:gap-5 border transition-all duration-500 active:scale-95 group ${
+            className={`backdrop-blur-xl p-6 rounded-2xl shadow-sm flex flex-col items-center text-center gap-4 border transition-standard active:scale-95 group ${
               node.highlight 
                 ? 'bg-aba-gold border-aba-gold/50 hover:bg-white' 
-                : 'bg-white/5 border-white/5 hover:border-aba-gold/30'
+                : 'bg-white/5 border-white/5 hover:border-white/20'
             }`}
           >
-             <div className={`w-12 h-12 md:w-12 md:h-12 rounded-xl md:rounded-xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform ${
-               node.highlight ? 'bg-aba-deep text-aba-gold' : 'bg-aba-green/20 text-aba-green'
+             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-standard ${
+               node.highlight ? 'bg-aba-deep text-aba-gold' : 'bg-aba-green/10 text-aba-green'
              }`}>
                 {node.icon}
              </div>
-             <div className="space-y-1 md:space-y-1">
-                <h4 className={`text-[12px] md:text-[11px] font-black uppercase tracking-tight transition-colors ${
+             <div className="space-y-1">
+                <h4 className={`text-[11px] font-bold uppercase tracking-wider transition-colors ${
                   node.highlight ? 'text-aba-deep' : 'text-white group-hover:text-aba-gold'
                 }`}>{node.label}</h4>
-                <p className={`text-[8px] md:text-[7px] font-bold uppercase tracking-[0.15em] md:tracking-[0.2em] ${
+                <p className={`text-[7px] font-medium uppercase tracking-widest ${
                   node.highlight ? 'text-aba-deep/60' : 'text-white/30'
                 }`}>{node.desc}</p>
              </div>
@@ -653,33 +517,32 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       </section>
 
       {/* 4. INDUSTRIAL SHOWCASE VIDEO */}
-      <section className="px-4 md:px-8 mb-24 md:mb-40 max-w-7xl mx-auto w-full">
-        <div className="bg-aba-gold p-1 rounded-2xl md:rounded-[3rem] shadow-2xl overflow-hidden">
-          <div className="bg-aba-deep rounded-xl md:rounded-[2.8rem] overflow-hidden relative aspect-video group">
+      <section className="px-6 md:px-12 mb-40 max-w-7xl mx-auto w-full">
+        <div className="bg-aba-gold p-0.5 rounded-3xl shadow-xl overflow-hidden">
+          <div className="bg-aba-deep rounded-[1.4rem] overflow-hidden relative aspect-video group">
             <video 
               src="https://assets.mixkit.co/videos/preview/mixkit-blacksmith-working-on-a-piece-of-metal-41005-large.mp4" 
               autoPlay 
               muted 
               loop 
               playsInline 
-              className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-700"
+              className="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-standard duration-1000"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-aba-deep via-transparent to-transparent" />
             
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 md:p-8 space-y-4 md:space-y-6">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-aba-gold rounded-full flex items-center justify-center shadow-gold-glow animate-pulse-subtle">
-                <div className="w-0 h-0 border-t-[8px] md:border-t-[10px] border-t-transparent border-l-[14px] md:border-l-[18px] border-l-aba-deep border-b-[8px] md:border-b-[10px] border-b-transparent ml-1" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 space-y-6">
+              <div className="w-16 h-16 bg-aba-gold rounded-full flex items-center justify-center shadow-lg">
+                <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-aba-deep border-b-[8px] border-b-transparent ml-1" />
               </div>
-              <div className="space-y-1 md:space-y-2">
-                <h3 className="text-2xl md:text-5xl font-black text-white uppercase tracking-tighter">The Revolution in <span className="text-aba-gold italic">Action.</span></h3>
-                <p className="text-[8px] md:text-xs font-bold text-aba-gold uppercase tracking-[0.3em] md:tracking-[0.5em]">Showcasing Aba's Master Artisans</p>
+              <div className="space-y-2">
+                <h3 className="text-2xl md:text-5xl font-bold text-white uppercase tracking-tight">The Industrial <span className="text-aba-gold">Action.</span></h3>
+                <p className="text-[10px] font-bold text-aba-gold uppercase tracking-widest">Showcasing Aba's Master Artisans</p>
               </div>
             </div>
 
-            {/* Technical Overlay Details */}
-            <div className="absolute top-4 left-4 md:top-8 md:left-8 flex items-center gap-2 md:gap-3">
-              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-[7px] md:text-[8px] font-black text-white/40 uppercase tracking-widest">Live Industrial Feed // Partner_042</span>
+            <div className="absolute top-8 left-8 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-aba-red rounded-full animate-pulse" />
+              <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Live Industrial Feed</span>
             </div>
           </div>
         </div>

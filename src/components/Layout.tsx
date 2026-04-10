@@ -42,15 +42,15 @@ const SystemClock: React.FC = () => {
   });
 
   return (
-    <div className="flex flex-col items-center sm:items-end px-2 md:px-6 sm:border-x border-white/10 mx-1 md:mx-6">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-[9px] md:text-[9px] font-black text-aba-gold uppercase tracking-widest leading-none">{dateStr}</span>
-        <span className="text-[9px] md:text-[9px] font-black text-aba-green uppercase tracking-widest leading-none border-l border-white/10 pl-2">{marketDay}</span>
+    <div className="flex flex-col items-end px-4 border-x border-white/10">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-bold text-aba-gold uppercase tracking-wider">{dateStr}</span>
+        <span className="text-[10px] font-bold text-aba-green uppercase tracking-wider border-l border-white/10 pl-2">{marketDay}</span>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-[13px] md:text-[12px] font-black text-white uppercase tracking-widest leading-none">{timeStr}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-bold text-white tracking-tight">{timeStr}</span>
         {weather && (
-          <span className="text-[10px] md:text-[10px] font-bold text-white/40 uppercase tracking-tighter border-l border-white/10 pl-2 hidden sm:block">
+          <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider border-l border-white/10 pl-2 hidden sm:block">
             {weather.temp}
           </span>
         )}
@@ -60,26 +60,23 @@ const SystemClock: React.FC = () => {
 };
 
 export const BrandSignature: React.FC<{ light?: boolean; className?: string }> = ({ light = false, className = "" }) => (
-  <div className={`py-12 flex flex-col items-center justify-center gap-4 select-none w-full text-center overflow-hidden px-4 ${className}`}>
-    <div className={`flex items-center gap-4 opacity-30 ${light ? 'text-aba-white' : 'text-aba-deep'}`}>
-      <div className="h-[1px] w-10 bg-current" />
-      <span className="text-[8px] font-black uppercase tracking-[0.6em] flex items-center gap-1">
-        <span className="font-black">Find</span><span className="font-medium opacity-60">ABA</span> OS Partner v6.0
+  <div className={`py-12 flex flex-col items-center justify-center gap-4 select-none w-full text-center px-4 ${className}`}>
+    <div className={`flex items-center gap-4 opacity-20 ${light ? 'text-white' : 'text-aba-deep'}`}>
+      <div className="h-px w-8 bg-current" />
+      <span className="text-[10px] font-bold uppercase tracking-[0.3em]">
+        FindAba OS v6.0
       </span>
-      <div className="h-[1px] w-10 bg-current" />
+      <div className="h-px w-8 bg-current" />
     </div>
     
-    <div className="flex flex-col items-center max-w-full">
-      <span 
-        className="text-[10px] md:text-[14px] font-black uppercase leading-none block text-aba-gold"
-        style={{ letterSpacing: '0.8em', marginRight: '-0.8em' }}
-      >
+    <div className="flex flex-col items-center">
+      <span className="text-lg font-bold uppercase tracking-[0.4em] text-aba-gold">
         SANDALSroyalle
       </span>
     </div>
 
-    <div className={`px-6 py-1.5 rounded-full border text-[7px] font-black uppercase tracking-[0.5em] ${
-      light ? 'bg-aba-gold/5 border-aba-gold/20 text-aba-gold/50' : 'bg-aba-green/5 border-aba-green/10 text-aba-green/60'
+    <div className={`px-4 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${
+      light ? 'bg-white/5 border-white/10 text-white/40' : 'bg-aba-green/5 border-aba-green/10 text-aba-green/60'
     }`}>
       Official Industrial Signal
     </div>
@@ -113,14 +110,14 @@ const AIWelcomeSection: React.FC<{ light?: boolean }> = ({ light }) => {
   if (!welcome) return null;
 
   return (
-    <div className={`max-w-xl px-10 py-12 mx-auto text-center space-y-8 animate-fade-in ${light ? 'text-aba-white/40' : 'text-aba-deep/40'}`}>
-      <div className={`h-px w-20 mx-auto mb-8 ${light ? 'bg-aba-white/10' : 'bg-aba-green/10'}`} />
-      <p className={`text-[15px] font-medium leading-relaxed tracking-normal text-white/90`}>
-        {welcome.split('**').map((part, i) => i % 2 === 1 ? <span key={i} className="text-aba-gold font-black">{part}</span> : part)}
+    <div className={`max-w-xl px-8 py-12 mx-auto text-center space-y-6 animate-fade-in ${light ? 'text-white/40' : 'text-aba-deep/40'}`}>
+      <div className={`h-px w-12 mx-auto ${light ? 'bg-white/10' : 'bg-aba-green/10'}`} />
+      <p className="text-sm font-medium leading-relaxed tracking-tight text-white/80">
+        {welcome.split('**').map((part, i) => i % 2 === 1 ? <span key={i} className="text-aba-gold font-bold">{part}</span> : part)}
       </p>
-      <div className="flex items-center justify-center gap-3 pt-6 opacity-30">
-        <ShieldCheck size={14} className="text-aba-green" />
-        <span className="text-[8px] font-black uppercase tracking-[0.4em]">Registry Handshake Verified</span>
+      <div className="flex items-center justify-center gap-2 opacity-30">
+        <ShieldCheck size={12} className="text-aba-green" />
+        <span className="text-[9px] font-bold uppercase tracking-widest">Handshake Verified</span>
       </div>
     </div>
   );
@@ -239,44 +236,43 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const SidebarItem = ({ item }: { item: typeof menuItems[0] }) => (
     <button 
       onClick={() => setView(item.view)}
-      className={`w-full flex items-center gap-4 p-4 rounded-2xl font-bold uppercase text-[10px] tracking-widest transition-all group ${
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-standard group ${
         currentView === item.view 
-          ? 'bg-aba-gold text-aba-dark shadow-lg' 
-          : 'hover:bg-white/5 text-white/40 hover:text-white'
+          ? 'bg-aba-green text-white shadow-sm' 
+          : 'hover:bg-white/5 text-white/60 hover:text-white'
       }`}
     >
-      <div className={`transition-transform duration-500 group-hover:scale-110 ${
-        currentView === item.view ? 'text-aba-deep' : 'text-aba-gold'
+      <div className={`transition-standard ${
+        currentView === item.view ? 'text-white' : 'text-aba-gold'
       }`}>
         {item.icon}
       </div>
-      {!isSidebarCollapsed && <span className="truncate">{item.label}</span>}
+      {!isSidebarCollapsed && <span className="truncate tracking-tight">{item.label}</span>}
     </button>
   );
 
   return (
-    <div className={`flex min-h-screen w-full transition-colors duration-1000 font-sans relative ${isDarkView ? 'bg-[#050505] text-aba-white' : 'bg-aba-white text-aba-deep'}`}>
-      <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-[9999] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+    <div className={`flex min-h-screen w-full transition-colors duration-500 font-sans relative ${isDarkView ? 'bg-aba-deep text-white' : 'bg-aba-white text-aba-deep'}`}>
       
       {/* DESKTOP SIDEBAR */}
-      <aside className={`hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-[1100] transition-all duration-500 border-r border-white/5 bg-black/40 backdrop-blur-3xl ${isSidebarCollapsed ? 'w-24' : 'w-72'}`}>
-        <div className="p-8 border-b border-white/5 flex items-center gap-4 overflow-hidden">
-          <Logo src={activeLogo} size={40} className="shrink-0" />
+      <aside className={`hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-[1100] transition-standard border-r border-white/5 bg-black/20 backdrop-blur-xl ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className="p-6 border-b border-white/5 flex items-center gap-3 overflow-hidden">
+          <Logo src={activeLogo} size={32} className="shrink-0" />
           {!isSidebarCollapsed && (
             <div className="flex flex-col animate-fade-in">
-              <h1 className="text-xl font-black tracking-tighter leading-none">FindAba</h1>
-              <span className="text-[7px] font-black uppercase text-aba-gold tracking-[0.4em] mt-1">SANDALSroyalle</span>
+              <h1 className="text-lg font-bold tracking-tight leading-none">FindAba</h1>
+              <span className="text-[9px] font-bold uppercase text-aba-gold tracking-widest mt-1">SANDALSroyalle</span>
             </div>
           )}
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
           {menuItems.map((item, i) => (
             <SidebarItem key={i} item={item} />
           ))}
         </div>
 
-        <div className="p-4 border-t border-white/5 space-y-3">
+        <div className="p-4 border-t border-white/5 space-y-2">
           {!isSidebarCollapsed && (
             <div className="grid grid-cols-1 gap-2 mb-2">
               <SupabaseSync />
@@ -285,101 +281,83 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           )}
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="w-full p-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/40 flex items-center justify-center transition-all"
+            className="w-full p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 flex items-center justify-center transition-standard"
           >
-            {isSidebarCollapsed ? <ChevronRight size={20} /> : <ArrowLeft size={20} />}
+            {isSidebarCollapsed ? <ChevronRight size={18} /> : <ArrowLeft size={18} />}
           </button>
         </div>
       </aside>
 
-      <div className={`flex-1 flex flex-col transition-all duration-500 ${isDarkView ? 'bg-[#050505]' : 'bg-aba-white'} ${isSidebarCollapsed ? 'lg:pl-24' : 'lg:pl-72'}`}>
-        {/* GLOBAL ATMOSPHERIC ELEMENTS */}
-        {isDarkView && (
-          <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-aba-gold/5 rounded-full blur-[150px] animate-pulse-slow" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-aba-green/5 rounded-full blur-[200px] animate-pulse-slow" />
-          </div>
-        )}
-
-        <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-12 py-4 md:py-8 flex justify-between items-center backdrop-blur-2xl transition-all duration-1000 ${isSidebarCollapsed ? 'lg:left-24' : 'lg:left-72'} ${isDarkView ? 'bg-black/60 border-b border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-b border-aba-green/5'}`}>
-          <div className="flex items-center gap-3 md:gap-6 cursor-pointer group shrink-0" onClick={() => setView('home')}>
-              <Logo src={activeLogo} size={36} className="md:w-14 md:h-14 border-aba-gold/20 shadow-2xl group-hover:scale-110 transition-transform duration-700" />
+      <div className={`flex-1 flex flex-col transition-standard ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'} ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
+        
+        <header className={`fixed top-0 left-0 right-0 z-[1000] px-6 py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? 'lg:left-20' : 'lg:left-64'} ${isDarkView ? 'bg-black/40 border-b border-white/5' : 'bg-white/80 border-b border-black/5'}`}>
+          <div className="flex items-center gap-4 cursor-pointer group shrink-0" onClick={() => setView('home')}>
+              <Logo src={activeLogo} size={32} className="group-hover:scale-105 transition-standard" />
               <div className="flex flex-col">
-                <h1 className="text-lg md:text-3xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-colors duration-500">
+                <h1 className="text-xl font-bold tracking-tight leading-none group-hover:text-aba-gold transition-standard">
                   FindAba
                 </h1>
-                <div className="flex items-center gap-1 mt-1 md:mt-2">
-                  <p className="text-aba-gold text-[7px] md:text-[9px] font-black uppercase tracking-[0.4em] md:tracking-[0.6em] opacity-80">SANDALSroyalle</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <p className="text-aba-gold text-[9px] font-bold uppercase tracking-widest opacity-80">SANDALSroyalle</p>
                   {isRegistryActive && (
-                    <div className="flex items-center gap-1 md:gap-1.5 border-l border-white/10 pl-1 md:pl-2" title={healthMessage}>
-                      <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.5)]'}`} />
+                    <div className="flex items-center border-l border-white/10 pl-2" title={healthMessage}>
+                      <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green' : 'bg-red-500 animate-pulse'}`} />
                     </div>
                   )}
                 </div>
               </div>
           </div>
           
-          <div className="flex items-center gap-1 md:gap-6">
-            <div className="flex items-center">
-              <SystemClock />
-            </div>
+          <div className="flex items-center gap-4">
+            <SystemClock />
             
             <button 
               onClick={() => setView('register')}
-              className="hidden sm:flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-3 bg-aba-green text-white rounded-lg md:rounded-xl font-black uppercase text-[8px] md:text-[10px] tracking-widest shadow-lg hover:bg-white hover:text-aba-green transition-all active:scale-95"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-aba-green text-white rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm hover:bg-aba-green/90 transition-standard active:scale-95"
             >
-              <Plus size={14} className="md:w-4 md:h-4" /> Add Listing
+              <Plus size={14} /> Add Listing
             </button>
 
-            <button className="hidden lg:block p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
-              <Info size={20} className="md:w-6 md:h-6" />
+            <button className="hidden lg:block p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg">
+              <Info size={20} />
             </button>
 
-            <button className="p-1.5 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
-              <Search size={18} className="md:w-6 md:h-6" />
+            <button className="p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg">
+              <Search size={20} />
             </button>
             
             <button 
               onClick={() => window.location.reload()}
-              className="p-1.5 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+              className="p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg"
               title="Refresh Application"
             >
-              <RefreshCw size={18} className="md:w-6 md:h-6" />
+              <RefreshCw size={20} />
             </button>
 
             <button 
               onClick={() => setNotificationsOpen(!notificationsOpen)}
-              className="relative p-1.5 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+              className="relative p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg"
             >
-              <Bell size={18} className="md:w-6 md:h-6" />
+              <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 md:top-2 md:right-2 w-3.5 h-3.5 md:w-5 md:h-5 bg-aba-gold text-aba-deep text-[7px] md:text-[10px] font-black rounded-full flex items-center justify-center border-2 border-black shadow-lg">
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-aba-gold text-aba-deep text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-aba-deep">
                   {unreadCount}
                 </span>
               )}
             </button>
 
-            <button className="hidden lg:block p-2 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10">
-              <Cpu size={20} className="md:w-6 md:h-6" />
-            </button>
-
-            <div className="hidden 2xl:flex items-center gap-4 border-l border-white/10 pl-6">
-              <SupabaseSync />
-              <GitHubSync />
-            </div>
-
             <button 
               onClick={() => setView('profile')}
-              className="w-8 h-8 md:w-14 md:h-14 rounded-lg md:rounded-2xl border-2 border-white/10 overflow-hidden shadow-2xl active:scale-90 transition-all hover:border-aba-gold group/profile"
+              className="w-10 h-10 rounded-lg border border-white/10 overflow-hidden shadow-sm active:scale-95 transition-standard hover:border-aba-gold group/profile"
             >
-              <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Profile" />
+              <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-standard" alt="Profile" />
             </button>
 
             <button 
               onClick={() => setIsMenuOpen(true)}
-              className="lg:hidden p-1.5 md:p-3 text-white/40 hover:text-aba-gold transition-all hover:bg-white/5 rounded-2xl border border-transparent hover:border-white/10"
+              className="lg:hidden p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg"
             >
-              <Menu size={18} className="md:w-6 md:h-6" />
+              <Menu size={20} />
             </button>
           </div>
         </header>
@@ -398,148 +376,106 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
         <main className={`flex-1 flex flex-col pt-20 md:pt-32`}>
           {children}
-          <footer className={`w-full relative flex flex-col transition-colors duration-700 pb-32 md:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
+          <footer className={`w-full relative flex flex-col transition-standard pb-32 md:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
             
             {/* Requested Menu Structure */}
-            <div className="px-6 md:px-10 py-12 md:py-20 space-y-12 md:space-y-20 max-w-4xl mx-auto w-full">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-              <div className="space-y-8">
-                <h4 className="text-aba-green text-[14px] font-bold uppercase tracking-widest">Registry</h4>
-                <div className="space-y-4">
-                  <button onClick={() => setView('explore')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Verified Hubs</button>
-                  <button onClick={() => setView('explore')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Industrial Partners</button>
-                  <button onClick={() => setView('explore')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Export Readiness</button>
-                  <button onClick={() => setView('explore')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Trade Analytics</button>
+            <div className="px-8 py-16 md:py-24 space-y-16 max-w-5xl mx-auto w-full">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
+              <div className="space-y-6">
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Registry</h4>
+                <div className="space-y-3">
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Verified Hubs</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Industrial Partners</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Export Readiness</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Trade Analytics</button>
                 </div>
               </div>
 
-              <div className="space-y-8">
-                <h4 className="text-aba-green text-[14px] font-bold uppercase tracking-widest">Ecosystem</h4>
-                <div className="space-y-4">
-                  <button onClick={() => setView('purple-fleet')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Purple Fleet</button>
-                  <button onClick={() => setView('sandals-hotels')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Sandals Hotels</button>
-                  <button onClick={() => setView('cargo')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Carry-Go Cargo</button>
-                  <button onClick={() => setView('srts-dashboard')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Fidelity Thrift</button>
+              <div className="space-y-6">
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Ecosystem</h4>
+                <div className="space-y-3">
+                  <button onClick={() => setView('purple-fleet')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Purple Fleet</button>
+                  <button onClick={() => setView('sandals-hotels')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Sandals Hotels</button>
+                  <button onClick={() => setView('cargo')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Carry-Go Cargo</button>
+                  <button onClick={() => setView('srts-dashboard')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Fidelity Thrift</button>
                 </div>
               </div>
 
-              <div className="space-y-8">
-                <h4 className="text-aba-green text-[14px] font-bold uppercase tracking-widest">Support</h4>
-                <div className="space-y-4">
-                  <button onClick={() => setView('oracle')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Oracle AI</button>
-                  <button onClick={() => setView('legal')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Safety Protocols</button>
-                  <button onClick={() => setView('contact')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">Help Center</button>
-                  <button onClick={() => setView('editorial')} className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest">News</button>
+              <div className="space-y-6">
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Support</h4>
+                <div className="space-y-3">
+                  <button onClick={() => setView('oracle')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Oracle AI</button>
+                  <button onClick={() => setView('legal')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Safety Protocols</button>
+                  <button onClick={() => setView('contact')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Help Center</button>
+                  <button onClick={() => setView('editorial')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">News</button>
                 </div>
               </div>
 
-              <div className="space-y-8">
-                <h4 className="text-aba-green text-[14px] font-bold uppercase tracking-widest">About</h4>
-                <div className="space-y-4">
-                  <button 
-                    onClick={() => setView('about-who')} 
-                    className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest text-left"
-                  >
-                    Who we are
-                  </button>
-                  <button 
-                    onClick={() => setView('about-vision')} 
-                    className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest text-left"
-                  >
-                    Our Vision
-                  </button>
-                  <button 
-                    onClick={() => setView('about-mission')} 
-                    className="block text-[12px] font-medium hover:text-aba-gold transition-colors uppercase tracking-widest text-left"
-                  >
-                    Our Mission
-                  </button>
+              <div className="space-y-6">
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">About</h4>
+                <div className="space-y-3">
+                  <button onClick={() => setView('about-who')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left">Who we are</button>
+                  <button onClick={() => setView('about-vision')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left">Our Vision</button>
+                  <button onClick={() => setView('about-mission')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left">Our Mission</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className={`w-full py-12 px-8 border-t ${isDarkView ? 'bg-aba-green/10 border-white/5' : 'bg-aba-green/5 border-aba-green/5'}`}>
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
-              <div className="space-y-6">
-                <h4 className="text-aba-green text-[18px] font-bold uppercase tracking-widest">Connect With Us</h4>
-                <div className="flex gap-6">
-                  <button 
-                    onClick={() => {
-                      const url = socialLinks?.facebook || SANDALS_BRAND.facebook;
-                      if (url) {
-                        window.open(url.startsWith('http') ? url : `https://facebook.com/${url}`, '_blank');
-                      } else {
-                        addToast("Facebook Link not set in Registry. Contact Admin.", "info");
-                      }
-                    }} 
-                    className="p-3 bg-white/5 rounded-xl hover:text-aba-gold transition-all"
-                  >
-                    <Facebook size={20} />
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const url = socialLinks?.instagram || SANDALS_BRAND.instagram;
-                      if (url) {
-                        window.open(url.startsWith('http') ? url : `https://instagram.com/${url}`, '_blank');
-                      } else {
-                        addToast("Instagram Link not set in Registry. Contact Admin.", "info");
-                      }
-                    }} 
-                    className="p-3 bg-white/5 rounded-xl hover:text-aba-gold transition-all"
-                  >
-                    <Instagram size={20} />
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const url = socialLinks?.twitter || SANDALS_BRAND.twitter;
-                      if (url) {
-                        window.open(url.startsWith('http') ? url : `https://twitter.com/${url}`, '_blank');
-                      } else {
-                        addToast("Twitter Link not set in Registry. Contact Admin.", "info");
-                      }
-                    }} 
-                    className="p-3 bg-white/5 rounded-xl hover:text-aba-gold transition-all"
-                  >
-                    <Twitter size={20} />
-                  </button>
-                  <button 
-                    onClick={() => (socialLinks?.tiktok) ? window.open(socialLinks.tiktok, '_blank') : addToast("TikTok Link not set in Registry. Contact Admin.", "info")} 
-                    className="p-3 bg-white/5 rounded-xl hover:text-aba-gold transition-all"
-                  >
-                    <Music size={20} />
-                  </button>
+          <div className={`w-full py-16 px-8 border-t ${isDarkView ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
+              <div className="space-y-8">
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Connect With Us</h4>
+                <div className="flex gap-4">
+                  {[
+                    { icon: <Facebook size={18} />, key: 'facebook' },
+                    { icon: <Instagram size={18} />, key: 'instagram' },
+                    { icon: <Twitter size={18} />, key: 'twitter' },
+                    { icon: <Music size={18} />, key: 'tiktok' }
+                  ].map((social, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => {
+                        const url = (socialLinks as any)?.[social.key] || (SANDALS_BRAND as any)[social.key];
+                        if (url) window.open(url.startsWith('http') ? url : `https://${social.key}.com/${url}`, '_blank');
+                        else addToast(`${social.key} Link not set.`, "info");
+                      }} 
+                      className="p-3 bg-white/5 rounded-lg hover:text-aba-gold transition-standard border border-white/5 hover:border-white/20"
+                    >
+                      {social.icon}
+                    </button>
+                  ))}
                 </div>
               </div>
               
-              <div className="space-y-6">
-                <h4 className="text-aba-green text-[18px] font-bold uppercase tracking-widest">Send Message</h4>
-                <div className="flex flex-col gap-4">
+              <div className="space-y-8">
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Send Message</h4>
+                <div className="flex flex-col gap-3">
                   <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
                     <input 
                       type="email" 
                       placeholder="Enter your email" 
-                      className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm outline-none focus:border-aba-gold transition-all"
+                      className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm outline-none focus:border-aba-gold transition-standard"
                     />
                   </div>
                   <button 
-                    onClick={() => addToast("Signal Transmitted to Registry HQ. We will contact you.", "success")}
-                    className="w-full py-4 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                    onClick={() => addToast("Signal Transmitted. We will contact you.", "success")}
+                    className="w-full py-3 bg-aba-gold text-aba-deep rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm active:scale-[0.98] transition-standard flex items-center justify-center gap-2"
                   >
-                    <Send size={16} /> Send Signal
+                    <Send size={14} /> Send Signal
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className={`w-full py-12 px-8 text-center space-y-4 border-t ${isDarkView ? 'bg-aba-green/10 border-white/5' : 'bg-aba-green/5 border-aba-green/5'}`}>
-            <p className="text-[11px] font-medium opacity-80">
-              © 2026 Powered by FindAba Industrial Hub
+          <div className={`w-full py-12 px-8 text-center space-y-2 border-t ${isDarkView ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
+            <p className="text-[10px] font-medium opacity-40 uppercase tracking-widest">
+              © 2026 FindAba Industrial Hub
             </p>
-            <p className="text-[11px] font-medium">
-              Built with <span className="text-red-500">❤️</span> by <a href="#" className="underline hover:text-aba-gold transition-colors">SANDALSroyalle S&P</a>
+            <p className="text-[10px] font-medium opacity-40 uppercase tracking-widest">
+              Built by <a href="#" className="underline hover:text-aba-gold transition-standard">SANDALSroyalle S&P</a>
             </p>
           </div>
 
@@ -548,12 +484,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           <div className="h-20 w-full" />
         </footer>
       </main>
+    </div>
 
-      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-4 md:px-8 py-4 md:py-6 flex justify-around items-center transition-all duration-700 lg:hidden ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-4 md:px-8 py-4 md:py-6 flex justify-around items-center transition-standard lg:hidden ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
         {[
-          { id: 'discover', icon: <Sparkles size={20} />, label: 'DISCOVER' },
+          { id: 'home', icon: <Home size={20} />, label: 'HOME' },
           { id: 'explore', icon: <Layers size={20} />, label: 'REGISTRY' },
-          { id: 'support', icon: <LifeBuoy size={20} />, label: 'SUPPORT' },
+          { id: 'feed', icon: <Users size={20} />, label: 'FACES' },
+          { id: 'oracle', icon: <Cpu size={20} />, label: 'ORACLE' },
           { id: 'profile', icon: <UserCircle size={20} />, label: 'PROFILE' }
         ].map((btn, i) => (
           <button 
@@ -620,8 +558,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
          </div>
        </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default Layout;

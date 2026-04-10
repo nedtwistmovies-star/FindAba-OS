@@ -2,9 +2,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
-import ErrorBoundary from '../components/ErrorBoundary';
-import Layout from '../components/Layout';
-import FeedbackToast from '../components/FeedbackToast';
+import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast } from '../components';
 import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } from '../providers';
 import { ROUTE_MAP } from './router';
 import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
@@ -115,6 +113,10 @@ const AppContent: React.FC = () => {
 
   const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
 
+  if (loading && businesses.length === 0) {
+    return <LoadingScreen message="Initializing Industrial Matrix..." />;
+  }
+
   return (
     <Layout 
       currentView={view} 
@@ -125,7 +127,7 @@ const AppContent: React.FC = () => {
     >
       {/* Non-blocking loading indicator removed for faster launch */}
       
-      <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-aba-deep"><Loader2 className="animate-spin text-aba-gold" size={40} /></div>}>
+      <Suspense fallback={<LoadingScreen fullScreen={false} message="Synchronizing View..." />}>
         <RouteComponent 
           setView={setView} 
           onBack={handleBack}
@@ -145,6 +147,7 @@ const AppContent: React.FC = () => {
           onAuthSuccess={handleAuthSuccess}
           userEmail={userIdentifier}
           userRole={userRole}
+          isRegistryLoading={businessLoading}
         />
       </Suspense>
 
@@ -153,7 +156,7 @@ const AppContent: React.FC = () => {
       {isOracleOpen && (
         <div className="fixed inset-0 z-[9999] animate-fade-in">
           {/* Lazy Loaded Oracle from ROUTE_MAP */}
-          <Suspense fallback={<div className="fixed inset-0 bg-black/80 flex items-center justify-center"><Loader2 className="animate-spin text-aba-gold" size={40} /></div>}>
+          <Suspense fallback={<LoadingScreen message="Consulting the Oracle..." />}>
             <ROUTE_MAP.oracle
               onBack={() => setIsOracleOpen(false)}
               setView={setView}

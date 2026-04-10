@@ -18,23 +18,25 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-12 sm:mb-16 ${className}`}>
-      <div className="space-y-2">
-        <div className="flex items-center gap-4">
+    <div className={`flex flex-col sm:flex-row items-start sm:items-end justify-between gap-8 mb-12 sm:mb-20 ${className}`}>
+      <div className="space-y-4">
+        <div className="flex items-center gap-5">
           {Icon && (
-            <div className="w-12 h-12 rounded-2xl bg-aba-gold/10 border border-aba-gold/20 flex items-center justify-center text-aba-gold shadow-[0_0_20px_rgba(255,215,0,0.1)]">
+            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-aba-gold shadow-sm group-hover:scale-110 transition-standard">
               <Icon size={24} />
             </div>
           )}
-          <h3 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter text-white leading-none">
-            {title}
-          </h3>
+          <div className="space-y-1">
+            <h3 className="text-3xl sm:text-5xl font-bold uppercase tracking-tight text-white leading-none">
+              {title}
+            </h3>
+            {subtitle && (
+              <p className="text-[10px] sm:text-[11px] font-bold text-aba-gold/60 uppercase tracking-[0.4em]">
+                {subtitle}
+              </p>
+            )}
+          </div>
         </div>
-        {subtitle && (
-          <p className="text-[12px] sm:text-[11px] font-black text-white/40 uppercase tracking-[0.4em] ml-0 sm:ml-16">
-            {subtitle}
-          </p>
-        )}
       </div>
       {action && (
         <div className="w-full sm:w-auto animate-fade-in">

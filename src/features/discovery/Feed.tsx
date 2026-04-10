@@ -254,126 +254,132 @@ const Feed: React.FC<FeedProps> = ({ onBack, setView }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#f0f2f5] dark:bg-[#020617] animate-fade-in scrollbar-hide">
+    <div className="flex flex-col h-full bg-aba-deep animate-fade-in scrollbar-hide">
       <input type="file" ref={fileInputRef} className="hidden" onChange={onFileChange} />
       <input type="file" ref={storyInputRef} className="hidden" accept="image/*,video/*" onChange={onStoryFileChange} />
 
-      <div className="px-6 py-5 bg-white dark:bg-[#0f172a] border-b border-gray-200 dark:border-white/5 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl">
+      <div className="px-6 py-5 bg-aba-deep/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-4">
           {onBack && (
-            <button onClick={onBack} className="p-2 bg-gray-100 dark:bg-white/5 rounded-xl text-gray-900 dark:text-white border dark:border-white/10 active:scale-90 hover:scale-105 transition-all"><ArrowLeft size={18} /></button>
+            <button onClick={onBack} className="p-2 bg-white/5 rounded-xl text-white border border-white/10 active:scale-90 transition-standard">
+              <ArrowLeft size={18} />
+            </button>
           )}
           <div>
-            <h2 className="text-gray-900 dark:text-white text-lg font-black uppercase tracking-tight">FindAba <span className="text-aba-gold">Faces</span></h2>
-            <p className="text-[7px] font-black text-aba-gold uppercase tracking-[0.4em]">Official Community Registry</p>
+            <h2 className="text-white text-lg font-bold uppercase tracking-tight">FindAba <span className="text-aba-gold">Faces</span></h2>
+            <p className="text-[10px] font-bold text-aba-gold/60 uppercase tracking-widest mt-1">Official Community Registry</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-           <button onClick={() => setIsPosting(true)} className="p-2.5 bg-gray-100 dark:bg-white/5 rounded-full text-gray-600 dark:text-white/60 hover:text-aba-gold hover:scale-110 active:scale-95 transition-all"><Plus size={20}/></button>
-           <button className="p-2.5 bg-gray-100 dark:bg-white/5 rounded-full text-gray-600 dark:text-white/60 hover:scale-110 transition-all"><Radio size={20}/></button>
+           <button onClick={() => setIsPosting(true)} className="p-2.5 bg-white/5 rounded-full text-white/60 hover:text-aba-gold transition-standard">
+             <Plus size={20}/>
+           </button>
+           <button className="p-2.5 bg-white/5 rounded-full text-white/60 transition-standard">
+             <Radio size={20}/>
+           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="max-w-xl mx-auto w-full space-y-3 pt-3 px-4 md:px-0">
+        <div className="max-w-xl mx-auto w-full space-y-4 pt-4 px-4 md:px-0">
           
-          <div className="bg-white dark:bg-[#1e293b] p-4 flex gap-3 overflow-x-auto scrollbar-hide shadow-sm rounded-2xl md:rounded-b-[2rem]">
+          <div className="bg-white/5 backdrop-blur-xl p-4 flex gap-3 overflow-x-auto scrollbar-hide rounded-3xl border border-white/5">
             {stories.map(story => (
               <div 
                 key={story.id} 
                 onClick={() => story.isOwn ? handleStoryUpload() : setActiveStory(story)}
-                className="relative flex-shrink-0 group cursor-pointer hover:scale-[1.05] active:scale-95 transition-all duration-300"
+                className="relative flex-shrink-0 group cursor-pointer active:scale-95 transition-standard"
               >
-                <div className={`w-24 h-40 rounded-2xl overflow-hidden border-2 transition-all duration-500 ${story.unread && !story.isOwn ? 'border-aba-gold' : 'border-transparent'}`}>
-                  <img src={story.img} className="w-full h-full object-cover grayscale-[0.2] group-hover:scale-110 group-hover:grayscale-0 transition-all duration-700" alt={story.name} />
+                <div className={`w-24 h-40 rounded-2xl overflow-hidden border-2 transition-standard ${story.unread && !story.isOwn ? 'border-aba-gold' : 'border-transparent'}`}>
+                  <img src={story.img} className="w-full h-full object-cover brightness-[0.8] group-hover:scale-105 group-hover:brightness-100 transition-standard duration-700" alt={story.name} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                 </div>
                 
                 {story.isOwn ? (
-                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-8 h-8 bg-aba-gold text-aba-dark rounded-full flex items-center justify-center border-4 border-white dark:border-[#1e293b] shadow-lg group-hover:scale-110 transition-transform">
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-8 h-8 bg-aba-gold text-aba-deep rounded-full flex items-center justify-center border-4 border-aba-deep shadow-sm">
                     <Plus size={16} strokeWidth={3} />
                   </div>
                 ) : (
-                  <div className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-aba-gold overflow-hidden shadow-xl ring-2 ring-black/20">
+                  <div className="absolute top-2 left-2 w-8 h-8 rounded-full border-2 border-aba-gold overflow-hidden shadow-sm">
                     <img src={story.img} className="w-full h-full object-cover" />
                   </div>
                 )}
 
-                <span className="absolute bottom-2 left-2 text-[8px] font-black text-white uppercase tracking-tight truncate w-[80%]">
+                <span className="absolute bottom-2 left-2 text-[9px] font-bold text-white uppercase tracking-tight truncate w-[80%]">
                   {story.isOwn ? 'Create Story' : story.name}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="bg-white dark:bg-[#1e293b] rounded-2xl md:rounded-[2rem] p-5 shadow-sm space-y-4">
+          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/5 space-y-6">
              <div className="flex gap-4">
-                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border dark:border-white/10 shadow-md transition-transform hover:scale-110">
+                <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-white/10">
                    <img src="https://images.unsplash.com/photo-1540562760343-6902269a9b13?q=80&w=400" className="w-full h-full object-cover" />
                 </div>
                 <button 
                   onClick={() => setIsPosting(true)}
-                  className="flex-1 bg-gray-100 dark:bg-black/20 rounded-full px-6 text-left text-gray-500 dark:text-white/40 text-sm font-bold hover:bg-gray-200 dark:hover:bg-black/30 transition-all active:scale-[0.98] hover:scale-[1.01]"
+                  className="flex-1 bg-white/5 rounded-xl px-6 text-left text-white/40 text-sm font-bold hover:bg-white/10 transition-standard"
                 >
                    What's Up {userName.split(' ')[0]}?
                 </button>
              </div>
-             <div className="h-px w-full bg-gray-100 dark:bg-white/5" />
+             <div className="h-px w-full bg-white/5" />
              <div className="flex items-center justify-around">
-                <button onClick={() => { setIsPosting(true); handleMediaUpload('image'); }} className="flex-1 flex items-center justify-center gap-2 text-[10px] font-black text-gray-500 dark:text-white/40 uppercase tracking-widest py-3 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-all hover:scale-105 active:scale-95">
+                <button onClick={() => { setIsPosting(true); handleMediaUpload('image'); }} className="flex-1 flex items-center justify-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest py-3 hover:bg-white/5 rounded-xl transition-standard">
                   <ImageIcon size={18} className="text-aba-green" /> Photo
                 </button>
-                <button onClick={() => { setIsPosting(true); handleMediaUpload('video'); }} className="flex-1 flex items-center justify-center gap-2 text-[10px] font-black text-gray-500 dark:text-white/40 uppercase tracking-widest py-3 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-all hover:scale-105 active:scale-95">
+                <button onClick={() => { setIsPosting(true); handleMediaUpload('video'); }} className="flex-1 flex items-center justify-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest py-3 hover:bg-white/5 rounded-xl transition-standard">
                   <Video size={18} className="text-aba-gold" /> Process
                 </button>
-                <button onClick={() => { setIsPosting(true); handleBotMagic(); }} className="flex-1 flex items-center justify-center gap-2 text-[10px] font-black text-gray-500 dark:text-white/40 uppercase tracking-widest py-3 hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-all hover:scale-105 active:scale-95">
+                <button onClick={() => { setIsPosting(true); handleBotMagic(); }} className="flex-1 flex items-center justify-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest py-3 hover:bg-white/5 rounded-xl transition-standard">
                   <Bot size={18} className="text-blue-500" /> AI Idea
                 </button>
              </div>
           </div>
 
           {loading ? (
-            <div className="space-y-3 px-2">
+            <div className="space-y-4 px-2">
               {[...Array(3)].map((_, i) => <FeedSkeleton key={i} />)}
             </div>
           ) : (
-            <div className="space-y-3 pb-40">
+            <div className="space-y-4 pb-40">
               {posts.map((post) => (
-                <div key={post.id} className={`bg-white dark:bg-[#1e293b] rounded-2xl md:rounded-[2rem] shadow-sm animate-slide-up overflow-hidden border transition-all ${post.isBoosted ? 'border-aba-gold/30 ring-1 ring-aba-gold/10' : 'border-transparent'}`}>
-                   <div className="p-4 flex items-center justify-between">
+                <div key={post.id} className={`bg-white/5 backdrop-blur-xl rounded-3xl shadow-sm animate-fade-in overflow-hidden border transition-standard ${post.isBoosted ? 'border-aba-gold/30' : 'border-white/5'}`}>
+                   <div className="p-5 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-full overflow-hidden border dark:border-white/10 relative shadow-md transition-transform hover:scale-110">
+                         <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 relative">
                             <img src={post.avatar} className="w-full h-full object-cover" />
                             {post.verified && (
-                              <div className="absolute -bottom-1 -right-1 bg-aba-green text-white p-0.5 rounded-full border-2 border-white dark:border-[#1e293b]">
+                              <div className="absolute -bottom-1 -right-1 bg-aba-green text-white p-0.5 rounded-full border-2 border-aba-deep">
                                 <ShieldCheck size={8} fill="currentColor" />
                               </div>
                             )}
                          </div>
                          <div>
-                            <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-1.5 transition-colors group-hover:text-aba-gold">
-                              {post.user}
-                              {post.verified && <Zap size={8} className="text-aba-gold fill-aba-gold animate-pulse" />}
+                            <h4 className="text-sm font-bold text-white uppercase tracking-tight flex items-center gap-1.5">
+                               {post.user}
+                               {post.verified && <Zap size={10} className="text-aba-gold fill-aba-gold" />}
                             </h4>
-                            <p className="text-[8px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-widest flex items-center gap-2">
-                              {post.timestamp} • <Globe size={8} />
+                            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2 mt-0.5">
+                               {post.timestamp} • <Globe size={10} />
                             </p>
                          </div>
                       </div>
-                      <button className="text-gray-400 p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-all hover:scale-110 active:scale-90">
-                        <MoreHorizontal size={18} />
+                      <button className="text-white/20 p-2 hover:bg-white/5 rounded-full transition-standard">
+                        <MoreHorizontal size={20} />
                       </button>
                    </div>
 
-                   <div className={`px-4 pb-4 ${post.background ? `h-80 flex items-center justify-center text-center p-12 ${post.background}` : ''}`}>
-                      <p className={`${post.background ? 'text-2xl font-black text-white leading-tight' : 'text-gray-800 dark:text-white/90 text-sm leading-relaxed font-medium whitespace-pre-wrap'}`}>
+                   <div className={`px-5 pb-5 ${post.background ? `h-80 flex items-center justify-center text-center p-12 ${post.background}` : ''}`}>
+                      <p className={`${post.background ? 'text-2xl font-bold text-white leading-tight' : 'text-white/80 text-sm leading-relaxed font-medium whitespace-pre-wrap'}`}>
                         {post.content}
                       </p>
                    </div>
 
                    {post.attachedMedia && (
-                     <div className="px-4 pb-4">
-                        <div className="rounded-xl overflow-hidden border dark:border-white/5 shadow-md">
+                     <div className="px-5 pb-5">
+                        <div className="rounded-2xl overflow-hidden border border-white/5 shadow-sm">
                            {post.attachedMedia.type === 'video' ? (
                              <video src={post.attachedMedia.url} controls className="w-full max-h-96 object-cover" />
                            ) : (
@@ -383,59 +389,59 @@ const Feed: React.FC<FeedProps> = ({ onBack, setView }) => {
                      </div>
                    )}
 
-                   <div className="px-4 py-3 border-y border-gray-50 dark:border-white/5 flex items-center justify-between text-gray-400 dark:text-white/20">
-                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                   <div className="px-5 py-4 border-y border-white/5 flex items-center justify-between text-white/20">
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
                          <div className="flex -space-x-1">
-                            <div className="w-4 h-4 bg-aba-gold rounded-full flex items-center justify-center border border-white dark:border-[#1e293b] hover:scale-110 transition-transform"><Zap size={8} className="text-aba-dark" /></div>
-                            <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border border-white dark:border-[#1e293b] hover:scale-110 transition-transform"><Heart size={8} className="text-white" fill="currentColor" /></div>
+                            <div className="w-4 h-4 bg-aba-gold rounded-full flex items-center justify-center border border-aba-deep"><Zap size={8} className="text-aba-deep" /></div>
+                            <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border border-aba-deep"><Heart size={8} className="text-white" fill="currentColor" /></div>
                          </div>
                          {post.likes} Boosts
                       </div>
-                      <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em]">
-                         <button onClick={() => setActiveCommentId(activeCommentId === post.id ? null : post.id)} className="hover:text-aba-gold transition-all hover:scale-105">{post.comments.length} Responses</button>
-                         <button className="hover:text-aba-gold transition-all hover:scale-105">{post.shares} Broadcasts</button>
+                      <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+                         <button onClick={() => setActiveCommentId(activeCommentId === post.id ? null : post.id)} className="hover:text-aba-gold transition-standard">{post.comments.length} Responses</button>
+                         <button className="hover:text-aba-gold transition-standard">{post.shares} Broadcasts</button>
                       </div>
                    </div>
 
                    <div className="px-2 py-1 flex items-center justify-around">
                       <button 
                         onClick={() => toggleBoost(post.id)}
-                        className={`flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all text-[10px] font-black uppercase tracking-[0.2em] hover:scale-[1.03] ${post.isBoosted ? 'text-aba-gold scale-105' : 'text-gray-500 dark:text-white/40'}`}
+                        className={`flex-1 flex items-center justify-center gap-2 py-4 hover:bg-white/5 rounded-xl transition-standard text-[10px] font-bold uppercase tracking-widest ${post.isBoosted ? 'text-aba-gold' : 'text-white/40'}`}
                       >
-                        <Zap size={18} fill={post.isBoosted ? "currentColor" : "none"} className={post.isBoosted ? 'animate-bounce' : ''} /> 
+                        <Zap size={18} fill={post.isBoosted ? "currentColor" : "none"} /> 
                         {post.isBoosted ? 'Boosted' : 'Boost'}
                       </button>
                       <button 
                         onClick={() => setActiveCommentId(activeCommentId === post.id ? null : post.id)}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all text-[10px] font-black uppercase text-gray-500 dark:text-white/40 tracking-[0.2em] hover:scale-[1.03]"
+                        className="flex-1 flex items-center justify-center gap-2 py-4 hover:bg-white/5 rounded-xl transition-standard text-[10px] font-bold uppercase text-white/40 tracking-widest"
                       >
                         <MessageCircle size={18} /> Respond
                       </button>
                       <button 
                         onClick={() => addToast("Broadcasting Signal to Registry nodes...", "info")}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all text-[10px] font-black uppercase text-gray-500 dark:text-white/40 tracking-[0.2em] hover:scale-[1.03]"
+                        className="flex-1 flex items-center justify-center gap-2 py-4 hover:bg-white/5 rounded-xl transition-standard text-[10px] font-bold uppercase text-white/40 tracking-widest"
                       >
                         <Repeat2 size={18} /> Broadcast
                       </button>
                    </div>
 
                    {activeCommentId === post.id && (
-                     <div className="p-4 bg-gray-50 dark:bg-black/10 border-t dark:border-white/5 animate-slide-up">
-                        <div className="space-y-3 mb-4">
+                     <div className="p-5 bg-white/5 border-t border-white/5 animate-fade-in">
+                        <div className="space-y-4 mb-6">
                            {post.comments.map(c => (
                              <div key={c.id} className="flex gap-3 items-start">
-                                <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-white/10 overflow-hidden shrink-0">
                                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.user}`} className="w-full h-full" />
                                 </div>
-                                <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm text-xs max-w-[85%]">
-                                   <p className="font-black uppercase tracking-tight text-aba-gold mb-1">{c.user}</p>
-                                   <p className="text-gray-600 dark:text-gray-300">{c.text}</p>
+                                <div className="bg-white/5 p-4 rounded-2xl text-xs max-w-[85%] border border-white/5">
+                                   <p className="font-bold uppercase tracking-widest text-aba-gold mb-1">{c.user}</p>
+                                   <p className="text-white/70 leading-relaxed">{c.text}</p>
                                 </div>
                              </div>
                            ))}
                         </div>
                         <div className="flex gap-3">
-                           <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border dark:border-white/10">
+                           <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-white/10">
                               <img src="https://images.unsplash.com/photo-1540562760343-6902269a9b13?q=80&w=400" className="w-full h-full object-cover" />
                            </div>
                            <div className="flex-1 relative">
@@ -445,9 +451,9 @@ const Feed: React.FC<FeedProps> = ({ onBack, setView }) => {
                                 onChange={e => setNewComment(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleAddComment(post.id)}
                                 placeholder="Write a response..." 
-                                className="w-full bg-white dark:bg-slate-800 rounded-2xl py-2 px-4 text-xs outline-none shadow-inner dark:text-white border dark:border-white/5"
+                                className="w-full bg-white/5 rounded-xl py-3 px-5 text-xs outline-none text-white border border-white/10 focus:border-aba-gold/50 transition-standard"
                               />
-                              <button onClick={() => handleAddComment(post.id)} className="absolute right-2 top-1/2 -translate-y-1/2 text-aba-gold hover:scale-110 transition-transform"><Send size={14}/></button>
+                              <button onClick={() => handleAddComment(post.id)} className="absolute right-3 top-1/2 -translate-y-1/2 text-aba-gold hover:scale-110 transition-standard"><Send size={14}/></button>
                            </div>
                         </div>
                      </div>

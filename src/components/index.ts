@@ -13,6 +13,7 @@ import { ImageUpload, MultiImageUpload } from './ImageUpload';
 import IndustrialButton from './IndustrialButton';
 import Layout from './Layout';
 import Loading from './Loading';
+import LoadingScreen from './LoadingScreen';
 import Logo from './Logo';
 import MapView from './MapView';
 import MessageBubble from './MessageBubble';
@@ -39,6 +40,7 @@ export {
   IndustrialButton,
   Layout,
   Loading,
+  LoadingScreen,
   Logo,
   MapView,
   MessageBubble,
