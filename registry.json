@@ -1,8 +1,8 @@
 {
-  "version": "v6.0",
-  "lastUpdated": "2026-04-09T16:25:46.377Z",
-  "businesses": [
-    {
+  "version": "v1",
+  "integrity_grade": "A",
+  "businesses": []
+}
       "id": "biz-kqqmc1c84e-1775682256600",
       "name": "AmyOils",
       "email": "2347068051156@findaba.com",
