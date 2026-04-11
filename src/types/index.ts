@@ -130,6 +130,13 @@ export interface Dispute {
   created_at: string;
 }
 
+export enum HubTier {
+  STARTER = 'Starter Hub',
+  LOCAL_TRUST = 'Local Trust Hub',
+  GROWTH_ENGINE = 'Growth Engine Hub',
+  EXPORT_READY = 'Export Ready Hub'
+}
+
 export enum SubscriptionTier {
   FREE = 'Free',
   VERIFIED = 'Verified',
@@ -248,6 +255,7 @@ export interface Product {
 
 export interface Business {
   id: string;
+  owner_id?: string;
   name: string;
   email: string;
   phone?: string;
@@ -263,11 +271,13 @@ export interface Business {
   verification_status: VerificationStatus;
   verification_level: VerificationLevel;
   integrity_grade: IntegrityGrade;
+  hub_tier?: HubTier;
   is_export_ready: boolean;
   capacity_indicator: string;
   premium_features_enabled: boolean;
   commission_rate?: number; 
   subscription_tier?: SubscriptionTier;
+  settlement_frequency?: string;
   active_features: {
     physical_verification_badge?: boolean;
     priority_score_bonus?: number;

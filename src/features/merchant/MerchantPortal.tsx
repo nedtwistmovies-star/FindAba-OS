@@ -11,12 +11,14 @@ import {
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchMerchantOrders, updateBusinessInDB } from '../../services/supabaseService';
+import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile } from '../../services/supabaseService';
 import { MultiImageUpload, ImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
+import { useAuth } from '../../providers/AuthProvider';
 import { BUSINESS_PLANS } from '../../constants';
-import { BillingCycle, SubscriptionTier } from '../../types';
+import { BillingCycle, SubscriptionTier, HubTier } from '../../types';
+import HubEnrollment from './HubEnrollment';
 
 // Fix Leaflet icon issue safely
 try {
@@ -40,13 +42,16 @@ const MerchantPortal: React.FC<{
   isRegistryLoading?: boolean;
 }> = ({ myBusiness: initialBusiness, setView, onRefresh, isRegistryLoading }) => {
   const { addToast } = useToast();
+  const { userIdentifier } = useAuth();
   const [business, setBusiness] = useState<Business | null>(initialBusiness);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
-  const [activeTab, setActiveTab] = useState<'identity' | 'orders' | 'media' | 'finance' | 'showroom' | 'trust' | 'subscription'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'orders' | 'media' | 'finance' | 'showroom' | 'trust' | 'subscription' | 'referrals'>('identity');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [showUpgradeCheckout, setShowUpgradeCheckout] = useState(false);
   const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<any>(null);
 
@@ -68,8 +73,15 @@ const MerchantPortal: React.FC<{
   useEffect(() => {
     if (initialBusiness?.id) {
       setLoading(true);
-      fetchMerchantOrders(initialBusiness.id).then(data => {
-        setOrders(data);
+      const ownerId = initialBusiness.owner_id || userIdentifier;
+      Promise.all([
+        fetchMerchantOrders(initialBusiness.id),
+        ownerId ? fetchReferrals(ownerId) : Promise.resolve([]),
+        ownerId ? fetchUserProfile(ownerId) : Promise.resolve(null)
+      ]).then(([ordersData, referralsData, profileData]) => {
+        setOrders(ordersData);
+        setReferrals(referralsData);
+        setUserProfile(profileData);
         setLoading(false);
       }).catch(() => {
         setLoading(false);
@@ -77,7 +89,7 @@ const MerchantPortal: React.FC<{
     } else {
       setLoading(false);
     }
-  }, [initialBusiness?.id]);
+  }, [initialBusiness?.id, initialBusiness?.owner_id, userIdentifier]);
 
   if (!initialBusiness || !business) {
     return (
@@ -244,6 +256,7 @@ const MerchantPortal: React.FC<{
             { id: 'orders', label: 'Orders', icon: <ShoppingBag size={16}/> },
             { id: 'media', label: 'Media Hub', icon: <ImageIcon size={16}/> },
             { id: 'finance', label: 'Finance', icon: <Landmark size={16}/> },
+            { id: 'referrals', label: 'Referrals', icon: <Zap size={16}/> },
             { id: 'subscription', label: 'Subscription', icon: <Zap size={16}/> },
             { id: 'trust', label: 'Trust Center', icon: <ShieldCheck size={16}/> }
           ].map(tab => (
@@ -518,16 +531,16 @@ const MerchantPortal: React.FC<{
                                  />
                               </div>
                               <div className="space-y-1.5 md:space-y-2">
-                                 <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Image URL</label>
-                                 <input 
-                                   type="text" 
-                                   value={p.imageUrl} 
-                                   onChange={e => {
+                                 <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Product Image</label>
+                                 <ImageUpload 
+                                   label=""
+                                   onUpload={(url) => {
                                      const updated = [...(business.products || [])];
-                                     updated[idx].imageUrl = e.target.value;
+                                     updated[idx].imageUrl = url;
                                      setBusiness({ ...business, products: updated });
                                    }}
-                                   className="w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-3 md:p-4 rounded-xl md:rounded-2xl outline-none focus:border-aba-gold transition-all text-[9px] md:text-[10px] font-mono" 
+                                   currentImage={p.imageUrl}
+                                   className="h-32"
                                  />
                               </div>
                            </div>
@@ -751,6 +764,45 @@ const MerchantPortal: React.FC<{
                       </div>
                    </div>
 
+                   <div className="bg-white dark:bg-slate-800/50 p-8 md:p-10 rounded-2xl md:rounded-[3rem] border border-slate-100 dark:border-white/5 space-y-6">
+                      <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold">
+                            <Zap size={20} />
+                         </div>
+                         <h5 className="text-sm md:text-base font-black uppercase tracking-tight">Settlement Gateway</h5>
+                      </div>
+                      
+                      <div className="space-y-4">
+                         <div className="space-y-1.5">
+                            <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Gateway Provider</label>
+                            <div className="w-full bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 p-4 rounded-xl text-[11px] font-bold flex items-center justify-between">
+                               <span>Paystack (Industrial Standard)</span>
+                               <div className="px-2 py-0.5 bg-aba-green/20 text-aba-green rounded-full text-[7px] font-black uppercase tracking-widest">Connected</div>
+                            </div>
+                         </div>
+                         
+                         <div className="space-y-1.5">
+                            <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Settlement Frequency</label>
+                            <select 
+                              className="w-full bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 p-4 rounded-xl outline-none focus:border-aba-gold transition-all text-[11px] font-bold uppercase"
+                              value={business.settlement_frequency || 'daily'}
+                              onChange={e => setBusiness({...business, settlement_frequency: e.target.value})}
+                            >
+                               <option value="daily">Daily (Standard)</option>
+                               <option value="weekly">Weekly (Consolidated)</option>
+                               <option value="monthly">Monthly (Industrial)</option>
+                            </select>
+                         </div>
+
+                         <div className="space-y-1.5">
+                            <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Subaccount ID (Reference)</label>
+                            <div className="w-full bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 p-4 rounded-xl text-[11px] font-mono text-slate-500">
+                               ACCT_{business.id.slice(0, 8).toUpperCase()}
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+
                    <div className="bg-aba-dark p-8 md:p-10 rounded-2xl md:rounded-[3rem] text-white space-y-6 md:space-y-8 relative overflow-hidden">
                       <div className="absolute top-0 right-0 p-6 md:p-8 opacity-5"><ShieldCheck size={100} className="md:w-[120px] md:h-[120px]" /></div>
                       <div className="relative z-10 space-y-5 md:space-y-6">
@@ -780,7 +832,8 @@ const MerchantPortal: React.FC<{
                       await updateBusinessInDB(business.id, { 
                         bank_name: business.bank_name,
                         account_number: business.account_number,
-                        account_name: business.account_name
+                        account_name: business.account_name,
+                        settlement_frequency: business.settlement_frequency
                       });
                       addToast("Settlement Gateway Bound Successfully.", "success");
                     } catch (e) {
@@ -800,77 +853,108 @@ const MerchantPortal: React.FC<{
 
 
         {activeTab === 'subscription' && (
-          <div className="animate-slide-up space-y-6 md:space-y-10 pb-20">
-            <div className="bg-white dark:bg-[#1e293b] p-6 md:p-12 rounded-3xl md:rounded-[4rem] shadow-xl border border-slate-100 dark:border-white/5 space-y-8 md:space-y-10">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-8">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
-                    <Zap size={20} fill="currentColor" className="md:w-6 md:h-6" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Subscription Hub</h4>
-                    <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Current Tier: <span className="text-aba-gold">{business.subscription_tier || 'Free'}</span></p>
-                  </div>
-                </div>
+          <HubEnrollment 
+            business={business} 
+            setView={setView} 
+            onUpdate={async () => {
+              if (onRefresh) await onRefresh();
+            }} 
+          />
+        )}
 
-                <div className="bg-slate-50 dark:bg-black/20 p-1 md:p-1.5 rounded-2xl md:rounded-[2rem] flex border dark:border-white/5 w-full md:w-auto">
-                  <button 
-                    onClick={() => setBillingCycle(BillingCycle.MONTHLY)} 
-                    className={`flex-1 md:flex-none px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-[1.5rem] text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}
-                  >
-                    30 Day Hub
-                  </button>
-                  <button 
-                    onClick={() => setBillingCycle(BillingCycle.YEARLY)} 
-                    className={`flex-1 md:flex-none px-4 md:px-8 py-2 md:py-3 rounded-xl md:rounded-[1.5rem] text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-dark text-white shadow-lg' : 'text-slate-400'}`}
-                  >
-                    45 Day Cycle <span className="bg-aba-green text-white px-1.5 py-0.5 rounded text-[6px] md:text-[7px]">PRO</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                {BUSINESS_PLANS.filter(p => p.id === SubscriptionTier.GROWTH || p.id === SubscriptionTier.PREMIUM).map(plan => {
-                  const isCurrent = business.subscription_tier === plan.id;
-                  const price = billingCycle === BillingCycle.MONTHLY ? plan.monthlyAmount : plan.yearlyAmount;
+        {activeTab === 'referrals' && (
+          <div className="space-y-6 md:space-y-8 animate-slide-up pb-20">
+            {/* Referral Code Card */}
+            <div className="bg-[#002113] p-8 md:p-12 rounded-3xl md:rounded-[4rem] shadow-2xl border border-white/5 relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-8 opacity-5"><Zap size={120} className="text-aba-gold" /></div>
+               <div className="relative z-10 space-y-8">
+                  <div className="space-y-2">
+                     <h3 className="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Referral Hub</h3>
+                     <p className="text-[10px] md:text-xs font-bold text-aba-gold uppercase tracking-[0.3em]">Grow the mesh, earn rewards</p>
+                  </div>
                   
-                  return (
-                    <div key={plan.id} className={`p-6 md:p-10 rounded-2xl md:rounded-[3rem] border-2 transition-all flex flex-col justify-between group ${isCurrent ? 'border-aba-gold bg-aba-gold/5' : 'border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/20'}`}>
-                      <div className="space-y-6 md:space-y-8">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h5 className="text-lg md:text-xl font-black uppercase tracking-tight">{plan.name}</h5>
-                            <p className="text-[7px] md:text-[8px] font-black text-aba-gold uppercase tracking-widest mt-1">{billingCycle === BillingCycle.YEARLY ? '45 Day Industrial Cycle' : '30 Day Activation'}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">NGN</p>
-                            <h4 className="text-2xl md:text-3xl font-black tracking-tighter">₦{price.toLocaleString()}</h4>
-                          </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 space-y-4">
+                        <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Your Unique Code</p>
+                        <div className="flex items-center justify-between bg-black/40 p-5 rounded-2xl border border-aba-gold/30">
+                           <span className="text-2xl font-black text-aba-gold tracking-widest">{userProfile?.referral_code || 'ABA-HUB-01'}</span>
+                           <button 
+                             onClick={() => {
+                               navigator.clipboard.writeText(userProfile?.referral_code || '');
+                               addToast("Code copied to clipboard.", "success");
+                             }}
+                             className="p-3 bg-aba-gold text-aba-dark rounded-xl hover:scale-105 transition-all"
+                           >
+                             <Save size={16} />
+                           </button>
                         </div>
-
-                        <div className="space-y-3 md:space-y-4">
-                          {plan.features.map((f, i) => (
-                            <div key={i} className="flex items-start gap-2 md:gap-3 text-[9px] md:text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-tight leading-tight">
-                              <CheckCircle2 size={12} className="text-aba-green shrink-0 md:w-[14px] md:h-[14px]" /> {f}
-                            </div>
-                          ))}
+                     </div>
+                     
+                     <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 space-y-4">
+                        <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Referral Link</p>
+                        <div className="flex items-center justify-between bg-black/40 p-5 rounded-2xl border border-white/10">
+                           <span className="text-[10px] font-mono text-white/60 truncate mr-4">findaba.com.ng/signup?ref={userProfile?.referral_code}</span>
+                           <button 
+                             onClick={() => {
+                               navigator.clipboard.writeText(`https://www.findaba.com.ng/signup?ref=${userProfile?.referral_code}`);
+                               addToast("Link copied to clipboard.", "success");
+                             }}
+                             className="p-3 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all"
+                           >
+                             <Globe size={16} />
+                           </button>
                         </div>
-                      </div>
+                     </div>
+                  </div>
 
-                      <button 
-                        disabled={isCurrent || syncing}
-                        onClick={() => {
-                          setSelectedUpgradePlan({ ...plan, price });
-                          setShowUpgradeCheckout(true);
-                        }}
-                        className={`mt-8 md:mt-10 w-full py-4 md:py-6 rounded-xl md:rounded-[2rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.2em] md:tracking-[0.3em] transition-all shadow-xl ${isCurrent ? 'bg-aba-green/20 text-aba-green cursor-default' : 'bg-aba-dark text-white hover:bg-aba-gold hover:text-aba-dark active:scale-95'}`}
-                      >
-                        {isCurrent ? 'Current Active Hub' : 'Initialize Upgrade'}
-                      </button>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                     <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-center space-y-1">
+                        <p className="text-[7px] font-black text-white/40 uppercase tracking-widest">Total Referrals</p>
+                        <p className="text-2xl font-black text-white">{userProfile?.referral_count || 0}</p>
+                     </div>
+                     <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-center space-y-1">
+                        <p className="text-[7px] font-black text-white/40 uppercase tracking-widest">Total Earnings</p>
+                        <p className="text-2xl font-black text-aba-green">₦{(userProfile?.referral_earnings || 0).toLocaleString()}</p>
+                     </div>
+                     <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-center space-y-1 col-span-2 sm:col-span-1">
+                        <p className="text-[7px] font-black text-white/40 uppercase tracking-widest">Reward Status</p>
+                        <p className="text-2xl font-black text-aba-gold uppercase">Active</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Referrals List */}
+            <div className="bg-white dark:bg-[#1e293b] p-6 md:p-12 rounded-3xl md:rounded-[4rem] shadow-xl border border-slate-100 dark:border-white/5 space-y-8">
+               <div className="flex justify-between items-center px-2">
+                  <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Referral History</h4>
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-black/20 px-3 py-1 rounded-full border dark:border-white/5">{referrals.length} Nodes Linked</span>
+               </div>
+               
+               <div className="space-y-4">
+                  {referrals.length === 0 ? (
+                    <div className="py-20 text-center opacity-20">
+                       <User size={48} className="mx-auto mb-4" />
+                       <p className="text-[10px] font-black uppercase tracking-widest">No referrals recorded yet.</p>
                     </div>
-                  );
-                })}
-              </div>
+                  ) : referrals.map((ref, idx) => (
+                    <div key={idx} className="p-6 bg-slate-50 dark:bg-black/20 rounded-[2rem] border border-slate-100 dark:border-white/5 flex items-center justify-between">
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-aba-gold/10 rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20">
+                             <User size={20} />
+                          </div>
+                          <div>
+                             <p className="text-sm font-black text-aba-dark dark:text-white uppercase tracking-tight">{ref.referred_user?.full_name || 'Anonymous Partner'}</p>
+                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{new Date(ref.created_at).toLocaleDateString()}</p>
+                          </div>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-sm font-black text-aba-green">+₦{ref.reward_amount.toLocaleString()}</p>
+                          <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Reward Granted</p>
+                       </div>
+                    </div>
+                  ))}
+               </div>
             </div>
           </div>
         )}

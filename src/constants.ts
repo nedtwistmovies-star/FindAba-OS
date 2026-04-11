@@ -1,5 +1,5 @@
 
-import { Business, Category, VerificationStatus, VerificationLevel, IntegrityGrade, EditorialStory, BusinessPlan, SubscriptionTier, AdType, LegalDocType } from './types';
+import { Business, Category, VerificationStatus, VerificationLevel, IntegrityGrade, EditorialStory, BusinessPlan, SubscriptionTier, AdType, LegalDocType, HubTier } from './types';
 
 export const SANDALS_BRAND = {
   name: "FindAba",
@@ -75,6 +75,7 @@ export const ARTISANS: Business[] = [
     verification_status: VerificationStatus.VERIFIED,
     verification_level: VerificationLevel.PHYSICALLY_VERIFIED,
     integrity_grade: IntegrityGrade.A_PLUS,
+    hub_tier: HubTier.EXPORT_READY,
     is_export_ready: true,
     capacity_indicator: 'High Volume',
     premium_features_enabled: true,
@@ -108,6 +109,7 @@ export const ARTISANS: Business[] = [
     verification_status: VerificationStatus.VERIFIED,
     verification_level: VerificationLevel.DOCUMENT_VERIFIED,
     integrity_grade: IntegrityGrade.A,
+    hub_tier: HubTier.GROWTH_ENGINE,
     is_export_ready: true,
     capacity_indicator: 'Bespoke & Batch',
     premium_features_enabled: true,
@@ -135,6 +137,7 @@ export const ARTISANS: Business[] = [
     verification_status: VerificationStatus.VERIFIED,
     verification_level: VerificationLevel.PHYSICALLY_VERIFIED,
     integrity_grade: IntegrityGrade.A_PLUS,
+    hub_tier: HubTier.LOCAL_TRUST,
     is_export_ready: false,
     capacity_indicator: 'High Precision',
     premium_features_enabled: true,
@@ -162,6 +165,7 @@ export const ARTISANS: Business[] = [
     verification_status: VerificationStatus.VERIFIED,
     verification_level: VerificationLevel.DOCUMENT_VERIFIED,
     integrity_grade: IntegrityGrade.A,
+    hub_tier: HubTier.LOCAL_TRUST,
     is_export_ready: false,
     capacity_indicator: 'Retail & Wholesale',
     premium_features_enabled: true,
@@ -192,6 +196,7 @@ export const ARTISANS: Business[] = [
     verification_status: VerificationStatus.VERIFIED,
     verification_level: VerificationLevel.PHYSICALLY_VERIFIED,
     integrity_grade: IntegrityGrade.A_PLUS,
+    hub_tier: HubTier.LOCAL_TRUST,
     is_export_ready: false,
     capacity_indicator: 'Wholesale Bales',
     premium_features_enabled: true,
@@ -220,6 +225,7 @@ export const ARTISANS: Business[] = [
     verification_status: VerificationStatus.UNVERIFIED,
     verification_level: VerificationLevel.NONE,
     integrity_grade: IntegrityGrade.C,
+    hub_tier: HubTier.LOCAL_TRUST,
     subscription_tier: SubscriptionTier.VERIFIED,
     is_export_ready: true,
     capacity_indicator: 'Verified Hub',
@@ -247,6 +253,7 @@ export const ARTISANS: Business[] = [
     verification_status: VerificationStatus.UNVERIFIED,
     verification_level: VerificationLevel.NONE,
     integrity_grade: IntegrityGrade.C,
+    hub_tier: HubTier.LOCAL_TRUST,
     subscription_tier: SubscriptionTier.VERIFIED,
     is_export_ready: true,
     capacity_indicator: 'Verified Hub',
@@ -259,11 +266,11 @@ export const ARTISANS: Business[] = [
 export const BUSINESS_PLANS: BusinessPlan[] = [
   {
     id: SubscriptionTier.FREE,
-    name: 'Starter Partner',
+    name: 'Starter Hub',
     monthlyAmount: 0,
     yearlyAmount: 0,
     slots: 1,
-    features: ['Basic Directory Entry', 'Standard Contact Protocol']
+    features: ['Basic Directory Entry', 'Standard Contact Protocol', 'Community Access']
   },
   {
     id: SubscriptionTier.VERIFIED,
@@ -287,7 +294,7 @@ export const BUSINESS_PLANS: BusinessPlan[] = [
     monthlyAmount: 10000,
     yearlyAmount: 10000, // 45 Day Cycle
     slots: 100,
-    features: ['Verified Exporter Partner', 'Unlimited Discovery Ranking', 'Global Buyer Signals', 'Direct Trade Intelligence']
+    features: ['Verified Exporter Partner', 'Unlimited Discovery Ranking', 'Global Buyer Signals']
   }
 ];
 

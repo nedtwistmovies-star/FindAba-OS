@@ -5,7 +5,7 @@ import {
   LogisticsOrder, ChatMessage, Advertorial, AdPlan, 
   PaymentLog, ThriftAccount, Order, OrderStatus, Dispute, PlatformConfig,
   QualityAudit, SubscriptionTier, RoomType, BuyerSignal, SignalInterest, AdCampaign, HospitalityConfig,
-  AppNotification
+  AppNotification, HubTier
 } from '../types';
 import { triggerWebhook, WebhookEvent } from './webhookService';
 
@@ -192,6 +192,34 @@ export const updateUserProfile = async (userId: string, updates: any) => {
   const sb = getSupabase();
   if (!sb) return;
   await sb.from('profiles').update(updates).eq('id', userId);
+};
+
+export const fetchReferrals = async (userId: string) => {
+  const sb = getSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from('referrals')
+      .select('*, referred_user:profiles!referred_user_id(full_name, email)')
+      .eq('referrer_id', userId)
+      .order('created_at', { ascending: false });
+    if (error && error.code === '42P01') return [];
+    return data || [];
+  } catch (e) { return []; }
+};
+
+export const fetchAutomationLogs = async () => {
+  const sb = getSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from('automation_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error && error.code === '42P01') return [];
+    return data || [];
+  } catch (e) { return []; }
 };
 
 export const authSignOut = async () => {
@@ -489,6 +517,25 @@ export const fetchAllBusinesses = async (): Promise<Business[]> => {
     if (error && error.message.includes('Unexpected token')) return [];
     return data || [];
   } catch (e) { return []; }
+};
+
+export const updateBusinessTier = async (businessId: string, tier: HubTier) => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry Offline");
+  
+  const { error } = await client
+    .from('businesses')
+    .update({ 
+      hub_tier: tier,
+      subscription_tier: tier === HubTier.STARTER ? SubscriptionTier.FREE :
+                        tier === HubTier.LOCAL_TRUST ? SubscriptionTier.VERIFIED :
+                        tier === HubTier.GROWTH_ENGINE ? SubscriptionTier.GROWTH :
+                        SubscriptionTier.PREMIUM,
+      premium_features_enabled: tier !== HubTier.STARTER
+    })
+    .eq('id', businessId);
+    
+  if (error) throw error;
 };
 
 export const updateBusinessInDB = async (id: string, updates: Partial<Business>) => {

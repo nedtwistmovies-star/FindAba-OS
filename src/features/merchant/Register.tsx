@@ -6,7 +6,7 @@ import {
   CheckCircle2, Sparkles, Building2, Zap, LayoutGrid, Plus,
   MapPin, Phone, Mail, Globe, Camera, Briefcase, Award
 } from 'lucide-react';
-import { SubscriptionTier, ViewState, BillingCycle, Category, VerificationStatus, VerificationLevel, IntegrityGrade, Business } from '../../types';
+import { SubscriptionTier, ViewState, BillingCycle, Category, VerificationStatus, VerificationLevel, IntegrityGrade, Business, HubTier } from '../../types';
 import { saveBusinessToDB } from '../../services/supabaseService';
 import { BUSINESS_PLANS, CATEGORIES, ABA_AREAS } from '../../constants';
 import { ImageUpload } from '../../components/ImageUpload';
@@ -79,6 +79,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
       verification_status: VerificationStatus.UNVERIFIED,
       verification_level: VerificationLevel.NONE,
       integrity_grade: IntegrityGrade.C,
+      hub_tier: HubTier.STARTER,
       is_export_ready: false,
       capacity_indicator: 'Standard',
       premium_features_enabled: selectedPlan !== SubscriptionTier.FREE,

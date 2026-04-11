@@ -46,6 +46,7 @@ import {
   checkDatabaseHealth,
   purgeLocalRegistry,
   seedDatabase,
+  fetchAutomationLogs,
 } from "../../services/supabaseService";
 import { ARTISANS } from "../../constants";
 import { useToast } from "../../providers/ToastProvider";
@@ -66,6 +67,24 @@ const AutomationAudit: React.FC = () => {
   const [status, setStatus] = useState<{ status: string, message: string }>({ status: 'unknown', message: 'Audit not yet initialized.' });
   const [auditing, setAuditing] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('findaba_make_webhook_url') || '');
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  const loadLogs = useCallback(async () => {
+    setLoadingLogs(true);
+    try {
+      const data = await fetchAutomationLogs();
+      setLogs(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingLogs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
 
   const runAudit = async () => {
     setAuditing(true);
@@ -77,6 +96,7 @@ const AutomationAudit: React.FC = () => {
       } else {
         addToast("Automation Gateway Fault Detected", "error");
       }
+      loadLogs();
     } catch (err: any) {
       setStatus({ status: 'broken', message: err.message || 'Unknown fault.' });
     } finally {
@@ -209,6 +229,62 @@ const AutomationAudit: React.FC = () => {
           <p>1. <span className="font-black">Edge Proxying:</span> Move webhook calls to a server-side route (e.g., /api/webhook) to hide the Make.com URL from the client and prevent CORS issues.</p>
           <p>2. <span className="font-black">Queue Management:</span> Implement a background queue (e.g., Upstash or BullMQ) to handle retries and ensure 100% delivery even if Make.com is temporarily down.</p>
           <p>3. <span className="font-black">Payload Signing:</span> Add a secret signature to the payload headers to verify that signals are coming from the FindAba OS and not a malicious source.</p>
+        </div>
+      </div>
+
+      {/* Automation Logs Section */}
+      <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+        <div className="flex items-center justify-between">
+           <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+             <Terminal className="text-aba-gold" /> Automation Logs
+           </h4>
+           <button 
+             onClick={loadLogs}
+             className="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all"
+           >
+             <RefreshCcw size={16} className={loadingLogs ? 'animate-spin' : ''} />
+           </button>
+        </div>
+
+        <div className="overflow-x-auto">
+           <table className="w-full text-left border-collapse">
+              <thead>
+                 <tr className="border-b border-white/5">
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/40">Timestamp</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/40">Event</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/40">Status</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/40">Response</th>
+                 </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                 {logs.length === 0 ? (
+                   <tr>
+                      <td colSpan={4} className="py-10 text-center text-[10px] font-bold uppercase text-white/20 tracking-widest">
+                         No automation logs detected.
+                      </td>
+                   </tr>
+                 ) : logs.map((log, i) => (
+                   <tr key={log.id || i} className="group hover:bg-white/5 transition-all">
+                      <td className="py-4 text-[10px] font-mono text-white/60">
+                         {new Date(log.created_at).toLocaleString()}
+                      </td>
+                      <td className="py-4">
+                         <span className="text-[10px] font-black uppercase tracking-widest text-aba-gold">{log.event_type}</span>
+                      </td>
+                      <td className="py-4">
+                         <span className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                            log.status === 'success' ? 'bg-aba-green/20 text-aba-green' : 'bg-red-500/20 text-red-500'
+                         }`}>
+                            {log.status}
+                         </span>
+                      </td>
+                      <td className="py-4 max-w-[200px] truncate text-[10px] font-mono text-white/40">
+                         {log.response}
+                      </td>
+                   </tr>
+                 ))}
+              </tbody>
+           </table>
         </div>
       </div>
     </div>
