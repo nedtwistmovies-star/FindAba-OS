@@ -62,13 +62,18 @@ export const isRegistryConfigured = () => {
   return !!getSupabase();
 };
 
-export const authSignUp = async (email: string, pass: string, name: string) => {
+export const authSignUp = async (email: string, pass: string, name: string, referralCode?: string) => {
   const sb = getSupabase();
   if (!sb) throw new Error("Registry Offline: Supabase URL or Anon Key is missing in environment/admin.");
   const { data, error } = await sb.auth.signUp({
     email,
     password: pass,
-    options: { data: { full_name: name } }
+    options: { 
+      data: { 
+        full_name: name,
+        referral_code: referralCode || null
+      } 
+    }
   });
   if (error) throw error;
   return data;

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { 
   ArrowLeft, ShieldCheck, Mail, Lock, 
-  User, Loader2, Zap, AlertTriangle, Eye, EyeOff
+  User, Loader2, Zap, AlertTriangle, Eye, EyeOff, Ticket
 } from 'lucide-react';
 import { ViewState } from '../types';
 import { authSignUp, createWelcomeNotification } from '../services/supabaseService';
@@ -22,7 +22,8 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    name: ''
+    name: '',
+    referral_code: ''
   });
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -32,7 +33,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
     setMessage(null);
 
     try {
-      const data = await authSignUp(formData.email, formData.password, formData.name);
+      const data = await authSignUp(formData.email, formData.password, formData.name, formData.referral_code);
       
       if (data?.user) {
         // ✅ INSERT WELCOME NOTIFICATION HERE
@@ -119,7 +120,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                   </div>
                </div>
 
-               <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2">
+                <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2">
                   <div className="flex items-center">
                     <div className="p-4"><Lock className="text-aba-gold" size={20} /></div>
                     <input 
@@ -137,6 +138,19 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                     >
                       {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
+                  </div>
+               </div>
+
+               <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2">
+                  <div className="flex items-center">
+                    <div className="p-4"><Ticket className="text-white/20" size={20} /></div>
+                    <input 
+                       type="text" 
+                       placeholder="REFERRAL CODE (OPTIONAL)" 
+                       className="flex-1 bg-transparent py-4 pr-6 outline-none text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
+                       value={formData.referral_code}
+                       onChange={e => setFormData({...formData, referral_code: e.target.value})}
+                    />
                   </div>
                </div>
 

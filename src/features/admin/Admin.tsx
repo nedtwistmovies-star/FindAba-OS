@@ -49,7 +49,8 @@ import {
 } from "../../services/supabaseService";
 import { ARTISANS } from "../../constants";
 import { useToast } from "../../providers/ToastProvider";
-import { triggerWebhook, WebhookEvent } from "../../services/webhookService";
+import { triggerWebhook, WebhookEvent, validateAutomationGateway } from "../../services/webhookService";
+import { Send, Cpu } from "lucide-react";
 import { paymentService } from "../../services/paymentService";
 import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel } from "../../types";
 import { ImageUpload, MultiImageUpload } from "../../components/ImageUpload";
@@ -59,6 +60,160 @@ import SectionHeader from "../../components/SectionHeader";
 import IndustrialButton from "../../components/IndustrialButton";
 import { BentoGrid, BentoItem } from "../../components/BentoGrid";
 import { GitHubSync } from "../../components/GitHubSync";
+
+const AutomationAudit: React.FC = () => {
+  const { addToast } = useToast();
+  const [status, setStatus] = useState<{ status: string, message: string }>({ status: 'unknown', message: 'Audit not yet initialized.' });
+  const [auditing, setAuditing] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('findaba_make_webhook_url') || '');
+
+  const runAudit = async () => {
+    setAuditing(true);
+    try {
+      const result = await validateAutomationGateway();
+      setStatus(result);
+      if (result.status === 'working') {
+        addToast("Automation Gateway Validated", "success");
+      } else {
+        addToast("Automation Gateway Fault Detected", "error");
+      }
+    } catch (err: any) {
+      setStatus({ status: 'broken', message: err.message || 'Unknown fault.' });
+    } finally {
+      setAuditing(false);
+    }
+  };
+
+  const scenarios = [
+    { name: 'Business Registration Sync', event: WebhookEvent.NEW_REGISTRATION, description: 'Syncs new business nodes to external CRM/Email.' },
+    { name: 'Payment Success Relay', event: WebhookEvent.PAYMENT_SUCCESS, description: 'Triggers post-payment industrial workflows.' },
+    { name: 'Logistics Order Routing', event: WebhookEvent.LOGISTICS_ORDER_CREATED, description: 'Routes cargo requests to fulfillment partners.' },
+    { name: 'Buyer Signal Alert', event: WebhookEvent.NEW_SIGNAL, description: 'Notifies partners of high-intent procurement signals.' },
+    { name: 'Booking Confirmation', event: WebhookEvent.NEW_BOOKING, description: 'Handles hotel and suite reservation sync.' }
+  ];
+
+  const testScenario = async (event: WebhookEvent) => {
+    addToast(`Dispatching test signal for ${event}...`, "info");
+    const success = await triggerWebhook(event, { test: true, source: 'Admin Audit', timestamp: new Date().toISOString() });
+    if (success) addToast(`Signal ${event} acknowledged.`, "success");
+    else addToast(`Signal ${event} failed to transmit.`, "error");
+  };
+
+  return (
+    <div className="space-y-12">
+      <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+              <Activity className="text-aba-gold" /> Gateway Status
+            </h4>
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Make.com Webhook Connectivity</p>
+          </div>
+          <div className={`px-4 py-2 rounded-full border flex items-center gap-3 ${
+            status.status === 'working' ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 
+            status.status === 'broken' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 
+            'bg-white/5 border-white/10 text-white/40'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${
+              status.status === 'working' ? 'bg-aba-green animate-pulse' : 
+              status.status === 'broken' ? 'bg-red-500' : 
+              'bg-white/40'
+            }`} />
+            <span className="text-[10px] font-black uppercase tracking-widest">{status.status}</span>
+          </div>
+        </div>
+
+        <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-4">
+          <p className="text-[11px] font-medium text-white/80 leading-relaxed">
+            {status.message}
+          </p>
+          <div className="pt-4 flex gap-4">
+            <IndustrialButton 
+              variant="primary" 
+              size="md" 
+              icon={auditing ? Loader2 : Shield} 
+              loading={auditing}
+              onClick={runAudit}
+            >
+              Run Full Audit
+            </IndustrialButton>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+        <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+          <Zap className="text-aba-gold" /> Active Scenarios
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {scenarios.map((s, i) => (
+            <div key={i} className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 flex flex-col justify-between gap-6 hover:border-aba-gold/30 transition-all group">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-aba-gold tracking-widest">{s.event}</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-aba-green" />
+                </div>
+                <h5 className="text-sm font-black uppercase tracking-tight text-white">{s.name}</h5>
+                <p className="text-[10px] font-medium text-white/40 leading-relaxed">{s.description}</p>
+              </div>
+              <IndustrialButton 
+                variant="secondary" 
+                size="sm" 
+                icon={Send}
+                onClick={() => testScenario(s.event)}
+              >
+                Test Flow
+              </IndustrialButton>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+        <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+          <Settings className="text-aba-gold" /> Configuration
+        </h4>
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Webhook Endpoint</label>
+            <div className="flex gap-4">
+              <input 
+                type="text"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://hook.make.com/..."
+                className="flex-1 bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
+              />
+              <IndustrialButton 
+                variant="primary" 
+                size="md" 
+                icon={Save}
+                onClick={() => {
+                  localStorage.setItem('findaba_make_webhook_url', webhookUrl);
+                  addToast("Webhook URL Saved", "success");
+                }}
+              >
+                Save
+              </IndustrialButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-aba-gold/5 p-10 rounded-[3rem] border border-aba-gold/10 space-y-6">
+        <h4 className="text-sm font-black uppercase tracking-widest text-aba-gold flex items-center gap-3">
+          <Info size={18} /> Architecture Recommendation
+        </h4>
+        <div className="space-y-4 text-[11px] font-medium text-aba-gold/80 leading-relaxed">
+          <p>1. <span className="font-black">Edge Proxying:</span> Move webhook calls to a server-side route (e.g., /api/webhook) to hide the Make.com URL from the client and prevent CORS issues.</p>
+          <p>2. <span className="font-black">Queue Management:</span> Implement a background queue (e.g., Upstash or BullMQ) to handle retries and ensure 100% delivery even if Make.com is temporarily down.</p>
+          <p>3. <span className="font-black">Payload Signing:</span> Add a secret signature to the payload headers to verify that signals are coming from the FindAba OS and not a malicious source.</p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MetadataEditor: React.FC = () => {
   const { addToast } = useToast();
@@ -225,6 +380,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "users"
     | "infrastructure"
     | "metadata"
+    | "automation"
   >(() => {
     const storedTab = localStorage.getItem('findaba_admin_tab');
     if (storedTab) {
@@ -451,6 +607,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
             id: "metadata",
             label: "Metadata",
             icon: <Settings size={16} />,
+          },
+          {
+            id: "automation",
+            label: "Automation",
+            icon: <Cpu size={16} />,
           },
           {
             id: "supabase",
@@ -1085,6 +1246,18 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === "automation" && (
+            <div className="animate-slide-up space-y-12">
+              <SectionHeader 
+                title="Automation Audit" 
+                subtitle="Monitor and validate Make.com industrial workflows"
+                icon={Cpu}
+              />
+
+              <AutomationAudit />
             </div>
           )}
 

@@ -25,25 +25,42 @@ export interface WeatherData {
 }
 
 export async function getAbaWeather(): Promise<WeatherData> {
+  const defaultWeather: WeatherData = {
+    temp: '28°C',
+    condition: 'Clear',
+    humidity: '65%',
+    wind: '12km/h'
+  };
+
   try {
     // Using wttr.in for a simple, no-key-required weather signal
-    const response = await fetch('https://wttr.in/Aba?format=%t|%C|%h|%w');
+    // Added a timeout to prevent long-hanging fetches
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch('https://wttr.in/Aba?format=%t|%C|%h|%w', {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+
     if (!response.ok) throw new Error('Weather signal lost');
+    
     const text = await response.text();
+    if (!text || !text.includes('|')) throw new Error('Invalid weather format');
+    
     const [temp, condition, humidity, wind] = text.split('|');
     return {
-      temp: temp.trim(),
-      condition: condition.trim(),
-      humidity: humidity.trim(),
-      wind: wind.trim()
+      temp: (temp || '28°C').trim(),
+      condition: (condition || 'Clear').trim(),
+      humidity: (humidity || '65%').trim(),
+      wind: (wind || '12km/h').trim()
     };
-  } catch (error) {
-    console.error('Weather fetch error:', error);
-    return {
-      temp: '28°C',
-      condition: 'Clear',
-      humidity: '65%',
-      wind: '12km/h'
-    };
+  } catch (error: any) {
+    // Only log actual errors, not aborts or common network failures in dev
+    if (error.name !== 'AbortError') {
+      console.debug('Weather sync bypassed, using local atmospheric fallback.');
+    }
+    return defaultWeather;
   }
 }

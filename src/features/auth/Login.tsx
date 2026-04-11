@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { 
   ArrowLeft, ShieldCheck, Mail, Lock, 
-  User, Loader2, Zap, AlertTriangle, Eye, EyeOff, Terminal, X
+  User, Loader2, Zap, AlertTriangle, Eye, EyeOff, Terminal, X, Ticket
 } from 'lucide-react';
 import { ViewState } from '../../types';
 import { authSignIn, authSignUp, authSignInWithGoogle, isRegistryConfigured } from '../../services/supabaseService';
@@ -22,7 +22,8 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    name: ''
+    name: '',
+    referral_code: ''
   });
 
   const [showConfig, setShowConfig] = useState(false);
@@ -57,7 +58,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     try {
       if (mode === 'signup') {
-        await authSignUp(formData.email, formData.password, formData.name);
+        await authSignUp(formData.email, formData.password, formData.name, formData.referral_code);
         onAuthSuccess(formData.email, formData.name, 'registered');
         setView('home');
       } else {
@@ -146,6 +147,21 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                     />
                   </div>
                </div>
+
+               {mode === 'signup' && (
+                 <div className="relative group bg-[#01301c] rounded-xl md:rounded-[1.5rem] border border-white/5 p-1 md:p-2 animate-slide-up">
+                   <div className="flex items-center">
+                     <div className="p-3 md:p-4"><Ticket className="text-white/20 md:w-5 md:h-5" size={18} /></div>
+                     <input 
+                        type="text" 
+                        placeholder="REFERRAL CODE (OPTIONAL)" 
+                        className="flex-1 bg-transparent py-3 md:py-4 pr-4 md:pr-6 outline-none text-[10px] md:text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
+                        value={formData.referral_code}
+                        onChange={e => setFormData({...formData, referral_code: e.target.value})}
+                     />
+                   </div>
+                 </div>
+               )}
 
                <button 
                  type="submit" 
