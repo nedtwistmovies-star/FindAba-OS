@@ -47,7 +47,7 @@ export const paymentService = {
     return localStorage.getItem(PAYSTACK_HANDSHAKE_STATUS) === 'true';
   },
 
-  getPaystackConfig: (config: { email: string, amount: number, label: string, businessId?: string }) => {
+  getPaystackConfig: (config: { email: string, amount: number, label: string, businessId?: string, userId?: string }) => {
     return {
       key: paymentService.getApiKey(),
       email: config.email,
@@ -55,6 +55,7 @@ export const paymentService = {
       ref: `SIG-PS-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
       currency: "NGN",
       metadata: {
+        user_id: config.userId,
         custom_fields: [
           {
             display_name: "Service Type",

@@ -10,7 +10,7 @@ import { ViewState, HubTier, SubscriptionTier, Business } from '../../types';
 import { BUSINESS_PLANS } from '../../constants';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { useAuth } from '../../providers/AuthProvider';
-import { updateBusinessTier } from '../../services/supabaseService';
+import { updateBusinessTier, subscribeToProfile } from '../../services/supabaseService';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
 
 interface HubEnrollmentProps {
@@ -25,6 +25,24 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
   const [showPayment, setShowPayment] = useState(false);
   const [selectedTier, setSelectedTier] = useState<HubTier | null>(null);
   const [upgradeSuccess, setUpgradeSuccess] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  // Real-time subscription for tier updates
+  useEffect(() => {
+    if (!userIdentifier) return;
+
+    const { unsubscribe } = subscribeToProfile(userIdentifier, (payload) => {
+      console.log('[Realtime] Profile updated:', payload);
+      const newTier = payload.new.tier_level;
+      if (newTier !== business.hub_tier) {
+        setUpgradeSuccess(true);
+        setVerifying(false);
+        if (onUpdate) onUpdate();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [userIdentifier, business.hub_tier, onUpdate]);
 
   const tiers = [
     {
@@ -83,28 +101,15 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
 
   const onPaymentSuccess = async () => {
     if (!selectedTier) return;
-    setLoading(true);
-    try {
-      await updateBusinessTier(business.id, selectedTier);
-      setUpgradeSuccess(true);
-      if (onUpdate) onUpdate();
-      
-      // Trigger Automation Webhook
-      await triggerWebhook(WebhookEvent.PAYMENT_SUCCESS, { 
-        business_id: business.id,
-        new_tier: selectedTier,
-      }, {
-        user_id: userIdentifier || undefined,
-        amount: tiers.find(t => t.id === selectedTier)?.amount || 0,
-        tier_level: selectedTier
-      });
-
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-      setShowPayment(false);
-    }
+    setShowPayment(false);
+    setVerifying(true);
+    
+    // We don't call updateBusinessTier here anymore.
+    // The Paystack Webhook on the server will handle the payment insertion,
+    // which triggers the apply_tier_upgrade RPC, which updates the profile.
+    // Our Realtime listener in useEffect will catch the profile update and show success.
+    
+    console.log('[Enrollment] Payment success signal received. Waiting for Registry confirmation...');
   };
 
   if (upgradeSuccess) {
@@ -137,10 +142,27 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
         isOpen={showPayment}
         amount={tiers.find(t => t.id === selectedTier)?.amount || 0}
         email={userIdentifier || 'guest@findaba.com'}
+        userId={userIdentifier || undefined}
         label={`Upgrade to ${selectedTier}`}
         onSuccess={onPaymentSuccess}
         onCancel={() => setShowPayment(false)}
       />
+
+      {verifying && (
+        <div className="fixed inset-0 z-[6000] bg-[#002113]/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+          <div className="w-24 h-24 bg-aba-gold/10 rounded-[2rem] flex items-center justify-center text-aba-gold mb-8 relative">
+            <Loader2 size={48} className="animate-spin" />
+            <div className="absolute inset-0 border-4 border-aba-gold/20 rounded-[2rem] animate-pulse" />
+          </div>
+          <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-2">Verifying Settlement</h3>
+          <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em] animate-pulse">Waiting for Registry Confirmation...</p>
+          <div className="mt-12 max-w-xs p-6 bg-white/5 rounded-2xl border border-white/10">
+            <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
+              Our AI Sentinel is auditing the ledger. Your tier will upgrade automatically once the signal is confirmed.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* HEADER */}
       <header className="p-6 sm:p-10 border-b border-white/5 flex justify-between items-center sticky top-0 z-50 backdrop-blur-xl bg-[#002113]/90">

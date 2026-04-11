@@ -629,6 +629,20 @@ export const subscribeToMessages = (callback: (payload: any) => void) => {
   return { unsubscribe: () => channel.unsubscribe() };
 };
 
+export const subscribeToProfile = (userId: string, callback: (payload: any) => void) => {
+  const client = getSupabase();
+  if (!client) return { unsubscribe: () => {} };
+  const channel = client.channel(`profile:${userId}`)
+    .on('postgres_changes', { 
+      event: 'UPDATE', 
+      schema: 'public', 
+      table: 'profiles',
+      filter: `id=eq.${userId}`
+    }, callback)
+    .subscribe();
+  return { unsubscribe: () => channel.unsubscribe() };
+};
+
 export const fetchAllAdvertorials = async (): Promise<Advertorial[]> => {
   const client = getSupabase();
   if (!client) return [];

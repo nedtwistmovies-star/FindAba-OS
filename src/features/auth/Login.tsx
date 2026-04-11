@@ -58,13 +58,13 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     try {
       if (mode === 'signup') {
-        await authSignUp(formData.email, formData.password, formData.name, formData.referral_code);
-        onAuthSuccess(formData.email, formData.name, 'registered');
+        const res = await authSignUp(formData.email, formData.password, formData.name, formData.referral_code);
+        onAuthSuccess(res.user?.id || formData.email, formData.name, 'registered');
         setView('home');
       } else {
         const res = await authSignIn(formData.email, formData.password);
         const role = localStorage.getItem('findaba_user_role') || 'registered';
-        onAuthSuccess(formData.email, res.user.user_metadata.full_name || 'Verified Citizen', role);
+        onAuthSuccess(res.user.id, res.user.user_metadata.full_name || 'Verified Citizen', role);
         setView('home');
       }
     } catch (err: any) {

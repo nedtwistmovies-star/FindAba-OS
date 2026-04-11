@@ -5,11 +5,16 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
 import fs from "fs/promises";
+import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey!);
 
 console.log("Initializing FindAba City OS Server...");
 console.log("Environment Check:", {
@@ -197,8 +202,81 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
 
   // Paystack Webhook Handler
   app.post("/api/paystack-webhook", async (req, res) => {
-    console.log("Paystack Webhook Received:", req.body);
-    // Basic success response for Paystack
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+    const signature = req.headers["x-paystack-signature"] as string;
+
+    if (!secret || !signature) {
+      console.error("[Webhook] Missing secret or signature");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify signature
+    const hash = crypto
+      .createHmac("sha512", secret)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
+
+    if (hash !== signature) {
+      console.error("[Webhook] Invalid signature");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const event = req.body;
+    console.log(`[Webhook] Received Paystack event: ${event.event}`);
+
+    if (event.event === "charge.success") {
+      const { reference, amount, metadata } = event.data;
+      const userId = metadata?.user_id;
+
+      if (!userId) {
+        console.error("[Webhook] Missing user_id in metadata");
+        return res.status(400).json({ error: "Missing user_id" });
+      }
+
+      try {
+        // 1. Insert payment record
+        const { error: paymentError } = await supabase
+          .from("payments")
+          .upsert({
+            user_id: userId,
+            amount: amount / 100, // Convert kobo to NGN
+            reference,
+            status: "success",
+            provider: "paystack",
+            metadata: event.data,
+            created_at: new Date().toISOString()
+          }, { onConflict: 'reference' });
+
+        if (paymentError) throw paymentError;
+
+        // 2. Fetch updated profile to get tier_level for Make.com
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("tier_level")
+          .eq("id", userId)
+          .single();
+
+        if (profileError) throw profileError;
+
+        // 3. Trigger Make.com Automation (Non-blocking)
+        const makeUrl = process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
+        if (makeUrl) {
+          axios.post(makeUrl, {
+            user_id: userId,
+            amount: amount / 100,
+            reference,
+            tier_level: profile.tier_level,
+            timestamp: new Date().toISOString()
+          }).catch(err => console.error("[Webhook] Make.com trigger failed:", err.message));
+        }
+
+        console.log(`[Webhook] Payment processed successfully for user ${userId}`);
+      } catch (err: any) {
+        console.error("[Webhook] Processing error:", err.message);
+        return res.status(500).json({ error: "Internal processing error" });
+      }
+    }
+
     res.status(200).json({ status: "success" });
   });
 

@@ -7,6 +7,8 @@ export interface LogisticsQuote {
   price: number;
   estimatedDays: number;
   tier: 'standard' | 'express' | 'premium';
+  eta: string;
+  badge?: string;
 }
 
 export interface TrackingEvent {
@@ -34,13 +36,20 @@ const CARRIERS = [
 ];
 
 export const calculateLogisticsQuotes = (weight: number): LogisticsQuote[] => {
-  return CARRIERS.map(carrier => ({
-    carrier: carrier.name,
-    serviceName: weight > 10 ? 'Heavy Freight' : 'Parcel Sync',
-    price: Math.round(carrier.basePrice + (weight * 200 * carrier.multiplier)),
-    estimatedDays: carrier.name.includes('Express') ? 1 : 3,
-    tier: carrier.name.includes('Express') ? 'express' : carrier.name.includes('DHL') ? 'premium' : 'standard'
-  }));
+  return CARRIERS.map(carrier => {
+    const isExpress = carrier.name.includes('Express');
+    const isPremium = carrier.name.includes('DHL');
+    
+    return {
+      carrier: carrier.name,
+      serviceName: weight > 10 ? 'Heavy Freight' : 'Parcel Sync',
+      price: Math.round(carrier.basePrice + (weight * 200 * carrier.multiplier)),
+      estimatedDays: isExpress ? 1 : 3,
+      tier: isExpress ? 'express' : isPremium ? 'premium' : 'standard',
+      eta: isExpress ? '1–3 hrs' : isPremium ? 'Same Day' : '1–2 Days',
+      badge: isExpress ? 'Fastest' : isPremium ? 'Recommended' : undefined
+    };
+  });
 };
 
 export const generateTrackingId = (carrier: string): string => {

@@ -317,6 +317,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   full_name TEXT,
   role TEXT DEFAULT 'registered',
   avatar_url TEXT,
+  tier_level TEXT DEFAULT 'starter',
+  total_paid INTEGER DEFAULT 0,
+  subscription_status TEXT DEFAULT 'inactive',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -352,8 +355,74 @@ ALTER PUBLICATION supabase_realtime ADD TABLE ride_bookings;
 ALTER PUBLICATION supabase_realtime ADD TABLE vehicles;
 ALTER PUBLICATION supabase_realtime ADD TABLE drivers;
 ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE payments;
 
--- 19. STORAGE BUCKETS (RUN THIS TO FIX "BUCKET NOT FOUND" ERRORS)
+-- 19. PAYMENTS TABLE
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL,
+  status TEXT DEFAULT 'pending',
+  reference TEXT UNIQUE NOT NULL,
+  provider TEXT DEFAULT 'paystack',
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ENABLE RLS ON PAYMENTS
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own payments" ON payments FOR SELECT USING (auth.uid() = user_id);
+
+-- 20. TIER UPGRADE LOGIC
+CREATE OR REPLACE FUNCTION apply_tier_upgrade(target_user_id UUID)
+RETURNS VOID AS $$
+DECLARE
+  total_amount INTEGER;
+  new_tier TEXT;
+BEGIN
+  -- Sum all successful payments for the user
+  SELECT COALESCE(SUM(amount), 0) INTO total_amount
+  FROM payments
+  WHERE user_id = target_user_id AND status = 'success';
+
+  -- Determine new tier
+  IF total_amount >= 10000 THEN
+    new_tier := 'export_ready';
+  ELSIF total_amount >= 5000 THEN
+    new_tier := 'growth_engine';
+  ELSIF total_amount >= 2500 THEN
+    new_tier := 'local_trust';
+  ELSE
+    new_tier := 'starter';
+  END IF;
+
+  -- Update profile
+  UPDATE profiles
+  SET 
+    tier_level = new_tier,
+    total_paid = total_amount,
+    subscription_status = CASE WHEN total_amount > 0 THEN 'active' ELSE 'inactive' END,
+    updated_at = NOW()
+  WHERE id = target_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- TRIGGER TO AUTO-UPGRADE ON PAYMENT SUCCESS
+CREATE OR REPLACE FUNCTION handle_payment_success()
+RETURNS trigger AS $$
+BEGIN
+  IF NEW.status = 'success' THEN
+    PERFORM apply_tier_upgrade(NEW.user_id);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_payment_success
+  AFTER INSERT OR UPDATE ON payments
+  FOR EACH ROW EXECUTE FUNCTION handle_payment_success();
+
+-- 21. STORAGE BUCKETS (RUN THIS TO FIX "BUCKET NOT FOUND" ERRORS)
 -- Note: If you get permission errors, create the bucket 'findaba' manually in the Supabase Dashboard
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('findaba', 'findaba', true)
