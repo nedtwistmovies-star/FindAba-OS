@@ -80,65 +80,62 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
   return (
     <div className="flex-1 flex flex-col bg-aba-deep animate-fade-in min-h-screen pb-40">
       {/* 1. CINEMATIC HERO HEADER */}
-      <section className="relative h-[60vh] w-full group">
+      <section className="relative h-[50vh] sm:h-[60vh] w-full group">
         <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/40 via-transparent to-aba-deep" />
         <ImageCarousel images={mediaUrls} className="h-full w-full object-cover brightness-[0.8] group-hover:brightness-100 transition-standard duration-1000" />
         
         {/* Floating Controls */}
-        <div className="absolute top-10 left-8 right-8 z-20 flex justify-between items-center">
+        <div className="absolute top-6 sm:top-10 left-4 sm:left-8 right-4 sm:right-8 z-20 flex justify-between items-center">
            <button 
              onClick={onBack} 
-             className="w-12 h-12 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center text-white hover:bg-aba-gold hover:text-aba-deep transition-standard active:scale-90 shadow-sm"
+             className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center text-white hover:bg-aba-gold hover:text-aba-deep transition-standard active:scale-90 shadow-sm"
            >
-             <ArrowLeft size={20} />
+             <ArrowLeft className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
            </button>
-           <div className="flex gap-3">
+           <div className="flex gap-2 sm:gap-3">
               <button 
                 onClick={() => onToggleFavorite(business.id)}
-                className={`w-12 h-12 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center transition-standard active:scale-90 shadow-sm ${isFavorite ? 'bg-aba-red text-white border-aba-red' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                className={`w-10 h-10 sm:w-12 sm:h-12 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center transition-standard active:scale-90 shadow-sm ${isFavorite ? 'bg-aba-red text-white border-aba-red' : 'bg-white/10 text-white hover:bg-white/20'}`}
               >
-                <Heart size={20} fill={isFavorite ? "currentColor" : "none"} />
+                <Heart className="w-[18px] h-[18px] sm:w-5 sm:h-5" fill={isFavorite ? "currentColor" : "none"} />
               </button>
-              <button className="w-12 h-12 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-standard active:scale-90 shadow-sm">
-                <Share2 size={20} />
+              <button className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-standard active:scale-90 shadow-sm">
+                <Share2 className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
               </button>
            </div>
         </div>
 
         {/* Hero Content Overlay */}
-        <div className="absolute bottom-12 left-8 right-8 z-20 max-w-7xl mx-auto w-full">
-           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-              <div className="space-y-6 animate-fade-in">
-                 <div className="flex flex-wrap gap-3">
-                    <div className={`text-[10px] font-bold px-4 py-2 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-2 border backdrop-blur-md ${getGradeColor(business.integrity_grade)}`}>
+        <div className="absolute bottom-6 sm:bottom-12 left-4 sm:left-8 right-4 sm:right-8 z-20 max-w-7xl mx-auto w-full">
+           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8">
+              <div className="space-y-4 sm:space-y-6 animate-fade-in">
+                 <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <div className={`text-[9px] sm:text-[10px] font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-2 border backdrop-blur-md ${getGradeColor(business.integrity_grade)}`}>
                        Grade {business.integrity_grade}
                     </div>
                     {isVerified && (
-                      <div className="bg-aba-gold text-aba-deep text-[10px] font-bold px-4 py-2 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-2">
-                         <ShieldCheck size={14} /> Verified Hub
+                      <div className="bg-aba-gold text-aba-deep text-[9px] sm:text-[10px] font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-2">
+                         <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Verified Hub
                       </div>
                     )}
-                    <div className="bg-white/10 backdrop-blur-xl text-white text-[10px] font-bold px-4 py-2 rounded-lg uppercase tracking-widest border border-white/10">
+                    <div className="bg-white/10 backdrop-blur-xl text-white text-[9px] sm:text-[10px] font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg uppercase tracking-widest border border-white/10">
                        {business.category}
                     </div>
                  </div>
-                 <h1 className="text-4xl md:text-6xl font-bold text-white uppercase tracking-tight leading-none">
+                 <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white uppercase tracking-tight leading-none">
                     {business.name}
                  </h1>
-                 <div className="flex items-center gap-6">
+                 <div className="flex items-center gap-4 sm:gap-6">
                     <div className="flex items-center gap-2">
-                       <Star size={16} fill={business.review_count > 0 ? "#FFD700" : "none"} className={business.review_count > 0 ? "text-aba-gold" : "text-white/20"} />
-                       <span className="text-base font-bold text-white">
-                         {business.review_count > 0 ? business.rating.toFixed(1) : 'No reviews yet'}
+                       <Star className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${business.review_count > 0 ? "text-aba-gold" : "text-white/20"}`} fill={business.review_count > 0 ? "#FFD700" : "none"} />
+                       <span className="text-sm sm:text-base font-bold text-white">
+                         {business.review_count > 0 ? business.rating.toFixed(1) : 'No reviews'}
                        </span>
-                       {business.review_count > 0 && (
-                         <span className="text-xs font-medium text-white/40 uppercase tracking-widest">({business.review_count} Reviews)</span>
-                       )}
                     </div>
                     <div className="h-4 w-[1px] bg-white/10" />
                     <div className="flex items-center gap-2">
-                       <MapPin size={16} className="text-aba-red" />
-                       <span className="text-xs font-bold text-white/80 uppercase tracking-widest">{business.area}</span>
+                       <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-aba-red" />
+                       <span className="text-[10px] sm:text-xs font-bold text-white/80 uppercase tracking-widest">{business.area}</span>
                     </div>
                  </div>
               </div>
@@ -148,7 +145,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                     size="lg"
                     icon={MessageCircle}
                     onClick={() => setView('feed')}
-                    className="shadow-xl"
+                    className="shadow-xl w-full sm:w-auto"
                  >
                     Contact Partner
                  </IndustrialButton>
@@ -158,18 +155,18 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
       </section>
 
       {/* 2. TAB NAVIGATION */}
-      <section className="sticky top-24 z-40 bg-aba-deep/80 backdrop-blur-xl border-b border-white/5 px-8">
-         <div className="max-w-7xl mx-auto w-full flex gap-10">
+      <section className="sticky top-16 md:top-24 z-40 bg-aba-deep/80 backdrop-blur-xl border-b border-white/5 px-4 sm:px-8 overflow-x-auto scrollbar-hide">
+         <div className="max-w-7xl mx-auto w-full flex gap-6 sm:gap-10 whitespace-nowrap">
             {[
-              { id: 'overview', label: 'Overview', icon: <Info size={16} /> },
-              { id: 'products', label: 'Inventory', icon: <Package size={16} /> },
-              { id: 'location', label: 'Coordinates', icon: <MapPin size={16} /> },
-              { id: 'reviews', label: 'Intel', icon: <Star size={16} /> },
+              { id: 'overview', label: 'Overview', icon: <Info size={14} /> },
+              { id: 'products', label: 'Inventory', icon: <Package size={14} /> },
+              { id: 'location', label: 'Coordinates', icon: <MapPin size={14} /> },
+              { id: 'reviews', label: 'Intel', icon: <Star size={14} /> },
             ].map(tab => (
               <button 
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-3 py-6 text-[10px] font-bold uppercase tracking-widest transition-standard relative ${activeTab === tab.id ? 'text-aba-gold' : 'text-white/30 hover:text-white'}`}
+                className={`flex items-center gap-2 sm:gap-3 py-4 sm:py-6 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-standard relative ${activeTab === tab.id ? 'text-aba-gold' : 'text-white/30 hover:text-white'}`}
               >
                 {tab.icon}
                 {tab.label}
@@ -180,7 +177,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
       </section>
 
       {/* 3. CONTENT AREA */}
-      <main className="px-8 py-16 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-16">
+      <main className="px-4 sm:px-8 py-10 sm:py-16 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-10 sm:gap-16">
          
          {/* LEFT COLUMN: MAIN CONTENT */}
          <div className="lg:col-span-2 space-y-20">

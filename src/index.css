@@ -29,6 +29,12 @@ vercel-live-feedback,
   --aba-red: #ef4444;
   --aba-white: #f8fafc;
   --aba-gray: #64748b;
+  
+  /* Fluid Typography Bases */
+  --font-size-base: clamp(14px, 1.2vw, 16px);
+  --font-size-lg: clamp(16px, 1.5vw, 20px);
+  --font-size-xl: clamp(20px, 2.5vw, 32px);
+  --font-size-2xl: clamp(24px, 4vw, 48px);
 }
 
 @theme {
@@ -54,8 +60,9 @@ html, body {
   overflow-x: hidden;
   background: var(--aba-deep);
   color: white;
-  touch-action: auto;
+  touch-action: manipulation;
   -webkit-overflow-scrolling: touch;
+  font-size: var(--font-size-base);
 }
 
 body {
@@ -64,6 +71,28 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Responsive Container */
+.container-responsive {
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(1rem, 5vw, 4rem);
+  padding-right: clamp(1rem, 5vw, 4rem);
+}
+
+/* Responsive Grid System */
+.grid-adaptive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: clamp(1rem, 2vw, 2rem);
+}
+
+/* Touch Targets */
+button, a, input, select {
+  min-height: 44px;
 }
 
 #root {

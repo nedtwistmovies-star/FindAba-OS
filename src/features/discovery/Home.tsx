@@ -30,7 +30,7 @@ const CitySignals: React.FC = () => {
     
     const updateDate = () => {
       const now = new Date();
-      const options: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const options: Intl.DateTimeFormatOptions = { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' };
       setCurrentDate(now.toLocaleDateString('en-US', options));
     };
 
@@ -40,42 +40,42 @@ const CitySignals: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full bg-aba-deep border-b border-white/5 py-4 px-6 md:px-12 flex flex-wrap items-center justify-center gap-8 md:gap-12 z-40 relative">
-      <div className="flex items-center gap-3 group">
-        <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-standard border border-white/5">
-          <Calendar size={14} />
+    <div className="w-full bg-aba-deep border-b border-white/5 py-3 px-4 sm:px-6 md:px-12 flex items-center justify-start sm:justify-center gap-6 sm:gap-8 md:gap-12 z-40 relative overflow-x-auto scrollbar-hide whitespace-nowrap">
+      <div className="flex items-center gap-3 group shrink-0">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-standard border border-white/5">
+          <Calendar size={12} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[11px] font-bold text-white uppercase tracking-wider">{currentDate}</span>
-          <span className="text-[9px] font-medium text-white/40 uppercase tracking-widest">{marketDay || '...'} Market Day</span>
+          <span className="text-[10px] sm:text-[11px] font-bold text-white uppercase tracking-wider">{currentDate}</span>
+          <span className="text-[8px] sm:text-[9px] font-medium text-white/40 uppercase tracking-widest">{marketDay || '...'} Market Day</span>
         </div>
       </div>
 
-      <div className="h-4 w-px bg-white/10 hidden md:block" />
+      <div className="h-4 w-px bg-white/10 shrink-0" />
 
-      <div className="flex items-center gap-3 group">
-        <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-standard border border-white/5">
-          <CloudSun size={14} />
+      <div className="flex items-center gap-3 group shrink-0">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-standard border border-white/5">
+          <CloudSun size={12} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[11px] font-bold text-white uppercase tracking-wider">
+          <span className="text-[10px] sm:text-[11px] font-bold text-white uppercase tracking-wider">
             {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
           </span>
-          <span className="text-[9px] font-medium text-white/40 uppercase tracking-widest">Aba Weather</span>
+          <span className="text-[8px] sm:text-[9px] font-medium text-white/40 uppercase tracking-widest">Aba Weather</span>
         </div>
       </div>
 
-      <div className="h-4 w-px bg-white/10 hidden md:block" />
+      <div className="h-4 w-px bg-white/10 shrink-0" />
 
-      <div className="flex items-center gap-3 group">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-standard border border-white/5 ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green' : 'bg-aba-red/10 text-aba-red'}`}>
-          <Database size={14} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
+      <div className="flex items-center gap-3 group shrink-0">
+        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-standard border border-white/5 ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green' : 'bg-aba-red/10 text-aba-red'}`}>
+          <Database size={12} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-white">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white">
             {registryStatus === 'online' ? 'Registry Online' : 'Registry Offline'}
           </span>
-          <span className="text-[9px] font-medium text-white/40 uppercase tracking-widest">System Status</span>
+          <span className="text-[8px] sm:text-[9px] font-medium text-white/40 uppercase tracking-widest">System Status</span>
         </div>
       </div>
     </div>
@@ -158,7 +158,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       <CitySignals />
 
       {/* 1. HERO SECTION - Matching Screenshot Layout */}
-      <section className="relative min-h-[50vh] md:min-h-[80vh] flex flex-col items-center justify-center px-6 md:px-12 py-20 overflow-hidden">
+      <section className="relative min-h-[60vh] md:min-h-[80vh] flex flex-col items-center justify-center px-4 sm:px-6 md:px-12 py-12 sm:py-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <ImageCarousel 
             images={heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES} 
@@ -169,14 +169,14 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-aba-deep/20 to-aba-deep" />
         </div>
         
-        <div className="relative z-10 w-full max-w-6xl flex flex-col items-center text-center space-y-12">
-          <div className="flex flex-wrap items-center justify-center gap-4 animate-fade-in">
+        <div className="relative z-10 w-full max-w-6xl flex flex-col items-center text-center space-y-8 sm:space-y-12">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 animate-fade-in">
             <IndustrialButton 
               variant="secondary"
               size="sm"
               icon={ShieldCheck}
               onClick={() => setView('merchant-portal')}
-              className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20 text-white"
+              className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px]"
             >
               Merchant Hub
             </IndustrialButton>
@@ -186,39 +186,39 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               size="sm"
               icon={Building2}
               onClick={() => setView('explore')}
-              className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20 text-white"
+              className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px]"
             >
               Industrial Directory
             </IndustrialButton>
           </div>
 
-          <div className="space-y-6 max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-8xl font-bold text-white tracking-tight leading-[0.9] uppercase">
+          <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold text-white tracking-tight leading-[0.9] uppercase">
               The Industrial <br/>
               <span className="text-aba-gold">Pulse of Aba.</span>
             </h1>
-            <p className="text-white/60 text-sm md:text-lg font-medium max-w-2xl mx-auto uppercase tracking-widest leading-relaxed">
+            <p className="text-white/60 text-[10px] sm:text-xs md:text-lg font-medium max-w-2xl mx-auto uppercase tracking-widest leading-relaxed">
               Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility.
             </p>
           </div>
 
-          <div className="w-full max-w-2xl relative group">
+          <div className="w-full max-w-2xl relative group px-2 sm:px-0">
             <form 
               onSubmit={handleSearch}
-              className="w-full h-16 md:h-20 px-8 bg-white/5 backdrop-blur-xl rounded-2xl flex items-center shadow-2xl relative z-10 transition-standard border border-white/10 focus-within:border-aba-gold/50"
+              className="w-full h-14 sm:h-16 md:h-20 px-4 sm:px-8 bg-white/5 backdrop-blur-xl rounded-2xl flex items-center shadow-2xl relative z-10 transition-standard border border-white/10 focus-within:border-aba-gold/50"
             >
-              <Search size={20} className="text-aba-gold mr-4 shrink-0" />
+              <Search size={18} className="text-aba-gold mr-3 sm:mr-4 shrink-0" />
               <input 
                 type="text"
-                placeholder="Search Aba Industrial Registry..."
+                placeholder="Search Aba Registry..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-sm md:text-lg font-bold tracking-wider flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
+                className="text-xs sm:text-sm md:text-lg font-bold tracking-wider flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
               />
               {isSearching ? (
-                <Loader2 className="animate-spin text-aba-gold ml-4" size={20} />
+                <Loader2 className="animate-spin text-aba-gold ml-3 sm:ml-4" size={18} />
               ) : (
-                <button type="submit" className="text-white/40 hover:text-aba-gold transition-standard ml-4">
+                <button type="submit" className="text-white/40 hover:text-aba-gold transition-standard ml-3 sm:ml-4">
                   <ArrowRight size={24} />
                 </button>
               )}
@@ -226,18 +226,18 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-6 md:px-12 z-20">
-          <div className="max-w-7xl mx-auto flex gap-4 overflow-x-auto pb-8 scrollbar-hide">
+        <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-4 sm:px-6 md:px-12 z-20">
+          <div className="max-w-7xl mx-auto flex gap-3 sm:gap-4 overflow-x-auto pb-8 scrollbar-hide">
             {categories.map((cat, i) => (
               <button
                 key={i}
                 onClick={() => setView(cat.id as any)}
-                className="flex items-center gap-4 bg-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/5 min-w-[240px] group hover:bg-white transition-standard"
+                className="flex items-center gap-3 sm:gap-4 bg-white/5 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/5 min-w-[200px] sm:min-w-[240px] group hover:bg-white transition-standard"
               >
-                <div className="w-10 h-10 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-standard">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-standard">
                   {cat.icon}
                 </div>
-                <span className="text-sm font-bold text-white group-hover:text-aba-deep uppercase tracking-wider text-left">
+                <span className="text-[10px] sm:text-sm font-bold text-white group-hover:text-aba-deep uppercase tracking-wider text-left">
                   {cat.label}
                 </span>
               </button>

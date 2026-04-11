@@ -290,15 +290,15 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
       <div className={`flex-1 flex flex-col transition-standard ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'} ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         
-        <header className={`fixed top-0 left-0 right-0 z-[1000] px-6 py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? 'lg:left-20' : 'lg:left-64'} ${isDarkView ? 'bg-black/40 border-b border-white/5' : 'bg-white/80 border-b border-black/5'}`}>
-          <div className="flex items-center gap-4 cursor-pointer group shrink-0" onClick={() => setView('home')}>
-              <Logo src={activeLogo} size={32} className="group-hover:scale-105 transition-standard" />
+        <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? 'lg:left-20' : 'lg:left-64'} ${isDarkView ? 'bg-black/40 border-b border-white/5' : 'bg-white/80 border-b border-black/5'}`}>
+          <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group shrink-0" onClick={() => setView('home')}>
+              <Logo src={activeLogo} size={28} className="sm:w-8 sm:h-8 group-hover:scale-105 transition-standard" />
               <div className="flex flex-col">
-                <h1 className="text-xl font-bold tracking-tight leading-none group-hover:text-aba-gold transition-standard">
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight leading-none group-hover:text-aba-gold transition-standard">
                   FindAba
                 </h1>
                 <div className="flex items-center gap-1 mt-1">
-                  <p className="text-aba-gold text-[9px] font-bold uppercase tracking-widest opacity-80">SANDALSroyalle</p>
+                  <p className="text-aba-gold text-[8px] sm:text-[9px] font-bold uppercase tracking-widest opacity-80">SANDALSroyalle</p>
                   {isRegistryActive && (
                     <div className="flex items-center border-l border-white/10 pl-2" title={healthMessage}>
                       <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green' : 'bg-red-500 animate-pulse'}`} />
@@ -308,32 +308,22 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               </div>
           </div>
           
-          <div className="flex items-center gap-4">
-            <SystemClock />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="hidden md:block">
+              <SystemClock />
+            </div>
             
             <button 
               onClick={() => setView('register')}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-aba-green text-white rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm hover:bg-aba-green/90 transition-standard active:scale-95"
+              className="hidden lg:flex items-center gap-2 px-4 py-2 bg-aba-green text-white rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm hover:bg-aba-green/90 transition-standard active:scale-95"
             >
               <Plus size={14} /> Add Listing
             </button>
 
-            <button className="hidden lg:block p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg">
-              <Info size={20} />
-            </button>
-
-            <button className="p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg">
+            <button className="hidden sm:block p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg">
               <Search size={20} />
             </button>
             
-            <button 
-              onClick={() => window.location.reload()}
-              className="p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg"
-              title="Refresh Application"
-            >
-              <RefreshCw size={20} />
-            </button>
-
             <button 
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               className="relative p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg"
@@ -348,7 +338,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
             <button 
               onClick={() => setView('profile')}
-              className="w-10 h-10 rounded-lg border border-white/10 overflow-hidden shadow-sm active:scale-95 transition-standard hover:border-aba-gold group/profile"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-white/10 overflow-hidden shadow-sm active:scale-95 transition-standard hover:border-aba-gold group/profile"
             >
               <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-standard" alt="Profile" />
             </button>
@@ -374,8 +364,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           />
         )}
 
-        <main className={`flex-1 flex flex-col pt-20 md:pt-32`}>
-          {children}
+        <main className={`flex-1 flex flex-col pt-20 md:pt-32 container-responsive`}>
+          <div className="flex-1">
+            {children}
+          </div>
           <footer className={`w-full relative flex flex-col transition-standard pb-32 md:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
             
             {/* Requested Menu Structure */}
