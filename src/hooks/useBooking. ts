@@ -1,7 +1,7 @@
-// hooks/useBooking.ts
 import { useState } from 'react';
 import { createBooking } from '../services/bookingService';
-import { recordPayment } from '../services/paymentService';
+import { payWithPaystack } from '../services/paymentService';
+import { supabase } from '../lib/supabaseClient';
 
 export function useBookingFlow() {
   const [loading, setLoading] = useState(false);
@@ -15,24 +15,35 @@ export function useBookingFlow() {
     checkIn: string;
     checkOut: string;
   }) {
-    try {
-      setLoading(true);
+    setLoading(true);
 
-      // Step 1: Create booking
+    try {
+      // 1. Create booking (PENDING)
       const booking = await createBooking({
         roomId,
         checkIn,
         checkOut,
       });
 
-      // Step 2: Trigger payment (replace with Paystack later)
-      await recordPayment({
+      // 2. Get authenticated user
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user?.email) {
+        throw new Error('User not authenticated');
+      }
+
+      // 3. Trigger REAL payment
+      await payWithPaystack({
         bookingId: booking.id,
+        email: user.email,
         amount: booking.total_amount,
       });
 
       return booking;
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       throw err;
     } finally {
