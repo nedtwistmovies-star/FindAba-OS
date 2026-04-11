@@ -62,21 +62,88 @@ export const isRegistryConfigured = () => {
   return !!getSupabase();
 };
 
-export const authSignUp = async (email: string, pass: string, name: string, referralCode?: string) => {
+export const authSignUp = async (email: string, pass: string, name: string, referralCodeInput?: string) => {
   const sb = getSupabase();
   if (!sb) throw new Error("Registry Offline: Supabase URL or Anon Key is missing in environment/admin.");
+  
+  // Generate a unique referral code for the new user
+  const myReferralCode = generateReferralCode(name);
+  
   const { data, error } = await sb.auth.signUp({
     email,
     password: pass,
     options: { 
       data: { 
         full_name: name,
-        referral_code: referralCode || null
+        referral_code: myReferralCode,
+        referred_by_code: referralCodeInput || null
       } 
     }
   });
   if (error) throw error;
+
+  // If signup was successful and there's a referral code, we'll handle the link in a trigger or post-signup
+  // But for robustness, we can try to find the referrer now if the user is immediately logged in
+  if (data.user && referralCodeInput) {
+    try {
+      await processReferral(data.user.id, referralCodeInput);
+    } catch (e) {
+      console.warn("Referral processing deferred:", e);
+    }
+  }
+
   return data;
+};
+
+export const generateReferralCode = (name: string): string => {
+  const cleanName = name.replace(/[^a-zA-Z]/g, '').toUpperCase();
+  const prefix = cleanName.substring(0, 3) || 'ABA';
+  const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+  return `${prefix}${random}`.substring(0, 10);
+};
+
+export const processReferral = async (newUserId: string, referralCode: string) => {
+  const sb = getSupabase();
+  if (!sb) return;
+
+  // 1. Find the referrer
+  const { data: referrer, error: findError } = await sb
+    .from('profiles')
+    .select('id, referral_count, referral_earnings')
+    .eq('referral_code', referralCode.toUpperCase())
+    .single();
+
+  if (findError || !referrer) {
+    console.warn("Invalid referral code used:", referralCode);
+    return;
+  }
+
+  // 2. Prevent self-referral (though unlikely with codes)
+  if (referrer.id === newUserId) return;
+
+  // 3. Update the new user's profile with the referrer's ID
+  await sb.from('profiles').update({ referred_by: referrer.id }).eq('id', newUserId);
+
+  // 4. Record the referral
+  await sb.from('referrals').insert({
+    referrer_id: referrer.id,
+    referred_user_id: newUserId,
+    reward_granted: true,
+    reward_amount: 500 // Example reward: 500 units
+  });
+
+  // 5. Update referrer's stats
+  await sb.from('profiles').update({
+    referral_count: (referrer.referral_count || 0) + 1,
+    referral_earnings: (referrer.referral_earnings || 0) + 500
+  }).eq('id', referrer.id);
+
+  // 6. Trigger notification for referrer
+  await triggerWebhook(WebhookEvent.REFERRAL_SUCCESS, {
+    referrer_id: referrer.id,
+    new_user_id: newUserId,
+    reward: 500
+  });
 };
 
 export const authSignIn = async (email: string, pass: string) => {

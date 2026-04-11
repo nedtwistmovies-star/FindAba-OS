@@ -204,67 +204,71 @@ export const GitHubSync: React.FC = () => {
 
   if (user) {
     return (
-      <div className="flex flex-col gap-3 items-end">
-        <div className="flex items-center gap-4 bg-black/40 border border-aba-gold/20 p-2 rounded-lg">
-          <div className="flex items-center gap-2">
-            <img src={user.avatar_url} alt={user.login} className="w-6 h-6 rounded-full border border-aba-gold/40" />
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-white leading-none">{user.name || user.login}</span>
-              <span className="text-[8px] font-bold text-aba-gold/60 uppercase tracking-widest">Synced</span>
+      <div className="flex flex-col gap-3 items-end w-full sm:w-auto">
+        <div className="flex flex-wrap items-center justify-end gap-3 bg-black/40 border border-aba-gold/20 p-3 rounded-2xl w-full">
+          <div className="flex items-center gap-3 mr-auto min-w-0">
+            <img src={user.avatar_url} alt={user.login} className="w-10 h-10 rounded-xl border border-aba-gold/40 shrink-0" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-black text-white leading-none truncate">{user.name || user.login}</span>
+              <span className="text-[8px] font-bold text-aba-gold/60 uppercase tracking-widest mt-1">Industrial Node Active</span>
             </div>
           </div>
-          <div className="flex gap-2">
+          
+          <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
             <button 
               onClick={handleSyncToGitHub}
               disabled={isCommitting}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${isCommitting ? 'bg-aba-gold/10 border-aba-gold/40 text-aba-gold animate-pulse' : 'bg-aba-gold text-aba-dark border-aba-gold hover:bg-white hover:border-white shadow-lg shadow-aba-gold/20'}`}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-4 py-2 rounded-xl transition-all border font-black uppercase text-[9px] tracking-widest ${isCommitting ? 'bg-aba-gold/10 border-aba-gold/40 text-aba-gold animate-pulse' : 'bg-aba-gold text-aba-dark border-aba-gold hover:bg-white hover:border-white shadow-lg shadow-aba-gold/20'}`}
               title="Full Repository Sync (All Files)"
             >
               {isCommitting ? <RefreshCw size={14} className="animate-spin" /> : <ArrowUpCircle size={14} />}
-              <span className="text-[9px] font-black uppercase tracking-widest">Full Repo Sync</span>
+              <span>Full Sync</span>
             </button>
-            <button 
-              onClick={() => window.open(user.html_url, '_blank')}
-              className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors text-aba-gold"
-              title="View Profile"
-            >
-              <Github size={14} />
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="p-2 bg-white/5 hover:bg-red-500/10 border border-white/10 rounded-lg transition-colors text-red-400"
-              title="Disconnect"
-            >
-              <LogOut size={14} />
-            </button>
+            
+            <div className="flex gap-2">
+              <button 
+                onClick={() => window.open(user.html_url, '_blank')}
+                className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors text-aba-gold"
+                title="View Profile"
+              >
+                <Github size={16} />
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="p-2.5 bg-white/5 hover:bg-red-500/10 border border-white/10 rounded-xl transition-colors text-red-400"
+                title="Disconnect"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Repository Selection */}
-        <div className="flex flex-col gap-2 w-full max-w-[280px]">
+        <div className="flex flex-col gap-2 w-full max-w-[320px]">
           {!status.repo && !isEditingRepo ? (
             <button 
               onClick={() => setIsEditingRepo(true)}
-              className="w-full py-2 bg-aba-gold/10 border border-aba-gold/40 rounded-lg flex items-center justify-center gap-2 group hover:bg-aba-gold/20 transition-all animate-pulse hover:animate-none"
+              className="w-full py-3 bg-aba-gold/10 border border-aba-gold/40 rounded-xl flex items-center justify-center gap-3 group hover:bg-aba-gold/20 transition-all animate-pulse hover:animate-none"
             >
-              <Github size={14} className="text-aba-gold group-hover:scale-110 transition-transform" />
-              <span className="text-[9px] font-black uppercase tracking-widest text-aba-gold">Link New Repository</span>
+              <Github size={16} className="text-aba-gold group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-aba-gold">Link New Repository</span>
             </button>
           ) : (
             <>
               {repoHealth && (
-                <div className={`flex items-center justify-between px-2 py-1 border rounded-lg animate-fade-in ${
+                <div className={`flex items-center justify-between px-4 py-2 border rounded-xl animate-fade-in ${
                   repoHealth.exists 
                     ? 'bg-aba-gold/5 border-aba-gold/10 text-aba-gold/60' 
                     : repoHealth.error
                       ? 'bg-red-500/5 border-red-500/10 text-red-400/60'
                       : 'bg-yellow-500/5 border-yellow-500/10 text-yellow-400/60'
                 }`}>
-                  <span className="text-[7px] font-black uppercase tracking-widest">
+                  <span className="text-[8px] font-black uppercase tracking-widest">
                     {repoHealth.exists ? 'Registry Detected' : repoHealth.error ? `Error: ${repoHealth.error}` : 'No Registry Found'}
                   </span>
                   {repoHealth.lastCommit && (
-                    <span className="text-[7px] font-mono text-white/20">
+                    <span className="text-[8px] font-mono text-white/20">
                       {new Date(repoHealth.lastCommit).toLocaleDateString()}
                     </span>
                   )}
@@ -272,47 +276,47 @@ export const GitHubSync: React.FC = () => {
               )}
               
               {isEditingRepo ? (
-                <div className="flex items-center gap-2 animate-slide-up">
-                  <div className="flex-1 flex items-center gap-2 p-2 bg-black/60 rounded-lg border border-aba-gold/30">
-                    <Github size={12} className="text-aba-gold" />
+                <div className="flex items-center gap-2 animate-slide-up w-full">
+                  <div className="flex-1 flex items-center gap-3 p-3 bg-black/60 rounded-xl border border-aba-gold/30">
+                    <Github size={14} className="text-aba-gold" />
                     <input 
                       type="text" 
                       placeholder="owner/repo" 
-                      className="bg-transparent border-none outline-none text-[9px] font-mono text-white w-full"
+                      className="bg-transparent border-none outline-none text-xs font-mono text-white w-full placeholder:text-white/20"
                       value={repoInput}
                       onChange={e => setRepoInput(e.target.value)}
                       autoFocus
                     />
                     {repoInput && (
                       <button onClick={() => setRepoInput('')} className="text-white/20 hover:text-white transition-colors">
-                        <X size={10} />
+                        <X size={14} />
                       </button>
                     )}
                   </div>
                   <button 
                     onClick={handleSaveRepo}
-                    className="p-2 bg-aba-gold text-aba-dark rounded-lg hover:bg-white transition-colors"
+                    className="p-3 bg-aba-gold text-aba-dark rounded-xl hover:bg-white transition-colors shadow-lg"
                   >
-                    <Check size={12} />
+                    <Check size={16} />
                   </button>
                   <button 
                     onClick={() => setIsEditingRepo(false)}
-                    className="p-2 bg-white/5 text-white/40 rounded-lg hover:bg-white/10 transition-colors"
+                    className="p-3 bg-white/5 text-white/40 rounded-xl hover:bg-white/10 transition-colors"
                   >
-                    <LogOut size={12} className="rotate-180" />
+                    <LogOut size={16} className="rotate-180" />
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center justify-between p-2 bg-black/20 rounded-lg border border-white/5">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <Github size={12} className="text-white/20" />
-                    <span className="text-[9px] font-mono text-white/40 truncate">
+                <div className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5 w-full">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <Github size={14} className="text-white/20" />
+                    <span className="text-[10px] font-mono text-white/40 truncate">
                       {status.repo || 'No Repository Linked'}
                     </span>
                   </div>
                   <button 
                     onClick={() => setIsEditingRepo(true)}
-                    className="text-[8px] font-black uppercase text-aba-gold hover:text-white transition-colors ml-2"
+                    className="text-[9px] font-black uppercase text-aba-gold hover:text-white transition-colors ml-4 shrink-0"
                   >
                     Change
                   </button>
@@ -326,47 +330,62 @@ export const GitHubSync: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-2 items-end">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-3 items-end w-full sm:w-auto">
+      <div className="flex flex-wrap items-center justify-end gap-2 w-full">
         <button 
           onClick={() => setShowCallbackInfo(!showCallbackInfo)}
-          className={`p-1.5 rounded-lg transition-colors border ${showCallbackInfo ? 'bg-aba-gold/20 border-aba-gold/40 text-aba-gold' : 'bg-white/5 border-white/10 text-white/40 hover:text-aba-gold'}`}
+          className={`p-2 rounded-xl transition-all border flex items-center gap-2 ${showCallbackInfo ? 'bg-aba-gold/20 border-aba-gold/40 text-aba-gold shadow-[0_0_15px_rgba(212,175,55,0.2)]' : 'bg-white/5 border-white/10 text-white/40 hover:text-aba-gold hover:border-aba-gold/30'}`}
           title="GitHub Configuration Info"
         >
-          <Info size={14} />
+          <Info size={16} />
+          <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Setup Info</span>
         </button>
         <button 
           onClick={handleConnect}
-          className="flex items-center gap-2 bg-aba-gold/10 border border-aba-gold/30 px-3 py-1.5 rounded-lg hover:bg-aba-gold/20 transition-all group"
+          className="flex items-center gap-3 bg-aba-gold/10 border border-aba-gold/30 px-4 py-2 rounded-xl hover:bg-aba-gold/20 transition-all group shadow-lg hover:shadow-aba-gold/10"
         >
-          <Github size={16} className="text-aba-gold group-hover:scale-110 transition-transform" />
+          <Github size={18} className="text-aba-gold group-hover:scale-110 transition-transform" />
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-aba-gold">Sync GitHub</span>
         </button>
       </div>
 
       {showCallbackInfo && (
-        <div className="animate-slide-up bg-[#002113] border border-aba-gold/20 p-4 rounded-xl shadow-2xl space-y-3 max-w-[280px]">
-          <div className="flex items-center gap-2 text-aba-gold">
-            <ShieldCheck size={14} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Security Protocol</span>
+        <div className="animate-slide-up bg-[#001a0e] border border-aba-gold/30 p-6 rounded-2xl shadow-2xl space-y-4 w-full max-w-[320px] relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+            <ShieldCheck size={80} />
           </div>
-          <p className="text-[8px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
-            Ensure your GitHub OAuth App "Authorization callback URL" matches exactly:
-          </p>
-          <div className="flex items-center gap-2 p-2 bg-black/40 rounded-lg border border-white/5 overflow-hidden">
-            <code className="text-[7px] font-mono text-aba-gold/60 truncate flex-1">{callbackUrl}</code>
-            <button onClick={copyToClipboard} className="text-aba-gold hover:text-white transition-colors shrink-0">
-              {copied ? <Check size={12} /> : <Copy size={12} />}
-            </button>
+          
+          <div className="flex items-center gap-3 text-aba-gold">
+            <div className="p-2 bg-aba-gold/10 rounded-lg">
+              <ShieldCheck size={16} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest">Security Protocol</span>
           </div>
-          <p className="text-[7px] font-bold text-aba-gold/40 uppercase tracking-widest italic">
-            * Permanent Fix: If you see "Invalid Redirect URI", copy this URL and update your GitHub App settings.
-          </p>
-          <p className="text-[7px] font-bold text-white/20 uppercase tracking-widest italic">
-            * GitHub requires an exact match for security.
-          </p>
+          
+          <div className="space-y-2">
+            <p className="text-[9px] font-bold text-white/60 uppercase leading-relaxed tracking-widest">
+              To fix <span className="text-red-400">"Invalid Redirect URI"</span>, update your GitHub OAuth App settings:
+            </p>
+            <div className="bg-black/60 p-4 rounded-xl border border-white/5 space-y-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-[7px] font-black text-aba-gold/40 uppercase tracking-widest">Callback URL</span>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <code className="text-[8px] font-mono text-aba-gold truncate flex-1">{callbackUrl}</code>
+                  <button onClick={copyToClipboard} className="text-aba-gold hover:text-white transition-colors shrink-0 p-1 hover:bg-white/5 rounded">
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-3 bg-aba-gold/5 border border-aba-gold/10 rounded-lg">
+            <p className="text-[8px] font-bold text-aba-gold/60 uppercase tracking-widest leading-relaxed">
+              GitHub requires an exact match. Copy the URL above and paste it into the "Authorization callback URL" field in your GitHub Developer Settings.
+            </p>
+          </div>
         </div>
       )}
     </div>
   );
-};
+}

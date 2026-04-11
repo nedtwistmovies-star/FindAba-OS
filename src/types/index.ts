@@ -545,3 +545,25 @@ export interface AppNotification {
   read: boolean;
   timestamp: string;
 }
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  role: UserRole;
+  referral_code: string;
+  referred_by?: string;
+  referral_count: number;
+  referral_earnings: number;
+  created_at: string;
+}
+
+export interface Referral {
+  id: string;
+  referrer_id: string;
+  referred_user_id: string;
+  reward_granted: boolean;
+  reward_amount: number;
+  created_at: string;
+}

@@ -3,13 +3,14 @@ import {
   User, ChevronRight, Store, Building2, Truck, Globe, Headphones, Terminal, 
   HelpCircle, ShieldCheck, Wallet, Settings, MapPin, Briefcase, Landmark, Shield, 
   LogOut, Key, Zap, CheckCircle2, AlertTriangle, ExternalLink, Car, Activity,
-  LayoutGrid, UserCheck, BarChart3, ImageIcon, Video, RefreshCcw, Database, Trash2, Copy
+  LayoutGrid, UserCheck, BarChart3, ImageIcon, Video, RefreshCcw, Database, Trash2, Copy, Ticket
 } from 'lucide-react';
-import { ViewState, PlatformConfig, Business } from '../../types';
+import { ViewState, PlatformConfig, Business, Profile as UserProfileType } from '../../types';
 import { paymentService } from '../../services/paymentService';
 import { 
   authSignOut, fetchPlatformConfig, updatePlatformConfig, fetchAllBusinesses, 
-  getSupabase, checkDatabaseHealth, reconnectRegistry, getRegistryConfig, purgeLocalRegistry 
+  getSupabase, checkDatabaseHealth, reconnectRegistry, getRegistryConfig, purgeLocalRegistry,
+  fetchUserProfile 
 } from '../../services/supabaseService';
 import IndustrialButton from '../../components/IndustrialButton';
 import SectionHeader from '../../components/SectionHeader';
@@ -17,17 +18,20 @@ import StatCard from '../../components/StatCard';
 import { BentoGrid } from '../../components/BentoGrid';
 import { ImageUpload, MultiImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
+import { useToast } from '../../providers/ToastProvider';
 
 const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; userRole: string | null; myBusiness?: any }> = ({ setView, userEmail, userRole, myBusiness }) => {
   const isAuth = localStorage.getItem('findaba_is_auth') === 'true';
   const isAdmin = userRole === 'admin' || localStorage.getItem('findaba_admin_auth') === 'true';
   
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'identity' | 'verification' | 'settings'>('overview');
   const [loading, setLoading] = useState(false);
   const [platformConfig, setPlatformConfig] = useState<PlatformConfig | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [dbHealth, setDbHealth] = useState<{ status: 'healthy' | 'unhealthy' | 'unknown', message?: string }>({ status: 'unknown' });
   const [dbConfig, setDbConfig] = useState(getRegistryConfig());
+  const [profile, setProfile] = useState<UserProfileType | null>(null);
 
   const refreshData = useCallback(async () => {
     setLoading(true);
@@ -40,6 +44,12 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
 
       const health = await checkDatabaseHealth();
       setDbHealth(health);
+
+      const userId = localStorage.getItem('findaba_user_id');
+      if (userId) {
+        const p = await fetchUserProfile(userId);
+        setProfile(p);
+      }
     } catch (err) {
       console.error("Profile Sync Fault");
     } finally {
@@ -147,7 +157,70 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   icon={ShieldCheck} 
                   color="text-aba-gold"
                 />
+                <StatCard 
+                  title="Referral Earnings" 
+                  value={`₦${profile?.referral_earnings || 0}`} 
+                  icon={Wallet} 
+                  color="text-aba-green"
+                />
+                <StatCard 
+                  title="Total Referrals" 
+                  value={profile?.referral_count || 0} 
+                  icon={UserCheck} 
+                  color="text-aba-gold"
+                />
               </BentoGrid>
+
+              {isAuth && profile && (
+                <div className="bg-[#01301c] p-10 rounded-[3rem] border border-aba-gold/20 space-y-8 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Ticket size={120} className="rotate-12" />
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <SectionHeader 
+                      title="Referral Protocol" 
+                      subtitle="Invite partners and earn rewards for every verified node initialization."
+                      icon={Ticket} 
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
+                      <div className="space-y-4">
+                        <p className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Your Referral Code</p>
+                        <div className="flex items-center gap-4 bg-black/40 p-6 rounded-3xl border border-white/10 group/code hover:border-aba-gold/40 transition-all">
+                          <span className="text-2xl font-black tracking-tighter text-aba-gold uppercase">{profile.referral_code}</span>
+                          <button 
+                            onClick={() => {
+                              navigator.clipboard.writeText(profile.referral_code);
+                              addToast("Referral code copied to clipboard", 'success');
+                            }}
+                            className="ml-auto p-3 bg-white/5 rounded-xl hover:text-aba-gold transition-colors"
+                          >
+                            <Copy size={18} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <p className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Share Referral Link</p>
+                        <div className="flex items-center gap-4 bg-black/40 p-6 rounded-3xl border border-white/10 group/link hover:border-aba-gold/40 transition-all">
+                          <span className="text-[10px] font-mono text-white/60 truncate">findaba.com.ng/signup?ref={profile.referral_code}</span>
+                          <button 
+                            onClick={() => {
+                              const link = `${window.location.origin}/signup?ref=${profile.referral_code}`;
+                              navigator.clipboard.writeText(link);
+                              addToast("Referral link copied to clipboard", 'success');
+                            }}
+                            className="ml-auto p-3 bg-white/5 rounded-xl hover:text-aba-gold transition-colors"
+                          >
+                            <ExternalLink size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <SectionHeader title="Active Partners" icon={Zap} />

@@ -17,6 +17,7 @@ export enum WebhookEvent {
   SIGNAL_INTEREST = 'signal_interest',
   SEARCH_QUERY = 'search_query',
   LOGISTICS_ORDER_CREATED = 'logistics_order_created',
+  REFERRAL_SUCCESS = 'referral_success',
   SYSTEM_AUDIT = 'system_audit'
 }
 

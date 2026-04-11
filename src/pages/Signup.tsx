@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, ShieldCheck, Mail, Lock, 
   User, Loader2, Zap, AlertTriangle, Eye, EyeOff, Ticket
@@ -25,6 +25,15 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
     name: '',
     referral_code: ''
   });
+
+  useEffect(() => {
+    // Parse URL for referral code
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      setFormData(prev => ({ ...prev, referral_code: ref.toUpperCase() }));
+    }
+  }, []);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
