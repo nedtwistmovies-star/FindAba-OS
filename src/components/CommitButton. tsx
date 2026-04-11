@@ -1,23 +1,20 @@
-// src/components/CommitButton.tsx
-import { useBookingFlow } from '../hooks/useBooking';
-
 type Props = {
   roomId: string;
   checkIn: string;
   checkOut: string;
+  disabled?: boolean;
 };
 
-export default function CommitButton({ roomId, checkIn, checkOut }: Props) {
+export default function CommitButton({
+  roomId,
+  checkIn,
+  checkOut,
+  disabled,
+}: Props) {
   const { bookAndPay, loading } = useBookingFlow();
 
   const handleClick = async () => {
     try {
-      // Basic validation (IMPORTANT)
-      if (!checkIn || !checkOut) {
-        alert('Please select dates');
-        return;
-      }
-
       await bookAndPay({
         roomId,
         checkIn,
@@ -26,7 +23,6 @@ export default function CommitButton({ roomId, checkIn, checkOut }: Props) {
 
       alert('Booking Confirmed ✅');
     } catch (e) {
-      console.error(e);
       alert('Failed ❌');
     }
   };
@@ -34,8 +30,8 @@ export default function CommitButton({ roomId, checkIn, checkOut }: Props) {
   return (
     <button
       onClick={handleClick}
-      disabled={loading}
-      className="w-full bg-green-900 text-white py-4 rounded-xl"
+      disabled={loading || disabled}
+      className="w-full bg-green-900 text-white py-4 rounded-xl disabled:opacity-50"
     >
       {loading ? 'Processing...' : 'COMMIT BOOKING'}
     </button>
