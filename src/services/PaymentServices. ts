@@ -1,0 +1,53 @@
+import { supabase } from '../lib/supabaseClient';
+
+declare global {
+  interface Window {
+    PaystackPop: any;
+  }
+}
+
+export async function payWithPaystack({
+  bookingId,
+  email,
+  amount,
+}: {
+  bookingId: string;
+  email: string;
+  amount: number;
+}) {
+  return new Promise((resolve, reject) => {
+    const handler = window.PaystackPop.setup({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      email,
+      amount: amount * 100, // kobo
+
+      metadata: {
+        booking_id: bookingId,
+      },
+
+      callback: async function (response: any) {
+        try {
+          // Call backend to verify
+          await fetch('/api/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              reference: response.reference,
+              bookingId,
+            }),
+          });
+
+          resolve(response);
+        } catch (err) {
+          reject(err);
+        }
+      },
+
+      onClose: function () {
+        reject(new Error('Payment cancelled'));
+      },
+    });
+
+    handler.openIframe();
+  });
+}
