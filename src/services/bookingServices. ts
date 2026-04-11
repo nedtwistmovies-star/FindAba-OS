@@ -1,0 +1,48 @@
+// services/bookingService.ts
+import { supabase } from '../lib/supabaseClient';
+
+export async function createBooking({
+  roomId,
+  checkIn,
+  checkOut,
+}: {
+  roomId: string;
+  checkIn: string;
+  checkOut: string;
+}) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) throw new Error('User not authenticated');
+
+  // 1. Fetch room price (source of truth)
+  const { data: room, error: roomError } = await supabase
+    .from('rooms')
+    .select('price')
+    .eq('id', roomId)
+    .single();
+
+  if (roomError) throw roomError;
+
+  const totalAmount = room.price;
+
+  // 2. Create booking
+  const { data: booking, error } = await supabase
+    .from('bookings')
+    .insert({
+      user_id: user.id,
+      room_id: roomId,
+      check_in: checkIn,
+      check_out: checkOut,
+      total_amount: totalAmount,
+      status: 'pending',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return booking;
+}
