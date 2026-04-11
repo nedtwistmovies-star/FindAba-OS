@@ -1,0 +1,29 @@
+import { useBookingFlow } from '../hooks/useBooking';
+
+export default function CommitButton({ roomId }) {
+  const { bookAndPay, loading } = useBookingFlow();
+
+  const handleClick = async () => {
+    try {
+      await bookAndPay({
+        roomId,
+        checkIn: '2026-04-12',
+        checkOut: '2026-04-13',
+      });
+
+      alert('Booking Confirmed ✅');
+    } catch (e) {
+      alert('Failed ❌');
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className="w-full bg-green-900 text-white py-4 rounded-xl"
+    >
+      {loading ? 'Processing...' : 'COMMIT BOOKING'}
+    </button>
+  );
+}
