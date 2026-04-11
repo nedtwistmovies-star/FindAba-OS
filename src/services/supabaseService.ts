@@ -8,6 +8,7 @@ import {
   AppNotification, HubTier
 } from '../types';
 import { triggerWebhook, WebhookEvent } from './webhookService';
+import { sendWelcomeEmail } from './emailService';
 
 let _supabaseInstance: SupabaseClient | null = null;
 
@@ -90,6 +91,14 @@ export const authSignUp = async (email: string, pass: string, name: string, refe
     } catch (e) {
       console.warn("Referral processing deferred:", e);
     }
+  }
+
+  // 🔹 Send Welcome Email
+  if (data.user) {
+    const referralLink = `https://findaba.com.ng/signup?ref=${myReferralCode}`;
+    sendWelcomeEmail(email, name, referralLink).catch(err => 
+      console.warn("[Email] Welcome email failed (likely due to missing API key):", err)
+    );
   }
 
   return data;

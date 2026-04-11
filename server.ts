@@ -8,6 +8,7 @@ import fs from "fs/promises";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from 'resend';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,8 @@ const __dirname = path.dirname(__filename);
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey!);
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 console.log("Initializing FindAba City OS Server...");
 console.log("Environment Check:", {
@@ -198,6 +201,38 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       sameSite: "none",
     });
     res.json({ success: true });
+  });
+
+  // Email Sending Endpoint (Resend Integration)
+  app.post("/api/send-email", async (req, res) => {
+    const { to, subject, html, from = "onboarding@findaba.com.ng", name } = req.body;
+
+    if (!process.env.RESEND_API_KEY) {
+      console.error("[Email] RESEND_API_KEY is missing");
+      return res.status(500).json({ error: "Email service not configured" });
+    }
+
+    try {
+      console.log(`[Email] Attempting to send email to ${to} from ${from}`);
+      
+      const { data, error } = await resend.emails.send({
+        from: name ? `${name} <${from}>` : from,
+        to: [to],
+        subject,
+        html,
+      });
+
+      if (error) {
+        console.error("[Email] Resend Error:", error);
+        return res.status(400).json({ error: error.message });
+      }
+
+      console.log(`[Email] Success! Message ID: ${data?.id}`);
+      res.json({ success: true, id: data?.id });
+    } catch (err: any) {
+      console.error("[Email] Critical Failure:", err.message);
+      res.status(500).json({ error: "Internal server error during email transmission" });
+    }
   });
 
   // Paystack Webhook Handler

@@ -153,6 +153,62 @@ button, a, input, select {
   50% { opacity: 0.7; }
 }
 
-.animate-pulse-subtle {
-  animation: pulse-subtle 3s ease-in-out infinite;
+/* Premium Logistics Animations */
+@keyframes gradient-move {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient-slow {
+  background-size: 200% 200%;
+  animation: gradient-move 15s ease infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 178, 0.1); }
+  50% { box-shadow: 0 0 40px rgba(0, 255, 178, 0.3); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 4s ease-in-out infinite;
+}
+
+.cta-bar {
+  position: sticky;
+  bottom: 0;
+  backdrop-filter: blur(20px);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 16px;
+  z-index: 100;
+}
+
+.floating-label-group {
+  position: relative;
+}
+
+.floating-label {
+  position: absolute;
+  left: 3.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.floating-label-group input:focus ~ .floating-label,
+.floating-label-group input:not(:placeholder-shown) ~ .floating-label {
+  top: 0.75rem;
+  font-size: 0.6rem;
+  color: var(--aba-gold);
+}
+
+.floating-label-group input {
+  padding-top: 1.5rem;
+  padding-bottom: 0.5rem;
 }

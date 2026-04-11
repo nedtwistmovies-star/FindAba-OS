@@ -14,6 +14,7 @@ import IndustrialButton from './IndustrialButton';
 import Layout from './Layout';
 import Loading from './Loading';
 import LoadingScreen from './LoadingScreen';
+import FindAbaLoader from './FindAbaLoader';
 import Logo from './Logo';
 import MapView from './MapView';
 import MessageBubble from './MessageBubble';
@@ -41,6 +42,7 @@ export {
   Layout,
   Loading,
   LoadingScreen,
+  FindAbaLoader,
   Logo,
   MapView,
   MessageBubble,

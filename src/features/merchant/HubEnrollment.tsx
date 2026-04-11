@@ -1,9 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import confetti from 'canvas-confetti';
 import { 
   Shield, Zap, Star, LayoutGrid, CheckCircle2, 
   Lock, ArrowRight, Loader2, Sparkles, Trophy,
-  TrendingUp, Globe, ShieldCheck, ArrowLeft
+  TrendingUp, Globe, ShieldCheck, ArrowLeft,
+  Check, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ViewState, HubTier, SubscriptionTier, Business } from '../../types';
@@ -26,6 +28,27 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
   const [selectedTier, setSelectedTier] = useState<HubTier | null>(null);
   const [upgradeSuccess, setUpgradeSuccess] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+
+  const fireConfetti = useCallback(() => {
+    const duration = 3 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
+  }, []);
 
   // Real-time subscription for tier updates
   useEffect(() => {
@@ -33,16 +56,18 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
 
     const { unsubscribe } = subscribeToProfile(userIdentifier, (payload) => {
       console.log('[Realtime] Profile updated:', payload);
+      setProfile(payload.new);
       const newTier = payload.new.tier_level;
       if (newTier !== business.hub_tier) {
         setUpgradeSuccess(true);
         setVerifying(false);
+        fireConfetti();
         if (onUpdate) onUpdate();
       }
     });
 
     return () => unsubscribe();
-  }, [userIdentifier, business.hub_tier, onUpdate]);
+  }, [userIdentifier, business.hub_tier, onUpdate, fireConfetti]);
 
   const tiers = [
     {
@@ -114,25 +139,55 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
 
   if (upgradeSuccess) {
     return (
-      <div className="min-h-screen bg-[#002113] flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+      <AnimatePresence>
         <motion.div 
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="w-32 h-32 bg-aba-gold rounded-[2.5rem] flex items-center justify-center text-aba-dark mb-8 shadow-[0_20px_50px_rgba(255,215,0,0.3)]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-[7000] bg-[#002113] flex flex-col items-center justify-center p-8 text-center"
         >
-          <Trophy size={64} />
+          <motion.div 
+            initial={{ scale: 0.5, y: 50, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            transition={{ type: 'spring', damping: 15 }}
+            className="w-40 h-40 bg-gradient-to-br from-aba-gold to-yellow-600 rounded-[3rem] flex items-center justify-center text-aba-dark mb-10 shadow-[0_30px_70px_rgba(255,215,0,0.4)] relative"
+          >
+            <Trophy size={80} />
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute inset-0 rounded-[3rem] border-4 border-white/30"
+            />
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-4"
+          >
+            <h2 className="text-5xl font-black uppercase tracking-tighter text-white">Tier Upgraded!</h2>
+            <p className="text-2xl text-aba-gold font-bold uppercase tracking-[0.2em]">
+              Welcome to {selectedTier} Status
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-16 space-y-6"
+          >
+            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em]">Registry Updated Successfully</p>
+            <button 
+              onClick={() => setView('merchant-portal')}
+              className="group relative px-16 py-6 bg-white text-aba-dark rounded-2xl font-black uppercase text-xs tracking-[0.4em] overflow-hidden transition-all hover:pr-20 active:scale-95"
+            >
+              <span className="relative z-10">Return to Command</span>
+              <ArrowRight className="absolute right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all" size={20} />
+            </button>
+          </motion.div>
         </motion.div>
-        <h2 className="text-4xl font-black uppercase tracking-tighter text-white mb-4">Level Up!</h2>
-        <p className="text-xl text-aba-gold font-bold uppercase tracking-widest mb-12">
-          You've been upgraded to {selectedTier} 🚀
-        </p>
-        <button 
-          onClick={() => setView('merchant-portal')}
-          className="px-12 py-5 bg-white text-aba-dark rounded-2xl font-black uppercase text-xs tracking-[0.3em] hover:bg-aba-gold transition-all active:scale-95"
-        >
-          Return to Command
-        </button>
-      </div>
+      </AnimatePresence>
     );
   }
 
@@ -148,21 +203,32 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
         onCancel={() => setShowPayment(false)}
       />
 
-      {verifying && (
-        <div className="fixed inset-0 z-[6000] bg-[#002113]/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center animate-fade-in">
-          <div className="w-24 h-24 bg-aba-gold/10 rounded-[2rem] flex items-center justify-center text-aba-gold mb-8 relative">
-            <Loader2 size={48} className="animate-spin" />
-            <div className="absolute inset-0 border-4 border-aba-gold/20 rounded-[2rem] animate-pulse" />
-          </div>
-          <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-2">Verifying Settlement</h3>
-          <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em] animate-pulse">Waiting for Registry Confirmation...</p>
-          <div className="mt-12 max-w-xs p-6 bg-white/5 rounded-2xl border border-white/10">
-            <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
-              Our AI Sentinel is auditing the ledger. Your tier will upgrade automatically once the signal is confirmed.
-            </p>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {verifying && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[6000] bg-[#002113]/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center"
+          >
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="w-24 h-24 bg-aba-gold/10 rounded-[2rem] flex items-center justify-center text-aba-gold mb-8 relative"
+            >
+              <Loader2 size={48} className="animate-spin" />
+              <div className="absolute inset-0 border-4 border-aba-gold/20 rounded-[2rem] animate-pulse" />
+            </motion.div>
+            <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-2">Verifying Settlement</h3>
+            <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em] animate-pulse">Waiting for Registry Confirmation...</p>
+            <div className="mt-12 max-w-xs p-6 bg-white/5 rounded-2xl border border-white/10">
+              <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
+                Our AI Sentinel is auditing the ledger. Your tier will upgrade automatically once the signal is confirmed.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* HEADER */}
       <header className="p-6 sm:p-10 border-b border-white/5 flex justify-between items-center sticky top-0 z-50 backdrop-blur-xl bg-[#002113]/90">
@@ -265,10 +331,15 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                             <motion.div 
                               initial={{ width: 0 }}
-                              animate={{ width: '40%' }}
+                              animate={{ width: profile ? `${Math.min(100, (profile.total_paid / tiers[idx+1].amount) * 100)}%` : '0%' }}
                               className="h-full bg-aba-gold"
                             />
                          </div>
+                         {profile && (
+                           <p className="text-[7px] font-bold text-aba-gold/60 uppercase tracking-widest">
+                             ₦{profile.total_paid.toLocaleString()} contributed to next tier
+                           </p>
+                         )}
                       </div>
                     )}
                   </motion.div>
