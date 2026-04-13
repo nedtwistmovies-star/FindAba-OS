@@ -1,25 +1,64 @@
-const handler = window.PaystackPop.setup({
-  key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+import { supabase } from '../lib/supabaseClient';
 
+declare global {
+  interface Window {
+    PaystackPop: any;
+  }
+}
+
+export async function payWithPaystack({
   email,
-  amount: amount * 100,
-  currency: 'NGN',
+  amount,
+  business_id,
+  wallet_id,
+}: {
+  email: string;
+  amount: number;
+  business_id: string;
+  wallet_id: string;
+}) {
+  return new Promise((resolve, reject) => {
 
-  metadata: {
-    business_id,
-    wallet_id,
-  },
+    // ✅ THIS IS WHERE YOUR CODE GOES
+    const handler = window.PaystackPop.setup({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
 
-  callback: function (response: any) {
-    console.log('Payment successful:', response.reference);
+      email,
+      amount: amount * 100,
+      currency: 'NGN',
 
-    resolve({
-      status: 'success',
-      reference: response.reference,
+      // ✅ ADD THIS HERE
+      metadata: {
+        business_id,
+        wallet_id,
+      },
+
+      callback: async function (response: any) {
+        const reference = response.reference;
+
+        const { data, error } = await supabase.rpc('process_deposit', {
+          p_business_id: business_id,
+          p_wallet_id: wallet_id,
+          p_amount: amount,
+          p_reference: reference,
+        });
+
+        if (error) {
+          console.error('Deposit processing failed:', error);
+          reject(error);
+          return;
+        }
+
+        resolve(data);
+      },
+
+      onClose: function () {
+        reject('Payment window closed');
+      },
     });
-  },
 
-  onClose: function () {
-    reject('Payment window closed');
-  },
+    // ✅ DON'T FORGET THIS
+    handler.openIframe();
+  });
+}
 });
