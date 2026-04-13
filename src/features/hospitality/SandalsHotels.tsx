@@ -7,11 +7,13 @@ import {
   Calendar, CreditCard, Clock, Landmark, Globe, Zap, Heart, AlertCircle, Lock,
   User, Briefcase, Phone, Map, X, Hash, ClipboardList, Twitter, Facebook, Instagram, Users, MessageSquare
 } from 'lucide-react';
-import { fetchPartnerHotels, fetchSRRooms, finalizeSRBooking, fetchUserBookings, getSupabase } from '../../services/supabaseService';
+import { fetchPartnerHotels, fetchSRRooms, finalizeSRBooking, fetchUserBookings, getSupabase, createPendingBooking } from '../../services/supabaseService';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { SANDALS_BRAND } from '../../constants';
+import { useAuth } from '../../providers/AuthProvider';
 
 const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
+  const { userIdentifier, userName } = useAuth();
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [activeTab, setActiveTab] = useState<'registry' | 'history' | 'concierge'>('registry');
@@ -20,11 +22,12 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   const [loading, setLoading] = useState(true);
   const [showCheckout, setShowCheckout] = useState(false);
   const [pendingRoom, setPendingRoom] = useState<Room | null>(null);
+  const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
   
   const [showRegForm, setShowRegForm] = useState(false);
   
   const [regData, setRegData] = useState({
-    guest_name: localStorage.getItem('findaba_user_name') || '',
+    guest_name: userName || localStorage.getItem('findaba_user_name') || '',
     guest_address: '',
     guest_phone: '',
     guest_company: '',
@@ -35,6 +38,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   });
 
   const userEmail = localStorage.getItem('findaba_user_email') || '';
+  const userId = userIdentifier;
   const isRegistryConnected = !!getSupabase();
 
   const duration = (() => {
@@ -54,7 +58,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
       const hotelData = await fetchPartnerHotels();
       setHotels(hotelData || []);
       
-      let bookingData = await fetchUserBookings(userEmail);
+      let bookingData = await fetchUserBookings(userId || userEmail);
       const local = localStorage.getItem(`findaba_bookings_${userEmail}`);
       if (local) {
         const localParsed = JSON.parse(local);
@@ -88,21 +92,48 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     setShowRegForm(true);
   };
 
-  const handleRegSubmit = (e: React.FormEvent) => {
+  const handleRegSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowRegForm(false);
-    setShowCheckout(true);
+    if (!pendingRoom || !userId) return;
+    
+    setLoading(true);
+    try {
+      const totalPrice = (pendingRoom?.base_price || 0) * duration;
+      
+      // 1. Create Pending Booking in Supabase
+      const pendingBooking: any = {
+        user_id: userId,
+        hotel_id: pendingRoom.hotel_id,
+        room_id: pendingRoom.id,
+        total_amount: totalPrice,
+        check_in: new Date(regData.check_in).toISOString(),
+        check_out: new Date(regData.check_out).toISOString(),
+        status: 'pending',
+        guest_name: regData.guest_name,
+      };
+
+      const created = await createPendingBooking(pendingBooking);
+      if (created) {
+        setPendingBookingId(created.id);
+        setShowRegForm(false);
+        setShowCheckout(true);
+      }
+    } catch (err: any) {
+      alert(`Booking Initialization Failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePaymentSuccess = async (res: any) => {
-    if (!pendingRoom) return;
+    if (!pendingRoom || !userId) return;
     setLoading(true);
     
     const totalPrice = (pendingRoom?.base_price || 0) * duration;
     
     const newBooking: any = {
-      id: `book-${Date.now()}`,
-      user_id: userEmail,
+      id: pendingBookingId || `book-${Date.now()}`,
+      user_id: userId,
       hotel_id: pendingRoom.hotel_id,
       room_id: pendingRoom.id,
       room_number: pendingRoom.room_number,
@@ -150,7 +181,16 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   if (selectedHotel) {
     return (
       <div className="min-h-full bg-[#002113] text-white animate-fade-in pb-32 overflow-y-auto font-sans">
-        <PaystackOverlay isOpen={showCheckout} amount={(pendingRoom?.base_price || 0) * duration} email={userEmail} label={`Executive Stay: Suite ${pendingRoom?.room_number}`} onSuccess={handlePaymentSuccess} onCancel={() => setShowCheckout(false)} />
+        <PaystackOverlay 
+          isOpen={showCheckout} 
+          amount={(pendingRoom?.base_price || 0) * duration} 
+          email={userEmail} 
+          label={`Executive Stay: Suite ${pendingRoom?.room_number}`} 
+          userId={userId || undefined}
+          bookingId={pendingBookingId || undefined}
+          onSuccess={handlePaymentSuccess} 
+          onCancel={() => setShowCheckout(false)} 
+        />
 
         {showRegForm && (
           <div className="fixed inset-0 z-[5000] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 overflow-y-auto">

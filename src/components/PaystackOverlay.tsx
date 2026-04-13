@@ -16,6 +16,7 @@ interface PaystackOverlayProps {
   label: string;
   businessId?: string;
   userId?: string;
+  bookingId?: string;
   onSuccess: (res: any) => void;
   onCancel: () => void;
   isOpen: boolean;
@@ -28,7 +29,7 @@ declare global {
 }
 
 const PaystackOverlay: React.FC<PaystackOverlayProps> = ({ 
-  amount, email, label, businessId, userId, onSuccess, onCancel, isOpen 
+  amount, email, label, businessId, userId, bookingId, onSuccess, onCancel, isOpen 
 }) => {
   const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan'>('initialize');
   const [selectedChannel, setSelectedChannel] = useState<string[] | null>(null);
@@ -63,7 +64,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
 
   const triggerPaystack = (channels?: string[]) => {
     if (isPaystackActive && window.PaystackPop) {
-      const config = paymentService.getPaystackConfig({ email, amount, label, businessId, userId });
+      const config = paymentService.getPaystackConfig({ email, amount, label, businessId, userId, bookingId });
       
       const handler = window.PaystackPop.setup({
         ...config,

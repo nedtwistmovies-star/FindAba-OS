@@ -834,21 +834,36 @@ export const fetchSRRooms = async (hotelId: string): Promise<Room[]> => {
   } catch (e) { return []; }
 };
 
+export const createPendingBooking = async (booking: Partial<Booking>) => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry Offline");
+  
+  const { data, error } = await client
+    .from('bookings')
+    .insert({ ...booking, status: 'pending' })
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
 export const finalizeSRBooking = async (booking: Partial<Booking>) => {
   const client = getSupabase();
   if (!client) return;
-  const { data, error } = await client.from('bookings').insert(booking).select().single();
+  // This is now mostly for manual confirmation or post-payment sync
+  const { data, error } = await client.from('bookings').upsert({ ...booking, status: 'confirmed' }).select().single();
   
   if (!error && data) {
     triggerWebhook(WebhookEvent.NEW_BOOKING, data);
   }
 };
 
-export const fetchUserBookings = async (email: string): Promise<Booking[]> => {
+export const fetchUserBookings = async (userId: string): Promise<Booking[]> => {
   const client = getSupabase();
   if (!client) return [];
   try {
-    const { data, error } = await client.from('bookings').select('*').eq('user_id', email).order('created_at', { ascending: false });
+    const { data, error } = await client.from('bookings').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     if (error && error.code === '42P01') return [];
     return data || [];
   } catch (e) { return []; }

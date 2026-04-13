@@ -262,6 +262,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     if (event.event === "charge.success") {
       const { reference, amount, metadata } = event.data;
       const userId = metadata?.user_id;
+      const bookingId = metadata?.booking_id;
 
       if (!userId) {
         console.error("[Webhook] Missing user_id in metadata");
@@ -270,17 +271,23 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
 
       try {
         // 1. Insert payment record
+        const paymentData: any = {
+          user_id: userId,
+          amount: amount / 100, // Convert kobo to NGN
+          reference,
+          status: "success",
+          provider: "paystack",
+          metadata: event.data,
+          created_at: new Date().toISOString()
+        };
+
+        if (bookingId) {
+          paymentData.booking_id = bookingId;
+        }
+
         const { error: paymentError } = await supabase
           .from("payments")
-          .upsert({
-            user_id: userId,
-            amount: amount / 100, // Convert kobo to NGN
-            reference,
-            status: "success",
-            provider: "paystack",
-            metadata: event.data,
-            created_at: new Date().toISOString()
-          }, { onConflict: 'reference' });
+          .upsert(paymentData, { onConflict: 'reference' });
 
         if (paymentError) throw paymentError;
 
