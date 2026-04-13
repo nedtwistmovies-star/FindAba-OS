@@ -1,3 +1,5 @@
+import { supabase } from '../lib/supabaseClient';
+
 export async function registerBusiness({
   name,
   email,
@@ -7,29 +9,26 @@ export async function registerBusiness({
   email: string;
   user_id: string;
 }) {
-  const { data, error } = await supabase
-    .from('businesses')
-    .upsert(
-      { name, email, user_id },
-      { onConflict: 'email' }
-    )
-    .select()
-    .single();
+  try {
+    const { data, error } = await supabase.rpc('register_business', {
+      p_name: name,
+      p_email: email,
+      p_user_id: user_id,
+    });
 
-  if (error) {
-    if (error.code === '23505') {
+    if (error) {
       return {
         success: false,
-        message: 'Business already exists. Please log in.',
+        message: 'Registration failed. Please try again.',
       };
     }
 
+    return data; // comes directly from SQL function
+  } catch (err) {
     return {
       success: false,
-      message: 'Unable to complete registration.',
-      error,
+      message: 'Unexpected error occurred.',
     };
   }
-
-  return { success: true, data };
 }
+ 
