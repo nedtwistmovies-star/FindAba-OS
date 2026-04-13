@@ -10,6 +10,8 @@ import {
 import { fetchThriftAccount, createThriftAccount, saveThriftContribution, updateThriftAccountSettlement, getSupabase, purgeLocalRegistry } from '../../services/supabaseService';
 import PaystackOverlay from '../../components/PaystackOverlay';
 
+import FidelityHero from './FidelityHero';
+
 interface ThriftDashboardProps {
   setView: (v: ViewState) => void;
   userEmail: string;
@@ -130,69 +132,30 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   };
 
   if (loading) return (
-    <div className="h-full flex flex-col items-center justify-center bg-[#020617]">
-      <Loader2 className="animate-spin text-[#FFD700] mb-4" size={48} />
-      <p className="text-[10px] font-black uppercase text-[#FFD700] tracking-[0.4em] animate-pulse">Syncing Financial Unit...</p>
+    <div className="h-full flex flex-col items-center justify-center bg-[#F8FAFC]">
+      <Loader2 className="animate-spin text-blue-600 mb-4" size={48} />
+      <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.4em] animate-pulse">Syncing Financial Unit...</p>
     </div>
   );
 
-  /* INITIALIZATION SCREEN (Matches Screenshot 3 perfectly) */
+  /* INITIALIZATION SCREEN (Updated with FidelityHero) */
   if (!account) {
     return (
-      <div className="fixed inset-0 z-[100] bg-[#020617] text-white flex flex-col p-8 pb-32 font-sans overflow-y-auto">
-        <div className="flex items-center gap-6 mb-16 max-w-4xl mx-auto w-full">
-          <button onClick={() => setView('home')} className="p-4 bg-white/5 rounded-2xl border border-white/10 active:scale-90 transition-all shadow-xl">
-            <ArrowLeft size={24} />
-          </button>
-          <h2 className="text-3xl font-black uppercase tracking-tighter">SRTS Protocol</h2>
-        </div>
-        
-        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-12 max-w-lg mx-auto w-full">
-          <div className="w-36 h-36 bg-[#FFD700]/10 rounded-full border-2 border-[#FFD700]/30 flex items-center justify-center text-[#FFD700] shadow-[0_0_80px_rgba(255,215,0,0.1)] relative">
-            <Globe size={80} strokeWidth={1.5} />
-            <div className="absolute inset-0 rounded-full border border-[#FFD700]/20 animate-ping opacity-20" />
-          </div>
-          
-          <div className="space-y-6">
-            <h3 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-[0.9]">
-              SRTS GLOBAL <br/>
-              <span className="text-[#FFD700]">PAYSTACK FIDELITY</span>
-            </h3>
-            <p className="text-[10px] md:text-xs font-bold text-white/40 uppercase tracking-[0.4em] leading-relaxed px-4">
-              Premier industrial savings scheme. <br/>
-              Secure, transparent, settled by Paystack.
-            </p>
-          </div>
-          
-          <button 
-            onClick={handleOpenAccount}
-            disabled={actionLoading}
-            className="w-full bg-[#FFD700] text-[#002113] py-8 rounded-full font-black uppercase text-[11px] tracking-[0.4em] shadow-[0_30px_60px_rgba(255,215,0,0.2)] active:scale-95 transition-all flex items-center justify-center gap-4 group"
-          >
-            {actionLoading ? <Loader2 className="animate-spin" /> : <Sparkles size={20} className="group-hover:rotate-12 transition-transform" />}
-            Initialize Global Account
-          </button>
-
-          {!isRegistryConnected && (
-             <div className="p-5 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-4 text-left">
-                <AlertTriangle className="text-red-500 shrink-0" size={18} />
-                <p className="text-[9px] font-black uppercase tracking-widest text-red-500/70">
-                   Institutional Registry Signal Lost. Protocol will run in Local Simulation Mode. Connect Cloud Registry in Profile for Global Sync.
-                </p>
-             </div>
-          )}
-        </div>
-
-        <div className="mt-12 py-10 flex flex-col items-center gap-4 opacity-10 select-none">
-           <span className="text-[14px] font-black uppercase tracking-[1em]">SANDALSroyalle</span>
-        </div>
+      <div className="relative">
+        <button 
+          onClick={() => setView('home')} 
+          className="fixed top-8 left-8 z-[100] p-4 bg-white rounded-2xl border border-slate-200 shadow-xl active:scale-90 transition-all text-slate-900"
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <FidelityHero onStart={handleOpenAccount} onLearnMore={() => setView('about')} />
       </div>
     );
   }
 
-  /* ACTIVE DASHBOARD SCREEN */
+  /* ACTIVE DASHBOARD SCREEN (Updated for Premium Fintech UI) */
   return (
-    <div className="min-h-full bg-slate-950 text-white flex flex-col animate-fade-in scrollbar-hide pb-40">
+    <div className="min-h-full bg-[#F8FAFC] text-slate-900 flex flex-col animate-fade-in scrollbar-hide pb-40 font-sans">
       <PaystackOverlay 
         isOpen={showCheckout}
         amount={contributionAmount}
@@ -202,113 +165,138 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
         onCancel={() => setShowCheckout(false)}
       />
 
-      <div className="p-8 bg-aba-dark border-b border-white/5 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl bg-opacity-80">
+      <div className="p-8 bg-white border-b border-slate-200 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl bg-opacity-90">
         <div className="flex items-center gap-5">
-          <button onClick={() => setView('home')} className="p-3 bg-white/5 rounded-2xl border border-white/10 transition-all"><ArrowLeft size={20} /></button>
-          <div><h2 className="text-xl font-black uppercase tracking-tighter">SrTS Dashboard</h2><p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em]">Paystack Protocol v9.6</p></div>
+          <button onClick={() => setView('home')} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-slate-400 hover:text-slate-900 transition-all"><ArrowLeft size={20} /></button>
+          <div>
+            <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900">Fidelity Dashboard</h2>
+            <p className="text-[8px] font-black text-blue-600 uppercase tracking-[0.4em]">Paystack Protocol v10.0</p>
+          </div>
         </div>
-        <button onClick={refreshAccount} disabled={actionLoading} className="w-12 h-12 rounded-2xl bg-aba-gold/10 border border-aba-gold/20 flex items-center justify-center text-aba-gold active:scale-90 transition-all">
+        <button onClick={refreshAccount} disabled={actionLoading} className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 active:scale-90 transition-all">
           {actionLoading ? <Loader2 size={24} className="animate-spin" /> : <RefreshCcw size={24} />}
         </button>
       </div>
 
-      <div className="p-8 space-y-8 max-w-4xl mx-auto w-full">
-        <div className="bg-gradient-to-br from-[#002113] to-slate-950 p-12 rounded-[4rem] border border-[#FFD700]/20 shadow-[0_40px_100px_rgba(0,0,0,0.4)] relative overflow-hidden">
-           <div className="relative z-10 space-y-4">
+      <div className="p-8 space-y-10 max-w-5xl mx-auto w-full">
+        {/* Main Balance Card */}
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-12 rounded-[3.5rem] shadow-[0_40px_80px_rgba(15,23,42,0.15)] relative overflow-hidden text-white">
+           <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-3">
-                 <ShieldCheck size={16} className="text-[#FFD700]" />
-                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FFD700]/60">Gross Accumulated Savings (Global Sync)</p>
+                 <ShieldCheck size={16} className="text-blue-400" />
+                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Gross Accumulated Savings (Global Sync)</p>
               </div>
-              <h3 className="text-6xl md:text-7xl font-black text-white tracking-tighter">₦{account.total_saved?.toLocaleString() || '0'}</h3>
-              <div className="pt-6 flex gap-4">
-                 <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 flex flex-col">
-                    <span className="text-[7px] font-black uppercase text-white/40 tracking-widest">Protocol Start</span>
-                    <span className="text-[10px] font-black text-white">{account.start_date ? new Date(account.start_date).toLocaleDateString() : 'Active'}</span>
+              <div className="space-y-2">
+                <h3 className="text-6xl md:text-7xl font-black tracking-tighter">₦{account.total_saved?.toLocaleString() || '0'}</h3>
+                <p className="text-sm font-medium text-white/30 uppercase tracking-widest">≈ ${(account.total_saved / 1500).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</p>
+              </div>
+              <div className="pt-8 flex flex-wrap gap-4">
+                 <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 flex flex-col">
+                    <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Protocol Start</span>
+                    <span className="text-xs font-black text-white">{account.start_date ? new Date(account.start_date).toLocaleDateString() : 'Active'}</span>
                  </div>
-                 <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 flex flex-col">
-                    <span className="text-[7px] font-black uppercase text-white/40 tracking-widest">Cycle Type</span>
-                    <span className="text-[10px] font-black text-[#FFD700] uppercase tracking-widest">{account.cycle}</span>
+                 <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 flex flex-col">
+                    <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Cycle Type</span>
+                    <span className="text-xs font-black text-blue-400 uppercase tracking-widest">{account.cycle}</span>
+                 </div>
+                 <div className="px-6 py-3 bg-blue-600 rounded-2xl flex flex-col shadow-lg shadow-blue-600/20">
+                    <span className="text-[8px] font-black uppercase text-white/60 tracking-widest">Status</span>
+                    <span className="text-xs font-black text-white uppercase tracking-widest">Verified</span>
                  </div>
               </div>
            </div>
-           <Globe size={240} className="absolute -right-20 -bottom-20 text-white opacity-[0.03] -rotate-12" />
+           <Globe size={280} className="absolute -right-20 -bottom-20 text-white opacity-[0.05] -rotate-12" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <div className="bg-white/5 p-8 rounded-[3.5rem] border border-white/10 space-y-8 shadow-xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           {/* Settlement Unit */}
+           <div className="bg-white p-10 rounded-[3rem] border border-slate-100 space-y-8 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 rounded-2xl bg-[#FFD700]/10 flex items-center justify-center text-[#FFD700] border border-[#FFD700]/20 shadow-lg">
-                    <Landmark size={24} />
+                 <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shadow-sm">
+                    <Landmark size={28} />
                  </div>
                  <div>
-                    <h4 className="text-sm font-black uppercase tracking-tight">Settlement Unit</h4>
-                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-1">Paystack Exit Portal</p>
+                    <h4 className="text-base font-black uppercase tracking-tight text-slate-900">Settlement Unit</h4>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Paystack Exit Portal</p>
                  </div>
               </div>
               
-              <div className="bg-black/40 p-5 rounded-2xl border border-white/5">
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                  {account.bank_name ? (
-                    <div className="space-y-1">
-                       <p className="text-[10px] font-black text-white uppercase tracking-tight">{account.bank_name}</p>
-                       <p className="text-[11px] font-mono text-[#FFD700]">{account.account_number}</p>
-                       <p className="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">{account.account_name}</p>
+                    <div className="space-y-2">
+                       <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{account.bank_name}</p>
+                       <p className="text-lg font-black font-mono text-blue-600 tracking-tighter">{account.account_number}</p>
+                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{account.account_name}</p>
                     </div>
                  ) : (
-                    <p className="text-[10px] font-black text-white/30 uppercase tracking-widest italic">No bank bound for exit.</p>
+                    <div className="flex flex-col items-center py-4 space-y-3">
+                      <AlertTriangle size={24} className="text-slate-200" />
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">No bank bound for exit.</p>
+                    </div>
                  )}
               </div>
               
-              <button onClick={() => setShowBankForm(true)} className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.3em] hover:bg-[#FFD700] hover:text-[#002113] transition-all">
-                {account.bank_name ? 'Update Unit' : 'Bind Settlement Unit'}
+              <button onClick={() => setShowBankForm(true)} className="w-full py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/10">
+                {account.bank_name ? 'Update Settlement Unit' : 'Bind Settlement Unit'}
               </button>
            </div>
 
-           <div className="bg-white/5 p-8 rounded-[3.5rem] border border-white/10 space-y-8 shadow-xl">
+           {/* Add Signal / Contribution */}
+           <div className="bg-white p-10 rounded-[3rem] border border-slate-100 space-y-8 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 rounded-2xl bg-aba-green/10 flex items-center justify-center text-aba-green border border-aba-green/20 shadow-lg">
-                    <Plus size={24} />
+                 <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500 border border-orange-100 shadow-sm">
+                    <Plus size={28} />
                  </div>
                  <div>
-                    <h4 className="text-sm font-black uppercase tracking-tight">Add Signal</h4>
-                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-1">Industrial Growth Injection</p>
+                    <h4 className="text-base font-black uppercase tracking-tight text-slate-900">Add Signal</h4>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Industrial Growth Injection</p>
                  </div>
               </div>
 
-              <div className="relative">
-                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-sm font-black text-[#FFD700]">₦</span>
+              <div className="relative group">
+                 <span className="absolute left-6 top-1/2 -translate-y-1/2 text-lg font-black text-slate-300 group-focus-within:text-orange-500 transition-colors">₦</span>
                  <input 
                     type="number" 
                     value={contributionAmount} 
                     onChange={e => setContributionAmount(Number(e.target.value))} 
-                    className="w-full p-6 pl-12 bg-black/40 border border-white/10 rounded-3xl text-xl font-black text-white outline-none focus:border-[#FFD700] transition-all shadow-inner" 
+                    className="w-full p-6 pl-12 bg-slate-50 border border-slate-100 rounded-[2rem] text-2xl font-black text-slate-900 outline-none focus:border-orange-500/50 transition-all shadow-inner" 
                  />
               </div>
 
               <button 
                 onClick={() => setShowCheckout(true)} 
-                className="w-full py-6 bg-[#FFD700] text-[#002113] rounded-3xl font-black uppercase text-[10px] tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
+                className="w-full py-6 bg-orange-500 text-white rounded-[2rem] font-black uppercase text-[11px] tracking-[0.4em] shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 hover:bg-orange-600"
               >
-                Commit Global Sync <Zap size={16} />
+                Commit Global Sync <Zap size={18} />
               </button>
            </div>
         </div>
 
         {/* BANK FORM MODAL */}
         {showBankForm && (
-           <div className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-6">
-              <div className="w-full max-w-md bg-aba-dark rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden animate-slide-up">
-                 <div className="p-8 border-b border-white/5 flex justify-between items-center">
-                    <h3 className="text-xl font-black uppercase tracking-tight">Unit Settlement Bind</h3>
-                    <button onClick={() => setShowBankForm(false)} className="p-2 text-white/30 hover:text-white"><X size={24} /></button>
+           <div className="fixed inset-0 z-[150] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6">
+              <div className="w-full max-w-md bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden animate-slide-up">
+                 <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                    <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Unit Settlement Bind</h3>
+                    <button onClick={() => setShowBankForm(false)} className="p-2 text-slate-300 hover:text-slate-900 transition-colors"><X size={24} /></button>
                  </div>
-                 <form onSubmit={handleSaveBankDetails} className="p-8 space-y-6">
-                    <div className="space-y-4">
-                       <input type="text" placeholder="Bank Name" required className="w-full p-5 bg-black/30 border border-white/10 rounded-2xl text-xs font-bold uppercase outline-none focus:border-[#FFD700] text-white" value={bankDetails.bank_name} onChange={e => setBankDetails({...bankDetails, bank_name: e.target.value})} />
-                       <input type="text" placeholder="Account Number" required className="w-full p-5 bg-black/30 border border-white/10 rounded-2xl text-xs font-bold font-mono outline-none focus:border-[#FFD700] text-white" value={bankDetails.account_number} onChange={e => setBankDetails({...bankDetails, account_number: e.target.value})} />
-                       <input type="text" placeholder="Account Name" required className="w-full p-5 bg-black/30 border border-white/10 rounded-2xl text-xs font-bold uppercase outline-none focus:border-[#FFD700] text-white" value={bankDetails.account_name} onChange={e => setBankDetails({...bankDetails, account_name: e.target.value})} />
+                 <form onSubmit={handleSaveBankDetails} className="p-10 space-y-8">
+                    <div className="space-y-5">
+                       <div className="space-y-2">
+                         <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Bank Name</label>
+                         <input type="text" placeholder="e.g. Access Bank" required className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold uppercase outline-none focus:border-blue-500/50 text-slate-900" value={bankDetails.bank_name} onChange={e => setBankDetails({...bankDetails, bank_name: e.target.value})} />
+                       </div>
+                       <div className="space-y-2">
+                         <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Account Number</label>
+                         <input type="text" placeholder="0000000000" required className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold font-mono outline-none focus:border-blue-500/50 text-slate-900" value={bankDetails.account_number} onChange={e => setBankDetails({...bankDetails, account_number: e.target.value})} />
+                       </div>
+                       <div className="space-y-2">
+                         <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest ml-2">Account Name</label>
+                         <input type="text" placeholder="FULL LEGAL NAME" required className="w-full p-5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold uppercase outline-none focus:border-blue-500/50 text-slate-900" value={bankDetails.account_name} onChange={e => setBankDetails({...bankDetails, account_name: e.target.value})} />
+                       </div>
                     </div>
-                    <button type="submit" disabled={actionLoading} className="w-full py-6 bg-[#FFD700] text-[#002113] rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3">
-                       {actionLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={18}/>} Confirm Link
+                    <button type="submit" disabled={actionLoading} className="w-full py-6 bg-blue-600 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.3em] shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 hover:bg-blue-700 transition-all">
+                       {actionLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={20}/>} Confirm Link
                     </button>
                  </form>
               </div>

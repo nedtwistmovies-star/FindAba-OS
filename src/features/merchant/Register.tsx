@@ -4,7 +4,7 @@ import {
   CheckCircle, Loader2, ShieldCheck, ArrowLeft, ArrowRight,
   Store, ChevronRight, Info, Shield, Landmark, 
   CheckCircle2, Sparkles, Building2, Zap, LayoutGrid, Plus,
-  MapPin, Phone, Mail, Globe, Camera, Briefcase, Award
+  MapPin, Phone, Mail, Globe, Camera, Briefcase, Award, Lock
 } from 'lucide-react';
 import { SubscriptionTier, ViewState, BillingCycle, Category, VerificationStatus, VerificationLevel, IntegrityGrade, Business, HubTier } from '../../types';
 import { saveBusinessToDB } from '../../services/supabaseService';
@@ -13,6 +13,8 @@ import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import WelcomeOverlay from '../../components/WelcomeOverlay';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
+import { useAuth } from '../../providers/AuthProvider';
+import { useToast } from '../../providers/ToastProvider';
 import IndustrialButton from '../../components/IndustrialButton';
 
 interface RegisterProps {
@@ -22,7 +24,38 @@ interface RegisterProps {
 }
 
 const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess }) => {
+  const { userIdentifier, isAuth } = useAuth();
+  const { addToast } = useToast();
   const [step, setStep] = useState<'plan' | 'form' | 'success'>('plan');
+
+  if (!isAuth) {
+    return (
+      <div className="p-8 flex flex-col items-center justify-center min-h-screen bg-aba-deep text-center space-y-8 font-sans">
+        <div className="w-24 h-24 bg-aba-gold/10 rounded-[2rem] flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
+          <Lock size={40} />
+        </div>
+        <div className="space-y-3">
+          <h2 className="text-3xl font-bold text-white uppercase tracking-tighter">Authentication Required</h2>
+          <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.3em] max-w-xs mx-auto leading-relaxed">
+            Please establish a secure node connection to commit your hub to the registry.
+          </p>
+        </div>
+        <button 
+          onClick={() => setView('login')} 
+          className="px-12 py-5 bg-aba-gold text-aba-deep rounded-2xl font-bold uppercase text-[10px] tracking-[0.3em] shadow-lg active:scale-95 transition-standard"
+        >
+          Establish Handshake
+        </button>
+        <button 
+          onClick={() => setView('home')} 
+          className="text-[9px] font-bold text-white/20 uppercase tracking-widest hover:text-white transition-colors"
+        >
+          Return to Hub
+        </button>
+      </div>
+    );
+  }
+
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(SubscriptionTier.FREE);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
   const [loading, setLoading] = useState(false);
@@ -62,7 +95,8 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
     setLoading(true);
 
     const newBusiness: Business = {
-      id: `biz-${Math.random().toString(36).substr(2, 9)}`,
+      id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
+      owner_id: userIdentifier || undefined,
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
@@ -96,8 +130,10 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
       setRegisteredBusiness(newBusiness);
       setStep('success');
       onRegister(newBusiness);
-    } catch (error) {
+      addToast("Hub successfully committed to registry!", "success");
+    } catch (error: any) {
       console.error("Registration failed:", error);
+      addToast(`Registration failed: ${error.message || "Unknown error"}`, "error");
     } finally {
       setLoading(false);
     }
