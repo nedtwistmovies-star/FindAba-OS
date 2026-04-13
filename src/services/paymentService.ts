@@ -119,3 +119,35 @@ export const paymentService = {
     }
   }
 };
+
+export function payWithPaystack({
+  email,
+  amount,
+  onSuccess,
+}: {
+  email: string;
+  amount: number;
+  onSuccess: (reference: string) => void;
+}) {
+  return new Promise<void>((resolve, reject) => {
+    if (typeof window === 'undefined') return reject('No window');
+
+    const handler = (window as any).PaystackPop?.setup({
+      key: paymentService.getApiKey(),
+      email,
+      amount: amount * 100,
+      currency: 'NGN',
+      callback: function (response: any) {
+        onSuccess(response.reference);
+        resolve();
+      },
+      onClose: function () {
+        reject('Payment cancelled');
+      },
+    });
+
+    if (!handler) return reject('Paystack not loaded');
+
+    handler.openIframe();
+  });
+}

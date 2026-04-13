@@ -63,15 +63,18 @@ export const isRegistryConfigured = () => {
   return !!getSupabase();
 };
 
+const normalizeEmail = (email: string) => email.toLowerCase().trim();
+
 export const authSignUp = async (email: string, pass: string, name: string, referralCodeInput?: string) => {
   const sb = getSupabase();
   if (!sb) throw new Error("Registry Offline: Supabase URL or Anon Key is missing in environment/admin.");
   
+  const normalizedEmail = normalizeEmail(email);
   // Generate a unique referral code for the new user
   const myReferralCode = generateReferralCode(name);
   
   const { data, error } = await sb.auth.signUp({
-    email,
+    email: normalizedEmail,
     password: pass,
     options: { 
       data: { 
@@ -96,7 +99,7 @@ export const authSignUp = async (email: string, pass: string, name: string, refe
   // 🔹 Send Welcome Email
   if (data.user) {
     const referralLink = `https://findaba.com.ng/signup?ref=${myReferralCode}`;
-    sendWelcomeEmail(email, name, referralLink).catch(err => 
+    sendWelcomeEmail(normalizedEmail, name, referralLink).catch(err => 
       console.warn("[Email] Welcome email failed (likely due to missing API key):", err)
     );
   }
@@ -158,8 +161,9 @@ export const processReferral = async (newUserId: string, referralCode: string) =
 export const authSignIn = async (email: string, pass: string) => {
   const sb = getSupabase();
   if (!sb) throw new Error("Registry Offline: Industrial signal not detected.");
+  const normalizedEmail = normalizeEmail(email);
   const { data, error } = await sb.auth.signInWithPassword({
-    email,
+    email: normalizedEmail,
     password: pass
   });
   if (error) {
@@ -447,9 +451,10 @@ export const saveLogisticsOrder = async (email: string, order: LogisticsOrder) =
   const client = getSupabase();
   if (!client) return;
   
+  const normalizedEmail = normalizeEmail(email);
   const { data, error } = await client
     .from('logistics_orders')
-    .insert({ ...order, user_email: email })
+    .insert({ ...order, user_email: normalizedEmail })
     .select();
   
   if (error) throw error;
@@ -458,7 +463,7 @@ export const saveLogisticsOrder = async (email: string, order: LogisticsOrder) =
   await triggerWebhook(WebhookEvent.LOGISTICS_ORDER_CREATED, {
     order_id: order.id,
     tracking_id: order.trackingId,
-    customer_email: email,
+    customer_email: normalizedEmail,
     origin: order.pickupAddress,
     destination: order.deliveryAddress,
     carrier: order.carrier,
@@ -472,7 +477,8 @@ export const saveLogisticsOrder = async (email: string, order: LogisticsOrder) =
 export const fetchLogisticsOrders = async (email: string): Promise<LogisticsOrder[]> => {
   const client = getSupabase();
   if (!client) return [];
-  const { data } = await client.from('logistics_orders').select('*').eq('user_email', email).order('timestamp', { ascending: false });
+  const normalizedEmail = normalizeEmail(email);
+  const { data } = await client.from('logistics_orders').select('*').eq('user_email', normalizedEmail).order('timestamp', { ascending: false });
   return data || [];
 };
 
@@ -581,7 +587,10 @@ export const saveBusinessToDB = async (business: Business) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
-  let currentPayload: any = { ...business };
+  let currentPayload: any = { 
+    ...business,
+    email: business.email ? normalizeEmail(business.email) : undefined
+  };
   let attempts = 0;
   const maxAttempts = 10; // Allow for multiple missing columns
 
@@ -685,8 +694,9 @@ export const activatePlanFeatures = async (businessId: string, planId: string) =
 export const fetchThriftAccount = async (email: string): Promise<ThriftAccount | null> => {
   const client = getSupabase();
   if (!client) return null;
+  const normalizedEmail = normalizeEmail(email);
   try {
-    const { data, error } = await client.from('thrift_accounts').select('*').eq('user_email', email).maybeSingle();
+    const { data, error } = await client.from('thrift_accounts').select('*').eq('user_email', normalizedEmail).maybeSingle();
     if (error) {
       if (error.code === '42P01') throw new Error("Thrift Table Missing: Please run SQL setup.");
       if (error.message.includes('Unexpected token')) throw new Error("Signal Error: Received HTML instead of JSON. Check Supabase URL.");
@@ -702,7 +712,8 @@ export const fetchThriftAccount = async (email: string): Promise<ThriftAccount |
 export const createThriftAccount = async (email: string, cycle: string) => {
   const client = getSupabase();
   if (!client) return;
-  const { error } = await client.from('thrift_accounts').insert({ user_email: email, cycle, total_saved: 0, status: 'active', start_date: new Date().toISOString() });
+  const normalizedEmail = normalizeEmail(email);
+  const { error } = await client.from('thrift_accounts').insert({ user_email: normalizedEmail, cycle, total_saved: 0, status: 'active', start_date: new Date().toISOString() });
   if (error) throw error;
 };
 
@@ -710,13 +721,14 @@ export const saveThriftContribution = async (email: string, amount: number) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
+  const normalizedEmail = normalizeEmail(email);
   try {
-    const account = await fetchThriftAccount(email);
+    const account = await fetchThriftAccount(normalizedEmail);
     if (!account) throw new Error("No active thrift account found for this user.");
     
     const { error } = await client.from('thrift_accounts').update({ 
       total_saved: Number(account.total_saved) + amount 
-    }).eq('user_email', email);
+    }).eq('user_email', normalizedEmail);
     
     if (error) throw error;
   } catch (e: any) {
@@ -728,7 +740,8 @@ export const saveThriftContribution = async (email: string, amount: number) => {
 export const updateThriftAccountSettlement = async (email: string, details: any) => {
   const client = getSupabase();
   if (!client) return;
-  await client.from('thrift_accounts').update(details).eq('user_email', email);
+  const normalizedEmail = normalizeEmail(email);
+  await client.from('thrift_accounts').update(details).eq('user_email', normalizedEmail);
 };
 
 export const fetchLedgerEntries = async (): Promise<LedgerEntry[]> => {
@@ -922,14 +935,16 @@ export const closeBuyerSignal = async (id: string) => {
 export const saveVisionToCloud = async (email: string, prompt: string, result_url: string, mode: string) => {
   const client = getSupabase();
   if (!client) return;
-  await client.from('vision_history').insert({ user_email: email, prompt, result_url, mode, created_at: new Date().toISOString() });
+  const normalizedEmail = normalizeEmail(email);
+  await client.from('vision_history').insert({ user_email: normalizedEmail, prompt, result_url, mode, created_at: new Date().toISOString() });
 };
 
 export const fetchVisionHistory = async (email: string): Promise<any[]> => {
   const client = getSupabase();
   if (!client) return [];
+  const normalizedEmail = normalizeEmail(email);
   try {
-    const { data, error } = await client.from('vision_history').select('*').eq('user_email', email).order('created_at', { ascending: false });
+    const { data, error } = await client.from('vision_history').select('*').eq('user_email', normalizedEmail).order('created_at', { ascending: false });
     if (error && error.code === '42P01') return [];
     return data || [];
   } catch (e) { return []; }
@@ -1033,20 +1048,23 @@ export const markNotificationAsRead = async (id: string) => {
 export const fetchDriverByEmail = async (email: string) => {
   const client = getSupabase();
   if (!client) return null;
-  const { data } = await client.from('drivers').select('*').eq('user_email', email).maybeSingle();
+  const normalizedEmail = normalizeEmail(email);
+  const { data } = await client.from('drivers').select('*').eq('user_email', normalizedEmail).maybeSingle();
   return data;
 };
 
 export const updateDriverStatus = async (email: string, status: string) => {
   const client = getSupabase();
   if (!client) return;
-  await client.from('drivers').update({ status }).eq('user_email', email);
+  const normalizedEmail = normalizeEmail(email);
+  await client.from('drivers').update({ status }).eq('user_email', normalizedEmail);
 };
 
 export const updateDriverCompliance = async (email: string, updates: any) => {
   const client = getSupabase();
   if (!client) return;
-  const { data: driver } = await client.from('drivers').select('*').eq('user_email', email).single();
+  const normalizedEmail = normalizeEmail(email);
+  const { data: driver } = await client.from('drivers').select('*').eq('user_email', normalizedEmail).single();
   if (!driver) return;
 
   const newUpdates = { ...updates };
@@ -1058,7 +1076,7 @@ export const updateDriverCompliance = async (email: string, updates: any) => {
     newUpdates.compliance_level = 'Level 2: Elite';
   }
 
-  await client.from('drivers').update(newUpdates).eq('user_email', email);
+  await client.from('drivers').update(newUpdates).eq('user_email', normalizedEmail);
 };
 
 export const fetchAvailableVehicles = async (category: string) => {

@@ -98,7 +98,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
       id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
       owner_id: userUuid || undefined,
       name: formData.name,
-      email: formData.email,
+      email: formData.email.toLowerCase().trim(),
       phone: formData.phone,
       phone_whatsapp: formData.whatsapp,
       category: formData.category,
