@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import SavingsCTA from '../components/SavingsCTA';
 import CommitButton from '../components/CommitButton';
 
 type Room = {
@@ -11,6 +13,51 @@ type Room = {
 export default function RoomBooking({ room }: { room: Room }) {
   const [checkIn, setCheckIn] = useState<string>('');
   const [checkOut, setCheckOut] = useState<string>('');
+
+  // REAL DATA STATES
+  const [user, setUser] = useState<any>(null);
+  const [business, setBusiness] = useState<any>(null);
+  const [wallet, setWallet] = useState<any>(null);
+
+  // =========================
+  // LOAD AUTH + BUSINESS + WALLET
+  // =========================
+  useEffect(() => {
+    const loadUserData = async () => {
+      // 1. GET LOGGED IN USER
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      setUser(user);
+
+      // 2. GET BUSINESS FOR USER
+      const { data: businessData } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!businessData) return;
+
+      setBusiness(businessData);
+
+      // 3. GET WALLET FOR BUSINESS
+      const { data: walletData } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('business_id', businessData.id)
+        .single();
+
+      if (!walletData) return;
+
+      setWallet(walletData);
+    };
+
+    loadUserData();
+  }, []);
 
   // =========================
   // CALCULATIONS
@@ -43,7 +90,9 @@ export default function RoomBooking({ room }: { room: Room }) {
       <div className="bg-white rounded-xl p-4 shadow">
         <h2 className="text-lg font-semibold">{room.name}</h2>
         <p className="text-sm text-gray-500">{room.room_type}</p>
-        <p className="text-green-700 font-bold mt-2">₦{room.price} / night</p>
+        <p className="text-green-700 font-bold mt-2">
+          ₦{room.price} / night
+        </p>
       </div>
 
       {/* DATE PICKER */}
@@ -83,20 +132,28 @@ export default function RoomBooking({ room }: { room: Room }) {
         </div>
       </div>
 
-      {/* ERROR STATE */}
       {!isValid && (
         <p className="text-red-500 text-sm">
           Please select valid dates
         </p>
       )}
 
-      {/* ACTION BUTTON */}
+      {/* BOOKING */}
       <CommitButton
         roomId={room.id}
         checkIn={checkIn}
         checkOut={checkOut}
         disabled={!isValid}
       />
+
+      {/* PAYMENT (REAL) */}
+      {isValid && user && business && wallet && (
+        <SavingsCTA
+          user={user}
+          business={business}
+          wallet={wallet}
+        />
+      )}
     </div>
   );
 }
