@@ -126,6 +126,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
     };
 
     try {
+      console.log("[Registry] Submitting hub payload:", newBusiness);
       await saveBusinessToDB(newBusiness);
       setRegisteredBusiness(newBusiness);
       setStep('success');

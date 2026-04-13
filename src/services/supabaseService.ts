@@ -594,10 +594,37 @@ export const saveBusinessToDB = async (business: Business) => {
   let attempts = 0;
   const maxAttempts = 10; // Allow for multiple missing columns
 
+  console.log(`[Registry] Attempting to commit hub: ${currentPayload.email} (ID: ${currentPayload.id})`);
+
   while (attempts < maxAttempts) {
-    const { error } = await client.from('businesses').insert(currentPayload);
+    // Use upsert to handle existing emails/IDs permanently
+    const { data, error } = await client
+      .from('businesses')
+      .upsert(currentPayload, { onConflict: 'email' })
+      .select();
     
     if (error) {
+      console.error(`[Registry] Save attempt ${attempts + 1} failed:`, error);
+
+      // Handle duplicate key explicitly if upsert didn't catch it
+      if (error.code === '23505') {
+        console.warn("[Registry] Duplicate key detected despite upsert. Attempting targeted update...");
+        const { email, ...updateData } = currentPayload;
+        const { error: updateError } = await client
+          .from('businesses')
+          .update(updateData)
+          .eq('email', email);
+        
+        if (!updateError) {
+          console.log("[Registry] Targeted update successful.");
+          triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);
+          return;
+        }
+        console.error("[Registry] Targeted update failed:", updateError);
+        throw new Error(`Registry Sync Error: Duplicate Email detected and update failed. (${updateError.message})`);
+      }
+
+      // Handle missing columns gracefully (PGRST204)
       // Handle missing columns gracefully (PGRST204)
       if (error.code === 'PGRST204') {
         const match = error.message.match(/Could not find the '(.+)' column/);

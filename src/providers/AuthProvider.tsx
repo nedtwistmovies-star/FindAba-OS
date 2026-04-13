@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getSupabase } from '../services/supabaseService';
 
 interface AuthContextType {
   userIdentifier: string | null;
@@ -21,8 +22,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuth, setIsAuth] = useState<boolean>(!!localStorage.getItem('findaba_user_id'));
 
   useEffect(() => {
+    const initAuth = async () => {
+      const sb = getSupabase();
+      if (!sb) return;
+
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.user) {
+        const user = session.user;
+        const identifier = user.email || user.phone || '';
+        const name = user.user_metadata.full_name || 'Verified Citizen';
+        const uuid = user.id;
+        
+        // Recover session if localStorage is missing it
+        if (!localStorage.getItem('findaba_user_uuid')) {
+          console.log("[Auth] Recovering session from Supabase...");
+          handleAuthSuccess(identifier, name, 'registered', uuid);
+        }
+      }
+    };
+
+    initAuth();
+
     const storedId = localStorage.getItem('findaba_user_id');
-    if (storedId === 'pastornelsonezi@gmail.com' || localStorage.getItem('findaba_user_uuid') === 'pastornelsonezi@gmail.com') {
+    if (storedId === 'pastornelsonezi@gmail.com') {
       localStorage.setItem('findaba_user_role', 'admin');
       setUserRole('admin');
     }
@@ -31,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleAuthSuccess = useCallback((identifier: string, name: string, role: string = 'registered', uuid?: string) => {
     // 🔹 Admin Bootstrap Protocol
     let finalRole = role;
-    if (identifier === 'pastornelsonezi@gmail.com' || uuid === 'pastornelsonezi@gmail.com') {
+    if (identifier === 'pastornelsonezi@gmail.com') {
       finalRole = 'admin';
     }
 

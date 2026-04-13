@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { createBooking } from '../services/bookingService';
 import { payWithPaystack } from '../services/paymentService';
 import { supabase } from '../lib/supabaseClient';
+import { triggerWebhook, WebhookEvent } from '../services/webhookService';
 
 export function useBookingFlow() {
   const [loading, setLoading] = useState(false);
@@ -43,10 +44,16 @@ export function useBookingFlow() {
             status: 'success',
           });
 
-          await supabase
+          const { data: confirmedBooking } = await supabase
             .from('bookings')
             .update({ status: 'confirmed' })
-            .eq('id', booking.id);
+            .eq('id', booking.id)
+            .select()
+            .single();
+
+          if (confirmedBooking) {
+            triggerWebhook(WebhookEvent.NEW_BOOKING, confirmedBooking);
+          }
         },
       });
 
