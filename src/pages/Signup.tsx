@@ -10,7 +10,7 @@ import Logo from '../components/Logo';
 
 interface SignupProps {
   setView: (v: ViewState) => void;
-  onAuthSuccess: (email: string, name: string, role: string) => void;
+  onAuthSuccess: (identifier: string, name: string, role: string, uuid?: string) => void;
 }
 
 const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
@@ -49,7 +49,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
         await createWelcomeNotification(data.user.id);
         
         setMessage("Account created successfully! Welcome to FindAba.");
-        onAuthSuccess(formData.email, formData.name, 'registered');
+        onAuthSuccess(formData.email, formData.name, 'registered', data.user.id);
         
         // Redirect after a short delay to show success message
         setTimeout(() => {

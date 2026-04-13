@@ -10,7 +10,7 @@ import Logo from '../../components/Logo';
 
 interface LoginProps {
   setView: (v: ViewState) => void;
-  onAuthSuccess: (email: string, name: string, role: string) => void;
+  onAuthSuccess: (identifier: string, name: string, role: string, uuid?: string) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
@@ -59,12 +59,12 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     try {
       if (mode === 'signup') {
         const res = await authSignUp(formData.email, formData.password, formData.name, formData.referral_code);
-        onAuthSuccess(res.user?.id || formData.email, formData.name, 'registered');
+        onAuthSuccess(formData.email, formData.name, 'registered', res.user?.id);
         setView('home');
       } else {
         const res = await authSignIn(formData.email, formData.password);
         const role = localStorage.getItem('findaba_user_role') || 'registered';
-        onAuthSuccess(res.user.id, res.user.user_metadata.full_name || 'Verified Citizen', role);
+        onAuthSuccess(formData.email, res.user.user_metadata.full_name || 'Verified Citizen', role, res.user.id);
         setView('home');
       }
     } catch (err: any) {

@@ -10,7 +10,7 @@ import { syncGeminiConfig } from '../services/geminiService';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
-  const { isAuth, userRole, userIdentifier, handleAuthSuccess = () => {} } = useAuth();
+  const { isAuth, userRole, userIdentifier, userUuid, handleAuthSuccess = () => {} } = useAuth();
   const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
   const { 
     businesses = [], 
@@ -49,6 +49,7 @@ const AppContent: React.FC = () => {
   }, [view]);
 
   const myBusiness = (businesses?.find ? businesses.find(b => 
+    b.owner_id === userUuid ||
     b.email === userIdentifier || 
     b.phone === userIdentifier || 
     b.phone_whatsapp === userIdentifier ||

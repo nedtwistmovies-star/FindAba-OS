@@ -24,7 +24,7 @@ interface RegisterProps {
 }
 
 const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess }) => {
-  const { userIdentifier, isAuth } = useAuth();
+  const { userIdentifier, userUuid, isAuth } = useAuth();
   const { addToast } = useToast();
   const [step, setStep] = useState<'plan' | 'form' | 'success'>('plan');
 
@@ -96,7 +96,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
     const newBusiness: Business = {
       id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
-      owner_id: userIdentifier || undefined,
+      owner_id: userUuid || undefined,
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
@@ -145,7 +145,8 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         <PaystackOverlay 
           isOpen={showCheckout}
           amount={BUSINESS_PLANS.find(p => p.id === selectedPlan)?.monthlyAmount || 0}
-          email="billing@sandalsroyalle.com"
+          email={userIdentifier || 'billing@sandalsroyalle.com'}
+          userId={userUuid || undefined}
           label={`Hub Enrollment: ${BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name}`}
           onSuccess={handlePaymentSuccess}
           onCancel={() => setShowCheckout(false)}

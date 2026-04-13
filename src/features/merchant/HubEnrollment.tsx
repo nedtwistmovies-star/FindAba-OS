@@ -22,7 +22,7 @@ interface HubEnrollmentProps {
 }
 
 const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpdate }) => {
-  const { userIdentifier } = useAuth();
+  const { userIdentifier, userUuid } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [selectedTier, setSelectedTier] = useState<HubTier | null>(null);
@@ -197,7 +197,7 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
         isOpen={showPayment}
         amount={tiers.find(t => t.id === selectedTier)?.amount || 0}
         email={userIdentifier || 'guest@findaba.com'}
-        userId={userIdentifier || undefined}
+        userId={userUuid || undefined}
         label={`Upgrade to ${selectedTier}`}
         onSuccess={onPaymentSuccess}
         onCancel={() => setShowPayment(false)}
