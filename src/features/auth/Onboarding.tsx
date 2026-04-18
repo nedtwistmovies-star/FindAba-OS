@@ -54,17 +54,107 @@ const STEPS: OnboardingStep[] = [
 
 const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [showFinalForm, setShowFinalForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    username: '',
+    role: 'user' as 'user' | 'business'
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const next = () => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      localStorage.setItem('findaba_onboarded', 'true');
-      setView('home');
+      setShowFinalForm(true);
+    }
+  };
+
+  const handleFinalize = async () => {
+    if (!formData.name) return;
+    
+    setIsSubmitting(true);
+    try {
+       const sb = (await import('../../lib/supabase')).supabase;
+       const { data: { user } } = await sb.auth.getUser();
+       
+       if (user) {
+         await sb.from('profiles').update({
+           full_name: formData.name,
+           role: formData.role === 'business' ? 'merchant' : 'registered'
+         }).eq('id', user.id);
+       }
+       
+       localStorage.setItem('findaba_onboarded', 'true');
+       localStorage.setItem('findaba_user_role', formData.role === 'business' ? 'merchant' : 'registered');
+       setView('home');
+    } catch (err) {
+       console.error("Onboarding sync failed", err);
+       // Fallback to home anyway so as not to block user
+       setView('home');
+    } finally {
+       setIsSubmitting(false);
     }
   };
 
   const step = STEPS[currentStep];
+
+  if (showFinalForm) {
+    return (
+      <div className="fixed inset-0 z-[10000] bg-[#00120b] text-white flex flex-col p-8 md:p-24 overflow-hidden font-sans">
+        <div className="max-w-md mx-auto w-full space-y-12 animate-fade-in pt-12">
+          <div className="space-y-4 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-aba-gold/10 border border-aba-gold/30 flex items-center justify-center text-aba-gold mx-auto">
+              <Star size={32} />
+            </div>
+            <h2 className="text-3xl font-black tracking-tighter uppercase whitespace-nowrap">Identity Protocol</h2>
+            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest leading-relaxed px-4">Initialize your node in the FindAba Industrial Matrix</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4">Full Identity (Name)</label>
+              <input 
+                type="text"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Enter your full name"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 outline-none focus:border-aba-gold transition-all text-sm font-bold"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4">Role Selection</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={() => setFormData({ ...formData, role: 'user' })}
+                  className={`p-6 rounded-2xl border transition-all text-left space-y-2 ${formData.role === 'user' ? 'bg-aba-gold border-aba-gold text-aba-deep' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'}`}
+                >
+                  <Users size={20} />
+                  <p className="text-[10px] font-black uppercase tracking-widest">I Want to Shop / Book</p>
+                </button>
+                <button 
+                  onClick={() => setFormData({ ...formData, role: 'business' })}
+                  className={`p-6 rounded-2xl border transition-all text-left space-y-2 ${formData.role === 'business' ? 'bg-aba-gold border-aba-gold text-aba-deep' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'}`}
+                >
+                  <Zap size={20} />
+                  <p className="text-[10px] font-black uppercase tracking-widest">I Run a Business</p>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button 
+            onClick={handleFinalize}
+            disabled={!formData.name || isSubmitting}
+            className="w-full py-6 bg-white text-aba-dark rounded-full font-black uppercase text-xs tracking-[0.3em] flex items-center justify-center gap-4 shadow-2xl hover:bg-aba-gold transition-all active:scale-95 disabled:opacity-30"
+          >
+            {isSubmitting ? "Synchronizing..." : "Finalize Handshake"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[10000] bg-[#00120b] text-white flex flex-col overflow-hidden font-sans">

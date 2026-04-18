@@ -15,15 +15,26 @@ const __dirname = path.dirname(__filename);
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey!, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false
-  }
-});
+let supabase: any;
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+try {
+  if (supabaseKey) {
+    supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    });
+  } else {
+    console.warn("[Industrial-OS] Supabase key missing - logic depending on it may fail.");
+  }
+} catch (e) {
+  console.error("[Industrial-OS] Supabase init failed:", e);
+}
+
+const resendKey = process.env.RESEND_API_KEY || 're_placeholder';
+const resend = new Resend(resendKey);
 
 console.log("Initializing FindAba City OS Server...");
 console.log("Environment Check:", {
@@ -211,19 +222,22 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     res.json({ success: true });
   });
 
-  // Email Sending Endpoint (Resend Integration)
+  // Email Sending Endpoint (Resend Integration with dynamic key support)
   app.post("/api/send-email", async (req, res) => {
-    const { to, subject, html, from = "onboarding@findaba.com.ng", name } = req.body;
+    const { to, subject, html, from = "onboarding@findaba.com.ng", name, apiKey } = req.body;
+    const activeKey = apiKey || process.env.RESEND_API_KEY;
 
-    if (!process.env.RESEND_API_KEY) {
-      console.error("[Email] RESEND_API_KEY is missing");
-      return res.status(500).json({ error: "Email service not configured" });
+    if (!activeKey) {
+      console.error("[Email] No API Key provided (body or env)");
+      return res.status(500).json({ error: "Email service not configured. Please provide a Resend API Key." });
     }
 
     try {
-      console.log(`[Email] Attempting to send email to ${to} from ${from}`);
+      console.log(`[Email] Attempting to send email to ${to} from ${from} (Using ${apiKey ? 'Override Key' : 'Env Key'})`);
       
-      const { data, error } = await resend.emails.send({
+      const client = apiKey ? new Resend(apiKey) : resend;
+      
+      const { data, error } = await client.emails.send({
         from: name ? `${name} <${from}>` : from,
         to: [to],
         subject,
@@ -747,7 +761,10 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
 async function setupVite() {
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: false // ⚡ Disable HMR to prevent port conflicts (shared environment)
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -764,11 +781,19 @@ async function setupVite() {
 // Start Server if not on Vercel
 if (!process.env.VERCEL) {
   const PORT = Number(process.env.PORT) || 3000;
-  setupVite().then(() => {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://0.0.0.0:${PORT}`);
+  setupVite()
+    .then(() => {
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`[Industrial-OS] Server online at http://0.0.0.0:${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error("[Industrial-OS] Initialization Failure:", err);
+      // Fallback listen to prevent container restart loops
+      app.listen(PORT, "0.0.0.0", () => {
+        console.warn(`[Industrial-OS] Server running in failsafe mode on port ${PORT}`);
+      });
     });
-  });
 }
 
 export default app;

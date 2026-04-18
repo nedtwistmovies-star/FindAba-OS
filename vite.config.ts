@@ -13,6 +13,7 @@ export default defineConfig({
     'process.env.GITHUB_REPO': JSON.stringify(process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '')
   },
   server: {
-    port: 3000
+    port: 3000,
+    hmr: false
   }
 });

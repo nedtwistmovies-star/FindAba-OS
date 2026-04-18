@@ -10,6 +10,7 @@ interface EmailOptions {
   html: string;
   from?: string;
   name?: string;
+  apiKey?: string;
 }
 
 export const sendEmail = async (options: EmailOptions): Promise<{ success: boolean; id?: string; error?: string }> => {
@@ -22,7 +23,8 @@ export const sendEmail = async (options: EmailOptions): Promise<{ success: boole
       body: JSON.stringify({
         ...options,
         from: options.from || 'onboarding@findaba.com.ng',
-        name: options.name || 'FindAba City OS'
+        name: options.name || 'FindAba City OS',
+        apiKey: options.apiKey || localStorage.getItem('findaba_resend_api_key') || undefined
       }),
     });
 

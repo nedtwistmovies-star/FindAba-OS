@@ -34,6 +34,9 @@ import {
   BarChart3,
   Github,
   Save,
+  Send,
+  Cpu,
+  Mail,
   ExternalLink,
 } from "lucide-react";
 import {
@@ -52,7 +55,6 @@ import {
 import { ARTISANS } from "../../constants";
 import { useToast } from "../../providers/ToastProvider";
 import { triggerWebhook, WebhookEvent, validateAutomationGateway, getSamplePayload } from "../../services/webhookService";
-import { Send, Cpu, Mail } from "lucide-react";
 import { paymentService } from "../../services/paymentService";
 import { sendWelcomeEmail } from "../../services/emailService";
 import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel } from "../../types";
@@ -363,9 +365,14 @@ const EmailAudit: React.FC = () => {
   const { addToast } = useToast();
   const [sending, setSending] = useState(false);
   const [testEmail, setTestEmail] = useState('pastornelsonezi@gmail.com');
+  const [resendKey, setResendKey] = useState(localStorage.getItem('findaba_resend_api_key') || '');
   const [status, setStatus] = useState<{ status: string, message: string }>({ status: 'unknown', message: 'Email system audit not yet performed.' });
 
   const runTest = async () => {
+    if (resendKey) {
+      localStorage.setItem('findaba_resend_api_key', resendKey);
+    }
+    
     setSending(true);
     try {
       const result = await sendWelcomeEmail(testEmail, "Test User", "https://findaba.com.ng/signup?ref=TEST");
@@ -381,6 +388,11 @@ const EmailAudit: React.FC = () => {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleUpdateKey = () => {
+    localStorage.setItem('findaba_resend_api_key', resendKey);
+    addToast("Email Key Saved Locally", "success");
   };
 
   return (
@@ -407,8 +419,29 @@ const EmailAudit: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-6">
-          <div className="space-y-4">
+        <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-8">
+          {/* Configuration Section */}
+          <div className="pb-8 border-b border-white/5 space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Resend API Configuration</label>
+              <button onClick={handleUpdateKey} className="text-[9px] font-black uppercase text-aba-gold hover:opacity-100 opacity-60 transition-opacity">Save Locally</button>
+            </div>
+            <div className="relative group">
+              <Key className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-aba-gold transition-colors" size={16} />
+              <input 
+                type="password"
+                value={resendKey}
+                onChange={(e) => setResendKey(e.target.value)}
+                placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"
+                className="w-full bg-black/40 border border-white/10 p-5 pl-14 rounded-2xl outline-none focus:border-aba-gold/50 transition-all text-xs font-mono"
+              />
+            </div>
+            <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest px-2">
+              If environment variable RESEND_API_KEY is missing/invalid, this local key will be used as a temporary override.
+            </p>
+          </div>
+
+          <div className="space-y-4 pt-4">
             <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Test Recipient</label>
             <div className="flex gap-4">
               <input 
@@ -428,10 +461,10 @@ const EmailAudit: React.FC = () => {
                 Send Test
               </IndustrialButton>
             </div>
+            <p className="text-[11px] font-medium text-white/80 leading-relaxed px-4">
+              {status.message}
+            </p>
           </div>
-          <p className="text-[11px] font-medium text-white/80 leading-relaxed">
-            {status.message}
-          </p>
         </div>
       </div>
 
