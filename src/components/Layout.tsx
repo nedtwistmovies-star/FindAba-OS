@@ -292,7 +292,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
       <div className={`flex-1 flex flex-col transition-standard ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'} ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         
         <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? 'lg:left-20' : 'lg:left-64'} ${isDarkView ? 'bg-black/40 border-b border-white/5' : 'bg-white/80 border-b border-black/5'}`}>
-          <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group shrink-0" onClick={() => setView('home')}>
+          <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group shrink-0 lg:hidden" onClick={() => setView('home')}>
               <Logo src={activeLogo} size={28} className="sm:w-8 sm:h-8 group-hover:scale-105 transition-standard" />
               <div className="flex flex-col">
                 <h1 className="text-lg sm:text-xl font-bold tracking-tight leading-none group-hover:text-aba-gold transition-standard">
@@ -309,7 +309,18 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               </div>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-6 ml-auto lg:ml-0">
+            <div className="hidden lg:block flex-1 max-w-md mr-12">
+              <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-aba-gold transition-colors" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Universal Industrial Search..." 
+                  className="w-full pl-12 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-aba-gold/50 transition-all"
+                />
+              </div>
+            </div>
+            
             <div className="hidden md:block">
               <SystemClock />
             </div>
@@ -365,7 +376,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           />
         )}
 
-        <main className={`flex-1 flex flex-col pt-20 md:pt-32 container-responsive`}>
+        <main className={`flex-1 flex flex-col pt-24 md:pt-36 container-responsive overflow-x-hidden`}>
           <div className="flex-1">
             {children}
           </div>
