@@ -5,7 +5,7 @@ import { useToast } from '../providers/ToastProvider';
 import { 
   Home, Compass, UserCircle, Search, Menu, X, Globe, Building2, Zap, ShieldCheck,
   MessageCircle, BookOpen, Map as MapIcon, Layers, Sparkles, Radio, Info, Loader2, Cpu,
-  Rss, Users, Lock, Unlock, Bell, Car, Key, Truck, Wallet, Plus,
+  Rss, Users, Lock, Unlock, Bell, Car, Key, Truck, Wallet, Plus, Landmark,
   Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft, RefreshCw
 } from 'lucide-react';
 import Logo from './Logo';
@@ -170,7 +170,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   }, [isAuth, userIdentifier]);
   
   const isSealed = localStorage.getItem('findaba_registry_sealed') === 'true';
-  const isDarkView = ['discover', 'home', 'editorial', 'editorial-detail', 'oracle', 'admin', 'srts-dashboard', 'sandals-hotels', 'lab', 'about', 'feed', 'login', 'purple-fleet', 'driver-console', 'fleet-admin'].includes(currentView);
+  const isDarkView = ['discover', 'home', 'editorial', 'editorial-detail', 'oracle', 'admin', 'srts-dashboard', 'sandals-hotels', 'lab', 'about', 'feed', 'login', 'purple-fleet', 'driver-console', 'fleet-admin', 'wallet'].includes(currentView);
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -214,10 +214,11 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
   const menuItems = [
     { label: 'City Faces', icon: <Users size={20} />, view: 'feed' as ViewState },
+    { label: 'Fidelity Wallet', icon: <Landmark size={20} />, view: 'wallet' as ViewState },
     { label: 'Purple Fleet', icon: <Car size={20} />, view: 'purple-fleet' as ViewState },
     { label: 'SANDALSroyalle Hotels & Suites', icon: <Building2 size={20} />, view: 'sandals-hotels' as ViewState },
     { label: 'Carry-Go Cargo', icon: <Truck size={20} />, view: 'cargo' as ViewState },
-    { label: 'Fidelity Thrift', icon: <Wallet size={20} />, view: 'srts-dashboard' as ViewState },
+    { label: 'Thrift Savings', icon: <Wallet size={20} />, view: 'srts-dashboard' as ViewState },
     { label: 'Audio Archive', icon: <Radio size={20} />, view: 'audio-heritage' as ViewState },
     { label: 'Creative Lab', icon: <Sparkles size={20} />, view: 'lab' as ViewState },
     { label: 'Hardware Audit', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
@@ -481,9 +482,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
       <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-4 md:px-8 py-4 md:py-6 flex justify-around items-center transition-standard lg:hidden ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
         {[
           { id: 'home', icon: <Home size={20} />, label: 'HOME' },
-          { id: 'explore', icon: <Layers size={20} />, label: 'REGISTRY' },
           { id: 'feed', icon: <Users size={20} />, label: 'FACES' },
           { id: 'oracle', icon: <Cpu size={20} />, label: 'ORACLE' },
+          { id: 'wallet', icon: <Landmark size={20} />, label: 'Fidelity' },
           { id: 'profile', icon: <UserCircle size={20} />, label: 'PROFILE' }
         ].map((btn, i) => (
           <button 

@@ -15,7 +15,13 @@ const __dirname = path.dirname(__filename);
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey!);
+const supabase = createClient(supabaseUrl, supabaseKey!, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+});
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -43,10 +49,11 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Config Sync
+  // Config Sync
 app.get(["/api/config", "/api/config/"], (req, res) => {
   console.log(`[Server] Config sync requested from ${req.ip}`);
   const geminiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || 'AIzaSyCxjuQC56zQJsuhSJH8LJFfAjRe4xI8jpk';
+  const openRouterKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY || '';
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co';
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6InFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
   
@@ -54,11 +61,12 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     supabaseUrl,
     supabaseKey,
     geminiKey,
+    openRouterKey,
     githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '',
     makeWebhookUrl: process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || ''
   };
 
-  console.log(`[Server] Sending config. Gemini Key: ${geminiKey ? 'Present' : 'Missing'}`);
+  console.log(`[Server] Sending config. Gemini: ${geminiKey ? 'OK' : 'NO'}, OpenRouter: ${openRouterKey ? 'OK' : 'NO'}`);
   res.json(config);
 });
 
@@ -458,7 +466,13 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       const supabaseKey = process.env.SUPABASE_ANON_KEY;
       if (supabaseUrl && supabaseKey) {
         try {
-          const supabase = createClient(supabaseUrl, supabaseKey);
+          const supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+              detectSessionInUrl: false
+            }
+          });
           const { data: businesses, error: sbError } = await supabase
             .from('businesses')
             .select('*')

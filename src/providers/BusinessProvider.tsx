@@ -56,6 +56,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (e) { return true; }
   });
   const [error, setError] = useState<string | null>(null);
+  const isRefreshing = React.useRef(false);
 
   // Handle Git Data Sync
   useEffect(() => {
@@ -98,6 +99,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
     const refreshData = useCallback(async (newBiz?: Business) => {
+      if (isRefreshing.current) return;
+      isRefreshing.current = true;
+
       // If we have a new business, add it to the state immediately
       if (newBiz) {
         setBusinesses(prev => {
@@ -114,16 +118,18 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Add a safety timeout to ensure loading state doesn't hang forever
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Registry Sync Timeout")), 15000)
+        setTimeout(() => reject(new Error("Registry Sync Timeout: The industrial database is taking longer than expected to respond. Please check your connection or retry.")), 60000)
       );
 
       try {
+        console.log("[Registry] Refreshing data...");
         const fetchPromise = Promise.all([
           fetchAllBusinesses(),
           userIdentifier ? fetchFavorites(userIdentifier) : Promise.resolve([])
         ]);
 
         const [bizData, favs] = await Promise.race([fetchPromise, timeoutPromise]) as [Business[], string[]];
+        console.log(`[Registry] Data received: ${bizData?.length || 0} businesses, ${favs?.length || 0} favorites`);
 
         // If fetch was successful (even if empty), update the state
         if (Array.isArray(bizData)) {
@@ -164,6 +170,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addToast("Registry Connection Limited. Using Local Mesh.", "error");
       } finally {
         setLoading(false);
+        isRefreshing.current = false;
       }
     }, [userIdentifier, addToast]);
 

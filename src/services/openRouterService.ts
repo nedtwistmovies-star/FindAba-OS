@@ -1,11 +1,12 @@
 
 import axios from 'axios';
 import { Business } from '../types';
+import { triggerWebhook, WebhookEvent } from './webhookService';
 
 const getOpenRouterKey = () => {
   const localKey = (typeof localStorage !== 'undefined') ? localStorage.getItem('findaba_openrouter_key') : '';
-  const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.OPENROUTER_API_KEY) : '';
-  const metaKey = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_OPENROUTER_API_KEY) : '';
+  const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY) : '';
+  const metaKey = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_OPENROUTER_API_KEY || import.meta.env.OPENROUTER_API_KEY) : '';
   
   return localKey || envKey || metaKey || '';
 };
@@ -88,6 +89,14 @@ export const getOpenRouterStream = async (
 
     const content = response.data.choices[0].message.content;
     const result = JSON.parse(content);
+
+    // Log Search Query to Automation Gateway
+    triggerWebhook(WebhookEvent.SEARCH_QUERY, { 
+      query: prompt, 
+      engine: 'openrouter', 
+      model: model,
+      wisdom: result.wisdom?.substring(0, 100) 
+    }, { silent: true });
 
     return {
       text: result.wisdom || "Signal lost. Re-establishing...",

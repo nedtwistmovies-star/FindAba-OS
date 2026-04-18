@@ -1,6 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
+import { getSupabase } from "../services/supabaseService";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Export a proxy that always uses the latest singleton instance from supabaseService
+// This ensures we don't have multiple clients competing for session locks
+export const supabase = new Proxy({} as any, {
+  get: (target, prop) => {
+    const client = getSupabase();
+    if (!client) {
+      throw new Error("Supabase client not initialized. Check your configuration.");
+    }
+    return (client as any)[prop];
+  }
+});

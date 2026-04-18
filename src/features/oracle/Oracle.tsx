@@ -64,6 +64,14 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [signalLocked, setSignalLocked] = useState(true);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  
+  // Ensure OpenRouter is native and primary by default
+  useEffect(() => {
+    const primary = localStorage.getItem('findaba_primary_ai');
+    if (!primary) {
+      localStorage.setItem('findaba_primary_ai', 'openrouter');
+    }
+  }, []);
 
   const saveConversations = (newConvs: Conversation[]) => {
     setConversations(newConvs);

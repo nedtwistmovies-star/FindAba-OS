@@ -8,7 +8,8 @@
 -- ==========================================
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE,
+  phone TEXT UNIQUE,
   full_name TEXT,
   role TEXT DEFAULT 'registered',
   avatar_url TEXT,
@@ -193,6 +194,154 @@ CREATE TABLE IF NOT EXISTS businesses (
   account_name TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- FINDABA FACES: SOCIAL COMMERCE
+CREATE TABLE IF NOT EXISTS posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT,
+  media_url TEXT,
+  media_type TEXT DEFAULT 'image', -- 'image' or 'video'
+  action_type TEXT DEFAULT 'none', -- 'buy', 'book', 'none'
+  action_label TEXT,
+  price INTEGER, -- in NGN
+  likes_count INTEGER DEFAULT 0,
+  comments_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS likes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(post_id, author_id)
+);
+
+CREATE TABLE IF NOT EXISTS followers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  following_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(follower_id, following_id)
+);
+
+CREATE TABLE IF NOT EXISTS stories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  media_url TEXT NOT NULL,
+  media_type TEXT DEFAULT 'image',
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- FIDELITY WALLET
+CREATE TABLE IF NOT EXISTS wallets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  balance INTEGER DEFAULT 0 CHECK (balance >= 0),
+  currency TEXT DEFAULT 'NGN',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('deposit', 'withdrawal', 'payment', 'refund')),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'failed')),
+  reference TEXT UNIQUE,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- OTP LOGS (Internal)
+CREATE TABLE IF NOT EXISTS otp_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone TEXT NOT NULL,
+  code TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ORDERS
+CREATE TABLE IF NOT EXISTS orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID NOT NULL REFERENCES posts(id),
+  buyer_id UUID NOT NULL REFERENCES auth.users(id),
+  seller_id UUID NOT NULL REFERENCES auth.users(id),
+  amount INTEGER NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'completed', 'cancelled')),
+  reference TEXT UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RPC: Verify OTP
+CREATE OR REPLACE FUNCTION verify_otp(p_phone TEXT, p_code TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_count INTEGER;
+BEGIN
+  SELECT count(*) INTO v_count
+  FROM otp_logs
+  WHERE phone = p_phone AND code = p_code AND expires_at > NOW() AND used = FALSE;
+  
+  IF v_count > 0 THEN
+    UPDATE otp_logs SET used = TRUE WHERE phone = p_phone AND code = p_code;
+    RETURN TRUE;
+  ELSE
+    RETURN FALSE;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RPC: Create Order
+CREATE OR REPLACE FUNCTION create_order(p_post_id UUID, p_buyer_id UUID)
+RETURNS UUID AS $$
+DECLARE
+  v_post RECORD;
+  v_order_id UUID;
+BEGIN
+  SELECT author_id, price INTO v_post FROM posts WHERE id = p_post_id;
+  
+  INSERT INTO orders (post_id, buyer_id, seller_id, amount, status)
+  VALUES (p_post_id, p_buyer_id, v_post.author_id, v_post.price, 'pending')
+  RETURNING id INTO v_order_id;
+  
+  RETURN v_order_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RPC: Complete Order Payment
+CREATE OR REPLACE FUNCTION complete_order_payment(p_order_id UUID, p_reference TEXT)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_order RECORD;
+BEGIN
+  SELECT * INTO v_order FROM orders WHERE id = p_order_id;
+  
+  IF v_order.status = 'pending' THEN
+    UPDATE orders SET status = 'paid', reference = p_reference WHERE id = p_order_id;
+    
+    -- Sync to transactions
+    -- (Simplified logic, usually you'd credit seller/debit buyer or handle escrow)
+    -- This RPC just marks it paid for the webhook demo
+    
+    RETURN TRUE;
+  END IF;
+  
+  RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TABLE IF NOT EXISTS platform_config (
   id INTEGER PRIMARY KEY DEFAULT 1,

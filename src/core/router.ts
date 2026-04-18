@@ -8,6 +8,8 @@ export const Discover = lazy(() => import('../features/discovery/Discover'));
 export const Explore = lazy(() => import('../features/discovery/Explore'));
 export const BusinessDetail = lazy(() => import('../features/discovery/BusinessDetail'));
 export const Feed = lazy(() => import('../features/discovery/Feed'));
+export const FacesFeed = lazy(() => import('../features/faces/FacesFeed'));
+export const WalletView = lazy(() => import('../features/finance/WalletView'));
 export const AdvertorialFeed = lazy(() => import('../features/discovery/AdvertorialFeed'));
 export const AdvertorialDetail = lazy(() => import('../features/discovery/AdvertorialDetail'));
 export const EditorialDetail = lazy(() => import('../features/discovery/EditorialDetail'));
@@ -60,7 +62,8 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'discover': Discover,
   'explore': Explore,
   'detail': BusinessDetail,
-  'feed': Feed,
+  'feed': FacesFeed,
+  'wallet': WalletView,
   'editorial': AdvertorialFeed,
   'editorial-detail': EditorialDetail,
   'ad-checkout': AdCheckout,

@@ -70,7 +70,7 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
         console.log(`[Oracle] Sync Attempt ${4 - retries} to ${syncUrl}...`);
         // Add a timeout to the fetch call
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
         
         response = await fetch(syncUrl, { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -90,7 +90,7 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
         console.warn(`[Oracle] Attempt ${4 - retries} failed with error:`, e);
       }
       retries--;
-      if (retries > 0) await new Promise(r => setTimeout(r, 1000));
+      if (retries > 0) await new Promise(r => setTimeout(r, 2000));
     }
 
     if (response && response.ok) {
@@ -116,14 +116,18 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
 
         if (config.geminiKey && config.geminiKey !== 'undefined' && config.geminiKey.trim() !== '') {
           localStorage.setItem('findaba_gemini_key', config.geminiKey);
-          console.log("[Oracle] Signal Synchronized via Server Partner.");
-          if (synced) resetSupabaseInstance();
-          return { status: 'healthy', message: 'Oracle Signal Synchronized (Server)', source: 'server' };
+          console.log("[Oracle] Gemini Signal Synchronized via Server Partner.");
+          synced = true;
+        }
+
+        if (config.openRouterKey && config.openRouterKey !== 'undefined' && config.openRouterKey.trim() !== '') {
+          localStorage.setItem('findaba_openrouter_key', config.openRouterKey);
+          console.log("[Oracle] OpenRouter Signal Synchronized via Server Partner.");
+          synced = true;
         }
         
         if (synced) {
-          resetSupabaseInstance();
-          console.log("[Oracle] Supabase Signal Synchronized, but Gemini Key missing on server.");
+          return { status: 'healthy', message: 'Oracle Signals Synchronized (Server)', source: 'server' };
         }
       }
     }
@@ -250,7 +254,8 @@ export const getOracleStream = async (
   history: any[], 
   catalog: Business[]
 ) => {
-  const primaryAI = localStorage.getItem('findaba_primary_ai') || 'openrouter';
+  // Gemini is now NATIVE and PRIMARY for search grounding
+  const primaryAI = localStorage.getItem('findaba_primary_ai') || 'gemini';
   
   if (primaryAI === 'openrouter') {
     try {
@@ -315,7 +320,6 @@ export const getOracleStream = async (
     const ai = getAI();
     const config: any = { 
       systemInstruction: sys, 
-      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }, 
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -341,7 +345,7 @@ export const getOracleStream = async (
       config.tools = [{ googleSearch: {} }];
     }
 
-    return await ai.models.generateContent({
+    return await (ai as any).models.generateContent({
       model: modelName,
       contents: [...history, { role: 'user', parts: [contentPart] }],
       config
@@ -350,9 +354,9 @@ export const getOracleStream = async (
 
   let lastError: any = null;
   
-  // Attempt 1: Gemini 3.1 Pro (Primary)
+  // Attempt 1: Gemini 2.0 Flash (Primary)
   try {
-    const response = await callModel('gemini-3.1-pro-preview');
+    const response = await callModel('gemini-2.0-flash');
     return processOracleResponse(response);
   } catch (e: any) {
     lastError = e;
@@ -360,27 +364,27 @@ export const getOracleStream = async (
     const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("resource_exhausted");
     
     if (isQuota) {
-      console.warn("[Oracle] Pro Signal Congested. Switching to Flash Relay...");
+      console.warn("[Oracle] Flash Signal Congested. Switching to Flash Lite Relay...");
       
-      // Attempt 2: Gemini 3.1 Flash Lite (High Availability)
+      // Attempt 2: Gemini 2.0 Flash Lite (High Availability)
       try {
-        const response = await callModel('gemini-3.1-flash-lite-preview');
+        const response = await callModel('gemini-2.0-flash-lite-preview-02-05');
         return processOracleResponse(response);
       } catch (e2: any) {
         lastError = e2;
-        console.warn("[Oracle] Flash Lite Congested. Switching to Flash Standard...");
+        console.warn("[Oracle] Flash Lite Congested. Switching to Pro Standard...");
         
-        // Attempt 3: Gemini 3 Flash (Standard)
+        // Attempt 3: Gemini 1.5 Pro (Standard)
         try {
-          const response = await callModel('gemini-3-flash-preview');
+          const response = await callModel('gemini-1.5-pro');
           return processOracleResponse(response);
         } catch (e3: any) {
           lastError = e3;
-          console.warn("[Oracle] Flash Standard Congested. Emergency Protocol: Disabling Search Grounding...");
+          console.warn("[Oracle] Pro Standard Congested. Emergency Protocol: Disabling Search Grounding...");
           
-          // Attempt 4: Gemini 3 Flash without Search (Lowest Quota usage)
+          // Attempt 4: Gemini 1.5 Flash without Search (Lowest Quota usage)
           try {
-            const response = await callModel('gemini-3-flash-preview', false);
+            const response = await callModel('gemini-1.5-flash', false);
             return processOracleResponse(response);
           } catch (e4: any) {
             lastError = e4;

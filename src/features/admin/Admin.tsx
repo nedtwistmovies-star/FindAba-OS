@@ -34,6 +34,7 @@ import {
   BarChart3,
   Github,
   Save,
+  ExternalLink,
 } from "lucide-react";
 import {
   fetchPlatformConfig,
@@ -50,7 +51,7 @@ import {
 } from "../../services/supabaseService";
 import { ARTISANS } from "../../constants";
 import { useToast } from "../../providers/ToastProvider";
-import { triggerWebhook, WebhookEvent, validateAutomationGateway } from "../../services/webhookService";
+import { triggerWebhook, WebhookEvent, validateAutomationGateway, getSamplePayload } from "../../services/webhookService";
 import { Send, Cpu, Mail } from "lucide-react";
 import { paymentService } from "../../services/paymentService";
 import { sendWelcomeEmail } from "../../services/emailService";
@@ -63,10 +64,14 @@ import IndustrialButton from "../../components/IndustrialButton";
 import { BentoGrid, BentoItem } from "../../components/BentoGrid";
 import { GitHubSync } from "../../components/GitHubSync";
 
-const AutomationAudit: React.FC = () => {
+interface AutomationAuditProps {
+  status: { status: string; message: string };
+  auditing: boolean;
+  runAudit: () => Promise<void>;
+}
+
+const AutomationAudit: React.FC<AutomationAuditProps> = ({ status, auditing, runAudit }) => {
   const { addToast } = useToast();
-  const [status, setStatus] = useState<{ status: string, message: string }>({ status: 'unknown', message: 'Audit not yet initialized.' });
-  const [auditing, setAuditing] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('findaba_make_webhook_url') || '');
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -87,23 +92,7 @@ const AutomationAudit: React.FC = () => {
     loadLogs();
   }, [loadLogs]);
 
-  const runAudit = async () => {
-    setAuditing(true);
-    try {
-      const result = await validateAutomationGateway();
-      setStatus(result);
-      if (result.status === 'working') {
-        addToast("Automation Gateway Validated", "success");
-      } else {
-        addToast("Automation Gateway Fault Detected", "error");
-      }
-      loadLogs();
-    } catch (err: any) {
-      setStatus({ status: 'broken', message: err.message || 'Unknown fault.' });
-    } finally {
-      setAuditing(false);
-    }
-  };
+  const isBroken = status.status === 'broken' || status.status === 'failed';
 
   const scenarios = [
     { name: 'Business Registration Sync', event: WebhookEvent.NEW_REGISTRATION, description: 'Syncs new business nodes to external CRM/Email.' },
@@ -114,10 +103,26 @@ const AutomationAudit: React.FC = () => {
   ];
 
   const testScenario = async (event: WebhookEvent) => {
-    addToast(`Dispatching test signal for ${event}...`, "info");
-    const success = await triggerWebhook(event, { test: true, source: 'Admin Audit', timestamp: new Date().toISOString() });
-    if (success) addToast(`Signal ${event} acknowledged.`, "success");
+    addToast(`Dispatching industrial signal for ${event}...`, "info");
+    const payload = getSamplePayload(event);
+    const success = await triggerWebhook(event, payload.metadata, { 
+      test: true, 
+      source: 'Admin Audit', 
+      timestamp: payload.timestamp,
+      user_id: payload.user_id,
+      email: payload.email,
+      amount: payload.amount,
+      reference: payload.reference,
+      tier_level: payload.tier_level
+    });
+    if (success) addToast(`Signal ${event} acknowledged by gateway.`, "success");
     else addToast(`Signal ${event} failed to transmit.`, "error");
+  };
+
+  const copyBlueprint = (event: WebhookEvent) => {
+    const payload = getSamplePayload(event);
+    navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+    addToast(`${event} Blueprint copied to clipboard`, "success");
   };
 
   return (
@@ -144,28 +149,48 @@ const AutomationAudit: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-4">
-          <p className="text-[11px] font-medium text-white/80 leading-relaxed">
+        <div className={`p-8 rounded-[2.5rem] border space-y-4 ${isBroken ? 'bg-red-500/5 border-red-500/20' : 'bg-black/40 border-white/5'}`}>
+          <p className={`text-[11px] font-medium leading-relaxed ${isBroken ? 'text-red-400' : 'text-white/80'}`}>
             {status.message}
           </p>
-          <div className="pt-4 flex gap-4">
+          <div className="pt-4 flex flex-wrap gap-4">
             <IndustrialButton 
-              variant="primary" 
+              variant={isBroken ? "danger" : "primary"} 
               size="md" 
               icon={auditing ? Loader2 : Shield} 
               loading={auditing}
-              onClick={runAudit}
+              onClick={async () => {
+                await runAudit();
+                loadLogs();
+              }}
             >
-              Run Full Audit
+              {isBroken ? "Retry Audit" : "Run Full Audit"}
             </IndustrialButton>
+            
+            {isBroken && (
+              <a 
+                href="https://www.make.com/en/login" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+              >
+                Open Make.com <ExternalLink size={14} />
+              </a>
+            )}
           </div>
         </div>
       </div>
 
       <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
-        <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-          <Zap className="text-aba-gold" /> Active Scenarios
-        </h4>
+        <div className="flex items-center justify-between">
+          <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+            <Zap className="text-aba-gold" /> Active Scenarios
+          </h4>
+          <div className="flex items-center gap-2 px-4 py-2 bg-aba-gold/10 border border-aba-gold/20 rounded-full">
+            <Info size={14} className="text-aba-gold" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-aba-gold">Setup Required in Make.com</span>
+          </div>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {scenarios.map((s, i) => (
@@ -178,16 +203,58 @@ const AutomationAudit: React.FC = () => {
                 <h5 className="text-sm font-black uppercase tracking-tight text-white">{s.name}</h5>
                 <p className="text-[10px] font-medium text-white/40 leading-relaxed">{s.description}</p>
               </div>
-              <IndustrialButton 
-                variant="secondary" 
-                size="sm" 
-                icon={Send}
-                onClick={() => testScenario(s.event)}
-              >
-                Test Flow
-              </IndustrialButton>
+              <div className="flex gap-3">
+                <IndustrialButton 
+                  variant="secondary" 
+                  size="sm" 
+                  icon={Send}
+                  className="flex-1"
+                  onClick={() => testScenario(s.event)}
+                >
+                  Test Flow
+                </IndustrialButton>
+                <button 
+                  onClick={() => copyBlueprint(s.event)}
+                  className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group/btn"
+                  title="Copy JSON Blueprint for Make.com"
+                >
+                  <Copy size={16} className="text-white/40 group-hover/btn:text-aba-gold transition-colors" />
+                </button>
+              </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="bg-black/60 p-10 rounded-[3rem] border border-white/10 space-y-8">
+        <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+          <Globe className="text-aba-gold" /> Make.com Setup Guide
+        </h4>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="space-y-4">
+            <div className="w-10 h-10 rounded-2xl bg-aba-gold/10 flex items-center justify-center text-aba-gold font-black">1</div>
+            <h5 className="text-xs font-black uppercase tracking-widest text-white">Create Scenario</h5>
+            <p className="text-[10px] text-white/40 leading-relaxed">
+              Log in to <span className="text-white">Make.com</span> and click "Create a new scenario". Add a <span className="text-white">Webhooks</span> module and select "Custom Webhook".
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="w-10 h-10 rounded-2xl bg-aba-gold/10 flex items-center justify-center text-aba-gold font-black">2</div>
+            <h5 className="text-xs font-black uppercase tracking-widest text-white">Configure Hook</h5>
+            <p className="text-[10px] text-white/40 leading-relaxed">
+              Copy the Webhook URL from Make.com and paste it into the <span className="text-white">Configuration</span> section below. Click Save.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="w-10 h-10 rounded-2xl bg-aba-gold/10 flex items-center justify-center text-aba-gold font-black">3</div>
+            <h5 className="text-xs font-black uppercase tracking-widest text-white">Define Structure</h5>
+            <p className="text-[10px] text-white/40 leading-relaxed">
+              In Make.com, click "Determine Data Structure". Then, click the <span className="text-aba-gold">Copy Blueprint</span> icon on any scenario above and paste it into Make.com.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -585,6 +652,28 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     status: "healthy" | "unhealthy" | "unknown";
     message?: string;
   }>({ status: "unknown" });
+
+  const [automationStatus, setAutomationStatus] = useState<{ status: string, message: string }>({ status: 'unknown', message: 'Audit not yet initialized.' });
+  const [isAuditing, setIsAuditing] = useState(false);
+
+  const runAutomationAudit = async () => {
+    setIsAuditing(true);
+    try {
+      const result = await validateAutomationGateway();
+      setAutomationStatus(result);
+      if (result.status === 'working') {
+        addToast("Automation Gateway Validated", "success");
+      } else {
+        addToast("Automation Gateway Fault Detected", "error");
+      }
+    } catch (err: any) {
+      setAutomationStatus({ status: 'broken', message: err.message || 'Unknown fault.' });
+    } finally {
+      setIsAuditing(false);
+    }
+  };
+
+  const isBroken = automationStatus.status === 'broken' || automationStatus.status === 'failed';
 
   const refreshAllData = useCallback(async () => {
     setLoading(true);
@@ -1357,21 +1446,33 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     </div>
                   </div>
 
-                  <div className="bg-red-500/5 p-8 rounded-[2.5rem] border border-red-500/10 space-y-6">
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-red-400 flex items-center gap-3">
-                      <AlertTriangle size={14} /> Troubleshooting Connection Faults
-                    </h5>
-                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-black uppercase text-white/60 tracking-widest">ERR_CONNECTION_TIMED_OUT</p>
-                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">This usually means the DNS hasn't propagated yet or the A record is missing. Double check the IP address.</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[9px] font-black uppercase text-white/60 tracking-widest">SSL / HTTPS Errors</p>
-                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">Vercel will automatically generate a certificate once the DNS is valid. This can take 10-30 minutes after propagation.</p>
+                  {(!isCustomDomainActive || isBroken) && (
+                    <div className="bg-red-500/5 p-8 rounded-[2.5rem] border border-red-500/10 space-y-6 animate-pulse">
+                      <h5 className="text-[10px] font-black uppercase tracking-widest text-red-400 flex items-center gap-3">
+                        <AlertTriangle size={14} /> Active System Faults Detected
+                      </h5>
+                      <div className="space-y-4">
+                        {!isCustomDomainActive && (
+                          <>
+                            <div className="space-y-1">
+                              <p className="text-[9px] font-black uppercase text-white/60 tracking-widest">ERR_CONNECTION_TIMED_OUT</p>
+                              <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">This usually means the DNS hasn't propagated yet or the A record is missing. Double check the IP address.</p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[9px] font-black uppercase text-white/60 tracking-widest">SSL / HTTPS Errors</p>
+                              <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">Vercel will automatically generate a certificate once the DNS is valid. This can take 10-30 minutes after propagation.</p>
+                            </div>
+                          </>
+                        )}
+                        {isBroken && (
+                          <div className="space-y-1">
+                            <p className="text-[9px] font-black uppercase text-white/60 tracking-widest">Automation Fault (HTTP 410)</p>
+                            <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">This means your Make.com scenario is inactive. Ensure the scenario is turned ON in your Make.com dashboard.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
@@ -1442,7 +1543,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 icon={Cpu}
               />
 
-              <AutomationAudit />
+              <AutomationAudit 
+                status={automationStatus}
+                auditing={isAuditing}
+                runAudit={runAutomationAudit}
+              />
             </div>
           )}
 

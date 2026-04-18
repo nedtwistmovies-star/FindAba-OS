@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getSupabase } from '../services/supabaseService';
+import { syncProfile } from '../services/authService';
 
 interface AuthContextType {
   userIdentifier: string | null;
@@ -29,15 +30,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: { session } } = await sb.auth.getSession();
       if (session?.user) {
         const user = session.user;
+        
+        // Sync Profile from DB
+        const profile = await syncProfile(user);
+        
         const identifier = user.email || user.phone || '';
-        const name = user.user_metadata.full_name || 'Verified Citizen';
+        const name = profile?.full_name || user.user_metadata.full_name || 'Verified Citizen';
+        const role = profile?.role || 'registered';
         const uuid = user.id;
         
-        // Recover session if localStorage is missing it
-        if (!localStorage.getItem('findaba_user_uuid')) {
-          console.log("[Auth] Recovering session from Supabase...");
-          handleAuthSuccess(identifier, name, 'registered', uuid);
-        }
+        handleAuthSuccess(identifier, name, role, uuid);
       }
     };
 
@@ -65,8 +67,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (identifier.includes('@')) {
       localStorage.setItem('findaba_user_email', identifier);
+      localStorage.removeItem('findaba_user_phone');
     } else {
       localStorage.setItem('findaba_user_phone', identifier);
+      localStorage.removeItem('findaba_user_email');
     }
     localStorage.setItem('findaba_user_name', name);
     localStorage.setItem('findaba_user_role', finalRole);
@@ -77,7 +81,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuth(true);
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const sb = getSupabase();
+    if (sb) await sb.auth.signOut();
+
     localStorage.removeItem('findaba_user_id');
     localStorage.removeItem('findaba_user_uuid');
     localStorage.removeItem('findaba_user_email');

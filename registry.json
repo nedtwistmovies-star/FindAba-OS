@@ -1,6 +1,6 @@
 {
   "version": "v6.0",
-  "lastUpdated": "2026-04-13T14:44:16.776Z",
+  "lastUpdated": "2026-04-18T06:55:46.063Z",
   "businesses": [
     {
       "name": "sandals royalle resources",
@@ -34,7 +34,9 @@
       "integrity_grade": "C",
       "is_verified": false,
       "average_rating": 0,
-      "id": "4ea05c2e-cbb7-4ef1-a4c7-4fcc67c117a8"
+      "id": "4ea05c2e-cbb7-4ef1-a4c7-4fcc67c117a8",
+      "profile_id": null,
+      "location": null
     },
     {
       "name": "AmyOils",
@@ -71,7 +73,9 @@
       "integrity_grade": "C",
       "is_verified": false,
       "average_rating": 0,
-      "id": "bbb07c17-dba7-4ea3-acc4-bf94a78efe7a"
+      "id": "bbb07c17-dba7-4ea3-acc4-bf94a78efe7a",
+      "profile_id": null,
+      "location": null
     },
     {
       "name": "SANDALSROYALLE S&P SERVICES",
@@ -108,7 +112,9 @@
       "integrity_grade": "C",
       "is_verified": false,
       "average_rating": 0,
-      "id": "3940c97f-bc52-4f92-a8cf-46be628b4cc3"
+      "id": "3940c97f-bc52-4f92-a8cf-46be628b4cc3",
+      "profile_id": null,
+      "location": null
     },
     {
       "name": "Rutch Afrique",
@@ -145,7 +151,9 @@
       "integrity_grade": "C",
       "is_verified": false,
       "average_rating": 0,
-      "id": "96fb947d-2e0a-4c46-a363-8c7b34ce9214"
+      "id": "96fb947d-2e0a-4c46-a363-8c7b34ce9214",
+      "profile_id": null,
+      "location": null
     },
     {
       "name": "FindAba Magazine ",
@@ -182,42 +190,9 @@
       "integrity_grade": "C",
       "is_verified": false,
       "average_rating": 0,
-      "id": "7feb49da-658e-4941-829a-f83f22786238"
-    },
-    {
-      "name": "Enyimba Fashion House",
-      "email": "enyimbafashion@findaba.com",
-      "category": "Fashion & Garments",
-      "primary_product_or_service": "Premium Senator Suits",
-      "area": "Ngwa Road Hub",
-      "address": "Suite 12, Ngwa Road",
-      "phone_whatsapp": "+2348022222222",
-      "image_url": "https://images.unsplash.com/photo-1594932224456-75a779401e28?q=80&w=800",
-      "rating": 5,
-      "review_count": 0,
-      "status": "approved",
-      "verification_status": "Verified",
-      "verification_level": "Signature",
-      "is_export_ready": true,
-      "capacity_indicator": "High Volume",
-      "premium_features_enabled": true,
-      "active_features": {
-        "sponsored_badge": true,
-        "priority_score_bonus": 1.5
-      },
-      "products": [],
-      "latitude": 5.098,
-      "longitude": 7.35,
-      "created_at": "2026-01-18T05:31:07.974768+00:00",
-      "owner_id": null,
-      "city": null,
-      "services": null,
-      "phone": null,
-      "description": null,
-      "integrity_grade": "C",
-      "is_verified": false,
-      "average_rating": 0,
-      "id": "ca14d9b3-a899-481a-a16d-4bf8fe1667d3"
+      "id": "7feb49da-658e-4941-829a-f83f22786238",
+      "profile_id": null,
+      "location": null
     },
     {
       "name": "Master-Link Leather Hub",
@@ -252,7 +227,9 @@
       "integrity_grade": "C",
       "is_verified": false,
       "average_rating": 0,
-      "id": "f69ba686-7fdc-46d5-93cc-949597b0b124"
+      "id": "f69ba686-7fdc-46d5-93cc-949597b0b124",
+      "profile_id": null,
+      "location": null
     },
     {
       "name": "SandalsRoyalle Executive Node",
@@ -286,7 +263,9 @@
       "integrity_grade": "C",
       "is_verified": false,
       "average_rating": 0,
-      "id": "622a04b1-b7fb-4c73-b4b5-ad9d816028ee"
+      "id": "622a04b1-b7fb-4c73-b4b5-ad9d816028ee",
+      "profile_id": null,
+      "location": null
     },
     {
       "name": "Heritage Textile Hub",
@@ -320,7 +299,9 @@
       "integrity_grade": "C",
       "is_verified": false,
       "average_rating": 0,
-      "id": "a8b7de52-05a8-41cb-adfb-62f0ac81ab7a"
+      "id": "a8b7de52-05a8-41cb-adfb-62f0ac81ab7a",
+      "profile_id": null,
+      "location": null
     },
     {
       "name": "Aba Precision Engineering",
@@ -354,7 +335,46 @@
       "integrity_grade": "C",
       "is_verified": false,
       "average_rating": 0,
-      "id": "4cc93f63-c50a-4974-b368-49ff5fbedb60"
+      "id": "4cc93f63-c50a-4974-b368-49ff5fbedb60",
+      "profile_id": null,
+      "location": null
+    },
+    {
+      "name": "Enyimba Fashion House",
+      "email": "enyimbafashion@findaba.com",
+      "category": "Fashion & Garments",
+      "primary_product_or_service": "Premium Senator Suits",
+      "area": "Ngwa Road Hub",
+      "address": "Suite 12, Ngwa Road",
+      "phone_whatsapp": "+2348022222222",
+      "image_url": "https://images.unsplash.com/photo-1594932224456-75a779401e28?q=80&w=800",
+      "rating": 5,
+      "review_count": 0,
+      "status": "approved",
+      "verification_status": "Verified",
+      "verification_level": "Signature",
+      "is_export_ready": true,
+      "capacity_indicator": "High Volume",
+      "premium_features_enabled": true,
+      "active_features": {
+        "sponsored_badge": true,
+        "priority_score_bonus": 1.5
+      },
+      "products": [],
+      "latitude": 5.098,
+      "longitude": 7.35,
+      "created_at": "2026-01-18T05:31:07.974768+00:00",
+      "owner_id": null,
+      "city": null,
+      "services": null,
+      "phone": null,
+      "description": null,
+      "integrity_grade": "C",
+      "is_verified": false,
+      "average_rating": 0,
+      "id": "ca14d9b3-a899-481a-a16d-4bf8fe1667d3",
+      "profile_id": null,
+      "location": null
     }
   ]
 }

@@ -43,13 +43,27 @@
         });
       }
 
-      // FORCE ENABLE CONTEXT MENU & ENSURE TOUCH SCROLLING
-      window.oncontextmenu = null;
-      document.oncontextmenu = null;
-      window.addEventListener('contextmenu', (e) => {
-        // Explicitly allow right-click to function
-        return true;
-      }, { capture: true });
+      // FORCE ENABLE CONTEXT MENU & ENSURE ALL CLICKS WORK
+      const ensureInteractions = () => {
+        window.oncontextmenu = null;
+        document.oncontextmenu = null;
+        document.body.oncontextmenu = null;
+        
+        // Explicitly allow context menu on right click
+        window.addEventListener('contextmenu', (e) => {
+          e.stopPropagation();
+          return true;
+        }, { capture: true });
+
+        // Ensure mouse events are not blocked
+        window.addEventListener('mousedown', (e) => {
+          if (e.button === 2) { // Right click
+            e.stopPropagation();
+          }
+        }, { capture: true, passive: true });
+      };
+
+      ensureInteractions();
 
       // Ensure touch scrolling is not blocked
       document.addEventListener('touchstart', function() {}, {passive: true});

@@ -11,14 +11,18 @@ import { triggerWebhook, WebhookEvent } from './webhookService';
 import { sendWelcomeEmail } from './emailService';
 
 let _supabaseInstance: SupabaseClient | null = null;
+let _currentUrl: string | null = null;
+let _currentKey: string | null = null;
 
-export const resetSupabaseInstance = () => {
-  _supabaseInstance = null;
+export const resetSupabaseInstance = (force = false) => {
+  if (force) {
+    _supabaseInstance = null;
+    _currentUrl = null;
+    _currentKey = null;
+  }
 };
 
 export const getSupabase = (): SupabaseClient | null => {
-  if (_supabaseInstance) return _supabaseInstance;
-  
   const manualUrl = localStorage.getItem('findaba_supabase_url');
   const manualKey = localStorage.getItem('findaba_supabase_key');
   
@@ -28,13 +32,17 @@ export const getSupabase = (): SupabaseClient | null => {
   const hardcodedUrl = 'https://pqzjkvqmherngispxlzy.supabase.co';
   const hardcodedKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6InFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
 
-  // Standard priority: Local Override > Environment Variable (Vite or Process) > Hardcoded Fallback
   const url = manualUrl || meta.VITE_SUPABASE_URL || env.SUPABASE_URL || hardcodedUrl;
   const key = manualKey || meta.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || hardcodedKey;
 
   if (!url || !key || url === 'undefined' || key === 'undefined') {
     console.warn("[Registry] Signal missing. URL:", !!url, "Key:", !!key);
     return null;
+  }
+
+  // If we already have an instance and the config hasn't changed, return it
+  if (_supabaseInstance && _currentUrl === url && _currentKey === key) {
+    return _supabaseInstance;
   }
 
   // Prevent using the app's own URL as Supabase URL (common misconfiguration)
@@ -44,14 +52,22 @@ export const getSupabase = (): SupabaseClient | null => {
   }
 
   try {
+    console.log(`[Registry] Initializing client with URL: ${url.substring(0, 20)}...`);
     _supabaseInstance = createClient(url, key, { 
       auth: { 
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        // Use a custom storage key to avoid conflicts with other apps on the same domain
+        storageKey: `findaba-auth-token-${url.substring(0, 10)}`,
+        // Disable Web Locks API usage which causes "Lock broken" errors in iframes
+        lock: async (name: string, acquireTimeout: number, callback: () => Promise<any>) => {
+          return await callback();
+        }
       } 
     });
-    console.log(`[Registry] Client initialized with URL: ${url.substring(0, 20)}...`);
+    _currentUrl = url;
+    _currentKey = key;
     return _supabaseInstance;
   } catch (e) { 
     console.error("[Registry] Client initialization fault:", e);
@@ -245,7 +261,13 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
   let client = getSupabase();
   if (url && key) {
     try {
-      client = createClient(url, key);
+      client = createClient(url, key, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      });
     } catch (e) {
       return { status: 'unhealthy' as const, message: 'Invalid URL format.' };
     }
@@ -254,16 +276,10 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
   if (!client) return { status: 'unhealthy' as const, message: 'No client configuration detected.' };
   
   try {
-    // Probe multiple tables to ensure full schema health
-    const tables = [
-      'businesses', 'profiles', 'platform_config', 'favorites', 'messages', 
-      'advertorials', 'thrift_accounts', 'ledger', 'hotels', 'rooms', 
-      'bookings', 'buyer_signals', 'vision_history', 'ads', 'hospitality_config', 
-      'drivers', 'vehicles', 'ride_bookings', 'notifications', 'logistics_orders',
-      'signal_interests', 'payments', 'orders', 'quality_audits', 'ride_ratings'
-    ];
+    // Probe a subset of critical tables to ensure schema health without overwhelming the connection
+    const criticalTables = ['businesses', 'profiles', 'platform_config', 'favorites'];
     
-    const results = await Promise.all(tables.map(async (table) => {
+    const results = await Promise.all(criticalTables.map(async (table) => {
       const { error } = await client!.from(table).select('id').limit(1);
       if (error && error.code === '42P01') return table;
       return null;
@@ -527,11 +543,24 @@ export const fetchAllBusinesses = async (): Promise<Business[]> => {
   const client = getSupabase();
   if (!client) return [];
   try {
-    const { data, error } = await client.from('businesses').select('*').order('created_at', { ascending: false });
-    if (error && error.code === '42P01') return [];
-    if (error && error.message.includes('Unexpected token')) return [];
+    const { data, error } = await client
+      .from('businesses')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error && error.code === '42P01') {
+      console.warn("[Registry] Businesses table missing, using fallback.");
+      return [];
+    }
+    if (error) {
+      console.error("[Registry] Fetch error:", error.message);
+      return [];
+    }
     return data || [];
-  } catch (e) { return []; }
+  } catch (e) { 
+    console.error("[Registry] Fetch exception:", e);
+    return []; 
+  }
 };
 
 export const updateBusinessTier = async (businessId: string, tier: HubTier) => {

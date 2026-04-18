@@ -4,7 +4,7 @@ export type ViewState =
   | 'explore' | 'messages' | 'merchant-portal' 
   | 'register' | 'admin' | 'srts-dashboard' | 'editorial' | 'editorial-detail'
   | 'buyer-portal' | 'ad-manager' | 'feed' | 'registry-setup' | 'sandals-hotels' 
-  | 'contact' | 'audio-heritage' | 'srts-office' | 'booking-ledger' 
+  | 'wallet' | 'contact' | 'audio-heritage' | 'srts-office' | 'booking-ledger' 
   | 'hotel-detail' | 'hotel-partner-control' | 'pricing' | 'ad-checkout' | 'about'
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
   | 'orders' | 'dispute-center' | 'login' | 'signup' | 'carry-me' | 'driver-registry'
@@ -558,14 +558,95 @@ export interface AppNotification {
 
 export interface Profile {
   id: string;
+  auth_id?: string;
   email: string;
+  phone?: string;
+  username?: string;
   full_name?: string;
   avatar_url?: string;
+  bio?: string;
   role: UserRole;
   referral_code: string;
   referred_by?: string;
   referral_count: number;
   referral_earnings: number;
+  created_at: string;
+}
+
+export type PostActionType = 'none' | 'buy' | 'book' | 'reserve' | 'pay';
+
+export interface Post {
+  id: string;
+  author_id: string;
+  content: string;
+  media_url?: string;
+  media_type?: 'image' | 'video';
+  action_type: PostActionType;
+  price?: number;
+  currency?: string;
+  action_label?: string;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+  // Joined fields
+  author?: Profile;
+}
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  author?: Profile;
+}
+
+export interface Like {
+  id: string;
+  post_id: string;
+  author_id: string;
+  created_at: string;
+}
+
+export interface Follower {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+}
+
+export interface Story {
+  id: string;
+  author_id: string;
+  media_url: string;
+  media_type: 'image' | 'video';
+  expires_at: string;
+  created_at: string;
+  author?: Profile;
+}
+
+export interface StoryView {
+  id: string;
+  story_id: string;
+  viewer_id: string;
+  created_at: string;
+}
+
+export interface Wallet {
+  id: string;
+  owner_id: string;
+  balance: number;
+  currency: string;
+  updated_at: string;
+}
+
+export interface Transaction {
+  id: string;
+  wallet_id: string;
+  amount: number;
+  type: 'credit' | 'debit';
+  description: string;
+  reference: string;
   created_at: string;
 }
 
