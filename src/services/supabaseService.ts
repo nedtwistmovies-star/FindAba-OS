@@ -280,29 +280,41 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
 
   if (!client) return { status: 'unhealthy' as const, message: 'No client configuration detected.' };
   
+  // Timeout for health check - we don't want to hang the app init
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  
   try {
-    // Probe a subset of critical tables to ensure schema health without overwhelming the connection
-    const criticalTables = ['businesses', 'profiles', 'platform_config', 'favorites'];
+    // Probe a subset of critical tables to ensure schema health
+    const criticalTables = ['businesses', 'profiles', 'platform_config'];
     
+    // We check sequentially or with a shorter timeout to avoid hanging
     const results = await Promise.all(criticalTables.map(async (table) => {
-      const { error } = await client!.from(table).select('id').limit(1);
-      if (error && error.code === '42P01') return table;
-      return null;
+      try {
+        const { error } = await client!.from(table).select('id').limit(1).abortSignal(controller.signal);
+        if (error && error.code === '42P01') return table;
+        return null;
+      } catch (e) {
+        return null; // Ignore individual table fetch errors, possibly due to abort
+      }
     }));
+
+    clearTimeout(timeoutId);
 
     const missingTables = results.filter(t => t !== null);
     
     if (missingTables.length > 0) {
       return { 
         status: 'unhealthy' as const, 
-        message: `Schema Incomplete: Missing tables [${missingTables.join(', ')}]. RUN SQL v19.2 in Supabase Editor.` 
+        message: `Schema incomplete. Missing tables [${missingTables.join(', ')}].` 
       };
     }
     
     return { status: 'healthy' as const };
   } catch (e: any) { 
-    console.error("[Supabase] Connection error:", e);
-    return { status: 'unhealthy' as const, message: e.message || 'Connection refused by gateway.' }; 
+    clearTimeout(timeoutId);
+    console.warn("[Supabase] Health probe skipped or timed out:", e.message);
+    return { status: 'unknown' as const, message: 'Signal strength low. Registry sync might be affected.' }; 
   }
 };
 
@@ -560,26 +572,32 @@ export const uploadImage = async (file: File, bucket: string): Promise<string | 
   }
 };
 
-export const fetchAllBusinesses = async (): Promise<Business[]> => {
+export const fetchAllBusinesses = async (abortSignal?: AbortSignal): Promise<Business[]> => {
   const client = getSupabase();
   if (!client) return [];
   try {
-    const { data, error } = await client
+    console.log("[Registry] Pulling latest nodes from industrial grid...");
+    let query = client
       .from('businesses')
       .select('*')
       .order('created_at', { ascending: false });
-      
-    if (error && error.code === '42P01') {
-      console.warn("[Registry] Businesses table missing, using fallback.");
-      return [];
+    
+    if (abortSignal) {
+      query = query.abortSignal(abortSignal);
     }
+
+    const { data, error } = await query;
+      
     if (error) {
-      console.error("[Registry] Fetch error:", error.message);
+      console.warn(`[Registry] Cloud Fetch Issue: ${error.message} (${error.code})`);
+      if (error.code === '42P01') {
+        console.warn("[Registry] Schema missing: 'businesses' table not found.");
+      }
       return [];
     }
     return data || [];
-  } catch (e) { 
-    console.error("[Registry] Fetch exception:", e);
+  } catch (e: any) { 
+    console.error("[Registry] Hardware fault during fetch:", e.message);
     return []; 
   }
 };

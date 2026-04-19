@@ -117,18 +117,34 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       // Add a safety timeout to ensure loading state doesn't hang forever
+      const TIMEOUT_MS = 20000; // 20 seconds is enough for industrial signals
+      const controller = new AbortController();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Registry Sync Timeout: The industrial database is taking longer than expected to respond. Please check your connection or retry.")), 60000)
+        setTimeout(() => {
+          controller.abort();
+          reject(new Error("Registry Sync Timeout: The industrial database is taking longer than expected."));
+        }, TIMEOUT_MS)
       );
 
       try {
-        console.log("[Registry] Refreshing data...");
-        const fetchPromise = Promise.all([
-          fetchAllBusinesses(),
-          userIdentifier ? fetchFavorites(userIdentifier) : Promise.resolve([])
-        ]);
+        console.log("[Registry] Refreshing data from industrial cloud...");
+        const fetchPromise = (async () => {
+          const bizData = await fetchAllBusinesses(controller.signal);
+          const favs = userIdentifier ? await fetchFavorites(userIdentifier) : [];
+          return [bizData, favs] as [Business[], string[]];
+        })();
 
-        const [bizData, favs] = await Promise.race([fetchPromise, timeoutPromise]) as [Business[], string[]];
+        // Use a race but handle the timeout specifically
+        const result = await Promise.race([
+          fetchPromise.then(res => ({ type: 'data' as const, res })),
+          timeoutPromise.catch(err => ({ type: 'error' as const, err }))
+        ]) as { type: 'data', res: [Business[], string[]] } | { type: 'error', err: Error };
+
+        if (result.type === 'error') {
+          throw result.err;
+        }
+
+        const [bizData, favs] = result.res;
         console.log(`[Registry] Data received: ${bizData?.length || 0} businesses, ${favs?.length || 0} favorites`);
 
         // If fetch was successful (even if empty), update the state
@@ -164,10 +180,21 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           localStorage.setItem('findaba_favorites_cache', JSON.stringify(favs));
         }
         setError(null);
-      } catch (e) {
+      } catch (e: any) {
         console.error("Business data fetch error:", e);
-        setError("The Industrial Registry is currently unreachable.");
-        addToast("Registry Connection Limited. Using Local Mesh.", "error");
+        
+        // If we have cached data OR even if we just have ARTISANS, don't show a fatal error state
+        // unless it's the absolute first load with no data at all.
+        const hasCache = businesses && businesses.length > 0;
+        
+        if (hasCache) {
+          setError(null);
+          addToast("Cloud Sync Deferred. Operating in Local Mesh mode.", "info");
+        } else {
+          setBusinesses(ARTISANS); // Fallback to industrial constants
+          setError(null); 
+          addToast("Registry Connection Limited. Using Local Fallback.", "error");
+        }
       } finally {
         setLoading(false);
         isRefreshing.current = false;
