@@ -9,6 +9,7 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from 'resend';
+import { sendPaymentSuccessEmail } from './src/services/emailService.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -313,14 +314,21 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
 
         if (paymentError) throw paymentError;
 
-        // 2. Fetch updated profile to get tier_level for Make.com
+        // 2. Fetch updated profile to get tier_level for Make.com and email for notification
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("tier_level")
+          .select("tier_level, email, full_name")
           .eq("id", userId)
           .single();
 
         if (profileError) throw profileError;
+
+        // 🔹 Trigger Payment Success Email
+        if (profile.email) {
+          sendPaymentSuccessEmail(profile.email, reference, amount / 100).catch(err => 
+            console.error("[Email] Payment success email failed:", err.message)
+          );
+        }
 
         // 3. Trigger Make.com Automation (Non-blocking)
         const makeUrl = process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;

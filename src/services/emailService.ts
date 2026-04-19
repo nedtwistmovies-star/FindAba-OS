@@ -70,3 +70,108 @@ export const sendWelcomeEmail = async (email: string, name: string, referralLink
     name: "FindAba Onboarding"
   });
 };
+
+/**
+ * Sends order received email to customer.
+ */
+export const sendOrderReceivedEmail = async (email: string, orderId: string, amount: number) => {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #1e293b; border-radius: 10px; background: #0f172a; color: #f8fafc;">
+      <h1 style="color: #d4af37; border-bottom: 2px solid #334155; padding-bottom: 10px;">Order Received</h1>
+      <p>Hello,</p>
+      <p>Your order on <strong>FindAba</strong> has been received and is currently being processed.</p>
+      <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Order ID:</strong> #${orderId}</p>
+        <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${amount.toLocaleString()}</p>
+      </div>
+      <p>We will notify you once your payment is confirmed and the order is finalized.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Industrial Signal Secured</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `Order #${orderId} Received on FindAba`,
+    html,
+    name: "FindAba Sales"
+  });
+};
+
+/**
+ * Sends payment confirmation email to customer.
+ */
+export const sendPaymentSuccessEmail = async (email: string, reference: string, amount: number) => {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #d4af37; border-radius: 10px; background: #0f172a; color: #f8fafc;">
+      <h1 style="color: #22c55e; border-bottom: 2px solid #334155; padding-bottom: 10px;">Payment Successful</h1>
+      <p>Excellent news!</p>
+      <p>Payment successful. Your order is confirmed and the funds have been secured.</p>
+      <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Transaction Ref:</strong> ${reference}</p>
+        <p style="margin: 5px 0;"><strong>Amount Paid:</strong> ₦${amount.toLocaleString()}</p>
+      </div>
+      <p>Your industrial assets are now being prepared for fulfillment.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Financial Handshake Complete</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: "Payment Confirmed - FindAba City OS",
+    html,
+    name: "FindAba Finance"
+  });
+};
+
+/**
+ * Sends appointment booking confirmation.
+ */
+export const sendAppointmentEmail = async (email: string, businessName: string, dateTime: string) => {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #3b82f6; border-radius: 10px; background: #0f172a; color: #f8fafc;">
+      <h1 style="color: #3b82f6; border-bottom: 2px solid #334155; padding-bottom: 10px;">Appointment Booked</h1>
+      <p>Greetings,</p>
+      <p>Your appointment has been booked successfully with <strong>${businessName}</strong>.</p>
+      <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Establishment:</strong> ${businessName}</p>
+        <p style="margin: 5px 0;"><strong>Date/Time:</strong> ${dateTime}</p>
+      </div>
+      <p>Please ensure you arrive on time for your scheduled session.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Logistics Synchronized</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: "Industrial Appointment Confirmed",
+    html,
+    name: "FindAba Scheduling"
+  });
+};
+
+/**
+ * Sends new order notification to merchant.
+ */
+export const sendMerchantNewOrderEmail = async (merchantEmail: string, orderId: string, amount: number, customerName: string) => {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #d4af37; border-radius: 10px; background: #0f172a; color: #f8fafc;">
+      <h1 style="color: #d4af37; border-bottom: 2px solid #334155; padding-bottom: 10px;">New Incoming Order</h1>
+      <p>Attention Merchant,</p>
+      <p>You have a new order from a customer: <strong>${customerName}</strong>.</p>
+      <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Order ID:</strong> #${orderId}</p>
+        <p style="margin: 5px 0;"><strong>Customer:</strong> ${customerName}</p>
+        <p style="margin: 5px 0;"><strong>Payout Value:</strong> ₦${amount.toLocaleString()}</p>
+      </div>
+      <p>Please log in to your Merchant Dashboard to fulfill this request immediately.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Merchant Network Hub</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: merchantEmail,
+    subject: "Action Required: New Industrial Order Received",
+    html,
+    name: "FindAba Merchant Portal"
+  });
+};

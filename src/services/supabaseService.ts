@@ -8,7 +8,12 @@ import {
   AppNotification, HubTier
 } from '../types';
 import { triggerWebhook, WebhookEvent } from './webhookService';
-import { sendWelcomeEmail } from './emailService';
+import { 
+  sendWelcomeEmail, 
+  sendOrderReceivedEmail, 
+  sendMerchantNewOrderEmail,
+  sendAppointmentEmail
+} from './emailService';
 
 let _supabaseInstance: SupabaseClient | null = null;
 let _currentUrl: string | null = null;
@@ -449,6 +454,22 @@ export const createEscrowOrder = async (order: Partial<Order>, business: Busines
   
   const { data, error } = await client.from('orders').insert(finalOrder).select().single();
   if (error) throw error;
+  
+  // 🔹 Trigger Email Notifications
+  // Notify Customer
+  if (order.buyer_email) {
+    sendOrderReceivedEmail(order.buyer_email, data.id, order.amount || 0).catch(err => 
+      console.warn("[Email] Customer order email failed:", err)
+    );
+  }
+
+  // Notify Merchant
+  if (business.email) {
+    const customerName = localStorage.getItem('findaba_user_name') || 'A Customer';
+    sendMerchantNewOrderEmail(business.email, data.id, merchant_payout, customerName).catch(err => 
+      console.warn("[Email] Merchant notification failed:", err)
+    );
+  }
   
   // Trigger Automation Webhook
   triggerWebhook(WebhookEvent.NEW_ORDER, { order: data, business_name: business.name });
@@ -925,6 +946,19 @@ export const finalizeSRBooking = async (booking: Partial<Booking>) => {
   
   if (!error && data) {
     triggerWebhook(WebhookEvent.NEW_BOOKING, data);
+    
+    // 🔹 Trigger Appointment Email
+    try {
+      // Get user profile for email
+      const { data: profile } = await client.from('profiles').select('email').eq('id', data.user_id).single();
+      if (profile?.email) {
+        sendAppointmentEmail(profile.email, data.business_name || 'Industrial Service Provider', data.booking_date).catch(err => 
+          console.warn("[Email] Appointment email failed:", err)
+        );
+      }
+    } catch (e) {
+      console.warn("[Email] Could not fetch profile for appointment notification");
+    }
   }
 };
 
