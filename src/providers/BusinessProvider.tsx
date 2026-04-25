@@ -126,12 +126,12 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       // Add a safety timeout to ensure loading state doesn't hang forever
-      const TIMEOUT_MS = 20000; // 20 seconds is enough for industrial signals
+      const TIMEOUT_MS = 60000; // Increase to 60 seconds for industrial signals
       const controller = new AbortController();
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => {
           controller.abort();
-          reject(new Error("Registry Sync Timeout: The industrial database is taking longer than expected."));
+          reject(new Error("Signal Latency detected. Continuing in Offline Mesh mode."));
         }, TIMEOUT_MS)
       );
 
@@ -190,7 +190,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
         setError(null);
       } catch (e: any) {
-        console.error("Business data fetch error:", e);
+        console.warn("[Registry] Sync deferred:", e.message);
         
         // If we have cached data OR even if we just have ARTISANS, don't show a fatal error state
         // unless it's the absolute first load with no data at all.
@@ -198,7 +198,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         
         if (hasCache) {
           setError(null);
-          addToast("Cloud Sync Deferred. Operating in Local Mesh mode.", "info");
+          // Only show toast if it's a real error, not just a controlled timeout
+          if (!e.message.includes("Latency")) {
+            addToast("Cloud Sync Deferred. Operating in Local Mesh mode.", "info");
+          }
         } else {
           setBusinesses(ARTISANS); // Fallback to industrial constants
           setError(null); 

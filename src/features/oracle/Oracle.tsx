@@ -5,7 +5,7 @@ import {
   Plus, Zap, Image as ImageIcon, Code, Play, PanelRight,
   Activity, Sparkles, Loader2, Search, Camera, Smartphone, Info, AlertTriangle, Settings,
   Menu, SquarePen, Share, MoreHorizontal, ArrowDown, Mic, AudioLines,
-  Trash2, ArrowLeft, RefreshCcw, Paperclip, ArrowUp
+  Trash2, ArrowLeft, RefreshCcw, Paperclip, ArrowUp, Cpu
 } from 'lucide-react';
 import { getOracleStream as askOracle, getSupportResponse, generateConversationTitle, syncGeminiConfig } from '../../services/geminiService';
 import IndustrialButton from '../../components/IndustrialButton';
@@ -412,7 +412,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
   };
 
   return (
-    <div className="absolute inset-0 bg-[#0d0d0d] text-[#ececec] font-sans flex flex-col animate-fade-in">
+    <div className="absolute inset-0 bg-[#0d0d0d] text-[#ececec] font-sans flex flex-col animate-fade-in overflow-hidden">
       
       {/* ATMOSPHERIC BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -462,38 +462,32 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       )}
 
       {/* CHATGPT STYLE HEADER */}
-      <header className="px-4 py-3 flex items-center justify-between bg-transparent backdrop-blur-md border-b border-white/5 shrink-0 z-50">
+      <header className="px-4 py-3 flex items-center justify-between bg-black/40 backdrop-blur-md border-b border-white/5 shrink-0 z-50">
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-white/60 hover:text-white transition-colors bg-white/5 rounded-xl border border-white/10">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-white/60 hover:text-white transition-colors bg-white/5 rounded-xl border border-white/10 active:scale-95">
             <Menu size={20} />
           </button>
         </div>
 
-        <div className="flex items-center gap-1 cursor-pointer group px-4 py-2 hover:bg-white/5 rounded-2xl transition-all border border-transparent hover:border-white/5">
-          <div className="flex flex-col items-center">
-            <div className="flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full ${signalLocked ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse'}`} />
-              <span className="text-[15px] font-black uppercase tracking-widest text-white/90 flex items-center gap-3">
-                FindAba AI (Kalu) v6.0 <ChevronDown size={14} className="opacity-40" />
-              </span>
-            </div>
-            <div className="flex items-center gap-2 mt-1 opacity-40">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em]">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </span>
-              <div className="w-1 h-1 bg-white/20 rounded-full" />
-              <span className="text-[9px] font-black uppercase tracking-widest">
-                {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
-              </span>
-            </div>
+        <div className="flex-1 flex flex-col items-center overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className={`w-1.5 h-1.5 rounded-full ${signalLocked ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse'}`} />
+            <span className="text-[12px] sm:text-[15px] font-black uppercase tracking-widest text-white/90 truncate">
+              FindAba Oracle v6.0
+            </span>
+          </div>
+          <div className="flex items-center gap-2 opacity-30 mt-0.5">
+            <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-widest">
+              {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-1 relative">
-          <button onClick={startNewChat} className="p-2 text-white/60 hover:text-white transition-colors">
+          <button onClick={startNewChat} className="p-2 text-white/60 hover:text-white transition-colors active:scale-95">
             <SquarePen size={20} />
           </button>
-          <button onClick={() => setShowOptionsMenu(!showOptionsMenu)} className="p-2 text-white/60 hover:text-white transition-colors">
+          <button onClick={() => setShowOptionsMenu(!showOptionsMenu)} className="p-2 text-white/60 hover:text-white transition-colors active:scale-95">
             <MoreHorizontal size={20} />
           </button>
 
@@ -603,17 +597,28 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       <main 
         ref={viewportRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto scrollbar-hide px-4 md:px-0 py-4 space-y-8"
+        className="flex-1 overflow-y-auto scrollbar-hide px-4 py-4 space-y-8"
       >
-        <div className="max-w-3xl mx-auto w-full space-y-8">
+        <div className="max-w-3xl mx-auto w-full space-y-8 pb-48 sm:pb-56">
           {messages.length === 0 && (
-            <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 select-none">
-              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-aba-gold shadow-[0_0_30px_rgba(255,215,0,0.3)]">
-                <img src={oracleAvatar} className="w-full h-full object-cover" alt="FindAba AI" />
+            <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 select-none p-6">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-aba-gold/10 border border-aba-gold/30 flex items-center justify-center text-aba-gold shadow-[0_0_50px_rgba(255,215,0,0.1)] animate-float">
+                <Cpu size={32} />
               </div>
-              <div className="text-center space-y-1">
-                <h2 className="text-2xl font-bold tracking-tight">How can I help you today?</h2>
-                <p className="text-sm text-white/40 font-medium">Query Kalu, the FindAba AI Assistant</p>
+              <div className="text-center space-y-3">
+                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">Identity: Kalu v6</h2>
+                <p className="text-[10px] sm:text-xs text-white/40 font-black uppercase tracking-[0.3em] max-w-xs mx-auto leading-relaxed">
+                  The primary industrial interface for Aba, Abia State.
+                </p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2 max-w-md pt-4">
+                 {[
+                   "Market Prices?", "Ariaria Logistics?", "Verification?", "Trade Signals?"
+                 ].map(q => (
+                   <button key={q} onClick={() => setInput(q)} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-aba-gold hover:text-aba-dark transition-all">
+                     {q}
+                   </button>
+                 ))}
               </div>
             </div>
           )}
@@ -769,9 +774,9 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       )}
 
       {/* INPUT AREA */}
-      <footer className="p-4 md:p-8 bg-transparent shrink-0 z-50">
+      <footer className="p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 bg-[#0d0d0d]/80 backdrop-blur-xl shrink-0 z-50 border-t border-white/5">
         <div className="max-w-3xl mx-auto w-full relative">
-          <div className="bg-[#1e1e1e]/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-2xl p-2 transition-all focus-within:border-aba-gold/30 focus-within:shadow-[0_0_50px_rgba(255,215,0,0.05)]">
+          <div className="bg-[#1e1e1e]/90 rounded-[1.5rem] sm:rounded-[2rem] border border-white/10 shadow-2xl p-1 sm:p-1.5 transition-all focus-within:border-aba-gold/30">
             {pendingImage && (
               <div className="px-4 pt-4 pb-2">
                 <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-white/10 group">
@@ -809,7 +814,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                 }} 
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 placeholder="Message Kalu..."
-                className="flex-1 bg-transparent border-none outline-none py-4 px-2 text-[15px] text-white placeholder:text-white/20 resize-none max-h-48 scrollbar-hide"
+                className="flex-1 bg-transparent border-none outline-none py-3 sm:py-4 px-2 text-[14px] sm:text-[15px] text-white placeholder:text-white/20 resize-none max-h-32 sm:max-h-48 scrollbar-hide"
                 rows={1}
                 disabled={loading || isRefining}
               />

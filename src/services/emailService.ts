@@ -175,3 +175,31 @@ export const sendMerchantNewOrderEmail = async (merchantEmail: string, orderId: 
     name: "FindAba Merchant Portal"
   });
 };
+
+/**
+ * Sends order status update to customer.
+ */
+export const sendOrderStatusUpdateEmail = async (email: string, status: string, amount: number, trackingId: string) => {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #d4af37; border-radius: 10px; background: #0f172a; color: #f8fafc;">
+      <h1 style="color: #d4af37; border-bottom: 2px solid #334155; padding-bottom: 10px;">Order Status Update</h1>
+      <p>Greetings artisan,</p>
+      <p>The signal for your order has been updated to: <strong style="color: #22c55e;">${status.toUpperCase()}</strong></p>
+      
+      <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Tracking Signal:</strong> ${trackingId}</p>
+        <p style="margin: 5px 0;"><strong>Value:</strong> ₦${amount.toLocaleString()}</p>
+      </div>
+
+      <p>Your industrial cargo is moving through the network. Check your dashboard for real-time GIS tracking.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Logistics & Cargo Management</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `Order Update: ${status.toUpperCase()}`,
+    html,
+    name: "FindAba Signals"
+  });
+};

@@ -193,7 +193,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           </div>
 
           <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
-            <h1 className="text-3xl sm:text-6xl md:text-8xl font-black text-white tracking-tighter leading-[1] md:leading-[0.9] uppercase italic">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter leading-[1] md:leading-[0.9] uppercase italic">
               The Industrial <br/>
               <span className="text-aba-gold">Pulse of Aba.</span>
             </h1>

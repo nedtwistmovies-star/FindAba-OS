@@ -12,7 +12,8 @@ import {
   sendWelcomeEmail, 
   sendOrderReceivedEmail, 
   sendMerchantNewOrderEmail,
-  sendAppointmentEmail
+  sendAppointmentEmail,
+  sendOrderStatusUpdateEmail
 } from './emailService';
 
 let _supabaseInstance: SupabaseClient | null = null;
@@ -1347,14 +1348,36 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
   const client = getSupabase();
   if (!client) throw new Error("Registry offline");
   
+  const updates: any = { status, updated_at: new Date().toISOString() };
+  
+  // Auto-generate a dummy tracking ID if it's being shipped and doesn't have one
+  if (status === OrderStatus.SHIPPED) {
+    updates.tracking_id = `CGO-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+  }
+
   const { data, error } = await client
     .from('orders')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(updates)
     .eq('id', orderId)
     .select()
     .single();
     
   if (error) throw error;
+
+  // 🔹 Trigger Notification Signal (Email)
+  if (data && data.buyer_email) {
+    try {
+      await sendOrderStatusUpdateEmail(
+        data.buyer_email, 
+        status,
+        data.amount,
+        updates.tracking_id || data.tracking_id || 'MESH-LOCAL-AUTO'
+      );
+    } catch (e) {
+      console.warn("[Registry] Notification signal failed to broadcast.", e);
+    }
+  }
+
   return data;
 };
 

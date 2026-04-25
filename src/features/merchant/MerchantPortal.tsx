@@ -6,7 +6,7 @@ import {
   ArrowLeft, TrendingUp, BarChart3, ShieldCheck, Landmark, 
   Activity, Clock, ChevronRight, ShoppingBag, ListChecks, 
   Package, DollarSign, Loader2, AlertCircle, ImageIcon, Video, Plus, Trash2, Save,
-  Star, Gavel, ShieldAlert, CheckCircle2, Award, MapPin, Globe, User, Zap
+  Star, Gavel, ShieldAlert, CheckCircle2, Award, MapPin, Globe, User, Zap, Sparkles, X
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -50,7 +50,7 @@ const MerchantPortal: React.FC<{
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
-  const [activeTab, setActiveTab] = useState<'identity' | 'orders' | 'media' | 'finance' | 'showroom' | 'trust' | 'subscription' | 'referrals'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'orders' | 'media' | 'finance' | 'showroom' | 'trust' | 'subscription' | 'referrals' | 'disputes'>('identity');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -271,6 +271,7 @@ const MerchantPortal: React.FC<{
             { id: 'identity', label: 'Identity', icon: <User size={16}/> },
             { id: 'showroom', label: 'Showroom', icon: <Package size={16}/> },
             { id: 'orders', label: 'Orders', icon: <ShoppingBag size={16}/> },
+            { id: 'disputes', label: 'Disputes', icon: <Gavel size={16}/> },
             { id: 'media', label: 'Media Hub', icon: <ImageIcon size={16}/> },
             { id: 'finance', label: 'Finance', icon: <Landmark size={16}/> },
             { id: 'referrals', label: 'Referrals', icon: <Zap size={16}/> },
@@ -592,6 +593,88 @@ const MerchantPortal: React.FC<{
                    {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Showroom Updates
                 </button>
              </div>
+          </div>
+        )}
+
+        {activeTab === 'disputes' && (
+          <div className="animate-slide-up space-y-6 md:space-y-8 pb-20">
+            <div className="bg-[#002113] p-6 md:p-16 rounded-[2rem] md:rounded-[5rem] shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.05]"><Gavel size={160} className="md:w-[200px] md:h-[200px]" /></div>
+              <div className="relative z-10 space-y-8 md:space-y-12">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                  <div className="flex items-center gap-4 md:gap-6">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-red-500/10 rounded-2xl md:rounded-3xl flex items-center justify-center text-red-500 border border-red-500/20">
+                      <ShieldAlert size={28} className="md:w-10 md:h-10" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl md:text-3xl font-black text-white uppercase tracking-tight">Dispute Resolution Center</h3>
+                      <p className="text-[10px] md:text-xs font-bold text-red-500 uppercase tracking-[0.3em]">{disputes.length} Active Conflict Signals</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 md:space-y-6">
+                  {disputes.map(d => (
+                    <div key={d.id} className="p-6 md:p-10 bg-white/5 border border-white/10 rounded-[2.5rem] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:bg-white/10 transition-all group">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Order #{d.order_id.slice(-8)}</p>
+                          <span className="px-2 py-0.5 bg-red-500/20 text-red-500 text-[8px] font-black uppercase rounded-full border border-red-500/20">{d.status}</span>
+                        </div>
+                        <h4 className="text-lg md:text-xl font-bold text-white uppercase tracking-tight">{d.reason}</h4>
+                        <div className="flex items-center gap-4 text-[9px] text-white/40 uppercase font-bold tracking-widest">
+                          <span className="flex items-center gap-2"><Clock size={12} /> {new Date(d.created_at).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-2"><Landmark size={12} /> ₦{(orders.find(o => o.id === d.order_id)?.merchant_payout || 0).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex w-full md:w-auto gap-3">
+                         <button 
+                           onClick={() => addToast("Vault Signal initialized. Evidence archive syncing...", "info")}
+                           className="flex-1 md:flex-none px-6 py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10"
+                         >
+                           Vault Access
+                         </button>
+                         <button 
+                           onClick={() => addToast("Arbiter Protocol initiated. Please wait for institutional signal.", "info")}
+                           className="flex-1 md:flex-none px-8 py-4 bg-aba-gold text-aba-dark rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                         >
+                           Resolve Hub
+                         </button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {disputes.length === 0 && (
+                    <div className="bg-white/5 rounded-[3rem] p-12 md:p-20 border border-white/5 text-center space-y-6">
+                      <div className="w-20 h-20 md:w-24 md:h-24 bg-aba-green/10 rounded-full flex items-center justify-center mx-auto border border-aba-green/20">
+                        <CheckCircle2 size={40} className="text-aba-green" />
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="text-white font-black uppercase tracking-tight text-xl md:text-2xl">Integrity Mesh: Optimal</h4>
+                        <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto uppercase tracking-widest">Zero trade conflicts detected. Your node is operating with high fidelity across the Enyimba network.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-8 md:p-12 rounded-[3rem] border border-slate-100 dark:border-white/10 space-y-6">
+              <h3 className="text-sm font-black uppercase tracking-[0.4em] text-slate-400 dark:text-white/20 px-4">Conflict Resolution Protocols</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { title: 'The 48-Hour Handshake', desc: 'Merchants have 48 hours to respond to a trade signal conflict before institutional arbitration begins.' },
+                  { title: 'Evidence Vaulting', desc: 'Securely upload waybills, production footage, and delivery proof to the FindAba encrypted vault.' },
+                  { title: 'Civic Arbitration', desc: 'Verified master artisans may be summoned to provide expert opinions on technical craft disputes.' },
+                  { title: 'Fidelity Penalties', desc: 'Unresolved disputes significantly impact your Integrity Grade and market discoverability.' }
+                ].map((rule, i) => (
+                  <div key={i} className="p-8 bg-slate-50 dark:bg-black/20 rounded-[2rem] border border-slate-100 dark:border-white/5 space-y-3">
+                    <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">{rule.title}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-white/40 leading-relaxed uppercase tracking-widest font-medium">{rule.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

@@ -40,6 +40,17 @@ import {
   ExternalLink,
 } from "lucide-react";
 import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+} from 'recharts';
+import {
   fetchPlatformConfig,
   updatePlatformConfig,
   fetchAllBusinesses,
@@ -977,6 +988,71 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   color="text-aba-red"
                 />
               </BentoGrid>
+
+              {/* REVENUE VISUALIZATION */}
+              <div className="bg-white/5 p-8 md:p-12 rounded-[3.5rem] border border-white/5 space-y-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-1">
+                    <h4 className="text-xl md:text-2xl font-black uppercase tracking-tight flex items-center gap-4">
+                      <TrendingUp className="text-aba-gold" /> Trade Volume Analysis
+                    </h4>
+                    <p className="text-[10px] md:text-xs font-bold text-white/40 uppercase tracking-widest">Aggregate Registry Revenue Signal (Aba Mesh)</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="px-4 py-2 bg-aba-gold/10 text-aba-gold text-[9px] font-black uppercase rounded-full border border-aba-gold/20">Real-Time Sync</span>
+                  </div>
+                </div>
+                
+                <div className="h-[300px] md:h-[400px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={ledger.slice(0, 10).reverse().map(l => ({
+                        date: new Date(l.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                        amount: l.gross_amount
+                      }))}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#facc15" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#facc15" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#ffffff20" 
+                        fontSize={10} 
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}
+                      />
+                      <YAxis 
+                        stroke="#ffffff20" 
+                        fontSize={10} 
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}
+                        tickFormatter={(val) => `₦${val >= 1000 ? (val/1000).toFixed(0) + 'k' : val}`}
+                      />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '1rem' }}
+                        itemStyle={{ color: '#facc15', fontSize: '12px', fontWeight: 'bold' }}
+                        labelStyle={{ color: 'rgba(255,255,255,0.4)', marginBottom: '4px', fontSize: '10px' }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="amount" 
+                        stroke="#facc15" 
+                        strokeWidth={4}
+                        fillOpacity={1} 
+                        fill="url(#colorAmount)" 
+                        animationDuration={2000}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">

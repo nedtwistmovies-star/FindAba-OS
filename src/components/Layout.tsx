@@ -344,13 +344,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                             className="w-full flex items-center gap-4 p-4 hover:bg-white/5 rounded-xl transition-all group/result text-left"
                           >
                             <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/5 bg-black/20">
-                              <img src={biz.logo || biz.hero_images?.[0] || 'https://via.placeholder.com/100'} className="w-full h-full object-cover group-hover/result:scale-110 transition-transform duration-500" alt={biz.name} />
+                              <img src={biz.image_url || (biz.catalog_images && biz.catalog_images[0]) || 'https://via.placeholder.com/100'} className="w-full h-full object-cover group-hover/result:scale-110 transition-transform duration-500" alt={biz.name} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <h5 className="text-sm font-bold text-white truncate">{biz.name}</h5>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-aba-gold px-1.5 py-0.5 bg-aba-gold/10 rounded-sm">{biz.category}</span>
-                                <span className="text-[9px] font-medium text-white/40 truncate">{biz.location}</span>
+                                <span className="text-[9px] font-medium text-white/40 truncate">{biz.area}</span>
                               </div>
                             </div>
                             <ChevronRight size={14} className="text-white/20 group-hover/result:text-aba-gold group-hover/result:translate-x-1 transition-all" />
@@ -464,11 +464,11 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           />
         )}
 
-        <main className={`flex-1 flex flex-col pt-20 md:pt-32 lg:pt-36 container-responsive overflow-x-hidden`}>
+        <main className={`flex-1 flex flex-col pt-16 sm:pt-20 md:pt-32 lg:pt-36 container-responsive overflow-x-hidden`}>
           <div className="flex-1">
             {children}
           </div>
-          <footer className={`w-full relative flex flex-col transition-standard pb-32 md:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
+          <footer className={`w-full relative flex flex-col transition-standard pb-36 sm:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
             
             {/* Requested Menu Structure */}
             <div className="px-6 md:px-8 py-16 md:py-24 space-y-16 max-w-5xl mx-auto w-full">
@@ -578,7 +578,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
       </main>
     </div>
 
-      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-4 md:px-8 py-4 md:py-6 flex justify-around items-center transition-standard lg:hidden ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-4 md:px-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:py-6 flex justify-around items-center transition-standard lg:hidden ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
         {[
           { id: 'home', icon: <Home size={20} />, label: 'HOME' },
           { id: 'feed', icon: <Users size={20} />, label: 'FACES' },
