@@ -9,13 +9,17 @@ import {
 } from 'lucide-react';
 import { SANDALS_CORPORATE_BRANCHES, SANDALS_HQ_IMAGE, SANDALS_BRAND } from '../../constants';
 import { paymentService } from '../../services/paymentService';
+import { fetchAdminStats } from '../../services/supabaseService';
 
 const SandalsOffice: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
   const [selectedBranch, setSelectedBranch] = useState<any>(null);
   const [hubUptime, setHubUptime] = useState(99.98);
+  const [dbStats, setDbStats] = useState({ businesses: 0, orders: 0, users: 0, drivers: 0 });
   const isMpActive = paymentService.hasKey();
 
   useEffect(() => {
+    fetchAdminStats().then(setDbStats).catch(console.error);
+    
     const interval = setInterval(() => {
       setHubUptime(prev => Math.min(100, prev + (Math.random() * 0.001 - 0.0005)));
     }, 4000);
@@ -31,10 +35,10 @@ const SandalsOffice: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   };
 
   const stats = [
-    { label: 'Active Partners', value: '12', icon: <Hotel size={14} />, color: 'text-aba-gold' },
-    { label: 'Market Reach', value: '88%', icon: <TrendingUp size={14} />, color: 'text-aba-green' },
+    { label: 'Verified Hubs', value: dbStats.businesses.toString(), icon: <Hotel size={14} />, color: 'text-aba-gold' },
+    { label: 'Trade Signals', value: dbStats.orders.toString(), icon: <TrendingUp size={14} />, color: 'text-aba-green' },
     { label: 'Network Uptime', value: `${hubUptime.toFixed(2)}%`, icon: <Activity size={14} />, color: 'text-blue-500' },
-    { label: 'Corporate Staff', value: '45+', icon: <Users size={14} />, color: 'text-aba-gold' }
+    { label: 'Active Citizens', value: dbStats.users.toString(), icon: <Users size={14} />, color: 'text-aba-gold' }
   ];
 
   if (selectedBranch) {

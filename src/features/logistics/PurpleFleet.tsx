@@ -8,7 +8,7 @@ import { ViewState, Vehicle, VehicleCategory, RideBooking } from '../../types';
 import MapView from '../../components/MapView';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import RideBookingSheet from './RideBookingSheet';
-import { fetchAvailableVehicles, createRideBooking, fetchAllVehicles, getSupabase } from '../../services/supabaseService';
+import { fetchAvailableVehicles, createRideBooking, fetchAllVehicles, getSupabase, subscribeToDriverSignals } from '../../services/supabaseService';
 import { getCurrentPosition, calculateDistance } from '../../services/locationService';
 
 const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
@@ -25,6 +25,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
   const [currentRide, setCurrentRide] = useState<RideBooking | null>(null);
   const [userLoc, setUserLoc] = useState<{ latitude: number, longitude: number } | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [liveSignals, setLiveSignals] = useState<Record<string, { lat: number, lng: number }>>({});
 
   useEffect(() => {
     getCurrentPosition().then(pos => {
@@ -34,6 +35,18 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
       }
     }).catch(() => {});
     fetchAllVehicles().then(setAllVehicles);
+
+    // Subscribe to real-time driver signals
+    const sub = subscribeToDriverSignals((payload) => {
+      if (payload.new) {
+        setLiveSignals(prev => ({
+          ...prev,
+          [payload.new.vehicle_id]: { lat: payload.new.lat, lng: payload.new.lng }
+        }));
+      }
+    });
+
+    return () => { sub.unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -137,6 +150,15 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
     { id: VehicleCategory.CARGO_SMALL, label: 'Delivery', icon: Truck, desc: 'Fast parcel dispatch' },
   ];
 
+  // Merge vehicles with their live coordinates
+  const mappedVehicles = allVehicles.map(v => {
+    const signal = liveSignals[v.id];
+    if (signal) {
+      return { ...v, current_lat: signal.lat, current_lng: signal.lng };
+    }
+    return v;
+  });
+
   return (
     <div className="flex-1 flex flex-col bg-[#0f001a] animate-fade-in font-sans relative text-white h-screen overflow-hidden">
       <PaystackOverlay 
@@ -151,7 +173,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
       {/* IMMERSIVE BACKGROUND MAP */}
       <div className="absolute inset-0 z-0">
         <MapView 
-          businesses={bookingStep === 'live' ? (currentRide ? allVehicles.filter(v => v.id === currentRide.vehicle_id) : []) : allVehicles} 
+          businesses={bookingStep === 'live' ? (currentRide ? mappedVehicles.filter(v => v.id === currentRide.vehicle_id) : []) : mappedVehicles} 
           onBusinessClick={() => {}} 
           userLocation={userLoc}
         />

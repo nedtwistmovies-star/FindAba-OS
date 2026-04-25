@@ -1255,3 +1255,152 @@ export const subscribeToRideRequests = (driverId: string, callback: (payload: an
     .subscribe();
   return { unsubscribe: () => channel.unsubscribe() };
 };
+
+/**
+ * Universal Search: Logic to query businesses across multiple fields
+ */
+export const searchBusinesses = async (query: string): Promise<Business[]> => {
+  const client = getSupabase();
+  if (!client || !query || query.length < 2) return [];
+  
+  try {
+    const { data, error } = await client
+      .from('businesses')
+      .select('*')
+      .or(`name.ilike.%${query}%,category.ilike.%${query}%,bio.ilike.%${query}%,location.ilike.%${query}%`)
+      .limit(10);
+
+    if (error) {
+      console.warn("[Search] Query issue:", error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error("[Search] Hardware fault:", e);
+    return [];
+  }
+};
+
+/**
+ * Logistics: Real-time driver signals (GPS broadcasting)
+ */
+export const upsertDriverSignal = async (driverId: string, vehicleId: string, lat: number, lng: number) => {
+  const client = getSupabase();
+  if (!client) return;
+  
+  try {
+    const { error } = await client
+      .from('driver_signals')
+      .upsert({ 
+        driver_id: driverId, 
+        vehicle_id: vehicleId, 
+        lat, 
+        lng, 
+        updated_at: new Date().toISOString() 
+      }, { onConflict: 'driver_id' });
+      
+    if (error) console.warn("[Logistics] Signal broadcast failed:", error.message);
+  } catch (e) {
+    console.error("[Logistics] Signal hardware fault:", e);
+  }
+};
+
+export const fetchLatestDriverSignals = async () => {
+  const client = getSupabase();
+  if (!client) return [];
+  
+  try {
+    const { data, error } = await client
+      .from('driver_signals')
+      .select('*, vehicles(*)');
+      
+    if (error) {
+      if (error.code === '42P01') return []; // Table missing yet
+      console.warn("[Logistics] Signal fetch issue:", error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const subscribeToDriverSignals = (callback: (payload: any) => void) => {
+  const client = getSupabase();
+  if (!client) return { unsubscribe: () => {} };
+  
+  const channel = client.channel('public:driver_signals')
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'driver_signals' 
+    }, callback)
+    .subscribe();
+    
+  return { unsubscribe: () => channel.unsubscribe() };
+};
+
+/**
+ * Merchant: Order & Dispute Hardening
+ */
+export const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry offline");
+  
+  const { data, error } = await client
+    .from('orders')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', orderId)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
+export const fetchDisputes = async (merchantId: string) => {
+  const client = getSupabase();
+  if (!client) return [];
+  
+  const { data, error } = await client
+    .from('disputes')
+    .select('*, orders(*)')
+    .eq('merchant_id', merchantId);
+    
+  if (error) return [];
+  return data || [];
+};
+
+export const resolveDispute = async (disputeId: string, status: 'resolved' | 'refunded') => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry offline");
+  
+  const { data, error } = await client
+    .from('disputes')
+    .update({ status, resolved_at: new Date().toISOString() })
+    .eq('id', disputeId)
+    .select()
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
+export const fetchAdminStats = async () => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry offline");
+  
+  const [businesses, orders, profiles, drivers] = await Promise.all([
+    client.from('businesses').select('*', { count: 'exact', head: true }),
+    client.from('orders').select('*', { count: 'exact', head: true }),
+    client.from('profiles').select('*', { count: 'exact', head: true }),
+    client.from('driver_partners').select('*', { count: 'exact', head: true })
+  ]);
+  
+  return {
+    businesses: businesses.count || 0,
+    orders: orders.count || 0,
+    users: profiles.count || 0,
+    drivers: drivers.count || 0
+  };
+};

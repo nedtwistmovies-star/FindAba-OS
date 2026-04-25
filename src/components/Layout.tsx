@@ -14,6 +14,7 @@ import { SupabaseSync } from './SupabaseSync';
 import { generateWelcomeMessage } from '../services/geminiService';
 import { getSupabase, fetchNotifications, markNotificationAsRead } from '../services/supabaseService';
 import { useAuth } from '../providers/AuthProvider';
+import { useBusiness } from '../providers/BusinessProvider';
 import { SANDALS_BRAND } from '../constants';
 import NotificationCenter from './NotificationCenter';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../services/signalService';
@@ -140,6 +141,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo, oracleAvatar, socialLinks }) => {
   const { addToast } = useToast();
   const { userIdentifier, userName, isAuth } = useAuth();
+  const { searchQuery, setSearchQuery, searchResults, isSearching, setSelectedBusiness } = useBusiness();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRegistryActive, setIsRegistryActive] = useState(false);
   const [isSignalHealthy, setIsSignalHealthy] = useState(true);
@@ -312,12 +314,72 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           <div className="flex items-center gap-2 sm:gap-6 ml-auto lg:ml-0">
             <div className="hidden lg:block flex-1 max-w-md mr-12">
               <div className="relative group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-aba-gold transition-colors" size={18} />
+                <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? 'text-aba-gold' : 'text-white/20 group-focus-within:text-aba-gold'}`} size={18} />
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Universal Industrial Search..." 
-                  className="w-full pl-12 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-aba-gold/50 transition-all"
+                  className="w-full pl-12 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-aba-gold/50 transition-all font-bold tracking-tight"
                 />
+                
+                {/* Search Results Dropdown */}
+                {searchQuery.length >= 2 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-aba-deep/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-slide-up z-[2000]">
+                    {isSearching ? (
+                      <div className="p-8 flex flex-col items-center justify-center gap-4">
+                        <Loader2 className="animate-spin text-aba-gold" size={24} />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Syncing Registry...</span>
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-hide">
+                        {searchResults.map((biz) => (
+                          <button
+                            key={biz.id}
+                            onClick={() => {
+                              setSelectedBusiness(biz);
+                              setView('explore');
+                              setSearchQuery('');
+                            }}
+                            className="w-full flex items-center gap-4 p-4 hover:bg-white/5 rounded-xl transition-all group/result text-left"
+                          >
+                            <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/5 bg-black/20">
+                              <img src={biz.logo || biz.hero_images?.[0] || 'https://via.placeholder.com/100'} className="w-full h-full object-cover group-hover/result:scale-110 transition-transform duration-500" alt={biz.name} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h5 className="text-sm font-bold text-white truncate">{biz.name}</h5>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-aba-gold px-1.5 py-0.5 bg-aba-gold/10 rounded-sm">{biz.category}</span>
+                                <span className="text-[9px] font-medium text-white/40 truncate">{biz.location}</span>
+                              </div>
+                            </div>
+                            <ChevronRight size={14} className="text-white/20 group-hover/result:text-aba-gold group-hover/result:translate-x-1 transition-all" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-12 text-center flex flex-col items-center gap-6">
+                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                          <X className="text-white/20" size={32} />
+                        </div>
+                        <div className="space-y-2">
+                          <h6 className="text-sm font-black uppercase tracking-widest">No Matches Found</h6>
+                          <p className="text-[10px] font-medium text-white/40">The industrial signal for "{searchQuery}" is not present in the verified mesh.</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="p-4 bg-white/5 border-t border-white/5 flex justify-between items-center">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">FindAba OS Search Engine</span>
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="text-[9px] font-black uppercase tracking-widest text-aba-gold hover:underline"
+                      >
+                        Clear Signal
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             

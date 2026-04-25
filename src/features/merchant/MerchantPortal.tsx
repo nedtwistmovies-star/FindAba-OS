@@ -11,7 +11,7 @@ import {
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile } from '../../services/supabaseService';
+import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile, updateOrderStatus, fetchDisputes } from '../../services/supabaseService';
 import { MultiImageUpload, ImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
@@ -45,6 +45,8 @@ const MerchantPortal: React.FC<{
   const { userIdentifier } = useAuth();
   const [business, setBusiness] = useState<Business | null>(initialBusiness);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [disputes, setDisputes] = useState<any[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
@@ -76,10 +78,12 @@ const MerchantPortal: React.FC<{
       const ownerId = initialBusiness.owner_id || userIdentifier;
       Promise.all([
         fetchMerchantOrders(initialBusiness.id),
+        fetchDisputes(initialBusiness.id),
         ownerId ? fetchReferrals(ownerId) : Promise.resolve([]),
         ownerId ? fetchUserProfile(ownerId) : Promise.resolve(null)
-      ]).then(([ordersData, referralsData, profileData]) => {
+      ]).then(([ordersData, disputesData, referralsData, profileData]) => {
         setOrders(ordersData);
+        setDisputes(disputesData);
         setReferrals(referralsData);
         setUserProfile(profileData);
         setLoading(false);
@@ -179,6 +183,19 @@ const MerchantPortal: React.FC<{
     }
   };
 
+  const handleStatusUpdate = async (orderId: string, status: OrderStatus) => {
+    setSyncing(true);
+    try {
+      await updateOrderStatus(orderId, status);
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+      setSelectedOrder(null);
+      addToast(`Order ${orderId.slice(-8)} updated to ${status.toUpperCase()}`, "success");
+    } catch (e) {
+      addToast("Failed to update status in Registry.", "error");
+    } finally {
+      setSyncing(false);
+    }
+  };
   const handleUpdateMedia = async (updates: Partial<Business>) => {
     if (!business) return;
     setSyncing(true);
@@ -672,10 +689,10 @@ const MerchantPortal: React.FC<{
                       
                       <div className="w-full md:w-auto">
                          <button 
-                           onClick={() => addToast("Fetching detailed hub signal for order #" + o.id.slice(-8), "info")}
+                           onClick={() => setSelectedOrder(o)}
                            className="w-full px-8 md:px-10 py-4 md:py-5 bg-white dark:bg-slate-700 border dark:border-white/10 rounded-xl md:rounded-2xl text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-aba-dark hover:text-white transition-all shadow-sm"
                          >
-                           View Hub Details
+                           Manage Signal
                          </button>
                       </div>
                    </div>
@@ -1056,7 +1073,7 @@ const MerchantPortal: React.FC<{
                     </div>
                     <div>
                       <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight">Dispute Center</h3>
-                      <p className="text-[9px] md:text-[10px] font-bold text-red-500 uppercase tracking-[0.2em]">0 Active Disputes</p>
+                      <p className="text-[9px] md:text-[10px] font-bold text-red-500 uppercase tracking-[0.2em]">{disputes.length} Active Disputes</p>
                     </div>
                   </div>
                   <button 
@@ -1066,19 +1083,98 @@ const MerchantPortal: React.FC<{
                     View Archive
                   </button>
                 </div>
-                
-                <div className="bg-white/5 rounded-xl md:rounded-[2rem] p-6 md:p-8 border border-white/10 text-center space-y-3 md:space-y-4">
-                  <div className="w-12 h-12 md:w-16 md:h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle2 size={24} className="text-aba-green md:w-8 md:h-8" />
+              </div>
+              
+              <div className="space-y-4">
+                {disputes.map(d => (
+                  <div key={d.id} className="p-6 bg-white/5 border border-white/10 rounded-[2rem] flex items-center justify-between animate-fade-in hover:bg-white/10 transition-all">
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">Order #{d.order_id.slice(-8)}</p>
+                      <p className="text-sm font-bold text-white uppercase tracking-tight">{d.reason}</p>
+                      <p className="text-[8px] text-white/40 uppercase tracking-widest">{new Date(d.created_at).toLocaleString()}</p>
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={() => addToast("Evidence hub loading...", "info")} className="px-5 py-2.5 bg-white/5 text-white/60 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest">Evidence</button>
+                       <button onClick={() => addToast("Contacting Arbiter...", "info")} className="px-5 py-2.5 bg-aba-gold text-aba-dark rounded-xl text-[8px] font-black uppercase tracking-widest">Respond</button>
+                    </div>
                   </div>
-                  <h4 className="text-white font-black uppercase tracking-tight text-sm md:text-base">Clean Ledger Signal</h4>
-                  <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto">Your industrial hub is operating within optimal parameters. No trade disputes detected in the current cycle.</p>
-                </div>
+                ))}
+                
+                {disputes.length === 0 && (
+                  <div className="bg-white/5 rounded-xl md:rounded-[2rem] p-6 md:p-8 border border-white/10 text-center space-y-3 md:space-y-4">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto">
+                      <CheckCircle2 size={24} className="text-aba-green md:w-8 md:h-8" />
+                    </div>
+                    <h4 className="text-white font-black uppercase tracking-tight text-sm md:text-base">Clean Ledger Signal</h4>
+                    <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto">Your industrial hub is operating within optimal parameters. No trade disputes detected in the current cycle.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
+      {/* Order Management Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-[5000] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in font-sans">
+           <div className="w-full max-w-md bg-white rounded-[3rem] p-10 space-y-8 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03]"><ShoppingBag size={150} /></div>
+              
+              <div className="flex justify-between items-start relative z-10">
+                 <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Trade Signal Details</p>
+                    <h3 className="text-2xl font-black text-aba-dark uppercase tracking-tighter">Order #{selectedOrder.id.slice(-8)}</h3>
+                    <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${getStatusColor(selectedOrder.status)} bg-slate-50 border shadow-inner mt-2 inline-block`}>
+                       {selectedOrder.status}
+                    </span>
+                 </div>
+                 <button onClick={() => setSelectedOrder(null)} className="p-3 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-200 transition-all"><X size={24}/></button>
+              </div>
+
+              <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative z-10">
+                 <div className="flex justify-between items-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registry Payout</p>
+                    <p className="text-xl font-black text-aba-green">₦{selectedOrder.merchant_payout.toLocaleString()}</p>
+                 </div>
+                 <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                    <span>Platform Commission</span>
+                    <span>₦{selectedOrder.commission_deducted.toLocaleString()}</span>
+                 </div>
+                 <div className="h-px bg-slate-200 w-full" />
+                 <div className="space-y-1">
+                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest underline decoration-aba-gold underline-offset-4">Buyer Handshake</p>
+                    <p className="text-[12px] font-bold text-aba-dark uppercase">{selectedOrder.buyer_email}</p>
+                 </div>
+              </div>
+
+              <div className="space-y-4 relative z-10">
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Update Fulfillment Status</p>
+                 <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { status: OrderStatus.PROCESSING, label: 'Processing', icon: <Clock size={16}/> },
+                      { status: OrderStatus.SHIPPED, label: 'Shipped', icon: <Package size={16}/> },
+                      { status: OrderStatus.DELIVERED, label: 'Delivered', icon: <MapPin size={16}/> },
+                      { status: OrderStatus.COMPLETED, label: 'Confirm Final', icon: <CheckCircle2 size={16}/> }
+                    ].map(btn => (
+                      <button 
+                        key={btn.status} 
+                        disabled={syncing || selectedOrder.status === btn.status}
+                        onClick={() => handleStatusUpdate(selectedOrder.id, btn.status)}
+                        className={`flex items-center justify-center gap-3 py-4 rounded-xl font-black uppercase text-[9px] tracking-widest transition-all shadow-md active:scale-95 border ${selectedOrder.status === btn.status ? 'bg-aba-dark text-white border-aba-dark' : 'bg-white text-slate-500 border-slate-100 hover:border-aba-gold hover:text-aba-dark'}`}
+                      >
+                         {syncing ? <Loader2 size={14} className="animate-spin" /> : btn.icon}
+                         {btn.label}
+                      </button>
+                    ))}
+                 </div>
+              </div>
+
+              <p className="text-center text-[8px] font-bold text-slate-300 uppercase tracking-widest relative z-10">
+                 Updating status triggers a real-time signal to the buyer node. Protocol recorded.
+              </p>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

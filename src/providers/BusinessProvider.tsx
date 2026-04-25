@@ -18,6 +18,10 @@ interface BusinessContextType {
   setSelectedAdvertorial: (p: any | null) => void;
   toggleFavorite: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
+  searchResults: Business[];
+  isSearching: boolean;
   loading: boolean;
   error: string | null;
   gitSyncStatus: any;
@@ -49,6 +53,11 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [selectedStory, setSelectedStory] = useState<EditorialStory | null>(null);
   const [selectedAdvertorial, setSelectedAdvertorial] = useState<any | null>(null);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Business[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   const [loading, setLoading] = useState(() => {
     try {
       const saved = localStorage.getItem('findaba_businesses_cache');
@@ -205,11 +214,35 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     refreshData();
   }, [refreshData]);
 
+  // Handle Universal Search
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const { searchBusinesses } = await import('../services/supabaseService');
+        const results = await searchBusinesses(searchQuery);
+        setSearchResults(results);
+      } catch (e) {
+        console.warn("[Search] Error:", e);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   return (
     <BusinessContext.Provider value={{ 
       businesses, favorites, selectedBusiness, setSelectedBusiness, 
       selectedStory, setSelectedStory, selectedAdvertorial, setSelectedAdvertorial, 
       toggleFavorite, refreshData, loading, error,
+      searchQuery, setSearchQuery, searchResults, isSearching,
       gitSyncStatus: gitStatus
     }}>
       {children}

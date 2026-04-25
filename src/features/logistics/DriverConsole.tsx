@@ -9,7 +9,7 @@ import {
 import { ViewState, DriverPartner, ComplianceLevel } from '../../types';
 import { useToast } from '../../providers/ToastProvider';
 import MapView from '../../components/MapView';
-import { fetchDriverByEmail, updateDriverStatus, subscribeToRideRequests, updateRideBookingStatus, getSupabase } from '../../services/supabaseService';
+import { fetchDriverByEmail, updateDriverStatus, subscribeToRideRequests, updateRideBookingStatus, getSupabase, upsertDriverSignal } from '../../services/supabaseService';
 import { getCurrentPosition } from '../../services/locationService';
 
 const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
@@ -102,6 +102,13 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
       if (!next) {
         setRideRequest(null);
         setCurrentRide(null);
+        if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
+      } else {
+        // Broadcast initial signal immediately
+        if (driver && location) {
+          upsertDriverSignal(driver.id, driver.vehicle_id || 'vessel-09', location.lat, location.lng);
+        }
+        startMovement();
       }
     } catch (e) {
       addToast("Signal failure. Registry could not sync.", "error");
@@ -145,12 +152,18 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
 
   const startMovement = () => {
     if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
-    moveIntervalRef.current = window.setInterval(() => {
-      setLocation(prev => ({
-        lat: prev.lat + (Math.random() - 0.5) * 0.0005,
-        lng: prev.lng + (Math.random() - 0.5) * 0.0005
-      }));
-    }, 3000);
+    moveIntervalRef.current = window.setInterval(async () => {
+      const nextLoc = {
+        lat: location.lat + (Math.random() - 0.5) * 0.0005,
+        lng: location.lng + (Math.random() - 0.5) * 0.0005
+      };
+      
+      setLocation(nextLoc);
+      
+      if (driver) {
+        await upsertDriverSignal(driver.id, driver.vehicle_id || 'vessel-09', nextLoc.lat, nextLoc.lng);
+      }
+    }, 5000);
   };
 
   const completeRide = async () => {
