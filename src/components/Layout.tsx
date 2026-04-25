@@ -293,17 +293,17 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
       <div className={`flex-1 flex flex-col transition-standard ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'} ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         
-        <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? 'lg:left-20' : 'lg:left-64'} ${isDarkView ? 'bg-black/40 border-b border-white/5' : 'bg-white/80 border-b border-black/5'}`}>
+        <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-6 py-3 md:py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? 'lg:left-20' : 'lg:left-64'} ${isDarkView ? 'bg-black/60 border-b border-white/5 shadow-2xl' : 'bg-white/90 border-b border-black/5 shadow-lg'}`}>
           <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group shrink-0 lg:hidden" onClick={() => setView('home')}>
               <Logo src={activeLogo} size={28} className="sm:w-8 sm:h-8 group-hover:scale-105 transition-standard" />
               <div className="flex flex-col">
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight leading-none group-hover:text-aba-gold transition-standard">
+                <h1 className="text-base sm:text-xl font-bold tracking-tight leading-none group-hover:text-aba-gold transition-standard italic">
                   FindAba
                 </h1>
-                <div className="flex items-center gap-1 mt-1">
-                  <p className="text-aba-gold text-[8px] sm:text-[9px] font-bold uppercase tracking-widest opacity-80">SANDALSroyalle</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className="text-aba-gold text-[7px] sm:text-[9px] font-bold uppercase tracking-widest opacity-80 leading-none">SANDALSroyalle</p>
                   {isRegistryActive && (
-                    <div className="flex items-center border-l border-white/10 pl-2" title={healthMessage}>
+                    <div className="flex items-center border-l border-white/10 pl-2 leading-none" title={healthMessage}>
                       <div className={`w-1 h-1 rounded-full ${isSignalHealthy ? 'bg-aba-green' : 'bg-red-500 animate-pulse'}`} />
                     </div>
                   )}
@@ -311,7 +311,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               </div>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-6 ml-auto lg:ml-0">
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6 ml-auto lg:ml-0">
             <div className="hidden lg:block flex-1 max-w-md mr-12">
               <div className="relative group">
                 <Search className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? 'text-aba-gold' : 'text-white/20 group-focus-within:text-aba-gold'}`} size={18} />
@@ -387,35 +387,61 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               <SystemClock />
             </div>
             
-            <button 
-              onClick={() => setView('register')}
-              className="hidden lg:flex items-center gap-2 px-4 py-2 bg-aba-green text-white rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm hover:bg-aba-green/90 transition-standard active:scale-95"
-            >
-              <Plus size={14} /> Add Listing
-            </button>
+            <div className="lg:hidden flex items-center gap-1">
+              <button 
+                onClick={() => setView('explore')}
+                className="p-2.5 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-xl border border-transparent active:border-white/10"
+              >
+                <Search size={22} strokeWidth={2.5} />
+              </button>
+              
+              <button 
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2.5 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-xl border border-transparent active:border-white/10"
+              >
+                <Bell size={22} strokeWidth={2.5} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-4 h-4 bg-aba-red text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-aba-deep shadow-lg">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
 
-            <button className="hidden sm:block p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg">
-              <Search size={20} />
-            </button>
-            
-            <button 
-              onClick={() => setNotificationsOpen(!notificationsOpen)}
-              className="relative p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg"
-            >
-              <Bell size={20} />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-aba-gold text-aba-deep text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-aba-deep">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
+              <button 
+                onClick={() => setView('profile')}
+                className="flex items-center justify-center w-9 h-9 rounded-xl border border-white/10 overflow-hidden shadow-xl active:scale-90 transition-standard hover:border-aba-gold ml-1"
+              >
+                <img src={oracleAvatar} className="w-full h-full object-cover" alt="Profile" />
+              </button>
+            </div>
 
-            <button 
-              onClick={() => setView('profile')}
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-white/10 overflow-hidden shadow-sm active:scale-95 transition-standard hover:border-aba-gold group/profile"
-            >
-              <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-standard" alt="Profile" />
-            </button>
+            <div className="hidden lg:flex items-center gap-4">
+              <button 
+                onClick={() => setView('register')}
+                className="flex items-center gap-2 px-4 py-2 bg-aba-green text-white rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm hover:bg-aba-green/90 transition-standard active:scale-95"
+              >
+                <Plus size={14} /> Add Listing
+              </button>
+
+              <button 
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-lg"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-aba-gold text-aba-deep text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-aba-deep">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <button 
+                onClick={() => setView('profile')}
+                className="w-10 h-10 rounded-lg border border-white/10 overflow-hidden shadow-sm active:scale-95 transition-standard hover:border-aba-gold group/profile"
+              >
+                <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-standard" alt="Profile" />
+              </button>
+            </div>
 
             <button 
               onClick={() => setIsMenuOpen(true)}
@@ -438,15 +464,15 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           />
         )}
 
-        <main className={`flex-1 flex flex-col pt-24 md:pt-36 container-responsive overflow-x-hidden`}>
+        <main className={`flex-1 flex flex-col pt-20 md:pt-32 lg:pt-36 container-responsive overflow-x-hidden`}>
           <div className="flex-1">
             {children}
           </div>
           <footer className={`w-full relative flex flex-col transition-standard pb-32 md:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
             
             {/* Requested Menu Structure */}
-            <div className="px-8 py-16 md:py-24 space-y-16 max-w-5xl mx-auto w-full">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
+            <div className="px-6 md:px-8 py-16 md:py-24 space-y-16 max-w-5xl mx-auto w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-12">
               <div className="space-y-6">
                 <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Registry</h4>
                 <div className="space-y-3">

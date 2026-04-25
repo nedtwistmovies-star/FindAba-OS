@@ -233,32 +233,32 @@ const MerchantPortal: React.FC<{
         }}
         onCancel={() => setShowUpgradeCheckout(false)}
       />
-      <div className="bg-aba-deep p-6 md:p-10 pt-12 md:pt-16 pb-24 md:pb-32 rounded-b-[3rem] md:rounded-b-[5rem] shadow-2xl relative shrink-0 overflow-hidden">
+      <div className="bg-aba-deep p-6 md:p-10 pt-8 md:pt-16 pb-16 md:pb-32 rounded-b-[2rem] md:rounded-b-[5rem] shadow-2xl relative shrink-0 overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-[0.03] -rotate-12 hidden md:block"><TrendingUp size={400} /></div>
-        <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
-           <div className="flex items-center gap-6 md:gap-8">
-              <button onClick={() => setView('home')} className="p-4 bg-white/5 rounded-2xl text-white border border-white/10 active:scale-90 shadow-xl transition-standard hover:bg-white/10"><ArrowLeft size={24}/></button>
-              <div className="flex items-center gap-4 md:gap-6">
-                 <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-2xl md:rounded-3xl flex items-center justify-center p-3 shadow-2xl border border-white/10">
+        <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-8 relative z-10">
+           <div className="flex items-center gap-4 md:gap-8">
+              <button onClick={() => setView('home')} className="p-3 md:p-4 bg-white/5 rounded-xl md:rounded-2xl text-white border border-white/10 active:scale-90 shadow-xl transition-standard hover:bg-white/10"><ArrowLeft size={20} className="md:w-6 md:h-6"/></button>
+              <div className="flex items-center gap-3 md:gap-6">
+                 <div className="w-10 h-10 md:w-16 md:h-16 bg-white rounded-xl md:rounded-3xl flex items-center justify-center p-2 md:p-3 shadow-2xl border border-white/10">
                     <img src="/manifest.json" className="w-full h-full object-contain" alt="FindAba" onError={(e) => { (e.target as any).src = 'https://picsum.photos/seed/aba/100/100'; }} />
                  </div>
-                 <div className="space-y-1">
-                    <h2 className="text-xl md:text-3xl font-bold uppercase tracking-tighter text-white leading-none">FindAba</h2>
-                    <p className="text-aba-gold text-[10px] md:text-xs font-bold uppercase tracking-[0.2em]">{business.name}</p>
+                 <div className="space-y-0.5 md:space-y-1">
+                    <h2 className="text-lg md:text-3xl font-bold uppercase tracking-tighter text-white leading-none italic">FindAba</h2>
+                    <p className="text-aba-gold text-[8px] md:text-xs font-black uppercase tracking-[0.2em] leading-none">{business.name}</p>
                  </div>
               </div>
            </div>
-           <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-              <div className="relative p-4 bg-white/5 rounded-2xl border border-white/10 text-white/40 hover:text-white transition-standard cursor-pointer">
-                 <Activity size={20} />
-                 <div className="absolute top-2 right-2 w-4 h-4 bg-aba-gold rounded-full flex items-center justify-center text-[8px] font-bold text-aba-deep border-2 border-aba-deep">2</div>
+           <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+              <div className="relative p-3 bg-white/5 rounded-xl border border-white/10 text-white/40 hover:text-white transition-standard cursor-pointer">
+                 <Activity size={18} />
+                 <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-aba-gold rounded-full flex items-center justify-center text-[7px] font-bold text-aba-deep border-2 border-aba-deep">2</div>
               </div>
               <button 
                 onClick={() => addToast("Registry Task List Synchronizing...", "info")}
-                className="p-4 bg-aba-gold text-aba-deep rounded-2xl shadow-xl active:scale-95 transition-standard flex-1 md:flex-none flex items-center justify-center gap-3 font-bold uppercase text-[10px] tracking-widest"
+                className="p-3 bg-aba-gold text-aba-deep rounded-xl shadow-xl active:scale-95 transition-standard flex-1 md:flex-none flex items-center justify-center gap-2 font-black uppercase text-[9px] tracking-widest shrink-0"
               >
-                 <ListChecks size={20} />
-                 <span>Tasks</span>
+                 <ListChecks size={18} />
+                 <span className="whitespace-nowrap">Tasks</span>
               </button>
            </div>
         </div>
@@ -266,7 +266,7 @@ const MerchantPortal: React.FC<{
 
       <div className="px-4 md:px-8 -mt-12 md:-mt-16 relative z-30 max-w-6xl mx-auto w-full space-y-8 md:space-y-12">
         {/* Navigation Grid */}
-        <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-1.5 rounded-2xl md:rounded-[3rem] shadow-2xl flex border border-slate-100 dark:border-white/10 overflow-x-auto scrollbar-hide mb-8 md:mb-16 touch-pan-x whitespace-nowrap">
+        <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl p-1.5 rounded-2xl md:rounded-[3rem] shadow-2xl flex border border-slate-100 dark:border-white/10 overflow-x-auto scrollbar-hide mb-8 md:mb-16 touch-pan-x whitespace-nowrap">
           {[
             { id: 'identity', label: 'Identity', icon: <User size={16}/> },
             { id: 'showroom', label: 'Showroom', icon: <Package size={16}/> },
@@ -274,11 +274,12 @@ const MerchantPortal: React.FC<{
             { id: 'media', label: 'Media Hub', icon: <ImageIcon size={16}/> },
             { id: 'finance', label: 'Finance', icon: <Landmark size={16}/> },
             { id: 'referrals', label: 'Referrals', icon: <Zap size={16}/> },
-            { id: 'subscription', label: 'Subscription', icon: <Zap size={16}/> },
+            { id: 'subscription', label: 'Subscription', icon: <Sparkles size={16}/> },
             { id: 'trust', label: 'Trust Center', icon: <ShieldCheck size={16}/> }
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 min-w-[120px] md:min-w-[160px] py-4 md:py-5 rounded-xl md:rounded-[2.5rem] text-[10px] font-bold uppercase tracking-widest transition-standard flex items-center justify-center gap-3 ${activeTab === tab.id ? 'bg-aba-deep text-white shadow-xl' : 'text-slate-400 dark:text-white/40 hover:text-aba-deep dark:hover:text-white'}`}>
-              {tab.icon} {tab.label}
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 min-w-[100px] md:min-w-[160px] px-4 py-3.5 md:py-5 rounded-xl md:rounded-[2.5rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-standard flex items-center justify-center gap-2 md:gap-3 ${activeTab === tab.id ? 'bg-aba-deep text-white shadow-xl translate-y-[-2px]' : 'text-slate-400 dark:text-white/40 hover:text-aba-deep dark:hover:text-white'}`}>
+              <span className={activeTab === tab.id ? 'text-aba-gold' : ''}>{tab.icon}</span>
+              <span className="truncate">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -460,19 +461,19 @@ const MerchantPortal: React.FC<{
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => handleUpdateMedia({ 
-                    experience_years: business.experience_years, 
-                    skills: business.skills, 
-                    portfolio_images: business.portfolio_images,
-                    latitude: business.latitude,
-                    longitude: business.longitude
-                  })}
-                  disabled={syncing}
-                  className="w-full py-6 md:py-8 bg-aba-deep dark:bg-aba-gold text-white dark:text-aba-deep rounded-2xl md:rounded-[2.5rem] font-bold uppercase text-[11px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-standard disabled:opacity-30"
-                >
-                   {syncing ? <Loader2 className="animate-spin" /> : <Save size={20} />} Commit Identity Partner
-                </button>
+                  <button 
+                    onClick={() => handleUpdateMedia({ 
+                      experience_years: business.experience_years, 
+                      skills: business.skills, 
+                      portfolio_images: business.portfolio_images,
+                      latitude: business.latitude,
+                      longitude: business.longitude
+                    })}
+                    disabled={syncing}
+                    className="w-full py-5 md:py-8 bg-aba-deep dark:bg-aba-gold text-white dark:text-aba-deep rounded-2xl md:rounded-[2.5rem] font-black uppercase text-[9px] md:text-xs tracking-[0.2em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-standard disabled:opacity-30"
+                  >
+                     {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Identity Partner
+                  </button>
               </div>
             </div>
           </div>
@@ -586,7 +587,7 @@ const MerchantPortal: React.FC<{
                     }
                   }}
                   disabled={syncing}
-                  className="w-full py-6 md:py-8 bg-aba-dark text-white rounded-2xl md:rounded-[2.5rem] font-black uppercase text-[10px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all"
+                  className="w-full py-5 md:py-8 bg-aba-dark text-white rounded-2xl md:rounded-[2.5rem] font-black uppercase text-[9px] md:text-xs tracking-[0.2em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all"
                 >
                    {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Showroom Updates
                 </button>
@@ -860,7 +861,7 @@ const MerchantPortal: React.FC<{
                     }
                   }}
                   disabled={syncing}
-                  className="w-full py-6 md:py-8 bg-aba-gold text-aba-dark rounded-2xl md:rounded-[2.5rem] font-black uppercase text-[10px] md:text-xs tracking-[0.4em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all"
+                  className="w-full py-5 md:py-8 bg-aba-gold text-aba-dark rounded-2xl md:rounded-[2.5rem] font-black uppercase text-[9px] md:text-xs tracking-[0.2em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all"
                 >
                    {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Settlement Gateway
                 </button>
@@ -1116,61 +1117,61 @@ const MerchantPortal: React.FC<{
       </div>
       {/* Order Management Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-[5000] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in font-sans">
-           <div className="w-full max-w-md bg-white rounded-[3rem] p-10 space-y-8 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-[0.03]"><ShoppingBag size={150} /></div>
+        <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in font-sans">
+           <div className="w-full max-w-md bg-white rounded-3xl md:rounded-[3rem] p-6 sm:p-8 md:p-10 space-y-6 md:space-y-8 shadow-2xl relative overflow-hidden overflow-y-auto max-h-[90vh] scrollbar-hide">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none"><ShoppingBag size={150} /></div>
               
               <div className="flex justify-between items-start relative z-10">
                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Trade Signal Details</p>
-                    <h3 className="text-2xl font-black text-aba-dark uppercase tracking-tighter">Order #{selectedOrder.id.slice(-8)}</h3>
-                    <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${getStatusColor(selectedOrder.status)} bg-slate-50 border shadow-inner mt-2 inline-block`}>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Trade Signal Details</p>
+                    <h3 className="text-xl md:text-2xl font-black text-aba-dark uppercase tracking-tighter">Order #{selectedOrder.id.slice(-8)}</h3>
+                    <span className={`px-2.5 py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(selectedOrder.status)} bg-slate-50 border shadow-inner mt-2 inline-block`}>
                        {selectedOrder.status}
                     </span>
                  </div>
-                 <button onClick={() => setSelectedOrder(null)} className="p-3 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-200 transition-all"><X size={24}/></button>
+                 <button onClick={() => setSelectedOrder(null)} className="p-3 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-200 transition-all active:scale-90"><X size={20}/></button>
               </div>
 
-              <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative z-10">
+              <div className="p-5 md:p-6 bg-slate-50 rounded-2xl md:rounded-[2rem] border border-slate-100 space-y-3 md:space-y-4 relative z-10">
                  <div className="flex justify-between items-center">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Registry Payout</p>
-                    <p className="text-xl font-black text-aba-green">₦{selectedOrder.merchant_payout.toLocaleString()}</p>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Registry Payout</p>
+                    <p className="text-lg md:text-xl font-black text-aba-green">₦{selectedOrder.merchant_payout.toLocaleString()}</p>
                  </div>
-                 <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                    <span>Platform Commission</span>
+                 <div className="flex justify-between items-center text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    <span>Commission</span>
                     <span>₦{selectedOrder.commission_deducted.toLocaleString()}</span>
                  </div>
                  <div className="h-px bg-slate-200 w-full" />
-                 <div className="space-y-1">
-                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest underline decoration-aba-gold underline-offset-4">Buyer Handshake</p>
-                    <p className="text-[12px] font-bold text-aba-dark uppercase">{selectedOrder.buyer_email}</p>
+                 <div className="space-y-0.5">
+                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest underline decoration-aba-gold underline-offset-4 mb-2">Buyer Handshake</p>
+                    <p className="text-[10px] md:text-[12px] font-black text-aba-dark uppercase truncate">{selectedOrder.buyer_email}</p>
                  </div>
               </div>
 
               <div className="space-y-4 relative z-10">
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Update Fulfillment Status</p>
+                 <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Fulfillment Status</p>
                  <div className="grid grid-cols-2 gap-3">
                     {[
                       { status: OrderStatus.PROCESSING, label: 'Processing', icon: <Clock size={16}/> },
                       { status: OrderStatus.SHIPPED, label: 'Shipped', icon: <Package size={16}/> },
                       { status: OrderStatus.DELIVERED, label: 'Delivered', icon: <MapPin size={16}/> },
-                      { status: OrderStatus.COMPLETED, label: 'Confirm Final', icon: <CheckCircle2 size={16}/> }
+                      { status: OrderStatus.COMPLETED, label: 'Finalize', icon: <CheckCircle2 size={16}/> }
                     ].map(btn => (
                       <button 
                         key={btn.status} 
                         disabled={syncing || selectedOrder.status === btn.status}
                         onClick={() => handleStatusUpdate(selectedOrder.id, btn.status)}
-                        className={`flex items-center justify-center gap-3 py-4 rounded-xl font-black uppercase text-[9px] tracking-widest transition-all shadow-md active:scale-95 border ${selectedOrder.status === btn.status ? 'bg-aba-dark text-white border-aba-dark' : 'bg-white text-slate-500 border-slate-100 hover:border-aba-gold hover:text-aba-dark'}`}
+                        className={`flex items-center justify-center gap-2 md:gap-3 py-3.5 md:py-4 rounded-xl font-black uppercase text-[8px] md:text-[9px] tracking-widest transition-all shadow-md active:scale-95 border ${selectedOrder.status === btn.status ? 'bg-aba-dark text-white border-aba-dark' : 'bg-white text-slate-500 border-slate-100 hover:border-aba-gold hover:text-aba-dark'}`}
                       >
-                         {syncing ? <Loader2 size={14} className="animate-spin" /> : btn.icon}
-                         {btn.label}
+                         {syncing ? <Loader2 size={12} className="animate-spin" /> : btn.icon}
+                         <span className="truncate">{btn.label}</span>
                       </button>
                     ))}
                  </div>
               </div>
 
-              <p className="text-center text-[8px] font-bold text-slate-300 uppercase tracking-widest relative z-10">
-                 Updating status triggers a real-time signal to the buyer node. Protocol recorded.
+              <p className="text-center text-[7px] md:text-[8px] font-bold text-slate-300 uppercase tracking-widest relative z-10 leading-relaxed px-4">
+                 Updating status triggers a real-time signal to buyer node.
               </p>
            </div>
         </div>

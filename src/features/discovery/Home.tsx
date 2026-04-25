@@ -40,42 +40,42 @@ const CitySignals: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full bg-aba-deep border-b border-white/5 py-3 px-4 sm:px-6 md:px-12 flex items-center justify-start sm:justify-center gap-6 sm:gap-8 md:gap-12 z-40 relative overflow-x-auto scrollbar-hide whitespace-nowrap">
-      <div className="flex items-center gap-3 group shrink-0">
-        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-standard border border-white/5">
-          <Calendar size={12} />
+    <div className="w-full bg-aba-deep border-b border-white/5 py-3 px-4 sm:px-6 md:px-12 flex items-center justify-start md:justify-center gap-4 sm:gap-8 md:gap-12 z-40 relative overflow-x-auto scrollbar-hide whitespace-nowrap touch-pan-x">
+      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-standard border border-white/5 shadow-inner">
+          <Calendar size={12} strokeWidth={2.5} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] sm:text-[11px] font-bold text-white uppercase tracking-wider">{currentDate}</span>
-          <span className="text-[8px] sm:text-[9px] font-medium text-white/40 uppercase tracking-widest">{marketDay || '...'} Market Day</span>
+          <span className="text-[9px] sm:text-[11px] font-black text-white uppercase tracking-wider">{currentDate}</span>
+          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest">{marketDay || '...'} Market Day</span>
         </div>
       </div>
 
       <div className="h-4 w-px bg-white/10 shrink-0" />
 
-      <div className="flex items-center gap-3 group shrink-0">
-        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-standard border border-white/5">
-          <CloudSun size={12} />
+      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-standard border border-white/5 shadow-inner">
+          <CloudSun size={12} strokeWidth={2.5} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] sm:text-[11px] font-bold text-white uppercase tracking-wider">
+          <span className="text-[9px] sm:text-[11px] font-black text-white uppercase tracking-wider">
             {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
           </span>
-          <span className="text-[8px] sm:text-[9px] font-medium text-white/40 uppercase tracking-widest">Aba Weather</span>
+          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest leading-none">Aba Weather</span>
         </div>
       </div>
 
       <div className="h-4 w-px bg-white/10 shrink-0" />
 
-      <div className="flex items-center gap-3 group shrink-0">
-        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-standard border border-white/5 ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green' : 'bg-aba-red/10 text-aba-red'}`}>
-          <Database size={12} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
+      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
+        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-standard border border-white/5 shadow-inner ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green' : 'bg-aba-red/10 text-aba-red'}`}>
+          <Database size={12} strokeWidth={2.5} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white">
+          <span className="text-[9px] sm:text-[11px] font-black uppercase tracking-wider text-white leading-none">
             {registryStatus === 'online' ? 'Registry Online' : 'Registry Offline'}
           </span>
-          <span className="text-[8px] sm:text-[9px] font-medium text-white/40 uppercase tracking-widest">System Status</span>
+          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">System Status</span>
         </div>
       </div>
     </div>
@@ -193,33 +193,33 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           </div>
 
           <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
-            <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold text-white tracking-tight leading-[0.9] uppercase">
+            <h1 className="text-3xl sm:text-6xl md:text-8xl font-black text-white tracking-tighter leading-[1] md:leading-[0.9] uppercase italic">
               The Industrial <br/>
               <span className="text-aba-gold">Pulse of Aba.</span>
             </h1>
-            <p className="text-white/60 text-[10px] sm:text-xs md:text-lg font-medium max-w-2xl mx-auto uppercase tracking-widest leading-relaxed">
+            <p className="text-white/60 text-[9px] sm:text-xs md:text-lg font-black max-w-2xl mx-auto uppercase tracking-widest leading-relaxed px-4">
               Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility.
             </p>
           </div>
 
-          <div className="w-full max-w-2xl relative group px-2 sm:px-0">
+          <div className="w-full max-w-2xl relative group px-4 sm:px-0">
             <form 
               onSubmit={handleSearch}
-              className="w-full h-14 sm:h-16 md:h-20 px-4 sm:px-8 bg-white/5 backdrop-blur-xl rounded-2xl flex items-center shadow-2xl relative z-10 transition-standard border border-white/10 focus-within:border-aba-gold/50"
+              className="w-full h-14 sm:h-16 md:h-20 px-5 sm:px-8 bg-white/5 backdrop-blur-xl rounded-2xl flex items-center shadow-2xl relative z-10 transition-standard border border-white/10 focus-within:border-aba-gold/50"
             >
-              <Search size={18} className="text-aba-gold mr-3 sm:mr-4 shrink-0" />
+              <Search size={18} className="text-aba-gold mr-3 sm:mr-4 shrink-0" strokeWidth={3} />
               <input 
                 type="text"
                 placeholder="Search Aba Registry..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-xs sm:text-sm md:text-lg font-bold tracking-wider flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
+                className="text-xs sm:text-sm md:text-lg font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
               />
               {isSearching ? (
                 <Loader2 className="animate-spin text-aba-gold ml-3 sm:ml-4" size={18} />
               ) : (
-                <button type="submit" className="text-white/40 hover:text-aba-gold transition-standard ml-3 sm:ml-4">
-                  <ArrowRight size={24} />
+                <button type="submit" className="text-white/40 hover:text-aba-gold transition-standard ml-3 sm:ml-4 active:scale-90">
+                  <ArrowRight size={24} strokeWidth={3} />
                 </button>
               )}
             </form>
@@ -465,7 +465,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       )}
 
       {/* 2. PROTOCOL QUICK NAV */}
-      <section className="px-6 md:px-12 mt-12 mb-24 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+      <section className="px-6 md:px-12 mt-12 mb-24 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
         {[
           { id: 'register', label: 'Join Now', icon: <Plus size={20} />, desc: 'Register Business', highlight: true },
           { id: 'feed', label: 'Faces', icon: <Users size={20} />, desc: 'City Social' },
