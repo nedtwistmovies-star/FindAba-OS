@@ -233,31 +233,31 @@ const MerchantPortal: React.FC<{
         }}
         onCancel={() => setShowUpgradeCheckout(false)}
       />
-      <div className="bg-aba-deep p-6 md:p-10 pt-8 md:pt-16 pb-16 md:pb-32 rounded-b-[2rem] md:rounded-b-[5rem] shadow-2xl relative shrink-0 overflow-hidden">
+      <div className="bg-aba-deep p-5 md:p-10 pt-6 md:pt-16 pb-12 md:pb-32 rounded-b-[1.5rem] md:rounded-b-[5rem] shadow-2xl relative shrink-0 overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-[0.03] -rotate-12 hidden md:block"><TrendingUp size={400} /></div>
-        <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-6 md:gap-8 relative z-10">
-           <div className="flex items-center gap-4 md:gap-8">
-              <button onClick={() => setView('home')} className="p-3 md:p-4 bg-white/5 rounded-xl md:rounded-2xl text-white border border-white/10 active:scale-90 shadow-xl transition-standard hover:bg-white/10"><ArrowLeft size={20} className="md:w-6 md:h-6"/></button>
+        <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-5 md:gap-8 relative z-10">
+           <div className="flex items-center gap-3 sm:gap-8">
+              <button onClick={() => setView('home')} className="p-2.5 md:p-4 bg-white/5 rounded-lg md:rounded-2xl text-white border border-white/10 active:scale-90 shadow-xl transition-standard hover:bg-white/10"><ArrowLeft size={18} className="md:w-6 md:h-6"/></button>
               <div className="flex items-center gap-3 md:gap-6">
-                 <div className="w-10 h-10 md:w-16 md:h-16 bg-white rounded-xl md:rounded-3xl flex items-center justify-center p-2 md:p-3 shadow-2xl border border-white/10">
+                 <div className="w-9 h-9 md:w-16 md:h-16 bg-white rounded-lg md:rounded-3xl flex items-center justify-center p-1.5 md:p-3 shadow-2xl border border-white/10">
                     <img src="/manifest.json" className="w-full h-full object-contain" alt="FindAba" onError={(e) => { (e.target as any).src = 'https://picsum.photos/seed/aba/100/100'; }} />
                  </div>
-                 <div className="space-y-0.5 md:space-y-1">
-                    <h2 className="text-lg md:text-3xl font-bold uppercase tracking-tighter text-white leading-none italic">FindAba</h2>
-                    <p className="text-aba-gold text-[8px] md:text-xs font-black uppercase tracking-[0.2em] leading-none">{business.name}</p>
+                 <div className="space-y-0 md:space-y-1">
+                    <h2 className="text-base md:text-3xl font-bold uppercase tracking-tighter text-white leading-none italic">FindAba</h2>
+                    <p className="text-aba-gold text-[7px] md:text-xs font-black uppercase tracking-[0.2em] leading-none truncate max-w-[150px] sm:max-w-none">{business.name}</p>
                  </div>
               </div>
            </div>
            <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-              <div className="relative p-3 bg-white/5 rounded-xl border border-white/10 text-white/40 hover:text-white transition-standard cursor-pointer">
-                 <Activity size={18} />
-                 <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-aba-gold rounded-full flex items-center justify-center text-[7px] font-bold text-aba-deep border-2 border-aba-deep">2</div>
+              <div className="relative p-2.5 bg-white/5 rounded-lg border border-white/10 text-white/40 hover:text-white transition-standard cursor-pointer">
+                 <Activity size={16} />
+                 <div className="absolute top-0 right-0 w-3 h-3 bg-aba-gold rounded-full flex items-center justify-center text-[6px] font-bold text-aba-deep border border-aba-deep">2</div>
               </div>
               <button 
                 onClick={() => addToast("Registry Task List Synchronizing...", "info")}
-                className="p-3 bg-aba-gold text-aba-deep rounded-xl shadow-xl active:scale-95 transition-standard flex-1 md:flex-none flex items-center justify-center gap-2 font-black uppercase text-[9px] tracking-widest shrink-0"
+                className="p-2.5 bg-aba-gold text-aba-deep rounded-lg shadow-xl active:scale-95 transition-standard flex-1 md:flex-none flex items-center justify-center gap-2 font-black uppercase text-[8px] tracking-widest shrink-0"
               >
-                 <ListChecks size={18} />
+                 <ListChecks size={16} />
                  <span className="whitespace-nowrap">Tasks</span>
               </button>
            </div>
@@ -266,19 +266,19 @@ const MerchantPortal: React.FC<{
 
       <div className="px-4 md:px-8 -mt-12 md:-mt-16 relative z-30 max-w-6xl mx-auto w-full space-y-8 md:space-y-12">
         {/* Navigation Grid */}
-        <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl p-1.5 rounded-2xl md:rounded-[3rem] shadow-2xl flex border border-slate-100 dark:border-white/10 overflow-x-auto scrollbar-hide mb-8 md:mb-16 touch-pan-x whitespace-nowrap">
+        <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl p-1 rounded-xl md:rounded-[3rem] shadow-2xl flex border border-slate-100 dark:border-white/10 overflow-x-auto scrollbar-hide mb-6 md:mb-16 touch-pan-x whitespace-nowrap">
           {[
-            { id: 'identity', label: 'Identity', icon: <User size={16}/> },
-            { id: 'showroom', label: 'Showroom', icon: <Package size={16}/> },
-            { id: 'orders', label: 'Orders', icon: <ShoppingBag size={16}/> },
-            { id: 'disputes', label: 'Disputes', icon: <Gavel size={16}/> },
-            { id: 'media', label: 'Media Hub', icon: <ImageIcon size={16}/> },
-            { id: 'finance', label: 'Finance', icon: <Landmark size={16}/> },
-            { id: 'referrals', label: 'Referrals', icon: <Zap size={16}/> },
-            { id: 'subscription', label: 'Subscription', icon: <Sparkles size={16}/> },
-            { id: 'trust', label: 'Trust Center', icon: <ShieldCheck size={16}/> }
+            { id: 'identity', label: 'Identity', icon: <User size={14}/> },
+            { id: 'showroom', label: 'Showroom', icon: <Package size={14}/> },
+            { id: 'orders', label: 'Orders', icon: <ShoppingBag size={14}/> },
+            { id: 'disputes', label: 'Disputes', icon: <Gavel size={14}/> },
+            { id: 'media', label: 'Media Hub', icon: <ImageIcon size={14}/> },
+            { id: 'finance', label: 'Finance', icon: <Landmark size={14}/> },
+            { id: 'referrals', label: 'Referrals', icon: <Zap size={14}/> },
+            { id: 'subscription', label: 'Subscription', icon: <Sparkles size={14}/> },
+            { id: 'trust', label: 'Trust Center', icon: <ShieldCheck size={14}/> }
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 min-w-[100px] md:min-w-[160px] px-4 py-3.5 md:py-5 rounded-xl md:rounded-[2.5rem] text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-standard flex items-center justify-center gap-2 md:gap-3 ${activeTab === tab.id ? 'bg-aba-deep text-white shadow-xl translate-y-[-2px]' : 'text-slate-400 dark:text-white/40 hover:text-aba-deep dark:hover:text-white'}`}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 min-w-[90px] md:min-w-[160px] px-3 py-3 md:py-5 rounded-lg md:rounded-[2.5rem] text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-standard flex items-center justify-center gap-1.5 md:gap-3 ${activeTab === tab.id ? 'bg-aba-deep text-white shadow-xl translate-y-[-1px]' : 'text-slate-400 dark:text-white/40 hover:text-aba-deep dark:hover:text-white'}`}>
               <span className={activeTab === tab.id ? 'text-aba-gold' : ''}>{tab.icon}</span>
               <span className="truncate">{tab.label}</span>
             </button>
@@ -288,22 +288,22 @@ const MerchantPortal: React.FC<{
         {activeTab === 'identity' && (
           <div className="animate-slide-up space-y-8 md:space-y-12 pb-20">
             {/* Stats Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-              <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-8 md:p-12 rounded-3xl md:rounded-[3.5rem] shadow-xl border border-slate-100 dark:border-white/10 space-y-4 group hover:-translate-y-1 transition-standard">
-                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-aba-green/10 flex items-center justify-center text-aba-green mb-2 border border-aba-green/20"><DollarSign size={24}/></div>
-                 <p className="text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest">Available Balance</p>
-                 <h3 className="text-4xl md:text-6xl font-bold text-aba-green tracking-tighter">₦{earnings.toLocaleString()}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+              <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-6 md:p-12 rounded-2xl md:rounded-[3.5rem] shadow-xl border border-slate-100 dark:border-white/10 space-y-3 md:space-y-4 group hover:-translate-y-1 transition-standard">
+                 <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-aba-green/10 flex items-center justify-center text-aba-green mb-1 border border-aba-green/20"><DollarSign size={20} className="md:w-6 md:h-6"/></div>
+                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest px-1">Available Balance</p>
+                 <h3 className="text-2xl md:text-6xl font-bold text-aba-green tracking-tighter truncate">₦{earnings.toLocaleString()}</h3>
               </div>
-              <div className="bg-aba-deep p-8 md:p-12 rounded-3xl md:rounded-[3.5rem] shadow-xl text-white space-y-4 relative overflow-hidden group hover:-translate-y-1 transition-standard">
+              <div className="bg-aba-deep p-6 md:p-12 rounded-2xl md:rounded-[3.5rem] shadow-xl text-white space-y-3 md:space-y-4 relative overflow-hidden group hover:-translate-y-1 transition-standard">
                  <div className="absolute top-0 right-0 p-8 opacity-10 hidden md:block"><Clock size={60} /></div>
-                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-aba-gold/10 flex items-center justify-center text-aba-gold mb-2 border border-aba-gold/20"><Activity size={24}/></div>
-                 <p className="text-[10px] font-bold uppercase text-aba-gold/40 tracking-widest">Pending Settlement</p>
-                 <h3 className="text-4xl md:text-6xl font-bold tracking-tighter text-white">₦{pending.toLocaleString()}</h3>
+                 <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-aba-gold/10 flex items-center justify-center text-aba-gold mb-1 border border-aba-gold/20"><Activity size={20} className="md:w-6 md:h-6"/></div>
+                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-aba-gold/40 tracking-widest px-1">Pending Settlement</p>
+                 <h3 className="text-2xl md:text-6xl font-bold tracking-tighter text-white truncate">₦{pending.toLocaleString()}</h3>
               </div>
-              <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-8 md:p-12 rounded-3xl md:rounded-[3.5rem] shadow-xl border border-slate-100 dark:border-white/10 space-y-4 group hover:-translate-y-1 transition-standard">
-                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-aba-deep/5 dark:bg-white/5 flex items-center justify-center text-aba-deep dark:text-white mb-2 border border-slate-200 dark:border-white/10"><ListChecks size={24}/></div>
-                 <p className="text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest">Active Trade Signals</p>
-                 <h3 className="text-4xl md:text-6xl font-bold text-aba-deep dark:text-white tracking-tighter">{orders.length}</h3>
+              <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-6 md:p-12 rounded-2xl md:rounded-[3.5rem] shadow-xl border border-slate-100 dark:border-white/10 space-y-3 md:space-y-4 group hover:-translate-y-1 transition-standard">
+                 <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-aba-deep/5 dark:bg-white/5 flex items-center justify-center text-aba-deep dark:text-white mb-1 border border-slate-200 dark:border-white/10"><ListChecks size={20} className="md:w-6 md:h-6"/></div>
+                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest px-1">Active Signals</p>
+                 <h3 className="text-2xl md:text-6xl font-bold text-aba-deep dark:text-white tracking-tighter">{orders.length}</h3>
               </div>
             </div>
 

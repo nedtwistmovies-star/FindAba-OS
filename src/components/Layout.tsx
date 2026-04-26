@@ -255,7 +255,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   );
 
   return (
-    <div className={`flex min-h-screen w-full transition-colors duration-500 font-sans relative ${isDarkView ? 'bg-aba-deep text-white' : 'bg-aba-white text-aba-deep'}`}>
+    <div className={`flex flex-col min-h-[100dvh] w-full transition-colors duration-500 font-sans relative overscroll-none ${isDarkView ? 'bg-aba-deep text-white' : 'bg-aba-white text-aba-deep'}`}>
       
       {/* DESKTOP SIDEBAR */}
       <aside className={`hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-[1100] transition-standard border-r border-white/5 bg-black/20 backdrop-blur-xl ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
@@ -468,7 +468,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           <div className="flex-1">
             {children}
           </div>
-          <footer className={`w-full relative flex flex-col transition-standard pb-36 sm:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
+          <footer className={`w-full relative flex flex-col transition-standard pb-48 sm:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
             
             {/* Requested Menu Structure */}
             <div className="px-6 md:px-8 py-16 md:py-24 space-y-16 max-w-5xl mx-auto w-full">
@@ -578,21 +578,21 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
       </main>
     </div>
 
-      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-4 md:px-8 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:py-6 flex justify-around items-center transition-standard lg:hidden ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-2 md:px-8 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:py-6 flex justify-around items-center transition-standard lg:hidden ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
         {[
-          { id: 'home', icon: <Home size={20} />, label: 'HOME' },
-          { id: 'feed', icon: <Users size={20} />, label: 'FACES' },
-          { id: 'oracle', icon: <Cpu size={20} />, label: 'ORACLE' },
-          { id: 'wallet', icon: <Landmark size={20} />, label: 'Fidelity' },
-          { id: 'profile', icon: <UserCircle size={20} />, label: 'PROFILE' }
+          { id: 'home', icon: <Home size={18} />, label: 'HOME' },
+          { id: 'feed', icon: <Users size={18} />, label: 'FACES' },
+          { id: 'oracle', icon: <Cpu size={18} />, label: 'ORACLE' },
+          { id: 'wallet', icon: <Landmark size={18} />, label: 'Fidelity' },
+          { id: 'profile', icon: <UserCircle size={18} />, label: 'PROFILE' }
         ].map((btn, i) => (
           <button 
             key={i}
             onClick={() => setView(btn.id as ViewState)} 
-            className={`flex flex-col items-center gap-1.5 transition-all active:scale-90 group ${currentView === btn.id ? 'text-aba-gold' : (isDarkView ? 'text-white/30 hover:text-white/50' : 'text-aba-deep/30 hover:text-aba-deep/50')}`}
+            className={`flex flex-col items-center gap-1 transition-all active:scale-90 group pb-1 ${currentView === btn.id ? 'text-aba-gold' : (isDarkView ? 'text-white/30 hover:text-white/50' : 'text-aba-deep/30 hover:text-aba-deep/50')}`}
           >
             <div className={`transition-transform duration-500 ${currentView === btn.id ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'group-hover:scale-105'}`}>{btn.icon}</div>
-            <span className={`text-[7px] font-black uppercase tracking-[0.1em] transition-opacity ${currentView === btn.id ? 'opacity-100' : 'opacity-60'}`}>{btn.label}</span>
+            <span className={`text-[6.5px] font-black uppercase tracking-[0.05em] transition-opacity ${currentView === btn.id ? 'opacity-100' : 'opacity-60'}`}>{btn.label}</span>
           </button>
         ))}
       </nav>

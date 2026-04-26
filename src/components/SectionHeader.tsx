@@ -27,7 +27,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
             </div>
           )}
           <div className="space-y-1">
-            <h3 className="text-3xl sm:text-5xl font-bold uppercase tracking-tight text-white leading-none">
+            <h3 className="text-2xl sm:text-5xl font-bold uppercase tracking-tight text-white leading-none break-words max-w-full">
               {title}
             </h3>
             {subtitle && (
