@@ -46,25 +46,25 @@ const FacesFeed: React.FC = () => {
   return (
     <div className="min-h-screen bg-aba-deep text-white pb-32">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-aba-deep/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-aba-gold/10 flex items-center justify-center text-aba-gold border border-aba-gold/20">
-            <Sparkles size={20} />
+      <div className="sticky top-0 z-50 bg-aba-deep/80 backdrop-blur-xl border-b border-white/5 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-aba-gold/10 flex items-center justify-center text-aba-gold border border-aba-gold/20">
+            <Sparkles size={18} className="sm:w-5 sm:h-5" />
           </div>
-          <h2 className="text-xl font-bold tracking-tight">Faces <span className="text-aba-gold opacity-50">& Feed</span></h2>
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight">Faces <span className="text-aba-gold opacity-50">& Feed</span></h2>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button className="p-2 text-white/40 hover:text-white transition-standard">
-            <Search size={22} />
+            <Search size={20} className="sm:w-[22px] sm:h-[22px]" />
           </button>
           <button className="p-2 text-white/40 hover:text-white transition-standard relative">
-            <Bell size={22} />
-            <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-aba-red rounded-full" />
+            <Bell size={20} className="sm:w-[22px] sm:h-[22px]" />
+            <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-aba-red rounded-full" />
           </button>
         </div>
       </div>
 
-      <div className="container-responsive py-8 max-w-2xl mx-auto space-y-8">
+      <div className="container-responsive py-4 sm:py-8 max-w-2xl mx-auto space-y-4 sm:space-y-8">
         {/* Stories */}
         <StoriesBar 
           stories={stories} 
@@ -73,25 +73,25 @@ const FacesFeed: React.FC = () => {
         />
 
         {/* Create Post Button (Floating-ish inside feed) */}
-        <div className="px-4">
-          <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-4 flex items-center gap-4 shadow-xl mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-aba-gold/10 overflow-hidden shrink-0 border border-aba-gold/20 shadow-inner">
+        <div className="px-2 sm:px-4">
+          <div className="bg-white/5 border border-white/5 rounded-2xl sm:rounded-[2.5rem] p-3 sm:p-4 flex items-center gap-3 sm:gap-4 shadow-xl mb-4 sm:mb-8">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-aba-gold/10 overflow-hidden shrink-0 border border-aba-gold/20 shadow-inner">
                <img src={`https://picsum.photos/seed/${userUuid}/100/100`} alt="Avatar" className="w-full h-full object-cover" />
             </div>
             <button 
-              className="flex-1 text-left px-6 py-3 bg-white/5 rounded-2xl text-sm font-bold text-slate-400 hover:text-white transition-standard border border-white/5"
+              className="flex-1 text-left px-4 sm:px-6 py-2.5 sm:py-3 bg-white/5 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-bold text-slate-400 hover:text-white transition-standard border border-white/5"
               onClick={() => {}}
             >
-              What's happening in your workshop?
+              Workshop signal?
             </button>
-            <button className="p-4 bg-aba-gold text-aba-deep rounded-2xl hover:scale-105 transition-standard active:scale-95 shadow-lg">
+            <button className="p-3 sm:p-4 bg-aba-gold text-aba-deep rounded-xl sm:rounded-2xl hover:scale-105 transition-standard active:scale-95 shadow-lg">
               <Plus size={20} />
             </button>
           </div>
         </div>
 
         {/* Feed Posts */}
-        <div className="px-4 space-y-8">
+        <div className="px-2 sm:px-4 space-y-6 sm:space-y-8">
           {posts.length > 0 ? (
             posts.map(post => (
               <FacesPost key={post.id} post={post} />
@@ -120,9 +120,9 @@ const FacesFeed: React.FC = () => {
       <motion.button 
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-32 right-8 w-16 h-16 bg-aba-gold text-aba-deep rounded-[2rem] shadow-2xl flex items-center justify-center z-50 border-4 border-aba-deep/50 backdrop-blur-md"
+        className="fixed bottom-24 sm:bottom-32 right-4 sm:right-8 w-14 h-14 sm:w-16 sm:h-16 bg-aba-gold text-aba-deep rounded-2xl sm:rounded-[2rem] shadow-2xl flex items-center justify-center z-50 border-4 border-aba-deep/50 backdrop-blur-md"
       >
-        <Plus size={32} />
+        <Plus size={28} className="sm:w-8 sm:h-8" />
       </motion.button>
     </div>
   );

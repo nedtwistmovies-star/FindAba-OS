@@ -40,19 +40,19 @@ const WalletView: React.FC = () => {
   return (
     <div className="min-h-screen bg-aba-deep text-white pb-32">
       {/* Header */}
-      <div className="px-8 py-12 space-y-12 max-w-5xl mx-auto">
+      <div className="px-5 sm:px-8 py-8 sm:py-12 space-y-8 sm:space-y-12 max-w-5xl mx-auto">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-             <div className="w-12 h-12 rounded-2xl bg-aba-gold/10 flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
-                <Landmark size={24} />
+          <div className="flex items-center gap-3 sm:gap-4">
+             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-aba-gold/10 flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
+                <Landmark size={20} className="sm:w-6 sm:h-6" />
              </div>
              <div>
-                <h2 className="text-2xl font-bold tracking-tight">Fidelity <span className="text-aba-gold">Wallet</span></h2>
-                <p className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-1">Authorized Financial Node</p>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Fidelity <span className="text-aba-gold">Wallet</span></h2>
+                <p className="text-[8px] sm:text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-0.5 sm:mt-1">Authorized Financial Node</p>
              </div>
           </div>
-          <button className="p-3 bg-white/5 rounded-2xl text-white/40 hover:text-aba-gold transition-standard border border-white/5">
-            <Download size={20} />
+          <button className="p-2.5 sm:p-3 bg-white/5 rounded-xl sm:rounded-2xl text-white/40 hover:text-aba-gold transition-standard border border-white/5">
+            <Download size={18} className="sm:w-5 sm:h-5" />
           </button>
         </div>
 
@@ -60,57 +60,57 @@ const WalletView: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative h-64 rounded-[3.5rem] bg-gradient-to-br from-aba-gold via-aba-green to-aba-deep p-12 shadow-2xl overflow-hidden group"
+          className="relative h-48 sm:h-64 rounded-[2rem] sm:rounded-[3.5rem] bg-gradient-to-br from-aba-gold via-aba-green to-aba-deep p-6 sm:p-12 shadow-2xl overflow-hidden group"
         >
           <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
-          <div className="absolute top-0 right-0 p-12 opacity-10">
-            <Zap size={120} />
+          <div className="absolute top-0 right-0 p-6 sm:p-12 opacity-10">
+            <Zap size={80} className="sm:w-[120px] sm:h-[120px]" />
           </div>
           
           <div className="relative z-10 h-full flex flex-col justify-between">
             <div className="flex justify-between items-start">
                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-2">Total Balance</p>
-                  <h3 className="text-6xl font-bold tracking-tighter">
-                    <span className="text-2xl mr-2">₦</span>
-                    {wallet?.balance.toLocaleString() || '0'}
+                  <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-1 sm:mb-2 text-shadow-sm">Total Balance</p>
+                  <h3 className="text-3xl sm:text-6xl font-bold tracking-tighter truncate max-w-[200px] sm:max-w-none">
+                    <span className="text-lg sm:text-2xl mr-1 sm:mr-2">₦</span>
+                    {wallet ? wallet.balance.toLocaleString() : '0'}
                   </h3>
                </div>
-               <div className="w-16 h-10 rounded-lg bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
-                  <div className="flex -space-x-2">
-                    <div className="w-6 h-6 rounded-full bg-red-500/80" />
-                    <div className="w-6 h-6 rounded-full bg-yellow-500/80" />
+               <div className="w-12 h-8 sm:w-16 sm:h-10 rounded-lg bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center">
+                  <div className="flex -space-x-1.5 sm:-space-x-2">
+                    <div className="w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-red-500/80" />
+                    <div className="w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-yellow-500/80" />
                   </div>
                </div>
             </div>
 
             <div className="flex justify-between items-end">
                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 font-mono">
+                  <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-white/40 font-mono">
                     ID: {wallet?.id?.slice(0, 8).toUpperCase() || 'FIN-PRO-001'}
                   </p>
                </div>
-               <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-2xl border border-white/20">
-                  <ShieldCheck size={14} className="text-white" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Handshake Verified</span>
+               <div className="flex items-center gap-2 sm:gap-3 bg-white/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl border border-white/20">
+                  <ShieldCheck size={12} className="text-white sm:w-3.5 sm:h-3.5" />
+                  <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">Handshake Verified</span>
                </div>
             </div>
           </div>
         </motion.div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-6">
-           <button className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-4 hover:bg-white/10 transition-standard group">
-              <div className="w-14 h-14 rounded-2xl bg-aba-green/10 flex items-center justify-center text-aba-green border border-aba-green/20 group-hover:scale-110 transition-standard">
-                <ArrowUpRight size={24} />
+        <div className="grid grid-cols-2 gap-4 sm:gap-6">
+           <button className="p-5 sm:p-8 bg-white/5 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-3 sm:gap-4 hover:bg-white/10 transition-standard group">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-aba-green/10 flex items-center justify-center text-aba-green border border-aba-green/20 group-hover:scale-110 transition-standard">
+                <ArrowUpRight size={20} className="sm:w-6 sm:h-6" />
               </div>
-              <span className="text-xs font-bold uppercase tracking-widest">Deposit Hub</span>
+              <span className="text-[9px] sm:text-xs font-bold uppercase tracking-widest">Deposit Hub</span>
            </button>
-           <button className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-4 hover:bg-white/10 transition-standard group">
-              <div className="w-14 h-14 rounded-2xl bg-aba-red/10 flex items-center justify-center text-aba-red border border-aba-red/20 group-hover:scale-110 transition-standard">
-                <ArrowDownLeft size={24} />
+           <button className="p-5 sm:p-8 bg-white/5 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-3 sm:gap-4 hover:bg-white/10 transition-standard group">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-aba-red/10 flex items-center justify-center text-aba-red border border-aba-red/20 group-hover:scale-110 transition-standard">
+                <ArrowDownLeft size={20} className="sm:w-6 sm:h-6" />
               </div>
-              <span className="text-xs font-bold uppercase tracking-widest">Payout Portal</span>
+              <span className="text-[9px] sm:text-xs font-bold uppercase tracking-widest">Payout Portal</span>
            </button>
         </div>
 

@@ -85,9 +85,9 @@ const FacesPost: React.FC<FacesPostProps> = ({ post, onPostAction }) => {
       className="bg-white/5 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl mb-8 group"
     >
       {/* Header */}
-      <div className="p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl p-0.5 bg-aba-gold/20 border border-aba-gold/10">
+      <div className="p-3 sm:p-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl p-0.5 bg-aba-gold/20 border border-aba-gold/10">
             <img 
               src={post.author?.avatar_url || `https://picsum.photos/seed/${post.author_id}/100/100`} 
               alt="Author"
@@ -159,19 +159,19 @@ const FacesPost: React.FC<FacesPostProps> = ({ post, onPostAction }) => {
       </div>
 
       {/* Footer / Actions */}
-      <div className="px-6 py-4 flex items-center justify-between border-t border-white/5 bg-slate-400/5">
-        <div className="flex items-center gap-6">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between border-t border-white/5 bg-slate-400/5">
+        <div className="flex items-center gap-4 sm:gap-6">
           <button 
             onClick={handleLike}
-            className={`flex items-center gap-2 transition-standard hover:scale-110 ${isLiked ? 'text-aba-red' : 'text-white/40 hover:text-aba-red'}`}
+            className={`flex items-center gap-1.5 sm:gap-2 transition-standard hover:scale-110 ${isLiked ? 'text-aba-red' : 'text-white/40 hover:text-aba-red'}`}
           >
-            <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
-            <span className="text-xs font-bold">{likesCount}</span>
+            <Heart size={18} className="sm:w-5 sm:h-5" fill={isLiked ? 'currentColor' : 'none'} />
+            <span className="text-[10px] sm:text-xs font-bold">{likesCount}</span>
           </button>
           
-          <button className="flex items-center gap-2 text-white/40 hover:text-aba-gold transition-standard hover:scale-110">
-            <MessageSquare size={20} />
-            <span className="text-xs font-bold">{post.comments_count}</span>
+          <button className="flex items-center gap-1.5 sm:gap-2 text-white/40 hover:text-aba-gold transition-standard hover:scale-110">
+            <MessageSquare size={18} className="sm:w-5 sm:h-5" />
+            <span className="text-[10px] sm:text-xs font-bold">{post.comments_count}</span>
           </button>
 
           <button className="text-white/40 hover:text-aba-green transition-standard hover:scale-110">
