@@ -1,10 +1,8 @@
 import { supabase } from "./supabase";
-import { notify } from "./toast";
 
-// =========================
-// ORDERS REALTIME
-// =========================
-export function subscribeToOrders(userId: string) {
+export function subscribeToOrders(userId: string, onCount: (n: number) => void) {
+  let count = 0;
+
   const channel = supabase
     .channel("orders-realtime")
 
@@ -18,26 +16,38 @@ export function subscribeToOrders(userId: string) {
       (payload) => {
         const order = payload.new;
 
-        // 🟢 Seller gets new order
         if (order.seller_id === userId) {
-          notify("🛒 New order received!");
+          count++;
+          onCount(count);
         }
       }
     )
 
+    .subscribe();
+
+  return channel;
+}
+
+
+export function subscribeToMessages(userId: string, onCount: (n: number) => void) {
+  let count = 0;
+
+  const channel = supabase
+    .channel("messages-realtime")
+
     .on(
       "postgres_changes",
       {
-        event: "UPDATE",
+        event: "INSERT",
         schema: "public",
-        table: "orders",
+        table: "messages",
       },
       (payload) => {
-        const order = payload.new;
+        const msg = payload.new;
 
-        // 🔵 Buyer gets updates
-        if (order.buyer_id === userId) {
-          notify(`📦 Order ${order.delivery_status}`);
+        if (msg.receiver_id === userId) {
+          count++;
+          onCount(count);
         }
       }
     )
