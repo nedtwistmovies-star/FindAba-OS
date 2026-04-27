@@ -137,8 +137,8 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
       </nav>
 
       {/* TAB CONTENT */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-3 sm:px-8 pt-6">
-        <div className="max-w-4xl mx-auto space-y-6 sm:y-12 pb-32">
+      <div className="flex-1 overflow-y-auto scrollbar-hide px-3 sm:px-8 pt-6 overscroll-contain">
+        <div className="max-w-4xl mx-auto space-y-6 sm:y-12 pb-48 md:pb-32">
           
           {activeTab === 'overview' && (
             <div className="animate-slide-up space-y-12">

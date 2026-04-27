@@ -233,7 +233,7 @@ const MerchantPortal: React.FC<{
         }}
         onCancel={() => setShowUpgradeCheckout(false)}
       />
-      <div className="bg-aba-deep p-5 md:p-10 pt-6 md:pt-16 pb-12 md:pb-32 rounded-b-[1.5rem] md:rounded-b-[5rem] shadow-2xl relative shrink-0 overflow-hidden">
+      <div className="bg-aba-deep p-5 md:p-10 pt-6 md:pt-16 pb-10 md:pb-32 rounded-b-[1.5rem] md:rounded-b-[5rem] shadow-2xl relative shrink-0 overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-[0.03] -rotate-12 hidden md:block"><TrendingUp size={400} /></div>
         <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-5 md:gap-8 relative z-10">
            <div className="flex items-center gap-3 sm:gap-8">
@@ -264,7 +264,7 @@ const MerchantPortal: React.FC<{
         </div>
       </div>
 
-      <div className="px-4 md:px-8 -mt-12 md:-mt-16 relative z-30 max-w-6xl mx-auto w-full space-y-8 md:space-y-12">
+      <div className="px-4 md:px-8 -mt-10 md:-mt-16 relative z-30 max-w-6xl mx-auto w-full space-y-8 md:space-y-12 pb-48 md:pb-20">
         {/* Navigation Grid */}
         <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl p-1 rounded-xl md:rounded-[3rem] shadow-2xl flex border border-slate-100 dark:border-white/10 overflow-x-auto scrollbar-hide mb-6 md:mb-16 touch-pan-x whitespace-nowrap">
           {[

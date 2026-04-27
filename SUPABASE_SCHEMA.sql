@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- ENABLE RLS ON PROFILES
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
@@ -67,7 +71,7 @@ CREATE TABLE IF NOT EXISTS rooms (
 CREATE TABLE IF NOT EXISTS bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  hotel_id UUID REFERENCES hotels(id), -- Optional if room_id is present
+  hotel_id UUID REFERENCES hotels(id), 
   room_id UUID NOT NULL REFERENCES rooms(id),
   check_in DATE NOT NULL,
   check_out DATE NOT NULL,
@@ -80,7 +84,6 @@ CREATE TABLE IF NOT EXISTS bookings (
 CREATE TABLE IF NOT EXISTS payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
   amount INTEGER NOT NULL CHECK (amount > 0),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending','success','failed')),
   reference TEXT UNIQUE NOT NULL,
@@ -88,6 +91,18 @@ CREATE TABLE IF NOT EXISTS payments (
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Ensure columns exist (Safely handles existing tables)
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='booking_id') THEN
+    ALTER TABLE payments ADD COLUMN booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE;
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='order_id') THEN
+    ALTER TABLE payments ADD COLUMN order_id UUID;
+  END IF;
+END $$;
 
 -- INDEXES
 CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON bookings(user_id);
@@ -99,12 +114,18 @@ ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
 -- BOOKINGS POLICIES
+DROP POLICY IF EXISTS "Users can view own bookings" ON bookings;
+DROP POLICY IF EXISTS "Users can insert bookings" ON bookings;
+DROP POLICY IF EXISTS "Users can update own bookings" ON bookings;
+DROP POLICY IF EXISTS "Users can delete own bookings" ON bookings;
+
 CREATE POLICY "Users can view own bookings" ON bookings FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert bookings" ON bookings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own bookings" ON bookings FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own bookings" ON bookings FOR DELETE USING (auth.uid() = user_id);
 
 -- PAYMENTS POLICIES
+DROP POLICY IF EXISTS "Users can view own payments" ON payments;
 CREATE POLICY "Users can view own payments" ON payments FOR SELECT USING (auth.uid() = user_id);
 -- DO NOT allow direct inserts from client for payments (enforced by lack of INSERT policy)
 
@@ -116,7 +137,7 @@ CREATE POLICY "Users can view own payments" ON payments FOR SELECT USING (auth.u
 CREATE OR REPLACE FUNCTION update_booking_on_payment()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.status = 'success' THEN
+  IF NEW.status = 'success' AND NEW.booking_id IS NOT NULL THEN
     UPDATE bookings
     SET status = 'confirmed'
     WHERE id = NEW.booking_id;
@@ -125,7 +146,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_payment_status_change
+DROP TRIGGER IF EXISTS on_payment_status_change ON payments;
+CREATE TRIGGER on_payment_status_change
   AFTER INSERT OR UPDATE ON payments
   FOR EACH ROW EXECUTE FUNCTION update_booking_on_payment();
 
@@ -384,6 +406,27 @@ VALUES ('findaba', 'findaba', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- REALTIME
-ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE bookings;
-ALTER PUBLICATION supabase_realtime ADD TABLE payments;
+-- Safely add tables to publication
+DO $$
+BEGIN
+  -- Profiles
+  IF EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'profiles') THEN
+    ALTER PUBLICATION supabase_realtime DROP TABLE profiles;
+  END IF;
+  ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
+
+  -- Bookings
+  IF EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'bookings') THEN
+    ALTER PUBLICATION supabase_realtime DROP TABLE bookings;
+  END IF;
+  ALTER PUBLICATION supabase_realtime ADD TABLE bookings;
+
+  -- Payments
+  IF EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'payments') THEN
+    ALTER PUBLICATION supabase_realtime DROP TABLE payments;
+  END IF;
+  ALTER PUBLICATION supabase_realtime ADD TABLE payments;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE NOTICE 'Could not update publication: %', SQLERRM;
+END $$;
