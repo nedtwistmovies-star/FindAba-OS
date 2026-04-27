@@ -1,12 +1,26 @@
 import { useEffect, useState } from "react";
-import { subscribeToOrders } from "../lib/realtime";
 import { supabase } from "../lib/supabase";
+import { subscribeToOrders } from "../lib/realtime";
+import { notify } from "../lib/notifications";
 
 export default function OrdersPage({ user }: any) {
   const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
     const channel = subscribeToOrders(user.id, (newOrder: any) => {
+
+      // 🔔 NOTIFICATIONS
+      notify("Order updated!");
+
+      if (newOrder.delivery_status === "shipped") {
+        notify("Your order is on the way 🚚");
+      }
+
+      if (newOrder.delivery_status === "delivered") {
+        notify("Order delivered ✅");
+      }
+
+      // 🔄 UPDATE UI
       setOrders((prev) => {
         const exists = prev.find((o) => o.id === newOrder.id);
 
@@ -37,4 +51,4 @@ export default function OrdersPage({ user }: any) {
       ))}
     </div>
   );
-      }
+}
