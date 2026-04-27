@@ -142,16 +142,203 @@ const AppContent: React.FC<any> = ({
   );
 };
 
-// 👇 ROOT APP
+import React, { Suspense, useEffect } from "react";
+import { notify } from "../lib/toast";
+import ToastContainer from "../components/ToastContainer";
+
+// existing imports
+import { ErrorBoundary } from "./ErrorBoundary";
+import { AppProviders } from "./AppProviders";
+import Layout from "../components/Layout";
+import LoadingScreen from "../components/LoadingScreen";
+import RouteComponent from "../routes/RouteComponent";
+import FeedbackToast from "../components/FeedbackToast";
+import { ROUTE_MAP } from "../routes/routeMap";
+
+// 🔴 REALTIME
+import { subscribeToOrders, subscribeToMessages } from "../lib/realtime";
+import { supabase } from "../lib/supabase";
+
+
+// =========================
+// MAIN APP CONTENT
+// =========================
+const AppContent: React.FC<any> = ({
+  view,
+  setView,
+  appLogo,
+  oracleAvatar,
+  socialLinks,
+  loading,
+  businesses,
+  heroImages,
+  heroVideos,
+  selectedBusiness,
+  selectedStory,
+  selectedAdvertorial,
+  myBusiness,
+  favorites,
+  toggleFavorite,
+  handleBusinessClick,
+  handleStoryClick,
+  refreshData,
+  handleAuthSuccess,
+  handleBack,
+  userIdentifier,
+  userRole,
+  businessLoading,
+  isOracleOpen,
+  setIsOracleOpen,
+  toasts,
+  removeToast
+}) => {
+
+  const isAdmin =
+    userRole === "admin" ||
+    userIdentifier === "pastornelsonezi@gmail.com";
+
+  // =========================
+  // 🔴 REALTIME ACTIVATION
+  // =========================
+  useEffect(() => {
+    if (!userIdentifier) return;
+
+    let orderChannel: any;
+    let messageChannel: any;
+
+    async function initRealtime() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      orderChannel = subscribeToOrders(user.id);
+      messageChannel = subscribeToMessages(user.id);
+    }
+
+    initRealtime();
+
+    return () => {
+      if (orderChannel) supabase.removeChannel(orderChannel);
+      if (messageChannel) supabase.removeChannel(messageChannel);
+    };
+  }, [userIdentifier]);
+
+  // =========================
+  // LOADING STATE
+  // =========================
+  if (loading && businesses.length === 0) {
+    return <LoadingScreen message="Initializing Industrial Matrix..." />;
+  }
+
+  // =========================
+  // UI
+  // =========================
+  return (
+    <Layout
+      currentView={view}
+      setView={setView}
+      appLogo={appLogo}
+      oracleAvatar={oracleAvatar}
+      socialLinks={socialLinks}
+    >
+      <Suspense
+        fallback={
+          <LoadingScreen
+            fullScreen={false}
+            message="Synchronizing View..."
+          />
+        }
+      >
+        <RouteComponent
+          setView={setView}
+          onBack={handleBack}
+          businesses={businesses}
+          heroImages={heroImages}
+          heroVideos={heroVideos}
+          business={selectedBusiness}
+          story={selectedStory}
+          advertorial={selectedAdvertorial}
+          myBusiness={myBusiness}
+          favorites={favorites}
+
+          // 🔔 FAVORITES
+          onToggleFavorite={(id) => {
+            toggleFavorite(id);
+            notify("Saved to favorites ⭐");
+          }}
+
+          // 🔔 BUSINESS CLICK
+          onBusinessClick={(biz) => {
+            handleBusinessClick(biz);
+            notify("Opening business...");
+          }}
+
+          // 🔔 STORY CLICK
+          onStoryClick={(story) => {
+            handleStoryClick(story);
+            notify("Viewing story...");
+          }}
+
+          // 🔔 REGISTER
+          onRegister={() => {
+            refreshData();
+            notify("Registration successful ✅");
+          }}
+
+          // 🔔 REFRESH
+          onRefresh={() => {
+            refreshData();
+            notify("Data refreshed 🔄");
+          }}
+
+          // 🔔 AUTH
+          onAuthSuccess={(data) => {
+            handleAuthSuccess(data);
+            notify("Welcome back 👋");
+          }}
+
+          userEmail={userIdentifier}
+          userRole={userRole}
+          isRegistryLoading={businessLoading}
+        />
+      </Suspense>
+
+      <FeedbackToast toasts={toasts} onRemove={removeToast} />
+
+      {isOracleOpen && (
+        <div className="fixed inset-0 z-[9999] animate-fade-in">
+          <Suspense
+            fallback={
+              <LoadingScreen message="Consulting the Oracle..." />
+            }
+          >
+            <ROUTE_MAP.oracle
+              onBack={() => setIsOracleOpen(false)}
+              setView={setView}
+              catalog={businesses}
+              oracleAvatar={oracleAvatar}
+            />
+          </Suspense>
+        </div>
+      )}
+    </Layout>
+  );
+};
+
+
+// =========================
+// ROOT APP
+// =========================
 const App: React.FC = (props: any) => {
   return (
     <ErrorBoundary>
       <AppProviders>
 
-        {/* 🔔 GLOBAL TOAST SYSTEM */}
+        {/* 🔔 GLOBAL TOAST */}
         <ToastContainer />
 
-        {/* 🚀 FULL APP */}
         <AppContent {...props} />
 
       </AppProviders>
