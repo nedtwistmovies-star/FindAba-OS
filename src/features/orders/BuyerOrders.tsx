@@ -1,13 +1,36 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import BuyerActions from "./BuyerActions";
+import { subscribeToOrders } from "../../lib/realtime";
+import { notify } from "../../lib/notifications";
 
 export default function BuyerOrders({ user }: any) {
   const [orders, setOrders] = useState<any[]>([]);
 
   useEffect(() => {
     loadOrders();
-  }, []);
+
+    const channel = subscribeToOrders(user.id, (order: any) => {
+      if (order.buyer_id !== user.id) return;
+
+      notify("Order update");
+
+      setOrders((prev) => {
+        const exists = prev.find((o) => o.id === order.id);
+
+        if (exists) {
+          return prev.map((o) =>
+            o.id === order.id ? order : o
+          );
+        }
+
+        return [order, ...prev];
+      });
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user.id]);
 
   const loadOrders = async () => {
     const { data } = await supabase
@@ -20,15 +43,12 @@ export default function BuyerOrders({ user }: any) {
   };
 
   return (
-    <div className="p-4">
-      <h2>My Orders</h2>
-
-      {orders.map((order) => (
-        <div key={order.id} className="border p-3 mt-3">
-          <p>₦{order.amount}</p>
-          <p>{order.delivery_status}</p>
-
-          <BuyerActions order={order} />
+    <div>
+      {orders.map((o) => (
+        <div key={o.id} className="border p-3 mb-2">
+          <p>₦{o.amount}</p>
+          <p>Status: {o.status}</p>
+          <p>Delivery: {o.delivery_status}</p>
         </div>
       ))}
     </div>
