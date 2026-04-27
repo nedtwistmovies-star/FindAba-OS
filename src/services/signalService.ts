@@ -46,7 +46,7 @@ export async function getAbaWeather(): Promise<WeatherData> {
 
     if (!response.ok) throw new Error('Weather signal lost');
     
-    const text = await response.text();
+    const text = (await response.text()).slice(0, 500);
     if (!text || !text.includes('|') || text.includes('<!DOCTYPE') || text.includes('<html')) {
       throw new Error('Invalid weather signal received');
     }
@@ -56,10 +56,10 @@ export async function getAbaWeather(): Promise<WeatherData> {
     
     const [temp, condition, humidity, wind] = parts;
     return {
-      temp: (temp || '28°C').trim(),
-      condition: (condition || 'Clear').trim(),
-      humidity: (humidity || '65%').trim(),
-      wind: (wind || '12km/h').trim()
+      temp: (temp || '28°C').trim().slice(0, 10),
+      condition: (condition || 'Clear').trim().slice(0, 30),
+      humidity: (humidity || '65%').trim().slice(0, 10),
+      wind: (wind || '12km/h').trim().slice(0, 20)
     };
   } catch (error: any) {
     // Only log actual errors, not aborts or common network failures in dev

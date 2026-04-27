@@ -27,13 +27,43 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- ENABLE RLS ON PROFILES
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+-- 🔹 FIX: SECURITY DEFINER FUNCTION TO AVOID RLS RECURSION
+-- This function runs with the privileges of the creator (postgres), bypassing RLS
+CREATE OR REPLACE FUNCTION public.check_is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN (
+    SELECT (role = 'admin')
+    FROM public.profiles
+    WHERE id = auth.uid()
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- DROP ALL POTENTIAL CONFLICTING POLICIES
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
+DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
+DROP POLICY IF EXISTS "Users can view all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "authenticated_can_view_profiles" ON profiles;
 
-CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+-- CREATE CLEAN, NON-RECURSIVE POLICIES
+-- Policy 1: Everyone can see profiles (essential for social features like "Faces")
+CREATE POLICY "Public profiles are viewable by everyone" 
+ON profiles FOR SELECT 
+USING (true);
+
+-- Policy 2: Users can only update their own profile OR Admins can update any
+CREATE POLICY "Users and admins can update profile" 
+ON profiles FOR UPDATE 
+USING (auth.uid() = id OR public.check_is_admin());
+
+-- Policy 3: Users can insert their own profile during signup
+CREATE POLICY "Users can insert own profile" 
+ON profiles FOR INSERT 
+WITH CHECK (auth.uid() = id);
 
 -- ==========================================
 -- 2. HOSPITALITY (SANDALSroyalle)

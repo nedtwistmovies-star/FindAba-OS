@@ -45,14 +45,14 @@ const SystemClock: React.FC = () => {
   return (
     <div className="flex flex-col items-end px-4 border-x border-white/10">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold text-aba-gold uppercase tracking-wider">{dateStr}</span>
-        <span className="text-[10px] font-bold text-aba-green uppercase tracking-wider border-l border-white/10 pl-2">{marketDay}</span>
+        <span className="text-[10px] sm:text-[11px] font-bold text-aba-gold uppercase tracking-wider">{dateStr}</span>
+        <span className="text-[10px] sm:text-[11px] font-bold text-aba-green uppercase tracking-wider border-l border-white/10 pl-2">{marketDay}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-sm font-bold text-white tracking-tight">{timeStr}</span>
         {weather && (
-          <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider border-l border-white/10 pl-2 hidden sm:block">
-            {weather.temp}
+          <span className="text-[10px] sm:text-[11px] font-medium text-white/40 uppercase tracking-wider border-l border-white/10 pl-2 hidden sm:block">
+            {weather.temp.length < 20 ? weather.temp : 'Syncing...'}
           </span>
         )}
       </div>
