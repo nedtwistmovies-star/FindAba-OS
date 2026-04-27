@@ -56,9 +56,14 @@ ON profiles FOR SELECT
 USING (true);
 
 -- Policy 2: Users can only update their own profile OR Admins can update any
-CREATE POLICY "Users and admins can update profile" 
+-- We use a simpler check for admins that relies on the SECURITY DEFINER status of check_is_admin()
+CREATE POLICY "Users can update own profile" 
 ON profiles FOR UPDATE 
-USING (auth.uid() = id OR public.check_is_admin());
+USING (auth.uid() = id);
+
+CREATE POLICY "Admins can update any profile"
+ON profiles FOR UPDATE
+USING (public.check_is_admin());
 
 -- Policy 3: Users can insert their own profile during signup
 CREATE POLICY "Users can insert own profile" 

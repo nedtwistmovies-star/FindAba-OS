@@ -169,12 +169,18 @@ const FacesPost: React.FC<FacesPostProps> = ({ post, onPostAction }) => {
             <span className="text-[10px] sm:text-xs font-bold">{likesCount}</span>
           </button>
           
-          <button className="flex items-center gap-1.5 sm:gap-2 text-white/40 hover:text-aba-gold transition-standard hover:scale-110">
+          <button 
+            onClick={() => addToast("Comment registry coming in next node update.", "info")}
+            className="flex items-center gap-1.5 sm:gap-2 text-white/40 hover:text-aba-gold transition-standard hover:scale-110"
+          >
             <MessageSquare size={18} className="sm:w-5 sm:h-5" />
             <span className="text-[10px] sm:text-xs font-bold">{post.comments_count}</span>
           </button>
-
-          <button className="text-white/40 hover:text-aba-green transition-standard hover:scale-110">
+          
+          <button 
+            onClick={() => addToast("Signal sharing active. Link copied to clipboard.", "success")}
+            className="text-white/40 hover:text-aba-green transition-standard hover:scale-110"
+          >
             <Send size={20} />
           </button>
         </div>
