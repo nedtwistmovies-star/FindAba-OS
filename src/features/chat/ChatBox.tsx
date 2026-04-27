@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { notify } from "../../lib/notifications";
 
 export default function ChatBox({ user, orderId, otherUser }: any) {
   const [messages, setMessages] = useState<any[]>([]);
@@ -21,6 +22,10 @@ export default function ChatBox({ user, orderId, otherUser }: any) {
           const msg = payload.new;
 
           if (msg.order_id === orderId) {
+
+            // 🔔 NOTIFICATION
+            notify("New message received 💬");
+
             setMessages((prev) => [...prev, msg]);
           }
         }
@@ -76,4 +81,4 @@ export default function ChatBox({ user, orderId, otherUser }: any) {
       </div>
     </div>
   );
-        }
+}
