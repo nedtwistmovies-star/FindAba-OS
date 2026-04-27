@@ -1,152 +1,185 @@
+import React, { Suspense, useEffect, useState } from "react";
+import { notify } from "../lib/toast";
+import ToastContainer from "../components/ToastContainer";
 
-import React, { Suspense, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Loader2, AlertTriangle, Globe } from 'lucide-react';
-import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast } from '../components';
-import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } from '../providers';
-import { ROUTE_MAP } from './router';
-import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
-import { syncGeminiConfig } from '../services/geminiService';
-import { ViewState } from '../types';
+// existing imports
+import { ErrorBoundary } from "./ErrorBoundary";
+import { AppProviders } from "./AppProviders";
+import Layout from "../components/Layout";
+import LoadingScreen from "../components/LoadingScreen";
+import RouteComponent from "../routes/RouteComponent";
+import FeedbackToast from "../components/FeedbackToast";
+import { ROUTE_MAP } from "../routes/routeMap";
 
-const AppContent: React.FC = () => {
-  const { isAuth, userRole, userIdentifier, userUuid, handleAuthSuccess = () => {} } = useAuth();
-  const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
-  const { 
-    businesses = [], 
-    favorites = [], 
-    loading: businessLoading = false, 
-    toggleFavorite = () => {}, 
-    refreshData = () => {},
-    selectedBusiness,
-    selectedStory,
-    selectedAdvertorial,
-    setSelectedBusiness,
-    setSelectedStory
-  } = useBusiness();
-  const { toasts = [], removeToast = () => {} } = useToast();
-  const { isOracleOpen = false, setIsOracleOpen = () => {}, view = 'home', setView = () => {} } = useOracle();
+// 🔴 REALTIME
+import { subscribeToOrders, subscribeToMessages } from "../lib/realtime";
+import { supabase } from "../lib/supabase";
 
-  const handleBusinessClick = (b: any) => {
-    setSelectedBusiness(b);
-    setView('detail');
-  };
 
-  const handleStoryClick = (s: any) => {
-    setSelectedStory(s);
-    setView('editorial-detail');
-  };
+// =========================
+// MAIN APP CONTENT
+// =========================
+const AppContent: React.FC<any> = ({
+  view,
+  setView,
+  appLogo,
+  oracleAvatar,
+  socialLinks,
+  loading,
+  businesses,
+  heroImages,
+  heroVideos,
+  selectedBusiness,
+  selectedStory,
+  selectedAdvertorial,
+  myBusiness,
+  favorites,
+  toggleFavorite,
+  handleBusinessClick,
+  handleStoryClick,
+  refreshData,
+  handleAuthSuccess,
+  handleBack,
+  userIdentifier,
+  userRole,
+  businessLoading,
+  isOracleOpen,
+  setIsOracleOpen,
+  toasts,
+  removeToast
+}) => {
 
-  const loading = businessLoading;
-  const isVercelDomain = window.location.hostname.endsWith('.vercel.app');
-  const isCustomDomain = window.location.hostname === 'findaba.com.ng';
+  const isAdmin =
+    userRole === "admin" ||
+    userIdentifier === "pastornelsonezi@gmail.com";
 
+  // =========================
+  // 🔴 UNREAD COUNTERS
+  // =========================
+  const [orderCount, setOrderCount] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
+
+  // =========================
+  // 🔴 REALTIME ACTIVATION
+  // =========================
   useEffect(() => {
-    // Force scroll to top on view change
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTo(0, 0);
-    document.body.scrollTo(0, 0);
+    if (!userIdentifier) return;
+
+    let orderChannel: any;
+    let messageChannel: any;
+
+    async function initRealtime() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      orderChannel = subscribeToOrders(user.id, (count) => {
+        setOrderCount(count);
+        notify("🛒 New order received!");
+      });
+
+      messageChannel = subscribeToMessages(user.id, (count) => {
+        setMessageCount(count);
+        notify("💬 New message");
+      });
+    }
+
+    initRealtime();
+
+    return () => {
+      if (orderChannel) supabase.removeChannel(orderChannel);
+      if (messageChannel) supabase.removeChannel(messageChannel);
+    };
+  }, [userIdentifier]);
+
+  // =========================
+  // RESET COUNTS ON VIEW
+  // =========================
+  useEffect(() => {
+    if (view === "orders") setOrderCount(0);
+    if (view === "messages") setMessageCount(0);
   }, [view]);
 
-  const myBusiness = (businesses?.find ? businesses.find(b => 
-    b.owner_id === userUuid ||
-    b.email === userIdentifier || 
-    b.phone === userIdentifier || 
-    b.phone_whatsapp === userIdentifier ||
-    (b.phone_whatsapp && userIdentifier && (b.phone_whatsapp.includes(userIdentifier) || userIdentifier.includes(b.phone_whatsapp)))
-  ) : null) || null;
-  const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']);
+  // =========================
+  // LOADING STATE
+  // =========================
+  if (loading && businesses.length === 0) {
+    return <LoadingScreen message="Initializing Industrial Matrix..." />;
+  }
 
-  const [showQuickSetup, setShowQuickSetup] = React.useState(false);
-  const [quickConfig, setQuickConfig] = React.useState({
-    url: localStorage.getItem('findaba_supabase_url') || '',
-    key: localStorage.getItem('findaba_supabase_key') || ''
-  });
-
-  const handleQuickSave = () => {
-    localStorage.setItem('findaba_supabase_url', quickConfig.url);
-    localStorage.setItem('findaba_supabase_key', quickConfig.key);
-    setShowQuickSetup(false);
-    window.location.reload();
-  };
-
-  const [signalHealth, setSignalHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'unknown'; message?: string } | null>(null);
-  const [geminiHealth, setGeminiHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'warning'; message: string } | null>(null);
-
-  React.useEffect(() => {
-    const initApp = async () => {
-      try {
-        // 1. Sync Config First
-        const gHealth = await syncGeminiConfig();
-        setGeminiHealth(gHealth);
-        
-        // 2. Then Check Health
-        const health = await checkDatabaseHealth();
-        setSignalHealth(health as any);
-      } catch (e) {
-        console.error("App initialization error:", e);
-        setSignalHealth({ status: 'unhealthy', message: 'Industrial Signal Lost' });
-      }
-    };
-    
-    initApp();
-    
-    // Periodically refresh health to ensure UI stays in sync with actual connection
-    const interval = setInterval(initApp, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleBack = () => {
-    if (view === 'detail') setView('explore');
-    else if (view === 'editorial-detail') setView('editorial');
-    else if (view === 'editorial') setView('discover');
-    else if (view === 'about-aba') setView('discover');
-    else if (view === 'feed') setView('discover');
-    else if (view === 'explore') setView('home');
-    else if (view === 'discover') setView('home');
-    else if (view === 'merchant-portal') setView('home');
-    else if (view === 'register') setView('home');
-    else if (view === 'pricing') setView('merchant-portal');
-    else if (view === 'ad-checkout') setView('pricing');
-    else if (view === 'business-verification') setView('discover');
-    else setView('home');
-  };
-
-  const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
-
-  // REMOVED: Blocks access if database takes too long to sync
-  // if (loading && businesses.length === 0) {
-  //   return <LoadingScreen message="Initializing Industrial Matrix..." />;
-  // }
-
+  // =========================
+  // UI
+  // =========================
   return (
-    <Layout 
-      currentView={view} 
-      setView={setView} 
-      appLogo={appLogo} 
-      oracleAvatar={oracleAvatar} 
+    <Layout
+      currentView={view}
+      setView={setView}
+      appLogo={appLogo}
+      oracleAvatar={oracleAvatar}
       socialLinks={socialLinks}
+
+      // 🔴 PASS COUNTS TO LAYOUT (FOR BADGES)
+      orderCount={orderCount}
+      messageCount={messageCount}
     >
-      {/* Non-blocking loading indicator removed for faster launch */}
-      
-      <Suspense fallback={<LoadingScreen fullScreen={false} message="Synchronizing View..." />}>
-        <RouteComponent 
-          setView={setView} 
+      <Suspense
+        fallback={
+          <LoadingScreen
+            fullScreen={false}
+            message="Synchronizing View..."
+          />
+        }
+      >
+        <RouteComponent
+          setView={setView}
           onBack={handleBack}
-          businesses={businesses} 
-          heroImages={heroImages} 
-          heroVideos={heroVideos} 
+          businesses={businesses}
+          heroImages={heroImages}
+          heroVideos={heroVideos}
           business={selectedBusiness}
           story={selectedStory}
           advertorial={selectedAdvertorial}
           myBusiness={myBusiness}
           favorites={favorites}
-          onToggleFavorite={toggleFavorite}
-          onBusinessClick={handleBusinessClick}
-          onStoryClick={handleStoryClick}
-          onRegister={refreshData}
-          onRefresh={refreshData}
-          onAuthSuccess={handleAuthSuccess}
+
+          // 🔔 FAVORITES
+          onToggleFavorite={(id) => {
+            toggleFavorite(id);
+            notify("Saved to favorites ⭐");
+          }}
+
+          // 🔔 BUSINESS CLICK
+          onBusinessClick={(biz) => {
+            handleBusinessClick(biz);
+            notify("Opening business...");
+          }}
+
+          // 🔔 STORY CLICK
+          onStoryClick={(story) => {
+            handleStoryClick(story);
+            notify("Viewing story...");
+          }}
+
+          // 🔔 REGISTER
+          onRegister={() => {
+            refreshData();
+            notify("Registration successful ✅");
+          }}
+
+          // 🔔 REFRESH
+          onRefresh={() => {
+            refreshData();
+            notify("Data refreshed 🔄");
+          }}
+
+          // 🔔 AUTH
+          onAuthSuccess={(data) => {
+            handleAuthSuccess(data);
+            notify("Welcome back 👋");
+          }}
+
           userEmail={userIdentifier}
           userRole={userRole}
           isRegistryLoading={businessLoading}
@@ -157,8 +190,11 @@ const AppContent: React.FC = () => {
 
       {isOracleOpen && (
         <div className="fixed inset-0 z-[9999] animate-fade-in">
-          {/* Lazy Loaded Oracle from ROUTE_MAP */}
-          <Suspense fallback={<LoadingScreen message="Consulting the Oracle..." />}>
+          <Suspense
+            fallback={
+              <LoadingScreen message="Consulting the Oracle..." />
+            }
+          >
             <ROUTE_MAP.oracle
               onBack={() => setIsOracleOpen(false)}
               setView={setView}
@@ -172,11 +208,20 @@ const AppContent: React.FC = () => {
   );
 };
 
-const App: React.FC = () => {
+
+// =========================
+// ROOT APP
+// =========================
+const App: React.FC = (props: any) => {
   return (
     <ErrorBoundary>
       <AppProviders>
-        <AppContent />
+
+        {/* 🔔 GLOBAL TOAST */}
+        <ToastContainer />
+
+        <AppContent {...props} />
+
       </AppProviders>
     </ErrorBoundary>
   );
