@@ -84,7 +84,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
   };
 
   return (
-    <div className="min-h-full bg-[#020617] animate-fade-in scrollbar-hide pb-40 flex flex-col">
+    <div className="flex-1 bg-[#020617] animate-fade-in flex flex-col">
       {/* HEADER SECTION */}
       <div className="bg-black/40 backdrop-blur-2xl p-5 sm:p-10 pb-10 sm:pb-16 rounded-b-[2rem] sm:rounded-b-[4rem] shadow-2xl relative overflow-hidden border-b border-white/5 shrink-0">
         <div className="absolute inset-0 opacity-10 industrial-grid pointer-events-none" />
@@ -137,7 +137,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
       </nav>
 
       {/* TAB CONTENT */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-3 sm:px-8 pt-6 overscroll-contain">
+      <div className="flex-1 px-3 sm:px-8 pt-6">
         <div className="max-w-4xl mx-auto space-y-6 sm:y-12 pb-48 md:pb-32">
           
           {activeTab === 'overview' && (

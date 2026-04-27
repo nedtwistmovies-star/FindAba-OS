@@ -47,9 +47,14 @@ export async function getAbaWeather(): Promise<WeatherData> {
     if (!response.ok) throw new Error('Weather signal lost');
     
     const text = await response.text();
-    if (!text || !text.includes('|')) throw new Error('Invalid weather format');
+    if (!text || !text.includes('|') || text.includes('<!DOCTYPE') || text.includes('<html')) {
+      throw new Error('Invalid weather signal received');
+    }
     
-    const [temp, condition, humidity, wind] = text.split('|');
+    const parts = text.split('|');
+    if (parts.length < 2) throw new Error('Incomplete weather signal');
+    
+    const [temp, condition, humidity, wind] = parts;
     return {
       temp: (temp || '28°C').trim(),
       condition: (condition || 'Clear').trim(),

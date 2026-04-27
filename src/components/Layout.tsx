@@ -255,7 +255,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   );
 
   return (
-    <div className={`flex flex-col min-h-[100dvh] w-full transition-colors duration-500 font-sans relative overscroll-none ${isDarkView ? 'bg-aba-deep text-white' : 'bg-aba-white text-aba-deep'}`}>
+    <div className={`flex flex-col min-h-[100dvh] w-full transition-colors duration-500 font-sans relative ${isDarkView ? 'bg-aba-deep text-white' : 'bg-aba-white text-aba-deep'}`}>
       
       {/* DESKTOP SIDEBAR */}
       <aside className={`hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-[1100] transition-standard border-r border-white/5 bg-black/20 backdrop-blur-xl ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
@@ -409,9 +409,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
               <button 
                 onClick={() => setView('profile')}
-                className="flex items-center justify-center w-9 h-9 rounded-xl border border-white/10 overflow-hidden shadow-xl active:scale-90 transition-standard hover:border-aba-gold ml-1"
+                className="flex items-center justify-center w-9 h-9 rounded-xl border border-white/10 bg-white/5 active:scale-90 transition-standard hover:border-aba-gold ml-1 group"
               >
-                <img src={oracleAvatar} className="w-full h-full object-cover" alt="Profile" />
+                <UserCircle size={20} className="text-white/20 group-hover:text-aba-gold transition-colors" />
               </button>
             </div>
 
@@ -437,9 +437,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
               <button 
                 onClick={() => setView('profile')}
-                className="w-10 h-10 rounded-lg border border-white/10 overflow-hidden shadow-sm active:scale-95 transition-standard hover:border-aba-gold group/profile"
+                className="w-10 h-10 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center shadow-sm active:scale-95 transition-standard hover:border-aba-gold group/profile"
               >
-                <img src={oracleAvatar} className="w-full h-full object-cover group-hover:scale-110 transition-standard" alt="Profile" />
+                <UserCircle size={24} className="text-white/20 group-hover:text-aba-gold transition-colors" />
               </button>
             </div>
 
@@ -464,11 +464,11 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           />
         )}
 
-        <main className={`flex-1 flex flex-col pt-16 sm:pt-20 md:pt-32 lg:pt-36 container-responsive overflow-x-hidden`}>
-          <div className="flex-1">
+        <main className={`flex-1 flex flex-col pt-16 sm:pt-20 md:pt-32 lg:pt-36 w-full max-w-full overflow-x-hidden`}>
+          <div className="flex-1 w-full max-w-full">
             {children}
           </div>
-          <footer className={`w-full relative flex flex-col transition-standard pb-48 sm:pb-40 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
+          <footer className={`w-full relative flex flex-col transition-standard pb-48 sm:pb-52 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
             
             {/* Requested Menu Structure */}
             <div className="px-6 md:px-8 py-16 md:py-24 space-y-16 max-w-5xl mx-auto w-full">

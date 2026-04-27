@@ -32,10 +32,10 @@ const IndustrialButton: React.FC<IndustrialButtonProps> = ({
   };
 
   const sizes = {
-    sm: "px-4 py-2 text-[9px] rounded-xl",
-    md: "px-6 py-3 text-[10px] rounded-xl",
-    lg: "px-8 py-4 text-[11px] rounded-2xl",
-    xl: "px-10 py-5 text-[12px] rounded-2xl"
+    sm: "px-5 py-3 text-[10px] sm:text-[11px] rounded-xl",
+    md: "px-7 py-4 text-[11px] sm:text-xs rounded-2xl",
+    lg: "px-10 py-5 text-xs sm:text-sm rounded-[1.5rem]",
+    xl: "px-12 py-7 text-sm sm:text-base rounded-[2rem]"
   };
 
   return (

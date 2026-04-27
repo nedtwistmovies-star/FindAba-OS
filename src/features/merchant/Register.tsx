@@ -30,7 +30,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
   if (!isAuth) {
     return (
-      <div className="p-8 flex flex-col items-center justify-center min-h-screen bg-aba-deep text-center space-y-8 font-sans">
+      <div className="p-8 flex flex-col items-center justify-center flex-1 bg-aba-deep text-center space-y-8 font-sans">
         <div className="w-24 h-24 bg-aba-gold/10 rounded-[2rem] flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
           <Lock size={40} />
         </div>
@@ -142,7 +142,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
   if (step === 'plan') {
     return (
-      <div className="p-4 md:p-8 pb-40 bg-aba-deep min-h-screen animate-fade-in font-sans">
+      <div className="p-4 md:p-8 pb-40 bg-aba-deep animate-fade-in font-sans flex flex-col flex-1">
         <PaystackOverlay 
           isOpen={showCheckout}
           amount={BUSINESS_PLANS.find(p => p.id === selectedPlan)?.monthlyAmount || 0}
@@ -231,7 +231,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
   if (step === 'form') {
     return (
-      <div className="p-4 md:p-8 pb-40 bg-aba-deep min-h-screen animate-fade-in font-sans">
+      <div className="p-4 md:p-8 pb-40 bg-aba-deep animate-fade-in font-sans flex flex-col flex-1">
         <header className="max-w-5xl mx-auto flex items-center justify-between mb-10 md:mb-24">
           <button onClick={() => setStep('plan')} className="p-3 md:p-4 bg-white/5 rounded-xl md:rounded-2xl border border-white/10 text-white/40 active:scale-90 transition-standard">
             <ArrowLeft size={20} className="md:w-6 md:h-6" />
@@ -390,16 +390,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
   if (step === 'success') {
     return (
-      <div className="p-4 md:p-8 flex items-center justify-center min-h-screen bg-aba-deep animate-fade-in font-sans">
-        {showWelcome && (
-          <WelcomeOverlay 
-            onClose={() => {
-              setShowWelcome(false);
-              setView('merchant-portal');
-            }}
-            userName={formData.name}
-          />
-        )}
+      <div className="p-4 md:p-8 flex items-center justify-center flex-1 bg-aba-deep animate-fade-in font-sans">
         
         <div className="max-w-2xl w-full text-center space-y-12 md:space-y-16">
           <div className="relative inline-block">
@@ -436,7 +427,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
           </div>
 
           <IndustrialButton 
-            onClick={() => setShowWelcome(true)}
+            onClick={() => setView('merchant-portal')}
             variant="primary"
             size="lg"
             className="w-full py-8 text-sm tracking-[0.4em]"

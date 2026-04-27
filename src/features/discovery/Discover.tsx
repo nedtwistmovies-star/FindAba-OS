@@ -47,7 +47,7 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
   ];
 
   return (
-    <div className="flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans text-white">
+    <div className="flex-1 flex flex-col bg-aba-deep pb-40 animate-fade-in font-sans text-white">
       {/* 🔹 SEARCH AREA */}
       <section className="px-8 py-16 w-full bg-aba-gold flex flex-col items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 industrial-grid pointer-events-none" />

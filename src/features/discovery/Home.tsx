@@ -155,10 +155,12 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
   return (
     <div className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans">
       {/* 🔹 CITY SIGNALS - Top Aligned */}
-      <CitySignals />
+      <div className="sticky top-0 z-[100] w-full">
+        <CitySignals />
+      </div>
 
       {/* 1. HERO SECTION - Matching Screenshot Layout */}
-      <section className="relative min-h-[60vh] md:min-h-[80vh] flex flex-col items-center justify-center px-4 sm:px-6 md:px-12 py-12 sm:py-20 overflow-hidden">
+      <section className="relative min-h-[70vh] md:min-h-[85vh] flex flex-col items-center justify-center px-4 sm:px-6 md:px-12 py-16 sm:py-24 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <ImageCarousel 
             images={heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES} 

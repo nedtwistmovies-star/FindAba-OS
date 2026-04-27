@@ -212,7 +212,7 @@ const MerchantPortal: React.FC<{
 
 
   return (
-    <div className="min-h-full bg-aba-white dark:bg-aba-deep flex flex-col animate-fade-in pb-40 font-sans">
+    <div className="flex-1 bg-aba-white dark:bg-aba-deep flex flex-col animate-fade-in font-sans">
       <PaystackOverlay 
         isOpen={showUpgradeCheckout}
         amount={selectedUpgradePlan?.price || 0}

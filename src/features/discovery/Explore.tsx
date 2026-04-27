@@ -40,7 +40,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
   const activeFilterCount = (categoryFilter !== 'All Categories' ? 1 : 0) + (statusFilter !== 'All' ? 1 : 0);
 
   return (
-    <div className="flex-1 flex flex-col bg-aba-deep animate-fade-in h-full">
+    <div className="flex-1 flex flex-col bg-aba-deep animate-fade-in">
       {/* Advanced Registry Header */}
       <div className="px-4 sm:px-6 md:px-12 py-4 sm:py-6 bg-aba-deep/80 backdrop-blur-xl border-b border-white/5 sticky top-16 md:top-24 z-[1000] shadow-sm space-y-4 sm:space-y-6">
          <div className="flex justify-between items-center max-w-7xl mx-auto w-full gap-3 sm:gap-4">
@@ -161,7 +161,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
       </div>
 
       {/* Main Registry Display */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide p-4 sm:p-6 md:p-10">
+      <div className="flex-1 p-4 sm:p-6 md:p-10">
         {loading ? (
           <div className="max-w-7xl mx-auto grid-adaptive gap-6 sm:gap-8 pb-40">
             {[...Array(6)].map((_, i) => (
