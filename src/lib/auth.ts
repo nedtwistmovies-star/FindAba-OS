@@ -1,49 +1,30 @@
-import { supabase } from "./supabase";
+const API = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
 
-// 🔐 MAGIC LINK LOGIN
-export const signInWithEmail = async (email: string) => {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: window.location.origin,
-    },
+export async function sendOTP(phone: string) {
+  const res = await fetch(`${API}/send-otp`, {
+    method: "POST",
+    body: JSON.stringify({ phone }),
   });
+  return res.json();
+}
 
-  if (error) {
-    throw error;
-  }
-};
-
-// 🔐 PASSWORD LOGIN (optional)
-export const signInWithPassword = async (email: string, password: string) => {
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+export async function verifyOTP(phone: string, code: string) {
+  const res = await fetch(`${API}/verify-otp`, {
+    method: "POST",
+    body: JSON.stringify({ phone, code }),
   });
+  return res.json();
+}
 
-  if (error) throw error;
-};
+export async function loginWithPhone(phone: string, code: string) {
+  const data = await verifyOTP(phone, code);
 
-// 🆕 SIGN UP
-export const signUp = async (email: string, password?: string) => {
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+  if (!data.success) throw new Error("OTP failed");
 
-  if (error) throw error;
-};
+  localStorage.setItem("user", JSON.stringify(data.profile));
+  return data.profile;
+}
 
-// 🚪 LOGOUT
-export const logout = async () => {
-  await supabase.auth.signOut();
-};
-
-// 👤 GET CURRENT USER
-export const getCurrentUser = async () => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return user;
-};
+export function logout() {
+  localStorage.removeItem("user");
+}

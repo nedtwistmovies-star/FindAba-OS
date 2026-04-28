@@ -438,7 +438,6 @@ export interface ChatMessage {
   sender_id: string;
   receiver_id: string;
   body: string;
-  role?: 'system' | 'citizen' | 'model' | 'user';
   attachments?: { url: string; name: string; mime: string }[];
   status: 'sent' | 'delivered' | 'read';
   created_at: string;
@@ -580,7 +579,7 @@ export type PostActionType = 'none' | 'buy' | 'book' | 'reserve' | 'pay';
 
 export interface Post {
   id: string;
-  author_id: string;
+  user_id: string;
   content: string;
   media_url?: string;
   media_type?: 'image' | 'video';
@@ -598,7 +597,7 @@ export interface Post {
 export interface Comment {
   id: string;
   post_id: string;
-  author_id: string;
+  user_id: string;
   content: string;
   created_at: string;
   author?: Profile;
@@ -607,7 +606,7 @@ export interface Comment {
 export interface Like {
   id: string;
   post_id: string;
-  author_id: string;
+  user_id: string;
   created_at: string;
 }
 
@@ -620,7 +619,7 @@ export interface Follower {
 
 export interface Story {
   id: string;
-  author_id: string;
+  user_id: string;
   media_url: string;
   media_type: 'image' | 'video';
   expires_at: string;
@@ -631,7 +630,7 @@ export interface Story {
 export interface StoryView {
   id: string;
   story_id: string;
-  viewer_id: string;
+  user_id: string;
   created_at: string;
 }
 

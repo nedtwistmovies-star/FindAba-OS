@@ -1,17 +1,16 @@
-import { supabase } from '../lib/supabase';
-import { Post, Comment, Story, Wallet, Transaction } from '../types';
+
+import { supabase } from '../lib/supabaseClient';
+import { Post, Comment, Like, Story, Wallet, Transaction, PostActionType } from '../types';
 
 /**
- * =========================
  * FEED & POSTS
- * =========================
  */
 export const fetchPosts = async (limit = 20, offset = 0) => {
   const { data, error } = await supabase
     .from('posts')
     .select(`
       *,
-      author:profiles(*)
+      author:profiles!posts_user_id_fkey(*)
     `)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -20,18 +19,13 @@ export const fetchPosts = async (limit = 20, offset = 0) => {
     console.error("[Faces] Fetch Posts Error:", error.message);
     throw error;
   }
-
   return data as Post[];
 };
 
-export const createPost = async (post: Partial<Post>, userId: string) => {
+export const createPost = async (post: Partial<Post>) => {
   const { data, error } = await supabase
     .from('posts')
-    .insert({
-      ...post,
-      user_id: userId,
-      created_at: new Date().toISOString(),
-    })
+    .insert(post)
     .select()
     .single();
 
@@ -39,62 +33,46 @@ export const createPost = async (post: Partial<Post>, userId: string) => {
     console.error("[Faces] Create Post Error:", error.message);
     throw error;
   }
-
   return data as Post;
 };
 
 /**
- * =========================
  * LIKES
- * =========================
  */
 export const toggleLike = async (postId: string, userId: string) => {
-  const { data: existing, error: checkError } = await supabase
+  // Check if like exists
+  const { data: existingLike } = await supabase
     .from('likes')
     .select('id')
     .eq('post_id', postId)
     .eq('user_id', userId)
-    .maybeSingle();
+    .single();
 
-  if (checkError) {
-    console.error("[Faces] Like Check Error:", checkError.message);
-    throw checkError;
-  }
-
-  if (existing) {
+  if (existingLike) {
     const { error } = await supabase
       .from('likes')
       .delete()
-      .eq('id', existing.id);
-
+      .eq('id', existingLike.id);
     if (error) throw error;
-    return false;
+    return false; // Unliked
+  } else {
+    const { error } = await supabase
+      .from('likes')
+      .insert({ post_id: postId, user_id: userId });
+    if (error) throw error;
+    return true; // Liked
   }
-
-  const { error } = await supabase
-    .from('likes')
-    .insert({
-      post_id: postId,
-      user_id: userId,
-      created_at: new Date().toISOString(),
-    });
-
-  if (error) throw error;
-
-  return true;
 };
 
 /**
- * =========================
  * COMMENTS
- * =========================
  */
 export const fetchComments = async (postId: string) => {
   const { data, error } = await supabase
     .from('comments')
     .select(`
       *,
-      author:profiles(*)
+      author:profiles!comments_user_id_fkey(*)
     `)
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
@@ -103,22 +81,13 @@ export const fetchComments = async (postId: string) => {
   return data as Comment[];
 };
 
-export const addComment = async (
-  postId: string,
-  userId: string,
-  content: string
-) => {
+export const addComment = async (postId: string, userId: string, content: string) => {
   const { data, error } = await supabase
     .from('comments')
-    .insert({
-      post_id: postId,
-      user_id: userId,
-      content,
-      created_at: new Date().toISOString(),
-    })
+    .insert({ post_id: postId, user_id: userId, content })
     .select(`
       *,
-      author:profiles(*)
+      author:profiles!comments_user_id_fkey(*)
     `)
     .single();
 
@@ -127,18 +96,15 @@ export const addComment = async (
 };
 
 /**
- * =========================
  * STORIES
- * =========================
  */
 export const fetchStories = async () => {
   const now = new Date().toISOString();
-
   const { data, error } = await supabase
     .from('stories')
     .select(`
       *,
-      author:profiles(*)
+      author:profiles!stories_user_id_fkey(*)
     `)
     .gt('expires_at', now)
     .order('created_at', { ascending: false });
@@ -147,17 +113,13 @@ export const fetchStories = async () => {
   return data as Story[];
 };
 
-export const createStory = async (story: Partial<Story>, userId: string) => {
+export const createStory = async (story: Partial<Story>) => {
+  // Stories expire in 24 hours
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
+  
   const { data, error } = await supabase
     .from('stories')
-    .insert({
-      ...story,
-      user_id: userId,
-      expires_at: expiresAt,
-      created_at: new Date().toISOString(),
-    })
+    .insert({ ...story, expires_at: expiresAt })
     .select()
     .single();
 
@@ -166,28 +128,22 @@ export const createStory = async (story: Partial<Story>, userId: string) => {
 };
 
 /**
- * =========================
- * WALLET & TRANSACTIONS
- * =========================
+ * WALLET & COMMERCE
  */
 export const fetchWallet = async (userId: string) => {
   const { data, error } = await supabase
     .from('wallets')
     .select('*')
     .eq('owner_id', userId)
-    .maybeSingle();
+    .single();
 
-  if (!data) {
+  if (error && error.code === 'PGRST116') {
+    // Wallet doesn't exist, create one
     const { data: newWallet, error: createError } = await supabase
       .from('wallets')
-      .insert({
-        owner_id: userId,
-        balance: 0,
-        currency: 'NGN',
-      })
+      .insert({ owner_id: userId, balance: 0, currency: 'NGN' })
       .select()
       .single();
-
     if (createError) throw createError;
     return newWallet as Wallet;
   }
@@ -208,56 +164,38 @@ export const fetchTransactions = async (walletId: string) => {
 };
 
 /**
- * =========================
- * COMMERCE (RPC SAFE MODE)
- * =========================
+ * ACTIONABLE SYSTEM: RPC CALLS
  */
-export const createOrderFromAction = async (
-  postId: string,
-  buyerId: string
-) => {
+export const createOrderFromAction = async (postId: string, buyerId: string) => {
   const { data, error } = await supabase.rpc('create_order', {
     p_post_id: postId,
-    p_buyer_id: buyerId,
+    p_buyer_id: buyerId
   });
 
   if (error) {
-    console.error("[Commerce] create_order Error:", error.message);
+    console.error("[Commerce] RPC create_order Error:", error.message);
     throw error;
   }
-
-  return data;
+  return data; // Returns order_id
 };
 
-export const completePayment = async (
-  orderId: string,
-  reference: string
-) => {
-  const { data, error } = await supabase.rpc(
-    'complete_order_payment',
-    {
-      p_order_id: orderId,
-      p_reference: reference,
-    }
-  );
+export const completePayment = async (orderId: string, reference: string) => {
+  const { data, error } = await supabase.rpc('complete_order_payment', {
+    p_order_id: orderId,
+    p_reference: reference
+  });
 
   if (error) {
-    console.error("[Commerce] complete_payment Error:", error.message);
+    console.error("[Commerce] RPC complete_order_payment Error:", error.message);
     throw error;
   }
-
   return data;
 };
 
 /**
- * =========================
  * PROFILE
- * =========================
  */
-export const updateProfile = async (
-  userId: string,
-  updates: any
-) => {
+export const updateProfile = async (userId: string, updates: any) => {
   const { data, error } = await supabase
     .from('profiles')
     .update(updates)
@@ -269,30 +207,19 @@ export const updateProfile = async (
   return data;
 };
 
-export const toggleFollow = async (
-  followerId: string,
-  followingId: string
-) => {
+export const toggleFollow = async (followerId: string, followingId: string) => {
   const { data: existing } = await supabase
     .from('followers')
     .select('id')
     .eq('follower_id', followerId)
     .eq('following_id', followingId)
-    .maybeSingle();
+    .single();
 
   if (existing) {
-    await supabase
-      .from('followers')
-      .delete()
-      .eq('id', existing.id);
+    await supabase.from('followers').delete().eq('id', existing.id);
     return false;
   } else {
-    await supabase
-      .from('followers')
-      .insert({
-        follower_id: followerId,
-        following_id: followingId,
-      });
+    await supabase.from('followers').insert({ follower_id: followerId, following_id: followingId });
     return true;
   }
 };

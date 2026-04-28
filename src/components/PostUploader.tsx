@@ -63,8 +63,7 @@ export const PostUploader: React.FC<PostUploaderProps> = ({ userId, onPostCreate
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
-          profile_id: userId,
-          author_id: userId, // Keep author_id for potential migration consistency
+          user_id: userId,
           content: content.trim(),
           media_url: media?.url || null,
           media_type: media?.type || null

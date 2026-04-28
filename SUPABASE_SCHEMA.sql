@@ -105,7 +105,7 @@ CREATE POLICY "Authenticated can insert business" ON public.businesses FOR INSER
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT,
   media_url TEXT,
   media_type TEXT DEFAULT 'image',
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
 CREATE TABLE IF NOT EXISTS public.comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -128,14 +128,14 @@ CREATE TABLE IF NOT EXISTS public.comments (
 CREATE TABLE IF NOT EXISTS public.likes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(post_id, author_id)
+  UNIQUE(post_id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.stories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   media_url TEXT NOT NULL,
   media_type TEXT DEFAULT 'image',
   expires_at TIMESTAMPTZ NOT NULL,
@@ -149,16 +149,16 @@ ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
 
 -- Social Policies
 CREATE POLICY "Social Read Access" ON public.posts FOR SELECT USING (true);
-CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid() = author_id);
-CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid() = author_id OR public.check_is_admin());
+CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid() = user_id OR public.check_is_admin());
 
 CREATE POLICY "Comments Read Access" ON public.comments FOR SELECT USING (true);
-CREATE POLICY "Comments Insert Access" ON public.comments FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "Comments Insert Access" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Likes All Access" ON public.likes FOR ALL USING (auth.uid() = author_id);
+CREATE POLICY "Likes All Access" ON public.likes FOR ALL USING (auth.uid() = user_id);
 
 CREATE POLICY "Stories Read Access" ON public.stories FOR SELECT USING (true);
-CREATE POLICY "Stories Insert Access" ON public.stories FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "Stories Insert Access" ON public.stories FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- ==========================================
 -- 4. COMMERCE, ESCROW & ORDERS

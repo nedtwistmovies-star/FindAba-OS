@@ -12,7 +12,7 @@ interface StoriesBarProps {
 
 const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onAddStory, onViewStory }) => {
   // Simple grouping by author for display
-  const authors = Array.from(new Set(stories.map(s => s.author_id)));
+  const authors = Array.from(new Set(stories.map(s => s.user_id)));
   
   return (
     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide px-4 md:px-0">
@@ -39,7 +39,7 @@ const StoriesBar: React.FC<StoriesBarProps> = ({ stories, onAddStory, onViewStor
           <div className="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-aba-gold to-aba-green shadow-lg ring-2 ring-white/5 ring-offset-2 ring-offset-aba-deep group-hover:scale-105 transition-standard">
             <div className="w-full h-full rounded-full border-2 border-aba-deep overflow-hidden">
               <img 
-                src={story.author?.avatar_url || `https://picsum.photos/seed/${story.author_id}/100/100`} 
+                src={story.author?.avatar_url || `https://picsum.photos/seed/${story.user_id}/100/100`} 
                 alt="Avatar"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
