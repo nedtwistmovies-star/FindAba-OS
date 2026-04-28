@@ -95,17 +95,26 @@ ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 -- Business Policies
 DROP POLICY IF EXISTS "Public read businesses" ON public.businesses;
 CREATE POLICY "Public read businesses" ON public.businesses FOR SELECT USING (true);
+
 DROP POLICY IF EXISTS "Owners can update own business" ON public.businesses;
-CREATE POLICY "Owners can update own business" ON public.businesses FOR UPDATE USING (auth.uid() = owner_id OR public.check_is_admin());
+CREATE POLICY "Owners can update own business" ON public.businesses FOR UPDATE 
+  USING (auth.uid() = owner_id OR owner_id IS NULL OR public.check_is_admin())
+  WITH CHECK (auth.uid() = owner_id OR owner_id IS NULL OR public.check_is_admin());
+
 DROP POLICY IF EXISTS "Authenticated can insert business" ON public.businesses;
-CREATE POLICY "Authenticated can insert business" ON public.businesses FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated can insert business" ON public.businesses FOR INSERT 
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Owners can delete own business" ON public.businesses;
+CREATE POLICY "Owners can delete own business" ON public.businesses FOR DELETE 
+  USING (auth.uid() = owner_id OR public.check_is_admin());
 
 -- ==========================================
 -- 3. SOCIAL COMMERCE (FACES)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL CONSTRAINT posts_user_id_fkey REFERENCES public.profiles(id) ON DELETE CASCADE,
   content TEXT,
   media_url TEXT,
   media_type TEXT DEFAULT 'image',
@@ -119,23 +128,23 @@ CREATE TABLE IF NOT EXISTS public.posts (
 
 CREATE TABLE IF NOT EXISTS public.comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  post_id UUID NOT NULL CONSTRAINT comments_post_id_fkey REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL CONSTRAINT comments_user_id_fkey REFERENCES public.profiles(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.likes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  post_id UUID NOT NULL CONSTRAINT likes_post_id_fkey REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL CONSTRAINT likes_user_id_fkey REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(post_id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS public.stories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL CONSTRAINT stories_user_id_fkey REFERENCES public.profiles(id) ON DELETE CASCADE,
   media_url TEXT NOT NULL,
   media_type TEXT DEFAULT 'image',
   expires_at TIMESTAMPTZ NOT NULL,
@@ -167,8 +176,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id UUID REFERENCES public.posts(id) ON DELETE SET NULL,
   product_id TEXT, 
-  buyer_id UUID NOT NULL REFERENCES auth.users(id),
-  seller_id UUID NOT NULL REFERENCES auth.users(id),
+  buyer_id UUID NOT NULL REFERENCES public.profiles(id),
+  seller_id UUID NOT NULL REFERENCES public.profiles(id),
   merchant_id TEXT REFERENCES public.businesses(id),
   amount INTEGER NOT NULL CHECK (amount > 0),
   commission_deducted INTEGER DEFAULT 0,
@@ -197,8 +206,8 @@ USING (auth.uid() = buyer_id OR auth.uid() = seller_id OR public.check_is_admin(
 CREATE TABLE IF NOT EXISTS public.messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id TEXT,
-  sender_id UUID NOT NULL REFERENCES auth.users(id),
-  receiver_id UUID NOT NULL REFERENCES auth.users(id),
+  sender_id UUID NOT NULL REFERENCES public.profiles(id),
+  receiver_id UUID NOT NULL REFERENCES public.profiles(id),
   body TEXT NOT NULL,
   attachments JSONB DEFAULT '[]',
   status TEXT DEFAULT 'sent' CHECK (status IN ('sent', 'delivered', 'read')),
@@ -307,11 +316,18 @@ BEGIN
     new.email, 
     new.phone,
     new.raw_user_meta_data->>'full_name', 
-    COALESCE(new.raw_user_meta_data->>'role', 'registered')
+    CASE 
+      WHEN new.email = 'pastornelsonezi@gmail.com' THEN 'admin'
+      ELSE COALESCE(new.raw_user_meta_data->>'role', 'registered')
+    END
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
-    phone = EXCLUDED.phone;
+    phone = EXCLUDED.phone,
+    role = CASE 
+      WHEN EXCLUDED.email = 'pastornelsonezi@gmail.com' THEN 'admin'
+      ELSE public.profiles.role
+    END;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -328,3 +344,127 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.wallets;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
+
+-- ==========================================
+-- 9. ADDITIONAL SYSTEM TABLES
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.platform_config (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  app_logo TEXT,
+  oracle_avatar TEXT,
+  hero_images TEXT[],
+  hero_videos JSONB DEFAULT '[]',
+  facebook_url TEXT,
+  instagram_url TEXT,
+  twitter_url TEXT,
+  tiktok_url TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT single_row CHECK (id = 1)
+);
+
+CREATE TABLE IF NOT EXISTS public.followers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  following_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(follower_id, following_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.favorites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  business_id TEXT NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, business_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.referrals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  referrer_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  referred_user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  reward_granted BOOLEAN DEFAULT FALSE,
+  reward_amount INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.logistics_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_email TEXT NOT NULL,
+  tracking_id TEXT UNIQUE NOT NULL,
+  status TEXT NOT NULL,
+  pickup_address TEXT,
+  delivery_address TEXT,
+  total_fee INTEGER,
+  rider_payout INTEGER,
+  carrier TEXT,
+  estimated_delivery TIMESTAMPTZ,
+  events JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.ads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id TEXT NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT,
+  start_date TIMESTAMPTZ,
+  end_date TIMESTAMPTZ,
+  price_paid INTEGER,
+  status TEXT DEFAULT 'pending',
+  category TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.advertorials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  featured_image TEXT,
+  author_name TEXT,
+  category TEXT,
+  views INTEGER DEFAULT 0,
+  grounding JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.automation_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type TEXT,
+  payload JSONB,
+  status TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.ledger (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id UUID,
+  order_id UUID REFERENCES public.orders(id),
+  gross_amount INTEGER,
+  sandalsroyalle_share INTEGER,
+  hotel_share INTEGER,
+  merchant_share INTEGER,
+  vat INTEGER,
+  settlement_status TEXT DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id),
+  plan_id TEXT,
+  amount INTEGER,
+  provider TEXT,
+  status TEXT,
+  reference TEXT UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable Realtime for new tables
+ALTER PUBLICATION supabase_realtime ADD TABLE public.followers;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.referrals;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.logistics_orders;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.ads;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.advertorials;

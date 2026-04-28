@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Phone, Mail, Lock, ShieldCheck, ChevronRight, ArrowLeft, Loader2, Sparkles, Globe, User, Fingerprint, Zap } from 'lucide-react';
+import { Phone, Mail, Lock, ShieldCheck, ChevronRight, ArrowLeft, Loader2, Sparkles, Globe, User, Fingerprint, Zap, Wand2 } from 'lucide-react';
 import { useAuth } from '../../providers/AuthProvider';
-import { sendOTP, verifyOTP, loginWithEmail, loginWithGoogle } from '../../services/authService';
+import { sendOTP, verifyOTP, loginWithEmail, loginWithGoogle, sendMagicLink } from '../../services/authService';
 import { useToast } from '../../providers/ToastProvider';
 import Logo from '../../components/Logo';
 import { ViewState } from '../../types';
@@ -19,6 +19,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
   const [step, setStep] = useState<'request' | 'verify'>('request');
+  const [useMagicLink, setUseMagicLink] = useState(false);
   const [loading, setLoading] = useState(false);
   
   // Form State
@@ -49,19 +50,18 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     setLoading(true);
     try {
-      const session = await verifyOTP(phone, otp);
+      const result = await verifyOTP(phone, otp);
+      const session = result.session;
       if (session?.user) {
         const user = session.user;
         const role = localStorage.getItem('findaba_user_role') || 'registered';
-        handleAuthSuccess(
-          user.phone || user.email || '', 
-          user.user_metadata.full_name || 'Verified Citizen', 
-          role, 
-          user.id
-        );
+        handleAuthSuccess(user.phone || user.email || '', user.user_metadata.full_name || 'Verified Citizen', role, user.id);
         addToast("Handshake complete. Welcome back.", "success");
         onAuthSuccess(user.phone || user.email || '', user.user_metadata.full_name || 'Verified Citizen', role, user.id);
-        setView('home');
+        
+        // Redirect based on whether they've onboarded
+        const onboarded = localStorage.getItem('findaba_onboarded');
+        setView(onboarded ? 'home' : 'onboarding');
       }
     } catch (err: any) {
       addToast("Access Denied. Invalid or expired OTP.", "error");
@@ -70,21 +70,28 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     }
   };
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const session = await loginWithEmail(email, password);
-      if (session?.user) {
-        const user = session.user;
-        const role = localStorage.getItem('findaba_user_role') || 'registered';
-        handleAuthSuccess(user.email || '', user.user_metadata.full_name || 'Citizen', role, user.id);
-        addToast("Neural link established.", "success");
-        onAuthSuccess(user.email || '', user.user_metadata.full_name || 'Citizen', role, user.id);
-        setView('home');
+      if (useMagicLink) {
+        await sendMagicLink(email);
+        addToast("Magic signal dispatched. Check your inbox.", "success");
+      } else {
+        const session = await loginWithEmail(email, password);
+        if (session?.user) {
+          const user = session.user;
+          const role = localStorage.getItem('findaba_user_role') || 'registered';
+          handleAuthSuccess(user.email || '', user.user_metadata.full_name || 'Citizen', role, user.id);
+          addToast("Neural link established.", "success");
+          onAuthSuccess(user.email || '', user.user_metadata.full_name || 'Citizen', role, user.id);
+          
+          const onboarded = localStorage.getItem('findaba_onboarded');
+          setView(onboarded ? 'home' : 'onboarding');
+        }
       }
     } catch (err: any) {
-      addToast(err.message || "Login failed", "error");
+      addToast(err.message || "Authentication failed", "error");
     } finally {
       setLoading(false);
     }
@@ -92,18 +99,23 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
   const handleGoogleLogin = async () => {
     try {
+      setLoading(true);
       await loginWithGoogle();
     } catch (err: any) {
       addToast("OAuth Protocol Failure.", "error");
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-aba-deep flex flex-col items-center justify-center p-6 sm:p-24 relative overflow-hidden animate-fade-in">
+    <div className="min-h-screen bg-aba-deep flex flex-col items-center justify-center p-6 sm:p-24 relative overflow-hidden">
+      {/* Dynamic Background */}
       <div className="absolute inset-0 atmosphere opacity-30 select-none pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-aba-gold/5 rounded-full blur-[120px]" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-aba-green/5 rounded-full blur-[120px]" />
       
       <header className="fixed top-0 left-0 right-0 p-6 flex items-center justify-between z-50">
-        <button onClick={() => setView('home')} className="p-4 bg-white/5 rounded-2xl border border-white/10 active:scale-95 transition-all text-white/40 hover:text-white">
+        <button onClick={() => setView('home')} className="p-4 bg-white/5 rounded-2xl border border-white/10 active:scale-95 transition-all text-white/40 hover:text-white backdrop-blur-md">
            <ArrowLeft size={24} />
         </button>
         <Logo size={40} className="border-2 border-aba-gold/10 shadow-2xl" />
@@ -114,10 +126,14 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white/5 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-10 sm:p-14 shadow-2xl relative z-10"
       >
-        <div className="text-center mb-12">
-           <div className="w-16 h-16 rounded-[2rem] bg-aba-gold/10 border border-aba-gold/30 flex items-center justify-center text-aba-gold mb-6 shadow-glow mx-auto">
+        <div className="text-center mb-10">
+           <motion.div 
+             initial={{ scale: 0.8, rotate: -10 }}
+             animate={{ scale: 1, rotate: 0 }}
+             className="w-16 h-16 rounded-[2rem] bg-aba-gold/10 border border-aba-gold/30 flex items-center justify-center text-aba-gold mb-6 shadow-glow mx-auto"
+           >
               <ShieldCheck size={32} />
-           </div>
+           </motion.div>
            <h2 className="text-3xl font-black tracking-tighter text-white mb-2 uppercase tracking-wide">
              NODE <span className="text-aba-gold">ACCESS.</span>
            </h2>
@@ -218,7 +234,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                  initial={{ opacity: 0, x: 20 }}
                  animate={{ opacity: 1, x: 0 }}
                  exit={{ opacity: 0, x: -20 }}
-                 onSubmit={handleEmailLogin}
+                 onSubmit={handleEmailAuth}
                  className="space-y-6"
                >
                   <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
@@ -234,25 +250,46 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                       />
                     </div>
                   </div>
-                  <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
-                    <div className="flex items-center">
-                      <div className="p-4"><Lock className="text-aba-gold" size={18} /></div>
-                      <input 
-                        type="password" 
-                        placeholder="PROTOCOL KEY" 
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
-                        required
-                      />
-                    </div>
+                  
+                  {!useMagicLink && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2"
+                    >
+                      <div className="flex items-center">
+                        <div className="p-4"><Lock className="text-aba-gold" size={18} /></div>
+                        <input 
+                          type="password" 
+                          placeholder="PROTOCOL KEY" 
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                          required={!useMagicLink}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <div className="flex justify-end">
+                    <button 
+                      type="button"
+                      onClick={() => setUseMagicLink(!useMagicLink)}
+                      className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors flex items-center gap-2"
+                    >
+                      <Wand2 size={12} />
+                      {useMagicLink ? "Use Password Instead" : "Send Magic Link"}
+                    </button>
                   </div>
+
                   <button 
                     type="submit"
                     disabled={loading}
-                    className="w-full py-6 bg-white text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl hover:bg-aba-gold transition-all active:scale-95 flex items-center justify-center gap-3"
+                    className="w-full py-6 bg-white text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl hover:bg-aba-gold transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
                   >
-                     {loading ? <Loader2 className="animate-spin" size={20} /> : <>Initialize Link</>}
+                     {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                       <>{useMagicLink ? "Dispatch Magic Node" : "Initialize Link"}</>
+                     )}
                   </button>
                </motion.form>
              )}
@@ -263,13 +300,14 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                  <div className="w-full border-t border-white/5" />
               </div>
               <div className="relative flex justify-center text-[8px] font-black uppercase tracking-[0.4em] text-slate-500">
-                 <span className="bg-[#00150d] px-4">Social Mesh Gateway</span>
+                 <span className="bg-[#0b100e] px-4">Social Mesh Gateway</span>
               </div>
            </div>
 
            <button 
              onClick={handleGoogleLogin}
-             className="w-full py-5 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center gap-3 hover:bg-white/10 transition-standard group"
+             disabled={loading}
+             className="w-full py-5 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center gap-3 hover:bg-white/10 transition-standard group disabled:opacity-50"
            >
               <Globe size={20} className="text-white/40 group-hover:text-white transition-standard" />
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white">Google Hub Login</span>
@@ -286,7 +324,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
         </div>
       </motion.div>
       
-      <footer className="p-12 text-center opacity-30 select-none grayscale blur-[1px]">
+      <footer className="p-12 text-center opacity-30 select-none grayscale blur-[0.5px]">
          <span className="text-[16px] font-black uppercase tracking-[1em]">SANDALSroyalle</span>
          <p className="text-[8px] font-black uppercase tracking-widest mt-4">Fidelity Mesh v19.2</p>
       </footer>

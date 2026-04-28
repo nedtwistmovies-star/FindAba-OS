@@ -652,12 +652,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     }
   }, [userEmail, userRole]);
   const [pin, setPin] = useState(["", "", "", ""]);
-  const pinRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  const pin0 = useRef<HTMLInputElement>(null);
+  const pin1 = useRef<HTMLInputElement>(null);
+  const pin2 = useRef<HTMLInputElement>(null);
+  const pin3 = useRef<HTMLInputElement>(null);
+  const pinRefs = [pin0, pin1, pin2, pin3];
 
   const [activeTab, setActiveTab] = useState<
     | "overview"

@@ -112,6 +112,21 @@ export const loginWithGoogle = async () => {
   }
 };
 
+export const sendMagicLink = async (email: string) => {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: window.location.origin
+    }
+  });
+
+  if (error) {
+    console.error("[Auth] Magic Link Send Error:", error.message);
+    throw error;
+  }
+  return true;
+};
+
 export const logout = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) {

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Business, ViewState, Product, Order, OrderStatus, IntegrityGrade } from '../../types';
 import { useToast } from '../../providers/ToastProvider';
 import { 
@@ -14,6 +15,7 @@ import 'leaflet/dist/leaflet.css';
 import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile, updateOrderStatus, fetchDisputes } from '../../services/supabaseService';
 import { MultiImageUpload, ImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
+import { TodoList } from '../../components/TodoList';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { useAuth } from '../../providers/AuthProvider';
 import { BUSINESS_PLANS } from '../../constants';
@@ -56,6 +58,7 @@ const MerchantPortal: React.FC<{
   const [userProfile, setUserProfile] = useState<any>(null);
   const [showUpgradeCheckout, setShowUpgradeCheckout] = useState(false);
   const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<any>(null);
+  const [showTasks, setShowTasks] = useState(false);
 
   useEffect(() => {
     if (initialBusiness) {
@@ -233,6 +236,37 @@ const MerchantPortal: React.FC<{
         }}
         onCancel={() => setShowUpgradeCheckout(false)}
       />
+
+      <AnimatePresence>
+        {showTasks && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowTasks(false)}
+              className="absolute inset-0 bg-aba-deep/90 backdrop-blur-2xl"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-lg"
+            >
+              <div className="absolute -top-3 -right-3 z-10">
+                <button 
+                  onClick={() => setShowTasks(false)}
+                  className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white/60 hover:text-white border border-white/10 shadow-2xl transition-standard"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <TodoList />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <div className="bg-aba-deep p-5 md:p-10 pt-6 md:pt-16 pb-10 md:pb-32 rounded-b-[1.5rem] md:rounded-b-[5rem] shadow-2xl relative shrink-0 overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-[0.03] -rotate-12 hidden md:block"><TrendingUp size={400} /></div>
         <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-5 md:gap-8 relative z-10">
@@ -254,7 +288,7 @@ const MerchantPortal: React.FC<{
                  <div className="absolute top-0 right-0 w-3 h-3 bg-aba-gold rounded-full flex items-center justify-center text-[6px] font-bold text-aba-deep border border-aba-deep">2</div>
               </div>
               <button 
-                onClick={() => addToast("Registry Task List Synchronizing...", "info")}
+                onClick={() => setShowTasks(true)}
                 className="p-2.5 bg-aba-gold text-aba-deep rounded-lg shadow-xl active:scale-95 transition-standard flex-1 md:flex-none flex items-center justify-center gap-2 font-black uppercase text-[8px] tracking-widest shrink-0"
               >
                  <ListChecks size={16} />

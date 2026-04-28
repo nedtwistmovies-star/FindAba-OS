@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, MessageSquare, Plus, ShoppingBag, Search, Bell, History, X } from 'lucide-react';
+import { VariableSizeList } from 'react-window';
 import { Post, Story } from '../../types';
 import { fetchPosts, fetchStories } from '../../services/facesService';
 import StoriesBar from '../../components/StoriesBar';
-import FacesPost from '../../components/FacesPost';
+import { FacesPost } from '../../components/FacesPost';
 import { 
   SectionHeader, 
   NotificationCenter, 
@@ -15,6 +16,14 @@ import { PostUploader } from '../../components/PostUploader';
 import { useAuth } from '../../providers/AuthProvider';
 import { useOracle } from '../../providers/OracleProvider';
 import { useToast } from '../../providers/ToastProvider';
+
+const PostRow = memo(({ data, index, style }: { data: Post[], index: number, style: React.CSSProperties }) => {
+  return (
+    <div style={style} className="px-2 sm:px-4">
+      <FacesPost post={data[index]} />
+    </div>
+  );
+});
 
 const FacesFeed: React.FC = () => {
   const { userUuid } = useAuth();
@@ -27,6 +36,28 @@ const FacesFeed: React.FC = () => {
   const [showPostUploader, setShowPostUploader] = useState(false);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  
+  const listRef = useRef<VariableSizeList>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [listHeight, setListHeight] = useState(800);
+
+  useEffect(() => {
+    const updateHeight = () => {
+      setListHeight(window.innerHeight - 300); // Approximate header space
+    };
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
+  const getRowHeight = useCallback((index: number) => {
+    const post = posts[index];
+    if (!post) return 200;
+    let base = 250; // Header + Content text approximate
+    if (post.media_url) base += 400; // Aspect-video approx height
+    if (post.action_type !== 'none') base += 80;
+    return base;
+  }, [posts]);
 
   const fetchNotifs = async () => {
     if (!userUuid) return;
@@ -69,15 +100,15 @@ const FacesFeed: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-aba-deep text-white pb-32">
-      <div className="container-responsive py-4 sm:py-8 max-w-2xl mx-auto space-y-4 sm:space-y-8">
+    <div className="min-h-screen bg-aba-deep text-white pb-32 overflow-hidden flex flex-col">
+      <div className="flex-1 max-w-2xl mx-auto w-full flex flex-col pt-4 sm:pt-8">
         {/* View Header */}
-        <div className="px-2 sm:px-4">
+        <div className="px-4 sm:px-6 shrink-0">
           <SectionHeader 
             title="Faces" 
             subtitle="& Feed" 
             icon={Sparkles}
-            className="mb-8 sm:mb-12"
+            className="mb-6 sm:mb-8"
             action={
               <div className="flex items-center gap-2 sm:gap-4">
                 <button 
@@ -92,7 +123,7 @@ const FacesFeed: React.FC = () => {
                   className="px-6 py-3 bg-aba-gold text-aba-deep rounded-2xl flex items-center gap-3 font-bold uppercase text-[11px] tracking-[0.2em] shadow-xl hover:bg-white hover:scale-105 active:scale-95 transition-all"
                 >
                   <Search size={18} />
-                  <span>Oracle Search</span>
+                  <span className="hidden sm:inline">Oracle Search</span>
                 </button>
               </div>
             }
@@ -100,17 +131,19 @@ const FacesFeed: React.FC = () => {
         </div>
 
         {/* Stories */}
-        <StoriesBar 
-          stories={stories} 
-          onAddStory={() => setShowPostUploader(true)} 
-          onViewStory={(story) => addToast(`Initiating story node for ${story.author?.username || 'Artisan'}...`, "info")} 
-        />
+        <div className="shrink-0 mb-4">
+          <StoriesBar 
+            stories={stories} 
+            onAddStory={() => setShowPostUploader(true)} 
+            onViewStory={(story) => addToast(`Initiating story node for ${story.author?.username || 'Artisan'}...`, "info")} 
+          />
+        </div>
 
-        {/* Create Post Button (Floating-ish inside feed) */}
-        <div className="px-2 sm:px-4">
-          <div className="bg-white/5 border border-white/5 rounded-2xl sm:rounded-[2.5rem] p-3 sm:p-4 flex items-center gap-3 sm:gap-4 shadow-xl mb-4 sm:mb-8">
+        {/* Create Post Input */}
+        <div className="px-4 sm:px-6 shrink-0 mb-8">
+          <div className="bg-white/5 border border-white/5 rounded-2xl sm:rounded-[2.5rem] p-3 sm:p-4 flex items-center gap-3 sm:gap-4 shadow-xl">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-aba-gold/10 overflow-hidden shrink-0 border border-aba-gold/20 shadow-inner">
-               <img src={`https://picsum.photos/seed/${userUuid}/100/100`} alt="Avatar" className="w-full h-full object-cover" />
+               <img src={`https://picsum.photos/seed/${userUuid}/100/100`} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
             </div>
             <button 
               className="flex-1 text-left px-4 sm:px-6 py-2.5 sm:py-3 bg-white/5 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-bold text-slate-400 hover:text-white transition-standard border border-white/5"
@@ -127,12 +160,20 @@ const FacesFeed: React.FC = () => {
           </div>
         </div>
 
-        {/* Feed Posts */}
-        <div className="px-2 sm:px-4 space-y-6 sm:space-y-8">
+        {/* Virtualized Feed Posts */}
+        <div className="flex-1 min-h-0 relative" ref={containerRef}>
           {posts.length > 0 ? (
-            posts.map(post => (
-              <FacesPost key={post.id} post={post} />
-            ))
+            <VariableSizeList
+              ref={listRef}
+              height={listHeight}
+              itemCount={posts.length}
+              itemSize={getRowHeight}
+              width="100%"
+              itemData={posts}
+              className="scrollbar-hide"
+            >
+              {PostRow}
+            </VariableSizeList>
           ) : (
             <div className="py-32 text-center space-y-4">
               <div className="w-20 h-20 bg-white/5 rounded-[2.5rem] flex items-center justify-center text-white/10 mx-auto border border-white/5">
@@ -206,7 +247,6 @@ const FacesFeed: React.FC = () => {
           onClose={() => setShowNotificationCenter(false)}
           onClear={() => {
             setNotifications([]);
-            // Could add a service call to clear in DB if desired
           }}
           onMarkRead={async (id) => {
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
