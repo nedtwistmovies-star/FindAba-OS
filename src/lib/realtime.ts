@@ -1,87 +1,76 @@
 import { supabase } from "./supabase";
 
-export function subscribeToOrders(userId: string, onCount: (n: number) => void) {
-  let count = 0;
-
+/**
+ * =========================
+ * REALTIME: POSTS
+ * =========================
+ */
+export const subscribeToPosts = (onChange: (payload: any) => void) => {
   const channel = supabase
-    .channel("orders-realtime")
-
+    .channel("realtime:posts")
     .on(
       "postgres_changes",
       {
-        event: "INSERT",
+        event: "*", // INSERT | UPDATE | DELETE
         schema: "public",
-        table: "orders",
+        table: "posts",
       },
       (payload) => {
-        const order = payload.new;
-
-        if (order.seller_id === userId) {
-          count++;
-          onCount(count);
-        }
+        console.log("[Realtime] Posts:", payload);
+        onChange(payload);
       }
     )
-
     .subscribe();
 
   return channel;
-}
+};
 
-
-export function subscribeToMessages(userId: string, onCount: (n: number) => void) {
-  let count = 0;
-
+/**
+ * =========================
+ * REALTIME: LIKES
+ * =========================
+ */
+export const subscribeToLikes = (onChange: (payload: any) => void) => {
   const channel = supabase
-    .channel("messages-realtime")
-
+    .channel("realtime:likes")
     .on(
       "postgres_changes",
       {
-        event: "INSERT",
+        event: "*",
         schema: "public",
-        table: "messages",
+        table: "likes",
       },
       (payload) => {
-        const msg = payload.new;
-
-        if (msg.receiver_id === userId) {
-          count++;
-          onCount(count);
-        }
+        console.log("[Realtime] Likes:", payload);
+        onChange(payload);
       }
     )
-
     .subscribe();
 
   return channel;
-}
+};
 
-
-// =========================
-// CHAT REALTIME
-// =========================
-export function subscribeToMessages(userId: string) {
+/**
+ * =========================
+ * REALTIME: COMMENTS
+ * =========================
+ */
+export const subscribeToComments = (onChange: (payload: any) => void) => {
   const channel = supabase
-    .channel("messages-realtime")
-
+    .channel("realtime:comments")
     .on(
       "postgres_changes",
       {
-        event: "INSERT",
+        event: "*",
         schema: "public",
-        table: "messages",
+        table: "comments",
       },
       (payload) => {
-        const msg = payload.new;
-
-        if (msg.receiver_id === userId) {
-          notify("💬 New message");
-        }
+        console.log("[Realtime] Comments:", payload);
+        onChange(payload);
       }
     )
-
     .subscribe();
 
   return channel;
-}
+};
