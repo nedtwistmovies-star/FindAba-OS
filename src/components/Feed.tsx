@@ -1,4 +1,11 @@
 import { useEffect, useState } from "react";
+import {
+  subscribeToPosts,
+  subscribeToLikes,
+  subscribeToComments,
+} from "../lib/realtime";
+
+import { supabase } from "../lib/supabase";
 import { supabase } from "../lib/supabase";
 
 export default function Feed() {
