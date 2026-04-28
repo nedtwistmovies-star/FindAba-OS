@@ -1,223 +1,58 @@
-
--- FINDABA INDUSTRIAL OS: SUPABASE SCHEMA v20.0
--- PRODUCTION-GRADE CORE SCHEMA FOR FINABA OS
--- Includes: Auth, Hospitality, Booking, Payment, and RLS
+-- FINDABA INDUSTRIAL OS: UNIFIED MASTER SCHEMA v25.0
+-- PRODUCTION-GRADE CORE SCHEMA
+-- Includes: Auth, Social, Commerce, Logistics, Escrow, and Realtime
 
 -- ==========================================
--- 1. CORE PROFILES
+-- 1. CORE PROFILES & AUTH
 -- ==========================================
-CREATE TABLE IF NOT EXISTS profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE,
   phone TEXT UNIQUE,
   full_name TEXT,
+  username TEXT UNIQUE,
   role TEXT DEFAULT 'registered',
   avatar_url TEXT,
+  bio TEXT,
   tier_level TEXT DEFAULT 'starter',
   total_paid INTEGER DEFAULT 0 CHECK (total_paid >= 0),
   subscription_status TEXT DEFAULT 'inactive',
   referral_code TEXT UNIQUE,
-  referred_by UUID REFERENCES profiles(id),
+  referred_by UUID REFERENCES public.profiles(id),
   referral_count INTEGER DEFAULT 0,
   referral_earnings INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ENABLE RLS ON PROFILES
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- 🔹 FIX: SECURITY DEFINER FUNCTION TO AVOID RLS RECURSION
--- This function runs with the privileges of the creator (postgres), bypassing RLS
 CREATE OR REPLACE FUNCTION public.check_is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
-  RETURN (
-    SELECT (role = 'admin')
-    FROM public.profiles
-    WHERE id = auth.uid()
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- DROP ALL POTENTIAL CONFLICTING POLICIES
-DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
-DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
-DROP POLICY IF EXISTS "Users can view all profiles" ON profiles;
-DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
-DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
-DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
-DROP POLICY IF EXISTS "authenticated_can_view_profiles" ON profiles;
-
--- CREATE CLEAN, NON-RECURSIVE POLICIES
--- Policy 1: Everyone can see profiles (essential for social features like "Faces")
-CREATE POLICY "Public profiles are viewable by everyone" 
-ON profiles FOR SELECT 
-USING (true);
-
--- Policy 2: Users can only update their own profile OR Admins can update any
--- We use a simpler check for admins that relies on the SECURITY DEFINER status of check_is_admin()
-CREATE POLICY "Users can update own profile" 
-ON profiles FOR UPDATE 
-USING (auth.uid() = id);
-
-CREATE POLICY "Admins can update any profile"
-ON profiles FOR UPDATE
-USING (public.check_is_admin());
-
--- Policy 3: Users can insert their own profile during signup
-CREATE POLICY "Users can insert own profile" 
-ON profiles FOR INSERT 
-WITH CHECK (auth.uid() = id);
+-- Profiles Policies
+DROP POLICY IF EXISTS "profiles_select_all" ON public.profiles;
+CREATE POLICY "profiles_select_all" ON public.profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
+CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "profiles_admin_all" ON public.profiles;
+CREATE POLICY "profiles_admin_all" ON public.profiles FOR ALL USING (public.check_is_admin());
 
 -- ==========================================
--- 2. HOSPITALITY (SANDALSroyalle)
+-- 2. INDUSTRIAL PARTNERS (BUSINESSES)
 -- ==========================================
-CREATE TABLE IF NOT EXISTS hotels (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  image_url TEXT,
-  address TEXT,
-  city TEXT NOT NULL,
-  phone TEXT,
-  email TEXT,
-  is_active BOOLEAN DEFAULT TRUE,
-  quality_score FLOAT DEFAULT 100,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS rooms (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  hotel_id UUID NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  room_number TEXT, -- Added for backward compatibility with some UI
-  room_type TEXT NOT NULL, -- Must support 'SR_EXEC'
-  price INTEGER NOT NULL CHECK (price > 0),
-  base_price INTEGER, -- Added for backward compatibility
-  is_available BOOLEAN DEFAULT TRUE,
-  status TEXT DEFAULT 'available', -- Added for backward compatibility
-  audit_score INTEGER DEFAULT 100 CHECK (audit_score >= 0 AND audit_score <= 100),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ==========================================
--- 3. BOOKINGS & PAYMENTS
--- ==========================================
-CREATE TABLE IF NOT EXISTS bookings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  hotel_id UUID REFERENCES hotels(id), 
-  room_id UUID NOT NULL REFERENCES rooms(id),
-  check_in DATE NOT NULL,
-  check_out DATE NOT NULL,
-  total_amount INTEGER NOT NULL CHECK (total_amount > 0),
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending','confirmed','cancelled')),
-  guest_name TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS payments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  amount INTEGER NOT NULL CHECK (amount > 0),
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending','success','failed')),
-  reference TEXT UNIQUE NOT NULL,
-  provider TEXT DEFAULT 'paystack',
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Ensure columns exist (Safely handles existing tables)
-DO $$ 
-BEGIN 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='booking_id') THEN
-    ALTER TABLE payments ADD COLUMN booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE;
-  END IF;
-  
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='order_id') THEN
-    ALTER TABLE payments ADD COLUMN order_id UUID;
-  END IF;
-END $$;
-
--- INDEXES
-CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON bookings(user_id);
-CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
-CREATE INDEX IF NOT EXISTS idx_payments_booking_id ON payments(booking_id);
-
--- ENABLE RLS
-ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
-
--- BOOKINGS POLICIES
-DROP POLICY IF EXISTS "Users can view own bookings" ON bookings;
-DROP POLICY IF EXISTS "Users can insert bookings" ON bookings;
-DROP POLICY IF EXISTS "Users can update own bookings" ON bookings;
-DROP POLICY IF EXISTS "Users can delete own bookings" ON bookings;
-
-CREATE POLICY "Users can view own bookings" ON bookings FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert bookings" ON bookings FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update own bookings" ON bookings FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete own bookings" ON bookings FOR DELETE USING (auth.uid() = user_id);
-
--- PAYMENTS POLICIES
-DROP POLICY IF EXISTS "Users can view own payments" ON payments;
-CREATE POLICY "Users can view own payments" ON payments FOR SELECT USING (auth.uid() = user_id);
--- DO NOT allow direct inserts from client for payments (enforced by lack of INSERT policy)
-
--- ==========================================
--- 4. AUTOMATION & TRIGGERS
--- ==========================================
-
--- TRIGGER: Update booking status on payment success
-CREATE OR REPLACE FUNCTION update_booking_on_payment()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.status = 'success' AND NEW.booking_id IS NOT NULL THEN
-    UPDATE bookings
-    SET status = 'confirmed'
-    WHERE id = NEW.booking_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_payment_status_change ON payments;
-CREATE TRIGGER on_payment_status_change
-  AFTER INSERT OR UPDATE ON payments
-  FOR EACH ROW EXECUTE FUNCTION update_booking_on_payment();
-
--- TRIGGER: SANDALSroyalle Business Logic
--- Enforce SR_EXEC and audit_score requirements
-CREATE OR REPLACE FUNCTION enforce_booking_logic()
-RETURNS TRIGGER AS $$
-DECLARE
-  room_record RECORD;
-BEGIN
-  SELECT room_type, audit_score INTO room_record FROM rooms WHERE id = NEW.room_id;
-  
-  -- Only SR_EXEC rooms can be booked in this module (if specified)
-  -- If you want to allow all rooms, remove this check.
-  -- IF room_record.room_type != 'SR_EXEC' THEN
-  --   RAISE EXCEPTION 'Only SR_EXEC rooms can be booked in this module';
-  -- END IF;
-
-  IF room_record.audit_score < 70 THEN
-    RAISE EXCEPTION 'Room audit score is too low for booking (Score: %)', room_record.audit_score;
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE OR REPLACE TRIGGER before_booking_insert
-  BEFORE INSERT ON bookings
-  FOR EACH ROW EXECUTE FUNCTION enforce_booking_logic();
-
--- ==========================================
--- 5. OTHER INDUSTRIAL OS TABLES (RETAINED)
--- ==========================================
-CREATE TABLE IF NOT EXISTS businesses (
-  id TEXT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS public.businesses (
+  id TEXT PRIMARY KEY, 
+  owner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   category TEXT NOT NULL,
@@ -231,10 +66,10 @@ CREATE TABLE IF NOT EXISTS businesses (
   status TEXT DEFAULT 'pending',
   verification_status TEXT DEFAULT 'Unverified',
   verification_level TEXT DEFAULT 'Listed',
+  integrity_grade TEXT DEFAULT 'C',
   is_export_ready BOOLEAN DEFAULT FALSE,
   capacity_indicator TEXT,
   premium_features_enabled BOOLEAN DEFAULT FALSE,
-  commission_rate FLOAT,
   active_features JSONB DEFAULT '{}',
   products JSONB DEFAULT '[]',
   latitude FLOAT,
@@ -243,55 +78,62 @@ CREATE TABLE IF NOT EXISTS businesses (
   description TEXT,
   business_type TEXT,
   is_verified BOOLEAN DEFAULT FALSE,
-  subscription_tier TEXT,
+  subscription_tier TEXT DEFAULT 'Free',
   catalog_images TEXT[],
   videos JSONB DEFAULT '[]',
   bank_name TEXT,
   account_number TEXT,
   account_name TEXT,
+  skills TEXT[],
+  experience_years INTEGER,
+  portfolio_images TEXT[],
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- FINDABA FACES: SOCIAL COMMERCE
-CREATE TABLE IF NOT EXISTS posts (
+ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
+
+-- Business Policies
+DROP POLICY IF EXISTS "Public read businesses" ON public.businesses;
+CREATE POLICY "Public read businesses" ON public.businesses FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Owners can update own business" ON public.businesses;
+CREATE POLICY "Owners can update own business" ON public.businesses FOR UPDATE USING (auth.uid() = owner_id OR public.check_is_admin());
+DROP POLICY IF EXISTS "Authenticated can insert business" ON public.businesses;
+CREATE POLICY "Authenticated can insert business" ON public.businesses FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- ==========================================
+-- 3. SOCIAL COMMERCE (FACES)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT,
   media_url TEXT,
-  media_type TEXT DEFAULT 'image', -- 'image' or 'video'
-  action_type TEXT DEFAULT 'none', -- 'buy', 'book', 'none'
+  media_type TEXT DEFAULT 'image',
+  action_type TEXT DEFAULT 'none',
   action_label TEXT,
-  price INTEGER, -- in NGN
+  price INTEGER,
   likes_count INTEGER DEFAULT 0,
   comments_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS comments (
+CREATE TABLE IF NOT EXISTS public.comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
   author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS likes (
+CREATE TABLE IF NOT EXISTS public.likes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  post_id UUID NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
   author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(post_id, author_id)
 );
 
-CREATE TABLE IF NOT EXISTS followers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  follower_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  following_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(follower_id, following_id)
-);
-
-CREATE TABLE IF NOT EXISTS stories (
+CREATE TABLE IF NOT EXISTS public.stories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   author_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   media_url TEXT NOT NULL,
@@ -300,8 +142,81 @@ CREATE TABLE IF NOT EXISTS stories (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- FIDELITY WALLET
-CREATE TABLE IF NOT EXISTS wallets (
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
+
+-- Social Policies
+CREATE POLICY "Social Read Access" ON public.posts FOR SELECT USING (true);
+CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid() = author_id);
+CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid() = author_id OR public.check_is_admin());
+
+CREATE POLICY "Comments Read Access" ON public.comments FOR SELECT USING (true);
+CREATE POLICY "Comments Insert Access" ON public.comments FOR INSERT WITH CHECK (auth.uid() = author_id);
+
+CREATE POLICY "Likes All Access" ON public.likes FOR ALL USING (auth.uid() = author_id);
+
+CREATE POLICY "Stories Read Access" ON public.stories FOR SELECT USING (true);
+CREATE POLICY "Stories Insert Access" ON public.stories FOR INSERT WITH CHECK (auth.uid() = author_id);
+
+-- ==========================================
+-- 4. COMMERCE, ESCROW & ORDERS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID REFERENCES public.posts(id) ON DELETE SET NULL,
+  product_id TEXT, 
+  buyer_id UUID NOT NULL REFERENCES auth.users(id),
+  seller_id UUID NOT NULL REFERENCES auth.users(id),
+  merchant_id TEXT REFERENCES public.businesses(id),
+  amount INTEGER NOT NULL CHECK (amount > 0),
+  commission_deducted INTEGER DEFAULT 0,
+  merchant_payout INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'processing', 'shipped', 'delivered', 'disputed', 'released', 'completed', 'cancelled', 'refunded')),
+  reference TEXT UNIQUE,
+  tracking_id TEXT,
+  escrow_release_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+-- 🛡️ CRITICAL: ORDER POLICIES
+DROP POLICY IF EXISTS "Orders View Policy" ON public.orders;
+CREATE POLICY "Orders View Policy" ON public.orders FOR SELECT 
+USING (auth.uid() = buyer_id OR auth.uid() = seller_id OR public.check_is_admin());
+
+DROP POLICY IF EXISTS "Orders Update Policy" ON public.orders;
+CREATE POLICY "Orders Update Policy" ON public.orders FOR UPDATE 
+USING (auth.uid() = buyer_id OR auth.uid() = seller_id OR public.check_is_admin());
+
+-- ==========================================
+-- 5. MESSAGING & REALTIME
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id TEXT,
+  sender_id UUID NOT NULL REFERENCES auth.users(id),
+  receiver_id UUID NOT NULL REFERENCES auth.users(id),
+  body TEXT NOT NULL,
+  attachments JSONB DEFAULT '[]',
+  status TEXT DEFAULT 'sent' CHECK (status IN ('sent', 'delivered', 'read')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Messages View Policy" ON public.messages FOR SELECT 
+USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
+CREATE POLICY "Messages Insert Policy" ON public.messages FOR INSERT 
+WITH CHECK (auth.uid() = sender_id);
+
+-- ==========================================
+-- 6. WALLET & FINANCE
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.wallets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
   balance INTEGER DEFAULT 0 CHECK (balance >= 0),
@@ -309,89 +224,67 @@ CREATE TABLE IF NOT EXISTS wallets (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS transactions (
+CREATE TABLE IF NOT EXISTS public.transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+  wallet_id UUID NOT NULL REFERENCES public.wallets(id) ON DELETE CASCADE,
   amount INTEGER NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('deposit', 'withdrawal', 'payment', 'refund')),
+  type TEXT NOT NULL CHECK (type IN ('credit', 'debit', 'deposit', 'withdrawal', 'payment', 'refund')),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'failed')),
+  description TEXT,
   reference TEXT UNIQUE,
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- OTP LOGS (Internal)
-CREATE TABLE IF NOT EXISTS otp_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone TEXT NOT NULL,
-  code TEXT NOT NULL,
-  expires_at TIMESTAMPTZ NOT NULL,
-  used BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
--- ORDERS
-CREATE TABLE IF NOT EXISTS orders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  post_id UUID NOT NULL REFERENCES posts(id),
-  buyer_id UUID NOT NULL REFERENCES auth.users(id),
-  seller_id UUID NOT NULL REFERENCES auth.users(id),
-  amount INTEGER NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'completed', 'cancelled')),
-  reference TEXT UNIQUE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+CREATE POLICY "Wallet View Policy" ON public.wallets FOR SELECT USING (auth.uid() = owner_id);
+CREATE POLICY "Transaction View Policy" ON public.transactions FOR SELECT 
+USING (EXISTS (SELECT 1 FROM public.wallets WHERE id = public.transactions.wallet_id AND owner_id = auth.uid()));
 
--- RPC: Verify OTP
-CREATE OR REPLACE FUNCTION verify_otp(p_phone TEXT, p_code TEXT)
+-- ==========================================
+-- 7. ESCROW & SETTLEMENT RPCs
+-- ==========================================
+
+-- RPC: Complete Payment (Escrow Lock)
+CREATE OR REPLACE FUNCTION public.complete_order_payment(p_order_id UUID, p_reference TEXT)
 RETURNS BOOLEAN AS $$
-DECLARE
-  v_count INTEGER;
 BEGIN
-  SELECT count(*) INTO v_count
-  FROM otp_logs
-  WHERE phone = p_phone AND code = p_code AND expires_at > NOW() AND used = FALSE;
+  UPDATE public.orders 
+  SET status = 'paid', reference = p_reference 
+  WHERE id = p_order_id AND status = 'pending';
   
-  IF v_count > 0 THEN
-    UPDATE otp_logs SET used = TRUE WHERE phone = p_phone AND code = p_code;
-    RETURN TRUE;
-  ELSE
-    RETURN FALSE;
-  END IF;
+  RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- RPC: Create Order
-CREATE OR REPLACE FUNCTION create_order(p_post_id UUID, p_buyer_id UUID)
-RETURNS UUID AS $$
-DECLARE
-  v_post RECORD;
-  v_order_id UUID;
-BEGIN
-  SELECT author_id, price INTO v_post FROM posts WHERE id = p_post_id;
-  
-  INSERT INTO orders (post_id, buyer_id, seller_id, amount, status)
-  VALUES (p_post_id, p_buyer_id, v_post.author_id, v_post.price, 'pending')
-  RETURNING id INTO v_order_id;
-  
-  RETURN v_order_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- RPC: Complete Order Payment
-CREATE OR REPLACE FUNCTION complete_order_payment(p_order_id UUID, p_reference TEXT)
+-- RPC: Release Escrow (Transfer to Seller)
+CREATE OR REPLACE FUNCTION public.release_escrow(p_order_id UUID)
 RETURNS BOOLEAN AS $$
 DECLARE
   v_order RECORD;
+  v_wallet_id UUID;
 BEGIN
-  SELECT * INTO v_order FROM orders WHERE id = p_order_id;
+  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id;
   
-  IF v_order.status = 'pending' THEN
-    UPDATE orders SET status = 'paid', reference = p_reference WHERE id = p_order_id;
+  -- Logic: Only after delivery or explicit release
+  IF v_order.status IN ('paid', 'delivered') THEN
+    -- Find/Create seller wallet
+    INSERT INTO public.wallets (owner_id) VALUES (v_order.seller_id)
+    ON CONFLICT (owner_id) DO NOTHING;
     
-    -- Sync to transactions
-    -- (Simplified logic, usually you'd credit seller/debit buyer or handle escrow)
-    -- This RPC just marks it paid for the webhook demo
+    SELECT id INTO v_wallet_id FROM public.wallets WHERE owner_id = v_order.seller_id;
+    
+    -- Credit seller
+    UPDATE public.wallets SET balance = balance + v_order.merchant_payout WHERE id = v_wallet_id;
+    
+    -- Record Transaction
+    INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
+    VALUES (v_wallet_id, v_order.merchant_payout, 'credit', 'success', 'Order Payout: ' || p_order_id, 'REL-' || p_order_id);
+    
+    -- Update order
+    UPDATE public.orders SET status = 'completed', escrow_release_at = NOW() WHERE id = p_order_id;
     
     RETURN TRUE;
   END IF;
@@ -400,16 +293,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TABLE IF NOT EXISTS platform_config (
-  id INTEGER PRIMARY KEY DEFAULT 1,
-  app_logo TEXT,
-  oracle_avatar TEXT,
-  hero_images TEXT[],
-  hero_videos JSONB DEFAULT '[]',
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- ==========================================
+-- 8. TRIGGERS & REALTIME
+-- ==========================================
 
--- TRIGGER TO CREATE PROFILE ON SIGNUP (HANDLES EMAIL & PHONE)
+-- Trigger: New Profile on Signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
@@ -423,45 +311,20 @@ BEGIN
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
-    phone = EXCLUDED.phone,
-    full_name = COALESCE(profiles.full_name, EXCLUDED.full_name);
+    phone = EXCLUDED.phone;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Ensure trigger is attached to auth.users
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- STORAGE BUCKETS
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('findaba', 'findaba', true)
-ON CONFLICT (id) DO NOTHING;
-
--- REALTIME
--- Safely add tables to publication
-DO $$
-BEGIN
-  -- Profiles
-  IF EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'profiles') THEN
-    ALTER PUBLICATION supabase_realtime DROP TABLE profiles;
-  END IF;
-  ALTER PUBLICATION supabase_realtime ADD TABLE profiles;
-
-  -- Bookings
-  IF EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'bookings') THEN
-    ALTER PUBLICATION supabase_realtime DROP TABLE bookings;
-  END IF;
-  ALTER PUBLICATION supabase_realtime ADD TABLE bookings;
-
-  -- Payments
-  IF EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'payments') THEN
-    ALTER PUBLICATION supabase_realtime DROP TABLE payments;
-  END IF;
-  ALTER PUBLICATION supabase_realtime ADD TABLE payments;
-EXCEPTION
-  WHEN OTHERS THEN
-    RAISE NOTICE 'Could not update publication: %', SQLERRM;
-END $$;
+-- Enable Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.posts;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.wallets;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;

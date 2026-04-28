@@ -109,16 +109,19 @@ export enum OrderStatus {
 
 export interface Order {
   id: string;
-  buyer_email: string;
-  merchant_id: string;
-  product_id: string;
+  post_id?: string;
+  product_id?: string;
+  buyer_id: string;
+  seller_id: string;
+  merchant_id?: string;
   amount: number;
   commission_deducted: number;
   merchant_payout: number;
   status: OrderStatus;
-  escrow_release_at: string;
-  created_at: string;
+  reference?: string;
   tracking_id?: string;
+  escrow_release_at?: string;
+  created_at: string;
 }
 
 export interface Dispute {
@@ -433,12 +436,12 @@ export interface ChatMessage {
   id: string;
   conversation_id?: string;
   sender_id: string;
-  receiverId?: string;
-  text: string;
-  role?: string;
+  receiver_id: string;
+  body: string;
+  role?: 'system' | 'citizen' | 'model' | 'user';
   attachments?: { url: string; name: string; mime: string }[];
   status: 'sent' | 'delivered' | 'read';
-  timestamp: string;
+  created_at: string;
 }
 
 export interface Toast {

@@ -455,13 +455,12 @@ export const createEscrowOrder = async (order: Partial<Order>, business: Busines
   const commission = (order.amount || 0) * rate;
   const merchant_payout = (order.amount || 0) - commission;
   
-  // Immediate release as per user request
+  // Create order in PENDING status (Escrow flow starts here)
   const finalOrder = { 
     ...order, 
     commission_deducted: commission, 
     merchant_payout, 
-    status: OrderStatus.RELEASED, 
-    escrow_release_at: new Date().toISOString(), 
+    status: OrderStatus.PENDING, 
     created_at: new Date().toISOString() 
   };
   
@@ -470,10 +469,15 @@ export const createEscrowOrder = async (order: Partial<Order>, business: Busines
   
   // 🔹 Trigger Email Notifications
   // Notify Customer
-  if (order.buyer_email) {
-    sendOrderReceivedEmail(order.buyer_email, data.id, order.amount || 0).catch(err => 
-      console.warn("[Email] Customer order email failed:", err)
-    );
+  try {
+    const { data: profile } = await client.from('profiles').select('email').eq('id', order.buyer_id || '').single();
+    if (profile?.email) {
+      sendOrderReceivedEmail(profile.email, data.id, order.amount || 0).catch(err => 
+        console.warn("[Email] Customer order email failed:", err)
+      );
+    }
+  } catch (e) {
+    console.warn("[Email] Could not fetch profile for order notification");
   }
 
   // Notify Merchant
@@ -488,6 +492,13 @@ export const createEscrowOrder = async (order: Partial<Order>, business: Busines
   triggerWebhook(WebhookEvent.NEW_ORDER, { order: data, business_name: business.name });
   
   return data;
+};
+
+export const fetchOrdersForBuyer = async (buyerId: string): Promise<Order[]> => {
+  const client = getSupabase();
+  if (!client) return [];
+  const { data } = await client.from('orders').select('*, merchant:businesses(*)').eq('buyer_id', buyerId).order('created_at', { ascending: false });
+  return data || [];
 };
 
 export const fetchMerchantOrders = async (merchantId: string): Promise<Order[]> => {
@@ -733,7 +744,13 @@ export const fetchFavorites = async (userId: string): Promise<string[]> => {
 export const sendMessageToSupabase = async (msg: ChatMessage) => {
   const client = getSupabase();
   if (!client) return;
-  await client.from('messages').insert({ sender_id: msg.sender_id, receiverId: msg.receiverId, body: msg.text, status: msg.status, created_at: msg.timestamp });
+  await client.from('messages').insert({ 
+    sender_id: msg.sender_id, 
+    receiver_id: msg.receiver_id, 
+    body: msg.body, 
+    status: msg.status, 
+    created_at: msg.created_at 
+  });
 };
 
 export const subscribeToMessages = (callback: (payload: any) => void) => {
@@ -1344,6 +1361,14 @@ export const subscribeToDriverSignals = (callback: (payload: any) => void) => {
 /**
  * Merchant: Order & Dispute Hardening
  */
+export const releaseOrderEscrow = async (orderId: string) => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry offline");
+  const { data, error } = await client.rpc('release_escrow', { p_order_id: orderId });
+  if (error) throw error;
+  return data;
+};
+
 export const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry offline");
@@ -1365,17 +1390,18 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
   if (error) throw error;
 
   // 🔹 Trigger Notification Signal (Email)
-  if (data && data.buyer_email) {
-    try {
+  try {
+    const { data: profile } = await client.from('profiles').select('email').eq('id', data.buyer_id).single();
+    if (profile?.email) {
       await sendOrderStatusUpdateEmail(
-        data.buyer_email, 
+        profile.email, 
         status,
         data.amount,
         updates.tracking_id || data.tracking_id || 'MESH-LOCAL-AUTO'
       );
-    } catch (e) {
-      console.warn("[Registry] Notification signal failed to broadcast.", e);
     }
+  } catch (e) {
+    console.warn("[Registry] Notification signal failed to local broadcast.", e);
   }
 
   return data;

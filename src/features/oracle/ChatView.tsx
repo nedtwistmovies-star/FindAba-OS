@@ -29,13 +29,13 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, o
     const sub = subscribeToMessages((payload) => {
       const msg = payload.new;
       const isRelevant = (
-        (msg.sender_id === currentUserEmail && msg.receiverId === targetBusiness.id) ||
-        (msg.sender_id === targetBusiness.id && msg.receiverId === currentUserEmail)
+        (msg.sender_id === currentUserEmail && msg.receiver_id === targetBusiness.id) ||
+        (msg.sender_id === targetBusiness.id && msg.receiver_id === currentUserEmail)
       );
       if (isRelevant) {
         setMessages(prev => {
           if (prev.some(m => m.id === msg.id)) return prev;
-          return [...prev, { ...msg, text: msg.body || msg.text, timestamp: msg.created_at || new Date().toISOString() }];
+          return [...prev, { ...msg, body: msg.body, created_at: msg.created_at || new Date().toISOString() }];
         });
       }
     });
@@ -53,10 +53,9 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, o
     const msg: ChatMessage = { 
       id: `msg-${Date.now()}`,
       sender_id: currentUserEmail, 
-      receiverId: targetBusiness.id, 
-      text: val, 
-      timestamp: new Date().toISOString(), 
-      role: 'citizen',
+      receiver_id: targetBusiness.id, 
+      body: val, 
+      created_at: new Date().toISOString(), 
       status: 'sent'
     };
     
@@ -85,10 +84,9 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, o
     const msg: ChatMessage = { 
       id: `pay-${Date.now()}`,
       sender_id: currentUserEmail, 
-      receiverId: targetBusiness.id, 
-      text: `[COMMERCIAL SIGNAL]: Initialized Settlement of ₦${settlementAmount.toLocaleString()}. Reference: ${res.reference}. ESCROW ACTIVE.`, 
-      timestamp: new Date().toISOString(), 
-      role: 'system',
+      receiver_id: targetBusiness.id, 
+      body: `[COMMERCIAL SIGNAL]: Initialized Settlement of ₦${settlementAmount.toLocaleString()}. Reference: ${res.reference}. ESCROW ACTIVE.`, 
+      created_at: new Date().toISOString(), 
       status: 'delivered'
     };
     await sendMessageToSupabase(msg);
@@ -128,7 +126,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, o
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide bg-gray-50 dark:bg-slate-900/50">
         {messages.map((m, idx) => {
-          const isSystem = m.role === 'system';
+          const isSystem = m.body.includes('[COMMERCIAL SIGNAL]');
           return (
             <div key={m.id || idx} className={`flex ${m.sender_id === currentUserEmail ? 'justify-end' : 'justify-start'} animate-fade-in`}>
               <div className={`max-w-[85%] px-6 py-4 rounded-[2rem] text-[13px] font-medium ${
@@ -138,8 +136,8 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, o
                     ? 'bg-blue-600 text-white rounded-tr-none shadow-md' 
                     : 'bg-white dark:bg-slate-800 dark:text-white border border-slate-100 dark:border-white/5 rounded-tl-none shadow-sm'
               }`}>
-                {m.text}
-                {!isSystem && <div className="text-[7px] mt-1 opacity-40 uppercase font-black">{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
+                {m.body}
+                {!isSystem && <div className="text-[7px] mt-1 opacity-40 uppercase font-black">{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
               </div>
             </div>
           );

@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Image, Video, X, Loader2, AlertCircle, Send } from 'lucide-react';
 import { storageService } from '../lib/storage';
 import { supabase } from '../lib/supabase';
@@ -17,6 +17,17 @@ export const PostUploader: React.FC<PostUploaderProps> = ({ userId, onPostCreate
   const [error, setError] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      // Max height for roughly 3-4 lines (~100px)
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${Math.min(scrollHeight, 120)}px`;
+    }
+  }, [content]);
 
   const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,10 +103,11 @@ export const PostUploader: React.FC<PostUploaderProps> = ({ userId, onPostCreate
           <img src={`https://picsum.photos/seed/${userId}/100/100`} alt="Avatar" className="w-full h-full object-cover" />
         </div>
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="What's the industrial pulse?"
-          className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder:text-white/20 resize-none py-2 text-sm sm:text-base min-h-[80px]"
+          className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder:text-white/20 resize-none py-2 text-sm sm:text-base min-h-[40px] overflow-y-auto custom-scrollbar"
         />
       </div>
 

@@ -762,7 +762,7 @@ const MerchantPortal: React.FC<{
                                <h4 className="text-sm md:text-base font-black uppercase tracking-tight">#{o.id.slice(-8)}</h4>
                                <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(o.status)} bg-white dark:bg-black/20 border shadow-sm`}>{o.status}</span>
                             </div>
-                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{o.buyer_email}</p>
+                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{o.buyer_id}</p>
                          </div>
                       </div>
                       
@@ -1227,7 +1227,7 @@ const MerchantPortal: React.FC<{
                  <div className="h-px bg-slate-200 w-full" />
                  <div className="space-y-0.5">
                     <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest underline decoration-aba-gold underline-offset-4 mb-2">Buyer Handshake</p>
-                    <p className="text-[10px] md:text-[12px] font-black text-aba-dark uppercase truncate">{selectedOrder.buyer_email}</p>
+                    <p className="text-[10px] md:text-[12px] font-black text-aba-dark uppercase truncate">{selectedOrder.buyer_id}</p>
                  </div>
               </div>
 

@@ -6,15 +6,20 @@ import { Post, Story } from '../../types';
 import { fetchPosts, fetchStories } from '../../services/facesService';
 import StoriesBar from '../../components/StoriesBar';
 import FacesPost from '../../components/FacesPost';
+import { 
+  SectionHeader, 
+  NotificationCenter, 
+  LoadingScreen 
+} from '../../components';
 import { PostUploader } from '../../components/PostUploader';
-import NotificationCenter from '../../components/NotificationCenter';
 import { useAuth } from '../../providers/AuthProvider';
 import { useOracle } from '../../providers/OracleProvider';
-import LoadingScreen from '../../components/LoadingScreen';
+import { useToast } from '../../providers/ToastProvider';
 
 const FacesFeed: React.FC = () => {
   const { userUuid } = useAuth();
   const { setIsOracleOpen } = useOracle();
+  const { addToast } = useToast();
   const [posts, setPosts] = useState<Post[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +38,9 @@ const FacesFeed: React.FC = () => {
       ]);
       setPosts(postsData);
       setStories(storiesData);
-    } catch (e) {
+    } catch (e: any) {
       console.error("[Faces] Load Error:", e);
+      addToast(e.message || "Signal synchronization failed.", "error");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -62,6 +68,13 @@ const FacesFeed: React.FC = () => {
             action={
               <div className="flex items-center gap-2 sm:gap-4">
                 <button 
+                  onClick={() => setShowNotificationCenter(true)}
+                  className="p-3 bg-white/5 border border-white/10 rounded-2xl text-white/40 hover:text-aba-gold hover:border-aba-gold transition-all relative"
+                >
+                  <Bell size={20} />
+                  <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-aba-red rounded-full" />
+                </button>
+                <button 
                   onClick={() => setIsOracleOpen(true)}
                   className="px-6 py-3 bg-aba-gold text-aba-deep rounded-2xl flex items-center gap-3 font-bold uppercase text-[11px] tracking-[0.2em] shadow-xl hover:bg-white hover:scale-105 active:scale-95 transition-all"
                 >
@@ -77,7 +90,7 @@ const FacesFeed: React.FC = () => {
         <StoriesBar 
           stories={stories} 
           onAddStory={() => setShowPostUploader(true)} 
-          onViewStory={() => {}} 
+          onViewStory={(story) => addToast(`Initiating story node for ${story.author?.username || 'Artisan'}...`, "info")} 
         />
 
         {/* Create Post Button (Floating-ish inside feed) */}
@@ -174,10 +187,14 @@ const FacesFeed: React.FC = () => {
         )}
       </AnimatePresence>
       {/* Notification Center Overlay */}
-      <NotificationCenter 
-        isOpen={showNotificationCenter}
-        onClose={() => setShowNotificationCenter(false)}
-      />
+      {showNotificationCenter && (
+        <NotificationCenter 
+          notifications={[]} 
+          onClose={() => setShowNotificationCenter(false)}
+          onClear={() => {}}
+          onMarkRead={() => {}}
+        />
+      )}
     </div>
   );
 };

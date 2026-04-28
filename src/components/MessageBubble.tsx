@@ -11,7 +11,7 @@ const MessageBubble: React.FC<Props> = ({ message, isOwn }) => {
   return (
     <div className={`max-w-[85%] flex flex-col ${isOwn ? 'items-end ml-auto' : 'items-start mr-auto'} animate-fade-in`}>
       <div className={`p-5 rounded-[2.2rem] ${isOwn ? 'bg-aba-gold text-aba-dark rounded-tr-none' : 'bg-slate-800 text-white rounded-tl-none border border-white/5'} shadow-xl`}>
-        {message.text && <p className="text-[13px] font-medium leading-relaxed">{message.text}</p>}
+        {message.body && <p className="text-[13px] font-medium leading-relaxed">{message.body}</p>}
         {message.attachments?.length ? (
           <div className="mt-4 grid grid-cols-1 gap-3">
             {message.attachments.map((a, idx) => (
@@ -25,7 +25,7 @@ const MessageBubble: React.FC<Props> = ({ message, isOwn }) => {
       </div>
       <div className="mt-2 flex items-center gap-3 px-2">
         <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">
-          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
         {isOwn && <span className="text-[8px] font-black text-aba-green uppercase tracking-widest">● {message.status || 'Sent'}</span>}
       </div>
