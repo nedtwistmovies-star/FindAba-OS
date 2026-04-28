@@ -1083,7 +1083,7 @@ export const fetchMessagesFromDB = async (userEmail: string, targetBusinessId: s
     const { data, error } = await client
       .from('messages')
       .select('*')
-      .or(`and(sender_id.eq.${userEmail},receiverId.eq.${targetBusinessId}),and(sender_id.eq.${targetBusinessId},receiverId.eq.${userEmail})`)
+      .or(`and(sender_id.eq.${userEmail},receiver_id.eq.${targetBusinessId}),and(sender_id.eq.${targetBusinessId},receiver_id.eq.${userEmail})`)
       .order('created_at', { ascending: true });
     if (error && error.code === '42P01') return [];
     return data || [];

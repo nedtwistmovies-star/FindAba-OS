@@ -26,6 +26,18 @@ const FacesFeed: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showPostUploader, setShowPostUploader] = useState(false);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  const fetchNotifs = async () => {
+    if (!userUuid) return;
+    try {
+      const { fetchNotifications } = await import('../../services/supabaseService');
+      const data = await fetchNotifications(userUuid);
+      setNotifications(data);
+    } catch (e) {
+      console.warn("Notification fetch failed");
+    }
+  };
 
   const loadData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -38,6 +50,7 @@ const FacesFeed: React.FC = () => {
       ]);
       setPosts(postsData);
       setStories(storiesData);
+      fetchNotifs();
     } catch (e: any) {
       console.error("[Faces] Load Error:", e);
       addToast(e.message || "Signal synchronization failed.", "error");
@@ -189,10 +202,21 @@ const FacesFeed: React.FC = () => {
       {/* Notification Center Overlay */}
       {showNotificationCenter && (
         <NotificationCenter 
-          notifications={[]} 
+          notifications={notifications} 
           onClose={() => setShowNotificationCenter(false)}
-          onClear={() => {}}
-          onMarkRead={() => {}}
+          onClear={() => {
+            setNotifications([]);
+            // Could add a service call to clear in DB if desired
+          }}
+          onMarkRead={async (id) => {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+            try {
+              const { markNotificationAsRead } = await import('../../services/supabaseService');
+              await markNotificationAsRead(id);
+            } catch (e) {
+              console.warn("Mark read failed");
+            }
+          }}
         />
       )}
     </div>

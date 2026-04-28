@@ -23,9 +23,12 @@ export const fetchPosts = async (limit = 20, offset = 0) => {
 };
 
 export const createPost = async (post: Partial<Post>) => {
+  const payload = { ...post };
+  if (post.author_id) (payload as any).profile_id = post.author_id;
+  
   const { data, error } = await supabase
     .from('posts')
-    .insert(post)
+    .insert(payload)
     .select()
     .single();
 
@@ -58,7 +61,7 @@ export const toggleLike = async (postId: string, userId: string) => {
   } else {
     const { error } = await supabase
       .from('likes')
-      .insert({ post_id: postId, author_id: userId });
+      .insert({ post_id: postId, author_id: userId, profile_id: userId });
     if (error) throw error;
     return true; // Liked
   }
@@ -84,7 +87,7 @@ export const fetchComments = async (postId: string) => {
 export const addComment = async (postId: string, userId: string, content: string) => {
   const { data, error } = await supabase
     .from('comments')
-    .insert({ post_id: postId, author_id: userId, content })
+    .insert({ post_id: postId, author_id: userId, profile_id: userId, content })
     .select(`
       *,
       author:profiles(*)
@@ -116,9 +119,12 @@ export const fetchStories = async () => {
 export const createStory = async (story: Partial<Story>) => {
   // Stories expire in 24 hours
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const payload = { ...story, expires_at: expiresAt };
+  if (story.author_id) (payload as any).profile_id = story.author_id;
+
   const { data, error } = await supabase
     .from('stories')
-    .insert({ ...story, expires_at: expiresAt })
+    .insert(payload)
     .select()
     .single();
 
