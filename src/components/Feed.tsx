@@ -12,8 +12,8 @@ export default function Feed() {
   // 🔄 LOAD POSTS
   const loadPosts = async () => {
     const { data, error } = await supabase
-  .from("posts")
-  .select("*, author:profiles(*)")
+      .from("posts")
+      .select("*, author:profiles(*)")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -36,17 +36,9 @@ export default function Feed() {
     let commentChannel: any;
 
     const initRealtime = async () => {
-      postChannel = subscribeToPosts(async () => {
-        await loadPosts();
-      });
-
-      likeChannel = subscribeToLikes(async () => {
-        await loadPosts();
-      });
-
-      commentChannel = subscribeToComments(async () => {
-        await loadPosts();
-      });
+      postChannel = subscribeToPosts(loadPosts);
+      likeChannel = subscribeToLikes(loadPosts);
+      commentChannel = subscribeToComments(loadPosts);
     };
 
     initRealtime();
@@ -58,21 +50,29 @@ export default function Feed() {
     };
   }, []);
 
-  // 🎨 UI
+  // 🎨 UI (FIXED)
   return (
     <div className="max-w-md mx-auto">
       {posts.map((post) => (
         <div key={post.id} className="p-4 border-b">
+
+          {/* 👇 AUTHOR */}
           <div className="flex items-center gap-2">
             <img
-              src={post.profiles?.avatar_url}
+              src={post.author?.avatar_url || "/default-avatar.png"}
               className="w-8 h-8 rounded-full"
             />
-            <span>{post.profiles?.name}</span>
+            <span>
+              {post.author?.full_name ||
+                post.author?.username ||
+                "User"}
+            </span>
           </div>
 
+          {/* 👇 CONTENT */}
           <p className="mt-2">{post.content}</p>
 
+          {/* 👇 MEDIA */}
           {post.media_url && (
             <img
               src={post.media_url}
