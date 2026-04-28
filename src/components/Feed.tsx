@@ -12,8 +12,8 @@ export default function Feed() {
   // 🔄 LOAD POSTS
   const loadPosts = async () => {
     const { data, error } = await supabase
-      .from("posts")
-      .select("*, profiles(avatar_url, name)")
+  .from("posts")
+  .select("*, author:profiles(*)")
       .order("created_at", { ascending: false });
 
     if (error) {
