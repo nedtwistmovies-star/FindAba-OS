@@ -96,18 +96,16 @@ ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read businesses" ON public.businesses;
 CREATE POLICY "Public read businesses" ON public.businesses FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Owners can update own business" ON public.businesses;
-CREATE POLICY "Owners can update own business" ON public.businesses FOR UPDATE 
+-- Allow any authenticated user full access to unowned businesses (for registration/claiming)
+-- or businesses they already own, or if they are an admin.
+DROP POLICY IF EXISTS "Registry access policy" ON public.businesses;
+CREATE POLICY "Registry access policy" ON public.businesses FOR ALL 
   USING (auth.uid() = owner_id OR owner_id IS NULL OR public.check_is_admin())
   WITH CHECK (auth.uid() = owner_id OR owner_id IS NULL OR public.check_is_admin());
 
 DROP POLICY IF EXISTS "Authenticated can insert business" ON public.businesses;
 CREATE POLICY "Authenticated can insert business" ON public.businesses FOR INSERT 
   WITH CHECK (auth.uid() IS NOT NULL);
-
-DROP POLICY IF EXISTS "Owners can delete own business" ON public.businesses;
-CREATE POLICY "Owners can delete own business" ON public.businesses FOR DELETE 
-  USING (auth.uid() = owner_id OR public.check_is_admin());
 
 -- ==========================================
 -- 3. SOCIAL COMMERCE (FACES)

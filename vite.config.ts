@@ -6,12 +6,14 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    exclude: ['recharts']
+    include: ['lodash-es'],
+    exclude: []
   },
   resolve: {
     alias: {
       'react': path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom')
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      'lodash': 'lodash-es'
     },
     dedupe: ['react', 'react-dom']
   },
