@@ -1,6 +1,6 @@
 {
   "version": "v6.0",
-  "lastUpdated": "2026-04-28T19:02:28.184Z",
+  "lastUpdated": "2026-04-29T16:34:28.692Z",
   "businesses": [
     {
       "name": "sandals royalle resources",
@@ -36,7 +36,8 @@
       "average_rating": 0,
       "id": "4ea05c2e-cbb7-4ef1-a4c7-4fcc67c117a8",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     },
     {
       "name": "AmyOils",
@@ -75,7 +76,8 @@
       "average_rating": 0,
       "id": "bbb07c17-dba7-4ea3-acc4-bf94a78efe7a",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     },
     {
       "name": "SANDALSROYALLE S&P SERVICES",
@@ -114,7 +116,8 @@
       "average_rating": 0,
       "id": "3940c97f-bc52-4f92-a8cf-46be628b4cc3",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     },
     {
       "name": "Rutch Afrique",
@@ -153,7 +156,8 @@
       "average_rating": 0,
       "id": "96fb947d-2e0a-4c46-a363-8c7b34ce9214",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     },
     {
       "name": "FindAba Magazine ",
@@ -192,7 +196,8 @@
       "average_rating": 0,
       "id": "7feb49da-658e-4941-829a-f83f22786238",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     },
     {
       "name": "Master-Link Leather Hub",
@@ -229,7 +234,8 @@
       "average_rating": 0,
       "id": "f69ba686-7fdc-46d5-93cc-949597b0b124",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     },
     {
       "name": "SandalsRoyalle Executive Node",
@@ -265,7 +271,8 @@
       "average_rating": 0,
       "id": "622a04b1-b7fb-4c73-b4b5-ad9d816028ee",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     },
     {
       "name": "Heritage Textile Hub",
@@ -301,7 +308,8 @@
       "average_rating": 0,
       "id": "a8b7de52-05a8-41cb-adfb-62f0ac81ab7a",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     },
     {
       "name": "Aba Precision Engineering",
@@ -337,7 +345,8 @@
       "average_rating": 0,
       "id": "4cc93f63-c50a-4974-b368-49ff5fbedb60",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     },
     {
       "name": "Enyimba Fashion House",
@@ -374,7 +383,8 @@
       "average_rating": 0,
       "id": "ca14d9b3-a899-481a-a16d-4bf8fe1667d3",
       "profile_id": null,
-      "location": null
+      "location": null,
+      "user_id": null
     }
   ]
 }

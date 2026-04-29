@@ -140,7 +140,8 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo, oracleAvatar, socialLinks }) => {
   const { addToast } = useToast();
-  const { userIdentifier, userName, isAuth } = useAuth();
+  const { userIdentifier, userName, isAuth, profile } = useAuth();
+  const safeProfile = profile || {};
   const { searchQuery, setSearchQuery, searchResults, isSearching, setSelectedBusiness } = useBusiness();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRegistryActive, setIsRegistryActive] = useState(false);
@@ -172,7 +173,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   }, [isAuth, userIdentifier]);
   
   const isSealed = localStorage.getItem('findaba_registry_sealed') === 'true';
-  const isDarkView = ['discover', 'home', 'editorial', 'editorial-detail', 'oracle', 'admin', 'srts-dashboard', 'sandals-hotels', 'lab', 'about', 'feed', 'login', 'purple-fleet', 'driver-console', 'fleet-admin', 'wallet'].includes(currentView);
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -235,6 +235,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   ];
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  
+  const userDarkMode = safeProfile?.dark_mode;
+  const isDarkThemeActive = userDarkMode !== undefined ? userDarkMode : ['discover', 'home', 'editorial', 'editorial-detail', 'oracle', 'admin', 'srts-dashboard', 'sandals-hotels', 'lab', 'about', 'feed', 'login', 'purple-fleet', 'driver-console', 'fleet-admin', 'wallet'].includes(currentView);
 
   const SidebarItem = ({ item }: { item: typeof menuItems[0] }) => (
     <button 
@@ -255,7 +258,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   );
 
   return (
-    <div className={`flex flex-col min-h-[100dvh] w-full transition-colors duration-500 font-sans relative ${isDarkView ? 'bg-aba-deep text-white' : 'bg-aba-white text-aba-deep'}`}>
+    <div className={`flex flex-col min-h-[100dvh] w-full transition-colors duration-500 font-sans relative ${isDarkThemeActive ? 'bg-aba-deep text-white' : 'bg-aba-white text-aba-deep'}`}>
       
       {/* DESKTOP SIDEBAR */}
       <aside className={`hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-[1100] transition-standard border-r border-white/5 bg-black/20 backdrop-blur-xl ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
@@ -291,9 +294,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
         </div>
       </aside>
 
-      <div className={`flex-1 flex flex-col transition-standard ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'} ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
+      <div className={`flex-1 flex flex-col transition-standard ${isDarkThemeActive ? 'bg-aba-deep' : 'bg-aba-white'} ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         
-        <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-6 py-3 md:py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? 'lg:left-20' : 'lg:left-64'} ${isDarkView ? 'bg-black/60 border-b border-white/5 shadow-2xl' : 'bg-white/90 border-b border-black/5 shadow-lg'}`}>
+        <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-6 py-3 md:py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? 'lg:left-20' : 'lg:left-64'} ${isDarkThemeActive ? 'bg-black/60 border-b border-white/5 shadow-2xl' : 'bg-white/90 border-b border-black/5 shadow-lg'}`}>
           <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group shrink-0 lg:hidden" onClick={() => setView('home')}>
               <Logo src={activeLogo} size={28} className="sm:w-8 sm:h-8 group-hover:scale-105 transition-standard" />
               <div className="flex flex-col">
@@ -408,10 +411,16 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               </button>
 
               <button 
-                onClick={() => setView('profile')}
-                className="flex items-center justify-center w-9 h-9 rounded-xl border border-white/10 bg-white/5 active:scale-90 transition-standard hover:border-aba-gold ml-1 group"
+                onClick={() => setView(isAuth ? 'profile' : 'login')}
+                className={`flex items-center justify-center w-9 h-9 rounded-xl border transition-standard ml-1 group ${
+                  isAuth ? 'bg-aba-green/10 border-aba-green/20' : 'bg-white/5 border-white/10'
+                }`}
               >
-                <UserCircle size={20} className="text-white/20 group-hover:text-aba-gold transition-colors" />
+                {isAuth ? (
+                  <UserCircle size={20} className="text-aba-green" />
+                ) : (
+                  <Key size={18} className="text-white/20 group-hover:text-aba-gold" />
+                )}
               </button>
             </div>
 
@@ -436,10 +445,24 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               </button>
 
               <button 
-                onClick={() => setView('profile')}
-                className="w-10 h-10 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center shadow-sm active:scale-95 transition-standard hover:border-aba-gold group/profile"
+                onClick={() => setView(isAuth ? 'profile' : 'login')}
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg border transition-standard group active:scale-95 ${
+                  isAuth 
+                    ? 'bg-aba-green/10 border-aba-green/20 hover:border-aba-green text-aba-green' 
+                    : 'bg-white/5 border-white/10 hover:border-aba-gold hover:text-aba-gold text-white/40'
+                }`}
               >
-                <UserCircle size={24} className="text-white/20 group-hover:text-aba-gold transition-colors" />
+                {isAuth ? (
+                  <>
+                    <UserCircle size={20} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{userName?.split(' ')[0] || 'PROFILE'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Key size={18} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">SIGN IN</span>
+                  </>
+                )}
               </button>
             </div>
 
@@ -468,7 +491,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           <div className="flex-1 w-full max-w-full">
             {children}
           </div>
-          <footer className={`w-full relative flex flex-col transition-standard pb-48 sm:pb-52 ${isDarkView ? 'bg-aba-deep' : 'bg-aba-white'}`}>
+          <footer className={`w-full relative flex flex-col transition-standard pb-48 sm:pb-52 ${isDarkThemeActive ? 'bg-aba-deep' : 'bg-aba-white'}`}>
             
             {/* Requested Menu Structure */}
             <div className="px-6 md:px-8 py-16 md:py-24 space-y-16 max-w-5xl mx-auto w-full">
@@ -514,7 +537,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             </div>
           </div>
 
-          <div className={`w-full py-16 px-8 border-t ${isDarkView ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
+          <div className={`w-full py-16 px-8 border-t ${isDarkThemeActive ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
               <div className="space-y-8">
                 <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Connect With Us</h4>
@@ -562,7 +585,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             </div>
           </div>
 
-          <div className={`w-full py-12 px-8 text-center space-y-2 border-t ${isDarkView ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
+          <div className={`w-full py-12 px-8 text-center space-y-2 border-t ${isDarkThemeActive ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
             <p className="text-[10px] font-medium opacity-40 uppercase tracking-widest">
               © 2026 FindAba Industrial Hub
             </p>
@@ -571,14 +594,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             </p>
           </div>
 
-          <BrandSignature light={isDarkView} />
-          <AIWelcomeSection light={isDarkView} />
+          <BrandSignature light={isDarkThemeActive} />
+          <AIWelcomeSection light={isDarkThemeActive} />
           <div className="h-20 w-full" />
         </footer>
       </main>
     </div>
 
-      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-2 md:px-8 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:py-6 flex justify-around items-center transition-standard lg:hidden ${isDarkView ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-2 md:px-8 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:py-6 flex justify-around items-center transition-standard lg:hidden ${isDarkThemeActive ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
         {[
           { id: 'home', icon: <Home size={18} />, label: 'HOME' },
           { id: 'feed', icon: <Users size={18} />, label: 'FACES' },
@@ -589,7 +612,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           <button 
             key={i}
             onClick={() => setView(btn.id as ViewState)} 
-            className={`flex flex-col items-center gap-1 transition-all active:scale-90 group pb-1 ${currentView === btn.id ? 'text-aba-gold' : (isDarkView ? 'text-white/30 hover:text-white/50' : 'text-aba-deep/30 hover:text-aba-deep/50')}`}
+            className={`flex flex-col items-center gap-1 transition-all active:scale-90 group pb-1 ${currentView === btn.id ? 'text-aba-gold' : (isDarkThemeActive ? 'text-white/30 hover:text-white/50' : 'text-aba-deep/30 hover:text-aba-deep/50')}`}
           >
             <div className={`transition-transform duration-500 ${currentView === btn.id ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'group-hover:scale-105'}`}>{btn.icon}</div>
             <span className={`text-[6.5px] font-black uppercase tracking-[0.05em] transition-opacity ${currentView === btn.id ? 'opacity-100' : 'opacity-60'}`}>{btn.label}</span>

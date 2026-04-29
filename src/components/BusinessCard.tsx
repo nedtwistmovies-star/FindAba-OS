@@ -166,13 +166,14 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
           </div>
         )}
 
-        <div className={`absolute top-4 left-4 flex flex-col gap-1.5 z-20 ${activeOrder ? 'mt-10' : ''}`}>
-           <div className={`text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-1.5 border backdrop-blur-md transition-standard ${getGradeColor(business.integrity_grade)}`}>
-              Grade {business.integrity_grade}
-           </div>
-           {isVerified && (
-              <div className="bg-aba-deep/80 text-aba-gold text-[8px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-aba-gold/20 backdrop-blur-md">
-                 <ShieldCheck size={10} fill="currentColor" className="text-aba-gold" /> Verified
+        <div className={`absolute top-4 left-4 flex flex-col gap-2 z-20 ${activeOrder ? 'mt-10' : ''}`}>
+           {isVerified ? (
+              <div className="bg-aba-gold text-aba-deep text-[9px] font-black px-4 py-2 rounded-full uppercase tracking-widest shadow-[0_0_20px_rgba(251,191,36,0.5)] flex items-center gap-2 border border-white/20 animate-pulse-slow">
+                 <CheckCircle2 size={12} fill="currentColor" /> VERIFIED PARTNER
+              </div>
+           ) : (
+              <div className={`text-[9px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-1.5 border backdrop-blur-md transition-standard ${getGradeColor(business.integrity_grade)}`}>
+                 Grade {business.integrity_grade}
               </div>
            )}
         </div>

@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   referred_by UUID REFERENCES public.profiles(id),
   referral_count INTEGER DEFAULT 0,
   referral_earnings INTEGER DEFAULT 0,
+  preferred_language TEXT DEFAULT 'en',
+  notification_settings JSONB DEFAULT '{"email": true, "sms": false, "push": true}',
+  dark_mode BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -30,9 +33,14 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE OR REPLACE FUNCTION public.check_is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
+  -- Defensive check for null auth context
+  IF auth.uid() IS NULL THEN
+    RETURN FALSE;
+  END IF;
+
   RETURN EXISTS (
     SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'admin'
+    WHERE id = auth.uid()::uuid AND role = 'admin'
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -41,9 +49,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 DROP POLICY IF EXISTS "profiles_select_all" ON public.profiles;
 CREATE POLICY "profiles_select_all" ON public.profiles FOR SELECT USING (true);
 DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid()::uuid = id::uuid);
 DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
-CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid()::uuid = id::uuid);
 DROP POLICY IF EXISTS "profiles_admin_all" ON public.profiles;
 CREATE POLICY "profiles_admin_all" ON public.profiles FOR ALL USING (public.check_is_admin());
 
@@ -52,7 +60,7 @@ CREATE POLICY "profiles_admin_all" ON public.profiles FOR ALL USING (public.chec
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.businesses (
   id TEXT PRIMARY KEY, 
-  owner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   category TEXT NOT NULL,
@@ -100,12 +108,12 @@ CREATE POLICY "Public read businesses" ON public.businesses FOR SELECT USING (tr
 -- or businesses they already own, or if they are an admin.
 DROP POLICY IF EXISTS "Registry access policy" ON public.businesses;
 CREATE POLICY "Registry access policy" ON public.businesses FOR ALL 
-  USING (auth.uid() = owner_id OR owner_id IS NULL OR public.check_is_admin())
-  WITH CHECK (auth.uid() = owner_id OR owner_id IS NULL OR public.check_is_admin());
+  USING (auth.uid()::uuid = user_id::uuid OR user_id IS NULL OR public.check_is_admin())
+  WITH CHECK (auth.uid()::uuid = user_id::uuid OR user_id IS NULL OR public.check_is_admin());
 
 DROP POLICY IF EXISTS "Authenticated can insert business" ON public.businesses;
 CREATE POLICY "Authenticated can insert business" ON public.businesses FOR INSERT 
-  WITH CHECK (auth.uid() IS NOT NULL);
+  WITH CHECK (auth.uid()::uuid IS NOT NULL);
 
 -- ==========================================
 -- 3. SOCIAL COMMERCE (FACES)
@@ -156,16 +164,16 @@ ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
 
 -- Social Policies
 CREATE POLICY "Social Read Access" ON public.posts FOR SELECT USING (true);
-CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid() = user_id OR public.check_is_admin());
+CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid()::uuid = user_id);
+CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid()::uuid = user_id OR public.check_is_admin());
 
 CREATE POLICY "Comments Read Access" ON public.comments FOR SELECT USING (true);
-CREATE POLICY "Comments Insert Access" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Comments Insert Access" ON public.comments FOR INSERT WITH CHECK (auth.uid()::uuid = user_id);
 
-CREATE POLICY "Likes All Access" ON public.likes FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Likes All Access" ON public.likes FOR ALL USING (auth.uid()::uuid = user_id);
 
 CREATE POLICY "Stories Read Access" ON public.stories FOR SELECT USING (true);
-CREATE POLICY "Stories Insert Access" ON public.stories FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Stories Insert Access" ON public.stories FOR INSERT WITH CHECK (auth.uid()::uuid = user_id);
 
 -- ==========================================
 -- 4. COMMERCE, ESCROW & ORDERS
@@ -192,11 +200,11 @@ ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 -- 🛡️ CRITICAL: ORDER POLICIES
 DROP POLICY IF EXISTS "Orders View Policy" ON public.orders;
 CREATE POLICY "Orders View Policy" ON public.orders FOR SELECT 
-USING (auth.uid() = buyer_id OR auth.uid() = seller_id OR public.check_is_admin());
+USING (auth.uid()::uuid = buyer_id::uuid OR auth.uid()::uuid = seller_id::uuid OR public.check_is_admin());
 
 DROP POLICY IF EXISTS "Orders Update Policy" ON public.orders;
 CREATE POLICY "Orders Update Policy" ON public.orders FOR UPDATE 
-USING (auth.uid() = buyer_id OR auth.uid() = seller_id OR public.check_is_admin());
+USING (auth.uid()::uuid = buyer_id::uuid OR auth.uid()::uuid = seller_id::uuid OR public.check_is_admin());
 
 -- ==========================================
 -- 5. MESSAGING & REALTIME
@@ -215,17 +223,17 @@ CREATE TABLE IF NOT EXISTS public.messages (
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Messages View Policy" ON public.messages FOR SELECT 
-USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+USING (auth.uid()::uuid = sender_id OR auth.uid()::uuid = receiver_id);
 
 CREATE POLICY "Messages Insert Policy" ON public.messages FOR INSERT 
-WITH CHECK (auth.uid() = sender_id);
+WITH CHECK (auth.uid()::uuid = sender_id);
 
 -- ==========================================
 -- 6. WALLET & FINANCE
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.wallets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
   balance INTEGER DEFAULT 0 CHECK (balance >= 0),
   currency TEXT DEFAULT 'NGN',
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -246,9 +254,9 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Wallet View Policy" ON public.wallets FOR SELECT USING (auth.uid() = owner_id);
+CREATE POLICY "Wallet View Policy" ON public.wallets FOR SELECT USING (auth.uid()::uuid = user_id);
 CREATE POLICY "Transaction View Policy" ON public.transactions FOR SELECT 
-USING (EXISTS (SELECT 1 FROM public.wallets WHERE id = public.transactions.wallet_id AND owner_id = auth.uid()));
+USING (EXISTS (SELECT 1 FROM public.wallets WHERE id = public.transactions.wallet_id AND user_id = auth.uid()::uuid));
 
 -- ==========================================
 -- 7. ESCROW & SETTLEMENT RPCs
@@ -260,7 +268,7 @@ RETURNS BOOLEAN AS $$
 BEGIN
   UPDATE public.orders 
   SET status = 'paid', reference = p_reference 
-  WHERE id = p_order_id AND status = 'pending';
+  WHERE id = p_order_id::uuid AND status = 'pending';
   
   RETURN FOUND;
 END;
@@ -273,25 +281,25 @@ DECLARE
   v_order RECORD;
   v_wallet_id UUID;
 BEGIN
-  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id;
+  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id::uuid;
   
   -- Logic: Only after delivery or explicit release
   IF v_order.status IN ('paid', 'delivered') THEN
     -- Find/Create seller wallet
-    INSERT INTO public.wallets (owner_id) VALUES (v_order.seller_id)
-    ON CONFLICT (owner_id) DO NOTHING;
+    INSERT INTO public.wallets (user_id) VALUES (v_order.seller_id::uuid)
+    ON CONFLICT (user_id) DO NOTHING;
     
-    SELECT id INTO v_wallet_id FROM public.wallets WHERE owner_id = v_order.seller_id;
+    SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = v_order.seller_id::uuid;
     
     -- Credit seller
-    UPDATE public.wallets SET balance = balance + v_order.merchant_payout WHERE id = v_wallet_id;
+    UPDATE public.wallets SET balance = balance + v_order.merchant_payout WHERE id = v_wallet_id::uuid;
     
     -- Record Transaction
     INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
     VALUES (v_wallet_id, v_order.merchant_payout, 'credit', 'success', 'Order Payout: ' || p_order_id, 'REL-' || p_order_id);
     
     -- Update order
-    UPDATE public.orders SET status = 'completed', escrow_release_at = NOW() WHERE id = p_order_id;
+    UPDATE public.orders SET status = 'completed', escrow_release_at = NOW() WHERE id = p_order_id::uuid;
     
     RETURN TRUE;
   END IF;
@@ -359,6 +367,39 @@ CREATE TABLE IF NOT EXISTS public.platform_config (
   tiktok_url TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT single_row CHECK (id = 1)
+);
+
+CREATE TABLE IF NOT EXISTS public.hospitality_config (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  featured_hotels TEXT[],
+  announcements TEXT[],
+  tax_rate FLOAT DEFAULT 0.075,
+  service_charge FLOAT DEFAULT 0.05,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT single_row_hosp CHECK (id = 1)
+);
+
+CREATE TABLE IF NOT EXISTS public.quality_audits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id TEXT NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  auditor_id UUID REFERENCES public.profiles(id),
+  score INTEGER CHECK (score >= 0 AND score <= 100),
+  findings TEXT,
+  recommendations TEXT,
+  status TEXT DEFAULT 'pending',
+  next_audit_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  body TEXT,
+  type TEXT,
+  data JSONB DEFAULT '{}',
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.followers (
@@ -466,3 +507,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.referrals;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.logistics_orders;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.ads;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.advertorials;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.quality_audits;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.hospitality_config;

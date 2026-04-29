@@ -10,7 +10,7 @@ import { syncGeminiConfig } from '../services/geminiService';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
-  const { isAuth, userRole, userIdentifier, userUuid, handleAuthSuccess = () => {} } = useAuth();
+  const { isAuth, userRole, userIdentifier, user_id, handleAuthSuccess = () => {} } = useAuth();
   const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
   const { 
     businesses = [], 
@@ -49,7 +49,7 @@ const AppContent: React.FC = () => {
   }, [view]);
 
   const myBusiness = (businesses?.find ? businesses.find(b => 
-    b.owner_id === userUuid ||
+    b.user_id === user_id ||
     b.email === userIdentifier || 
     b.phone === userIdentifier || 
     b.phone_whatsapp === userIdentifier ||
@@ -83,6 +83,12 @@ const AppContent: React.FC = () => {
         // 2. Then Check Health
         const health = await checkDatabaseHealth();
         setSignalHealth(health as any);
+
+        // 3. Check Onboarding Status
+        const onboarded = localStorage.getItem('findaba_onboarded') === 'true';
+        if (!onboarded && isAuth && view === 'home') {
+          setView('onboarding');
+        }
       } catch (e) {
         console.error("App initialization error:", e);
         setSignalHealth({ status: 'unhealthy', message: 'Industrial Signal Lost' });
@@ -129,7 +135,7 @@ const AppContent: React.FC = () => {
     >
       {/* Non-blocking loading indicator removed for faster launch */}
       
-      <Suspense fallback={<LoadingScreen fullScreen={false} message="Synchronizing View..." />}>
+      <Suspense fallback={null}>
         <RouteComponent 
           setView={setView} 
           onBack={handleBack}
@@ -158,7 +164,7 @@ const AppContent: React.FC = () => {
       {isOracleOpen && (
         <div className="fixed inset-0 z-[9999] animate-fade-in">
           {/* Lazy Loaded Oracle from ROUTE_MAP */}
-          <Suspense fallback={<LoadingScreen message="Consulting the Oracle..." />}>
+          <Suspense fallback={null}>
             <ROUTE_MAP.oracle
               onBack={() => setIsOracleOpen(false)}
               setView={setView}

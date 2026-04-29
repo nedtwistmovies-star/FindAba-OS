@@ -21,7 +21,11 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [categoryFilter, setCategoryFilter] = useState<string>('All Categories');
   const [statusFilter, setStatusFilter] = useState<string | 'All'>('All');
+  const [areaFilter, setAreaFilter] = useState<string>('All Areas');
+  const [sortBy, setSortBy] = useState<'name' | 'rating'>('name');
   const [showFilters, setShowFilters] = useState(false);
+
+  const areas = Array.from(new Set(businesses.map(b => b.area))).sort();
 
   const filtered = businesses.filter(b => {
     const searchLower = searchQuery.toLowerCase();
@@ -33,11 +37,15 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
     
     const matchesCategory = categoryFilter === 'All Categories' || b.category === categoryFilter;
     const matchesStatus = statusFilter === 'All' || b.verification_status === statusFilter;
+    const matchesArea = areaFilter === 'All Areas' || b.area === areaFilter;
     
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesCategory && matchesStatus && matchesArea;
+  }).sort((a, b) => {
+    if (sortBy === 'rating') return b.rating - a.rating;
+    return a.name.localeCompare(b.name);
   });
 
-  const activeFilterCount = (categoryFilter !== 'All Categories' ? 1 : 0) + (statusFilter !== 'All' ? 1 : 0);
+  const activeFilterCount = (categoryFilter !== 'All Categories' ? 1 : 0) + (statusFilter !== 'All' ? 1 : 0) + (areaFilter !== 'All Areas' ? 1 : 0);
 
   return (
     <div className="flex-1 flex flex-col bg-aba-deep animate-fade-in">
@@ -129,7 +137,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                      </div>
                   </div>
 
-                  <div className="space-y-3 shrink-0">
+                  <div className="space-y-3 shrink-0 min-w-[150px]">
                      <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Trust Clearance</p>
                      <div className="flex gap-2">
                         {['All', VerificationStatus.VERIFIED, VerificationStatus.UNVERIFIED].map(status => (
@@ -144,12 +152,42 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                         ))}
                      </div>
                   </div>
+
+                  <div className="space-y-3 shrink-0 min-w-[200px]">
+                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Operational Area</p>
+                     <select 
+                        value={areaFilter}
+                        onChange={(e) => setAreaFilter(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-white outline-none focus:border-aba-gold/50"
+                     >
+                        <option value="All Areas">All Areas</option>
+                        {areas.map(area => <option key={area} value={area}>{area}</option>)}
+                     </select>
+                  </div>
+
+                  <div className="space-y-3 shrink-0">
+                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Sort Signal</p>
+                     <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                        <button 
+                          onClick={() => setSortBy('name')} 
+                          className={`px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-standard ${sortBy === 'name' ? 'bg-aba-gold text-aba-deep shadow-sm' : 'text-white/40 hover:text-white/60'}`}
+                        >
+                          Name
+                        </button>
+                        <button 
+                          onClick={() => setSortBy('rating')} 
+                          className={`px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-standard ${sortBy === 'rating' ? 'bg-aba-gold text-aba-deep shadow-sm' : 'text-white/40 hover:text-white/60'}`}
+                        >
+                          Rating
+                        </button>
+                     </div>
+                  </div>
                </div>
 
-               {(categoryFilter !== 'All Categories' || statusFilter !== 'All') && (
+               {(categoryFilter !== 'All Categories' || statusFilter !== 'All' || areaFilter !== 'All Areas') && (
                  <div className="flex justify-end">
                     <button 
-                      onClick={() => { setCategoryFilter('All Categories'); setStatusFilter('All'); }}
+                      onClick={() => { setCategoryFilter('All Categories'); setStatusFilter('All'); setAreaFilter('All Areas'); }}
                       className="text-[10px] font-bold uppercase text-aba-red flex items-center gap-2 hover:underline"
                     >
                       <X size={12}/> Reset Signals

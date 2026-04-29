@@ -26,7 +26,7 @@ const PostRow = memo(({ data, index, style }: { data: Post[], index: number, sty
 });
 
 const FacesFeed: React.FC = () => {
-  const { userUuid } = useAuth();
+  const { user_id } = useAuth();
   const { setIsOracleOpen } = useOracle();
   const { addToast } = useToast();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -60,10 +60,10 @@ const FacesFeed: React.FC = () => {
   }, [posts]);
 
   const fetchNotifs = async () => {
-    if (!userUuid) return;
+    if (!user_id) return;
     try {
       const { fetchNotifications } = await import('../../services/supabaseService');
-      const data = await fetchNotifications(userUuid);
+      const data = await fetchNotifications(user_id);
       setNotifications(data);
     } catch (e) {
       console.warn("Notification fetch failed");
@@ -143,7 +143,7 @@ const FacesFeed: React.FC = () => {
         <div className="px-4 sm:px-6 shrink-0 mb-8">
           <div className="bg-white/5 border border-white/5 rounded-2xl sm:rounded-[2.5rem] p-3 sm:p-4 flex items-center gap-3 sm:gap-4 shadow-xl">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-aba-gold/10 overflow-hidden shrink-0 border border-aba-gold/20 shadow-inner">
-               <img src={`https://picsum.photos/seed/${userUuid}/100/100`} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
+               <img src={`https://picsum.photos/seed/${user_id}/100/100`} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
             </div>
             <button 
               className="flex-1 text-left px-4 sm:px-6 py-2.5 sm:py-3 bg-white/5 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-bold text-slate-400 hover:text-white transition-standard border border-white/5"
@@ -230,7 +230,7 @@ const FacesFeed: React.FC = () => {
                 </button>
               </div>
               <PostUploader 
-                userId={userUuid || ''} 
+                userId={user_id || ''} 
                 onPostCreated={() => {
                   setShowPostUploader(false);
                   loadData(true);

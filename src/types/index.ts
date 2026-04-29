@@ -258,7 +258,7 @@ export interface Product {
 
 export interface Business {
   id: string;
-  owner_id?: string;
+  user_id?: string;
   name: string;
   email: string;
   phone?: string;
@@ -572,6 +572,13 @@ export interface Profile {
   referred_by?: string;
   referral_count: number;
   referral_earnings: number;
+  preferred_language?: string;
+  notification_settings?: {
+    email: boolean;
+    sms: boolean;
+    push: boolean;
+  };
+  dark_mode?: boolean;
   created_at: string;
 }
 
@@ -636,7 +643,7 @@ export interface StoryView {
 
 export interface Wallet {
   id: string;
-  owner_id: string;
+  user_id: string;
   balance: number;
   currency: string;
   updated_at: string;
@@ -659,4 +666,15 @@ export interface Referral {
   reward_granted: boolean;
   reward_amount: number;
   created_at: string;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'pending' | 'completed';
+  due_date?: string;
+  priority: number;
+  created_at: string;
+  updated_at: string;
 }

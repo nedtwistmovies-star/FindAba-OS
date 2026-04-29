@@ -79,39 +79,34 @@
           '[class*="vercel-toolbar"]',
           '#vercel-toolbar',
           '[data-vercel-toolbar]',
-          '[data-vercel-live-feedback]'
+          '[data-vercel-live-feedback]',
+          '#vercel-toolbar-container',
+          '.vercel-toolbar-container'
         ];
+        
         selectors.forEach(s => {
-          const els = document.querySelectorAll(s);
-          els.forEach(el => {
-            (el as HTMLElement).style.setProperty('display', 'none', 'important');
-            (el as HTMLElement).style.setProperty('visibility', 'hidden', 'important');
-            (el as HTMLElement).style.setProperty('opacity', '0', 'important');
-            (el as HTMLElement).style.setProperty('pointer-events', 'none', 'important');
-            (el as HTMLElement).style.setProperty('z-index', '-9999', 'important');
-            el.remove();
-          });
+          try {
+            const els = document.querySelectorAll(s);
+            els.forEach(el => {
+              el.remove();
+            });
+          } catch(e) {}
         });
 
-        // Aggressive text-based removal for "Launch!" pill
-        const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
-        let node;
-        const nodesToRemove: Node[] = [];
-        while(node = walk.nextNode()) {
-          if (node.textContent && (node.textContent.includes('Launch!') || node.textContent.includes('Vercel'))) {
-            nodesToRemove.push(node);
+        // Hide anything that contains "Vercel" or "Launch!" text and looks like a platform pill
+        const elements = document.getElementsByTagName('*');
+        for (let i = 0; i < elements.length; i++) {
+          const el = elements[i] as HTMLElement;
+          if (el.innerText && (el.innerText.includes('Launch!') || el.innerText.includes('Vercel'))) {
+             // If it's a small floating button/pill
+             const rect = el.getBoundingClientRect();
+             if (rect.width < 150 && rect.height < 150) {
+                el.style.display = 'none';
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+             }
           }
         }
-        nodesToRemove.forEach(n => {
-          let parent = n.parentElement;
-          while (parent && parent !== document.body) {
-            if (parent.tagName === 'BUTTON' || parent.classList.contains('vercel-toolbar') || parent.getAttribute('id')?.includes('vercel') || parent.hasAttribute('data-vercel-toolbar')) {
-              parent.remove();
-              break;
-            }
-            parent = parent.parentElement;
-          }
-        });
 
         try { window.localStorage.setItem('vercel_toolbar_hidden', '1'); } catch(e) {}
       };

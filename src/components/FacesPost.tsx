@@ -13,7 +13,7 @@ interface FacesPostProps {
 }
 
 const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) => {
-  const { userUuid } = useAuth();
+  const { user_id } = useAuth();
   const { addToast } = useToast();
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
@@ -26,21 +26,21 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
 
   // Initial like state check
   useEffect(() => {
-    if (userUuid) {
+    if (user_id) {
       import('../lib/supabaseClient').then(({ supabase }) => {
         supabase
           .from('likes')
           .select('id')
           .eq('post_id', post.id)
-          .eq('user_id', userUuid)
+          .eq('user_id', user_id)
           .single()
           .then(({ data }: { data: any }) => setIsLiked(!!data));
       });
     }
-  }, [post.id, userUuid]);
+  }, [post.id, user_id]);
 
   const handleLike = async () => {
-    if (!userUuid) {
+    if (!user_id) {
       addToast("Please login to like posts.", "info");
       return;
     }
@@ -51,7 +51,7 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
     setLikesCount(prev => prevLiked ? prev - 1 : prev + 1);
 
     try {
-      const liked = await toggleLike(post.id, userUuid);
+      const liked = await toggleLike(post.id, user_id);
       // Synchronize with server response if needed (already optimistic above)
       if (liked !== !prevLiked) {
          setIsLiked(liked);
@@ -83,10 +83,10 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
   };
 
   const handleSubmitComment = async () => {
-    if (!newComment.trim() || !userUuid) return;
+    if (!newComment.trim() || !user_id) return;
     setSubmittingComment(true);
     try {
-      const comment = await addComment(post.id, userUuid, newComment);
+      const comment = await addComment(post.id, user_id, newComment);
       setComments(prev => [...prev, comment]);
       setNewComment('');
     } catch (e) {
@@ -97,14 +97,14 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
   };
 
   const handleCommerceAction = async () => {
-    if (!userUuid) {
+    if (!user_id) {
       addToast("Please login to place orders.", "info");
       return;
     }
     
     setIsOrdering(true);
     try {
-      const orderId = await createOrderFromAction(post.id, userUuid);
+      const orderId = await createOrderFromAction(post.id, user_id);
       
       const paystack = (window as any).PaystackPop;
       if (paystack) {
@@ -115,7 +115,7 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
           currency: 'NGN',
           metadata: {
             order_id: orderId,
-            user_id: userUuid,
+            user_id: user_id,
             post_id: post.id
           },
           callback: (response: any) => {
@@ -312,7 +312,7 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
                 )}
               </div>
 
-              {userUuid && (
+              {user_id && (
                 <div className="flex gap-3 pt-2">
                   <input 
                     type="text"

@@ -286,10 +286,11 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       const { reference, amount, metadata } = event.data;
       const userId = metadata?.user_id;
       const bookingId = metadata?.booking_id;
+      const orderId = metadata?.order_id;
 
-      if (!userId) {
-        console.error("[Webhook] Missing user_id in metadata");
-        return res.status(400).json({ error: "Missing user_id" });
+      if (!userId && !orderId) {
+        console.error("[Webhook] Missing user identification in metadata");
+        return res.status(400).json({ error: "Missing user/order identification" });
       }
 
       try {
@@ -304,9 +305,8 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
           created_at: new Date().toISOString()
         };
 
-        if (bookingId) {
-          paymentData.booking_id = bookingId;
-        }
+        if (bookingId) paymentData.booking_id = bookingId;
+        if (orderId) paymentData.order_id = orderId;
 
         const { error: paymentError } = await supabase
           .from("payments")
@@ -314,35 +314,45 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
 
         if (paymentError) throw paymentError;
 
-        // 2. Fetch updated profile to get tier_level for Make.com and email for notification
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("tier_level, email, full_name")
-          .eq("id", userId)
-          .single();
-
-        if (profileError) throw profileError;
-
-        // 🔹 Trigger Payment Success Email
-        if (profile.email) {
-          sendPaymentSuccessEmail(profile.email, reference, amount / 100).catch(err => 
-            console.error("[Email] Payment success email failed:", err.message)
-          );
+        // 2. If it's an order payment, update order status
+        if (orderId) {
+          console.log(`[Webhook] Updating order ${orderId} status to 'paid'`);
+          const { error: orderError } = await supabase
+            .from("orders")
+            .update({ status: 'paid', updated_at: new Date().toISOString() })
+            .eq("id", orderId);
+          
+          if (orderError) console.error("[Webhook] Order update failed:", orderError.message);
         }
 
-        // 3. Trigger Make.com Automation (Non-blocking)
-        const makeUrl = process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
-        if (makeUrl) {
-          axios.post(makeUrl, {
-            user_id: userId,
-            amount: amount / 100,
-            reference,
-            tier_level: profile.tier_level,
-            timestamp: new Date().toISOString()
-          }).catch(err => console.error("[Webhook] Make.com trigger failed:", err.message));
+        // 3. Fetch updated profile for notifications
+        if (userId) {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("tier_level, email, full_name")
+            .eq("id", userId)
+            .single();
+
+          if (!profileError && profile.email) {
+            sendPaymentSuccessEmail(profile.email, reference, amount / 100).catch(err => 
+              console.error("[Email] Payment success email failed:", err.message)
+            );
+          }
+
+          // 4. Trigger Make.com Automation
+          const makeUrl = process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
+          if (makeUrl) {
+            axios.post(makeUrl, {
+              user_id: userId,
+              order_id: orderId,
+              amount: amount / 100,
+              reference,
+              timestamp: new Date().toISOString()
+            }).catch(err => console.error("[Webhook] Make.com trigger failed:", err.message));
+          }
         }
 
-        console.log(`[Webhook] Payment processed successfully for user ${userId}`);
+        console.log(`[Webhook] Payment processed successfully for reference ${reference}`);
       } catch (err: any) {
         console.error("[Webhook] Processing error:", err.message);
         return res.status(500).json({ error: "Internal processing error" });

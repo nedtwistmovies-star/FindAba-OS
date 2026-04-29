@@ -5,12 +5,13 @@ import {
   LogOut, Key, Zap, CheckCircle2, AlertTriangle, ExternalLink, Car, Activity,
   LayoutGrid, UserCheck, BarChart3, ImageIcon, Video, RefreshCcw, Database, Trash2, Copy, Ticket
 } from 'lucide-react';
-import { ViewState, PlatformConfig, Business, Profile as UserProfileType } from '../../types';
+import { ViewState, PlatformConfig, Business, Profile as UserProfileType, Language } from '../../types';
 import { paymentService } from '../../services/paymentService';
+import { sendProfileUpdateNotification } from '../../services/emailService';
 import { 
   authSignOut, fetchPlatformConfig, updatePlatformConfig, fetchAllBusinesses, 
   getSupabase, checkDatabaseHealth, reconnectRegistry, getRegistryConfig, purgeLocalRegistry,
-  fetchUserProfile 
+  fetchUserProfile, updateUserProfile 
 } from '../../services/supabaseService';
 import IndustrialButton from '../../components/IndustrialButton';
 import SectionHeader from '../../components/SectionHeader';
@@ -444,6 +445,106 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
             <div className="animate-slide-up space-y-12">
               <SectionHeader title="System Settings" icon={Settings} />
               
+              <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-10">
+                <SectionHeader title="User Preferences" icon={User} subtitle="Custom protocol parameters" />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Preferred Dialect</label>
+                    <select 
+                      value={profile?.preferred_language || 'en'}
+                      onChange={async (e) => {
+                        const lang = e.target.value;
+                        if (!profile) return;
+                        setLoading(true);
+                        try {
+                          await updateUserProfile(profile.id, { preferred_language: lang });
+                          addToast("Linguistic preference synced", "success");
+                          await refreshData();
+                          // Notify via Resend
+                          sendProfileUpdateNotification(profile.email, profile.full_name || 'Citizen').catch(console.error);
+                        } catch (err) {
+                          addToast("Sync fault in preferences", "error");
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="w-full bg-black/40 border border-white/10 p-5 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs text-white uppercase font-black tracking-widest cursor-pointer"
+                    >
+                      <option value="en">English (Official)</option>
+                      <option value="ig">Igbo (Zonal)</option>
+                      <option value="pcm">Pidgin (Regional)</option>
+                      <option value="yo">Yoruba</option>
+                      <option value="ha">Hausa</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Notification Mesh</label>
+                    <div className="flex flex-wrap gap-3">
+                      {['email', 'sms', 'push'].map((type) => (
+                        <button
+                          key={type}
+                          onClick={async () => {
+                            if (!profile) return;
+                            const current = profile.notification_settings || { email: true, sms: false, push: true };
+                            const updated = { ...current, [type]: !((current as any)[type]) };
+                            setLoading(true);
+                            try {
+                              await updateUserProfile(profile.id, { notification_settings: updated });
+                              addToast(`Notification ${type.toUpperCase()} adjusted`, "success");
+                              await refreshData();
+                              sendProfileUpdateNotification(profile.email, profile.full_name || 'Citizen').catch(console.error);
+                            } catch (err) {
+                              addToast("Sync fault in protocol", "error");
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className={`px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${
+                            profile?.notification_settings?.[type as keyof typeof profile.notification_settings]
+                              ? 'bg-aba-gold/20 border-aba-gold text-aba-gold shadow-[0_0_20px_rgba(251,191,36,0.2)]'
+                              : 'bg-white/5 border-white/10 text-white/40 grayscale opacity-50'
+                          }`}
+                        >
+                          {type} {profile?.notification_settings?.[type as keyof typeof profile.notification_settings] ? 'ENABLED' : 'MUTED'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Protocol Interface</label>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={async () => {
+                          if (!profile) return;
+                          const updated = !profile.dark_mode;
+                          setLoading(true);
+                          try {
+                            await updateUserProfile(profile.id, { dark_mode: updated });
+                            addToast(`Dark Mode ${updated ? 'ENABLED' : 'DISABLED'}`, "success");
+                            await refreshData();
+                          } catch (err) {
+                            addToast("Sync fault in logic", "error");
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                        className={`px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border flex items-center gap-3 ${
+                          profile?.dark_mode
+                            ? 'bg-aba-gold text-aba-deep border-aba-gold'
+                            : 'bg-white text-aba-deep border-white'
+                        }`}
+                      >
+                        {profile?.dark_mode ? <Zap size={14} fill="currentColor" /> : <Globe size={14} />}
+                        {profile?.dark_mode ? 'VANGUARD DARK' : 'STANDARD LIGHT'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-10">
                 <SectionHeader title="Registry Connection" icon={Database} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

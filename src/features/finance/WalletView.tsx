@@ -8,16 +8,16 @@ import { Transaction, Wallet as WalletType } from '../../types';
 import LoadingScreen from '../../components/LoadingScreen';
 
 const WalletView: React.FC = () => {
-  const { userUuid } = useAuth();
+  const { user_id } = useAuth();
   const [wallet, setWallet] = useState<WalletType | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (userUuid) {
+    if (user_id) {
       const loadWalletData = async () => {
         try {
-          const wData = await fetchWallet(userUuid);
+          const wData = await fetchWallet(user_id);
           setWallet(wData);
           if (wData.id) {
             const tData = await fetchTransactions(wData.id);
@@ -31,7 +31,7 @@ const WalletView: React.FC = () => {
       };
       loadWalletData();
     }
-  }, [userUuid]);
+  }, [user_id]);
 
   if (loading) {
     return <LoadingScreen message="Accessing Financial Vault..." />;

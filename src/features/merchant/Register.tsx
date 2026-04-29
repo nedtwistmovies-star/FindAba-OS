@@ -11,7 +11,6 @@ import { saveBusinessToDB } from '../../services/supabaseService';
 import { BUSINESS_PLANS, CATEGORIES, ABA_AREAS } from '../../constants';
 import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
-import WelcomeOverlay from '../../components/WelcomeOverlay';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToast } from '../../providers/ToastProvider';
@@ -24,7 +23,7 @@ interface RegisterProps {
 }
 
 const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess }) => {
-  const { userIdentifier, userUuid, isAuth } = useAuth();
+  const { userIdentifier, user_id, isAuth } = useAuth();
   const { addToast } = useToast();
   const [step, setStep] = useState<'plan' | 'form' | 'success'>('plan');
 
@@ -60,7 +59,6 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
   const [loading, setLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
   const [registeredBusiness, setRegisteredBusiness] = useState<Business | null>(null);
 
   const [formData, setFormData] = useState({
@@ -96,7 +94,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
     const newBusiness: Business = {
       id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
-      owner_id: userUuid || undefined,
+      user_id: user_id || undefined,
       name: formData.name,
       email: formData.email.toLowerCase().trim(),
       phone: formData.phone,
@@ -147,7 +145,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
           isOpen={showCheckout}
           amount={BUSINESS_PLANS.find(p => p.id === selectedPlan)?.monthlyAmount || 0}
           email={userIdentifier || 'billing@sandalsroyalle.com'}
-          userId={userUuid || undefined}
+          userId={user_id || undefined}
           label={`Hub Enrollment: ${BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name}`}
           onSuccess={handlePaymentSuccess}
           onCancel={() => setShowCheckout(false)}

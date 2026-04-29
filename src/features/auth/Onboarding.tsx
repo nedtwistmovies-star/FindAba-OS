@@ -1,12 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, ShieldCheck, Truck, Wallet, 
   MessageSquare, ArrowRight, ChevronRight, 
-  Globe, Zap, Users, Star
+  Globe, Zap, Users, Star, Rocket, Loader2
 } from 'lucide-react';
 import { ViewState } from '../../types';
+import { generateWelcomeMessage } from '../../services/geminiService';
+import { useAuth } from '../../providers/AuthProvider';
 
 interface OnboardingStep {
   title: string;
@@ -15,52 +17,68 @@ interface OnboardingStep {
   icon: React.ReactNode;
   color: string;
   accent: string;
+  image: string;
 }
 
 const STEPS: OnboardingStep[] = [
   {
-    title: "The City Registry",
-    subtitle: "Enyimba's Digital Backbone",
-    description: "Connect with verified businesses, schools, hospitals, and artisans across Aba and its neighboring environs. Every node is vetted for excellence and integrity.",
+    title: "The Industrial Matrix",
+    subtitle: "Digital Handshake",
+    description: "Connect with verified businesses, schools, and artisans across Aba. Every signal in our registry is audited for integrity and capacity.",
     icon: <ShieldCheck size={40} className="md:w-12 md:h-12" />,
     color: "bg-aba-green",
-    accent: "text-aba-green"
+    accent: "text-aba-green",
+    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=800"
   },
   {
-    title: "FindAba AI (Kalu)",
-    subtitle: "Smart Local Intelligence",
-    description: "Consult Kalu, our smart local assistant, to find specific products, analyze hardware specs, or get real-time market insights from the registry.",
+    title: "Oracle AI (Kalu)",
+    subtitle: "Local Wisdom Mode",
+    description: "Kalu grounds responses with real-time Google Search data for market prices and verifiable facts. Ask anything about trade in Aba.",
     icon: <Sparkles size={40} className="md:w-12 md:h-12" />,
     color: "bg-aba-gold",
-    accent: "text-aba-gold"
+    accent: "text-aba-gold",
+    image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800"
   },
   {
-    title: "Carry-Go Logistics",
-    subtitle: "Smart Supply Chain",
-    description: "Seamlessly move goods from Ariaria to the world. NIN-verified riders and real-time tracking ensure your industrial assets arrive safely.",
+    title: "Purple Fleet",
+    subtitle: "Secure Logistics",
+    description: "Move across the city with peace of mind. Our verified driver protocol ensures safe passage for artisans and goods alike.",
     icon: <Truck size={40} className="md:w-12 md:h-12" />,
     color: "bg-blue-600",
-    accent: "text-blue-600"
-  },
-  {
-    title: "Fidelity Ledger",
-    subtitle: "Secure Trade & Escrow",
-    description: "Trade with confidence. Our escrow-backed settlement system ensures funds are only released when the industrial handshake is complete.",
-    icon: <Wallet size={40} className="md:w-12 md:h-12" />,
-    color: "bg-purple-600",
-    accent: "text-purple-600"
+    accent: "text-blue-600",
+    image: "https://images.unsplash.com/photo-1549466600-98314987f6b9?auto=format&fit=crop&q=80&w=800"
   }
 ];
 
 const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
-  const [currentStep, setCurrentStep] = useState(0);
+  const { profile } = useAuth();
+  const [currentStep, setCurrentStep] = useState(-1); // -1 for AI Welcome
+  const [welcomeMsg, setWelcomeMsg] = useState<string>('');
+  const [loadingAI, setLoadingAI] = useState(true);
   const [showFinalForm, setShowFinalForm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    username: '',
     role: 'user' as 'user' | 'business'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setLoadingAI(true);
+      generateWelcomeMessage(profile.full_name || 'Citizen', profile.id.slice(0, 8))
+        .then(msg => {
+          setWelcomeMsg(msg);
+          setLoadingAI(false);
+        })
+        .catch(() => {
+          setWelcomeMsg("Welcome to Enyimba's digital heartbeat. Your signal is now verified in the registry.");
+          setLoadingAI(false);
+        });
+    } else {
+      setWelcomeMsg("Initializing identity protocol...");
+      setLoadingAI(false);
+    }
+  }, [profile]);
 
   const next = () => {
     if (currentStep < STEPS.length - 1) {
@@ -97,7 +115,15 @@ const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
     }
   };
 
-  const step = STEPS[currentStep];
+  const step = currentStep === -1 ? {
+    title: "Welcome, Citizen",
+    subtitle: "AI Signal Sync",
+    description: welcomeMsg || "Calibrating personalized welcome message...",
+    icon: loadingAI ? <Loader2 className="animate-spin" size={40} /> : <Sparkles size={40} className="md:w-12 md:h-12" />,
+    color: "bg-aba-gold",
+    accent: "text-aba-gold",
+    image: "https://images.unsplash.com/photo-1590644365607-1c5a519a7a37?auto=format&fit=crop&q=80&w=800"
+  } : STEPS[currentStep];
 
   if (showFinalForm) {
     return (
@@ -157,79 +183,99 @@ const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
   }
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-[#00120b] text-white flex flex-col overflow-hidden font-sans">
-      {/* Background Glow */}
-      <div className={`absolute inset-0 opacity-20 blur-[120px] transition-colors duration-1000 ${step.color}`} />
-      
-      {/* Header */}
-      <header className="relative z-10 px-6 md:px-8 py-6 md:py-10 flex justify-between items-center">
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="w-8 h-8 md:w-10 md:h-10 bg-white/10 rounded-lg md:rounded-xl flex items-center justify-center border border-white/10">
-            <Globe className="text-aba-gold md:w-5 md:h-5" size={16} />
-          </div>
-          <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] md:tracking-[0.4em]">FindAba OS</span>
-        </div>
-        <button 
-          onClick={() => { localStorage.setItem('findaba_onboarded', 'true'); setView('home'); }}
-          className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors"
-        >
-          Skip Protocol
-        </button>
-      </header>
-
-      {/* Content */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 md:px-8 text-center">
+    <div className="fixed inset-0 z-[10000] bg-aba-deep text-white flex flex-col md:flex-row overflow-hidden font-sans">
+      {/* Background Media Plate */}
+      <div className="w-full md:w-1/2 h-1/3 md:h-full relative overflow-hidden">
         <AnimatePresence mode="wait">
-          <motion.div 
+          <motion.div
             key={currentStep}
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 1.1 }}
-            transition={{ duration: 0.5, ease: "circOut" }}
-            className="space-y-8 md:space-y-12 max-w-lg"
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 1 }}
+            className="absolute inset-0"
           >
-            <div className={`w-24 h-24 md:w-32 md:h-32 mx-auto rounded-2xl md:rounded-[2.5rem] flex items-center justify-center shadow-2xl relative group`}>
-              <div className={`absolute inset-0 rounded-2xl md:rounded-[2.5rem] blur-2xl opacity-40 transition-colors duration-1000 ${step.color}`} />
-              <div className="relative z-10 text-white">
-                {step.icon}
-              </div>
-            </div>
-
-            <div className="space-y-3 md:space-y-4">
-              <h3 className={`text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] md:tracking-[0.5em] ${step.accent}`}>{step.subtitle}</h3>
-              <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none">{step.title}</h2>
-              <p className="text-white/60 text-xs md:text-base font-medium leading-relaxed">
-                {step.description}
-              </p>
-            </div>
+            <img src={step.image} className="w-full h-full object-cover grayscale brightness-50" alt="Onboarding" />
+            <div className="absolute inset-0 bg-gradient-to-r from-aba-deep/80 via-transparent to-transparent hidden md:block" />
+            <div className="absolute inset-0 bg-gradient-to-t from-aba-deep md:hidden" />
           </motion.div>
         </AnimatePresence>
-      </main>
+        
+        <div className="absolute bottom-10 left-10 hidden md:block space-y-2">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-aba-gold/20 border border-aba-gold/30 flex items-center justify-center text-aba-gold">
+              <Rocket size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest leading-none">Vanguard Sync</p>
+              <h4 className="text-xl font-black uppercase tracking-tighter text-white mt-1">Industrial Intelligence</h4>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Footer */}
-      <footer className="relative z-10 px-6 md:px-8 py-8 md:py-12 flex flex-col items-center gap-6 md:gap-8">
-        {/* Progress Dots */}
-        <div className="flex gap-2 md:gap-3">
-          {STEPS.map((_, i) => (
-            <div 
-              key={i} 
-              className={`h-1 rounded-full transition-all duration-500 ${i === currentStep ? 'w-6 md:w-8 bg-aba-gold' : 'w-1.5 md:w-2 bg-white/10'}`} 
-            />
-          ))}
+      {/* Content Plate */}
+      <div className="flex-1 flex flex-col justify-between p-8 md:p-20 relative">
+        <div className="space-y-12">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <Globe className="text-aba-gold" size={16} />
+              <span className="text-[10px] font-black uppercase tracking-[0.4em]">Enyimba OS v6.0</span>
+            </div>
+            <button
+               onClick={() => { localStorage.setItem('findaba_onboarded', 'true'); setView('home'); }}
+               className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors"
+            >
+              Skip Protocol
+            </button>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-8"
+            >
+              <div className={`w-20 h-20 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center transition-standard ${step.accent}`}>
+                {step.icon}
+              </div>
+              <div className="space-y-4">
+                <h3 className={`text-[10px] font-black uppercase tracking-[0.5em] ${step.accent}`}>{step.subtitle}</h3>
+                <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.9] text-white">{step.title}</h2>
+                <div className="max-w-md">
+                   {currentStep === -1 ? (
+                     <p className="text-lg md:text-xl font-medium text-white/80 leading-relaxed italic font-serif border-l-2 border-aba-gold/30 pl-6 py-2">
+                       "{step.description}"
+                     </p>
+                   ) : (
+                     <p className="text-white/60 text-base md:text-lg font-medium leading-relaxed">
+                       {step.description}
+                     </p>
+                   )}
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
-        <button 
-          onClick={next}
-          className="w-full max-w-sm py-5 md:py-6 bg-white text-aba-dark rounded-xl md:rounded-[2rem] font-black uppercase text-[10px] md:text-xs tracking-[0.25em] md:tracking-[0.3em] flex items-center justify-center gap-3 md:gap-4 shadow-2xl hover:bg-aba-gold transition-all active:scale-95 group"
-        >
-          {currentStep === STEPS.length - 1 ? "Initialize OS" : "Next Protocol"}
-          <ArrowRight size={16} className="md:w-4.5 md:h-4.5 group-hover:translate-x-2 transition-transform" />
-        </button>
+        <div className="space-y-10">
+          <div className="flex gap-3">
+             {[ -1, 0, 1, 2 ].map((i) => (
+               <div key={i} className={`h-1.5 rounded-full transition-all duration-500 ${currentStep === i ? 'w-10 bg-aba-gold' : 'w-2 bg-white/10'}`} />
+             ))}
+          </div>
 
-        <p className="text-[7px] md:text-[8px] font-bold text-white/20 uppercase tracking-widest">
-          FindAba City OS v6.0 • Secure Mesh Network Active
-        </p>
-      </footer>
+          <button
+            onClick={next}
+            className="w-full max-w-sm py-6 bg-white text-aba-dark rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] flex items-center justify-center gap-4 shadow-2xl hover:bg-aba-gold transition-all active:scale-95 group"
+          >
+            {currentStep === STEPS.length - 1 ? "INITIALIZE NODE" : "NEXT PROTOCOL"}
+            <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

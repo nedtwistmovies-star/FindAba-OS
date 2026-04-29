@@ -5,9 +5,10 @@ import { syncProfile } from '../services/authService';
 
 interface AuthContextType {
   userIdentifier: string | null;
-  userUuid: string | null;
+  user_id: string | null;
   userName: string | null;
   userRole: string | null;
+  profile: any | null;
   isAuth: boolean;
   handleAuthSuccess: (identifier: string, name: string, role?: string, uuid?: string) => void;
   logout: () => void;
@@ -16,10 +17,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userIdentifier, setUserIdentifier] = useState<string | null>(localStorage.getItem('findaba_user_id'));
-  const [userUuid, setUserUuid] = useState<string | null>(localStorage.getItem('findaba_user_uuid'));
+  const [userIdentifier, setUserIdentifier] = useState<string | null>(localStorage.getItem('findaba_user_login'));
+  const [user_id, setUserId] = useState<string | null>(localStorage.getItem('findaba_user_id'));
   const [userName, setUserName] = useState<string | null>(localStorage.getItem('findaba_user_name'));
   const [userRole, setUserRole] = useState<string | null>(localStorage.getItem('findaba_user_role'));
+  const [profile, setProfile] = useState<any | null>(null);
   const [isAuth, setIsAuth] = useState<boolean>(!!localStorage.getItem('findaba_user_id'));
 
   useEffect(() => {
@@ -32,11 +34,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const user = session.user;
         
         // Sync Profile from DB
-        const profile = await syncProfile(user);
+        const prof = await syncProfile(user);
+        setProfile(prof);
         
         const identifier = user.email || user.phone || '';
-        const name = profile?.full_name || user.user_metadata.full_name || 'Verified Citizen';
-        const role = profile?.role || 'registered';
+        const name = prof?.full_name || user.user_metadata.full_name || 'Verified Citizen';
+        const role = prof?.role || 'registered';
         const uuid = user.id;
         
         handleAuthSuccess(identifier, name, role, uuid);
@@ -45,8 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initAuth();
 
-    const storedId = localStorage.getItem('findaba_user_id');
-    if (storedId === 'pastornelsonezi@gmail.com') {
+    const stored_login = localStorage.getItem('findaba_user_login');
+    if (stored_login === 'pastornelsonezi@gmail.com') {
       localStorage.setItem('findaba_user_role', 'admin');
       setUserRole('admin');
     }
@@ -59,10 +62,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       finalRole = 'admin';
     }
 
-    localStorage.setItem('findaba_user_id', identifier);
+    localStorage.setItem('findaba_user_login', identifier);
     if (uuid) {
-      localStorage.setItem('findaba_user_uuid', uuid);
-      setUserUuid(uuid);
+      localStorage.setItem('findaba_user_id', uuid);
+      setUserId(uuid);
     }
     
     if (identifier.includes('@')) {
@@ -85,21 +88,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const sb = getSupabase();
     if (sb) await sb.auth.signOut();
 
+    localStorage.removeItem('findaba_user_login');
     localStorage.removeItem('findaba_user_id');
-    localStorage.removeItem('findaba_user_uuid');
     localStorage.removeItem('findaba_user_email');
     localStorage.removeItem('findaba_user_name');
     localStorage.removeItem('findaba_user_role');
     localStorage.removeItem('findaba_is_auth');
     setUserIdentifier(null);
-    setUserUuid(null);
+    setUserId(null);
     setUserName(null);
     setUserRole(null);
     setIsAuth(false);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ userIdentifier, userUuid, userName, userRole, isAuth, handleAuthSuccess, logout }}>
+    <AuthContext.Provider value={{ userIdentifier, user_id, userName, userRole, profile, isAuth, handleAuthSuccess, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -24,6 +24,16 @@ class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    
+    // Auto-recovery for chunk loading errors (caused by new deployments)
+    const errorMsg = error.message.toLowerCase();
+    if (errorMsg.includes('failed to fetch') || errorMsg.includes('chunkloaderror') || errorMsg.includes('dynamic import')) {
+      console.warn('Chunk loading error detected. Auto-refreshing industrial nodes...');
+      // Small delay to ensure the user doesn't get stuck in a loop if the internet is actually down
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
   }
 
   private handleReset = () => {

@@ -203,3 +203,31 @@ export const sendOrderStatusUpdateEmail = async (email: string, status: string, 
     name: "FindAba Signals"
   });
 };
+
+/**
+ * Sends a notification when a profile is updated.
+ */
+export const sendProfileUpdateNotification = async (email: string, name: string) => {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h1 style="color: #004d2c;">Profile Updated, ${name}!</h1>
+      <p>This is a security notification to inform you that your FindAba City OS profile has been recently updated.</p>
+      
+      <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p>Your preferences (language and notification settings) or primary details were modified.</p>
+        <p>If you did not authorize this change, please reset your industrial key immediately in your security settings.</p>
+      </div>
+      
+      <p>Safety is our core protocol in the digital registry.</p>
+      <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #888;">FindAba City OS • Security Mesh • Aba, Nigeria</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: "Security Alert: FindAba Profile Updated",
+    html,
+    name: "FindAba Security"
+  });
+};

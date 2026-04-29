@@ -18,6 +18,7 @@ interface BusinessContextType {
   setSelectedAdvertorial: (p: any | null) => void;
   toggleFavorite: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
+  commitAll: () => Promise<void>;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   searchResults: Business[];
@@ -213,6 +214,42 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }, [userIdentifier, addToast]);
 
+  const commitAll = useCallback(async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      addToast("Committing local registry to industrial cloud...", "info");
+      const { saveBusinessToDB } = await import('../services/supabaseService');
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const biz of businesses) {
+        try {
+          if (biz.email) {
+            await saveBusinessToDB(biz);
+            successCount++;
+          }
+        } catch (e) {
+          console.warn(`Failed to commit node ${biz.name}:`, e);
+          failCount++;
+        }
+      }
+
+      if (failCount > 0) {
+        addToast(`Commit partial: ${successCount} synced, ${failCount} failed. Check schema.`, "info");
+      } else {
+        addToast(`Universal commitment successful: ${successCount} nodes propagated.`, "success");
+      }
+      
+      await refreshData();
+    } catch (e: any) {
+      addToast(`Commit Fault: ${e.message}`, "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [businesses, loading, addToast, refreshData]);
+
   useEffect(() => {
     refreshData();
   }, [refreshData]);
@@ -244,7 +281,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <BusinessContext.Provider value={{ 
       businesses, favorites, selectedBusiness, setSelectedBusiness, 
       selectedStory, setSelectedStory, selectedAdvertorial, setSelectedAdvertorial, 
-      toggleFavorite, refreshData, loading, error,
+      toggleFavorite, refreshData, commitAll, loading, error,
       searchQuery, setSearchQuery, searchResults, isSearching,
       gitSyncStatus: gitStatus
     }}>

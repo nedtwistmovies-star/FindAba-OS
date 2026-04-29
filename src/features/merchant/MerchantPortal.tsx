@@ -44,7 +44,7 @@ const MerchantPortal: React.FC<{
   isRegistryLoading?: boolean;
 }> = ({ myBusiness: initialBusiness, setView, onRefresh, isRegistryLoading }) => {
   const { addToast } = useToast();
-  const { userIdentifier } = useAuth();
+  const { user_id } = useAuth();
   const [business, setBusiness] = useState<Business | null>(initialBusiness);
   const [orders, setOrders] = useState<Order[]>([]);
   const [disputes, setDisputes] = useState<any[]>([]);
@@ -78,7 +78,7 @@ const MerchantPortal: React.FC<{
   useEffect(() => {
     if (initialBusiness?.id) {
       setLoading(true);
-      const ownerId = initialBusiness.owner_id || userIdentifier;
+      const ownerId = initialBusiness.user_id || user_id;
       Promise.all([
         fetchMerchantOrders(initialBusiness.id),
         fetchDisputes(initialBusiness.id),
@@ -96,7 +96,7 @@ const MerchantPortal: React.FC<{
     } else {
       setLoading(false);
     }
-  }, [initialBusiness?.id, initialBusiness?.owner_id, userIdentifier]);
+  }, [initialBusiness?.id, initialBusiness?.user_id, user_id]);
 
   if (!initialBusiness || !business) {
     return (
@@ -794,7 +794,12 @@ const MerchantPortal: React.FC<{
                          <div>
                             <div className="flex items-center gap-2 md:gap-3 mb-1">
                                <h4 className="text-sm md:text-base font-black uppercase tracking-tight">#{o.id.slice(-8)}</h4>
-                               <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(o.status)} bg-white dark:bg-black/20 border shadow-sm`}>{o.status}</span>
+                               <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(o.status)} bg-white dark:bg-black/20 border shadow-sm ${o.status === OrderStatus.DISPUTED ? 'animate-pulse-red' : ''}`}>
+                                 <div className="flex items-center gap-1.5">
+                                   {o.status === OrderStatus.COMPLETED && <CheckCircle2 size={10} className="text-aba-green animate-check-reveal" />}
+                                   {o.status}
+                                 </div>
+                               </span>
                             </div>
                             <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{o.buyer_id}</p>
                          </div>

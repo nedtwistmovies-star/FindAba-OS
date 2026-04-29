@@ -5,7 +5,7 @@ import {
   LogisticsOrder, ChatMessage, Advertorial, AdPlan, 
   PaymentLog, ThriftAccount, Order, OrderStatus, Dispute, PlatformConfig,
   QualityAudit, SubscriptionTier, RoomType, BuyerSignal, SignalInterest, AdCampaign, HospitalityConfig,
-  AppNotification, HubTier
+  AppNotification, HubTier, Task
 } from '../types';
 import { triggerWebhook, WebhookEvent } from './webhookService';
 import { 
@@ -255,6 +255,60 @@ export const fetchAutomationLogs = async () => {
     if (error && error.code === '42P01') return [];
     return data || [];
   } catch (e) { return []; }
+};
+
+export const fetchTasks = async () => {
+  const sb = getSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb.from('tasks').select('*').order('priority', { ascending: true });
+    if (error && error.code === '42P01') return [];
+    if (error) throw error;
+    return data || [];
+  } catch (e) { return []; }
+};
+
+export const createTaskLog = async (task: Partial<Task>) => {
+  const sb = getSupabase();
+  if (!sb) throw new Error("Registry Offline");
+  const { data, error } = await sb.from('tasks').insert([task]).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const updateTaskItem = async (id: string, updates: Partial<Task>) => {
+  const sb = getSupabase();
+  if (!sb) throw new Error("Registry Offline");
+  const { data, error } = await sb.from('tasks').update(updates).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const deleteTaskItem = async (id: string) => {
+  const sb = getSupabase();
+  if (!sb) throw new Error("Registry Offline");
+  const { error } = await sb.from('tasks').delete().eq('id', id);
+  if (error) throw error;
+  return true;
+};
+
+export const reorderTaskItems = async (tasks: Task[]) => {
+  const sb = getSupabase();
+  if (!sb) throw new Error("Registry Offline");
+  
+  const updates = tasks.map((t, index) => ({
+    id: t.id,
+    priority: index,
+    title: t.title,
+    status: t.status,
+    description: t.description,
+    due_date: t.due_date,
+    updated_at: new Date().toISOString()
+  }));
+
+  const { error } = await sb.from('tasks').upsert(updates);
+  if (error) throw error;
+  return true;
 };
 
 export const authSignOut = async () => {
@@ -1285,7 +1339,7 @@ export const searchBusinesses = async (query: string): Promise<Business[]> => {
     const { data, error } = await client
       .from('businesses')
       .select('*')
-      .or(`name.ilike.%${query}%,category.ilike.%${query}%,bio.ilike.%${query}%,location.ilike.%${query}%`)
+      .or(`name.ilike.%${query}%,category.ilike.%${query}%,description.ilike.%${query}%,area.ilike.%${query}%`)
       .limit(10);
 
     if (error) {

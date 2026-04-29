@@ -134,14 +134,14 @@ export const fetchWallet = async (userId: string) => {
   const { data, error } = await supabase
     .from('wallets')
     .select('*')
-    .eq('owner_id', userId)
+    .eq('user_id', userId)
     .single();
 
   if (error && error.code === 'PGRST116') {
     // Wallet doesn't exist, create one
     const { data: newWallet, error: createError } = await supabase
       .from('wallets')
-      .insert({ owner_id: userId, balance: 0, currency: 'NGN' })
+      .insert({ user_id: userId, balance: 0, currency: 'NGN' })
       .select()
       .single();
     if (createError) throw createError;

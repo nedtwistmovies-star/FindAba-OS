@@ -127,6 +127,27 @@ export const sendMagicLink = async (email: string) => {
   return true;
 };
 
+export const resetPasswordForEmail = async (email: string) => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+  });
+
+  if (error) {
+    console.error("[Auth] Password Reset Error:", error.message);
+    throw error;
+  }
+  return true;
+};
+
+export const updatePassword = async (password: string) => {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    console.error("[Auth] Password Update Error:", error.message);
+    throw error;
+  }
+  return true;
+};
+
 export const logout = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) {
@@ -168,7 +189,10 @@ export const syncProfile = async (user: any) => {
         role: 'registered',
         referral_code: referralCode,
         referral_count: 0,
-        referral_earnings: 0
+        referral_earnings: 0,
+        preferred_language: 'en',
+        notification_settings: { email: true, sms: false, push: true },
+        dark_mode: false
       })
       .select()
       .single();

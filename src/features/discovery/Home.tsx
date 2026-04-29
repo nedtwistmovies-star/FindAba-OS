@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader, ImageCarousel, GitHubSync, SupabaseSync, BusinessCard } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
@@ -173,6 +173,16 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         
         <div className="relative z-10 w-full max-w-6xl flex flex-col items-center text-center space-y-8 sm:space-y-12">
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 animate-fade-in">
+            <IndustrialButton 
+              variant="secondary"
+              size="sm"
+              icon={Key}
+              onClick={() => setView('login')}
+              className="bg-aba-gold/10 backdrop-blur-md border-aba-gold/10 hover:bg-aba-gold/20 text-aba-gold text-[9px] sm:text-[10px]"
+            >
+              Sign In
+            </IndustrialButton>
+
             <IndustrialButton 
               variant="secondary"
               size="sm"

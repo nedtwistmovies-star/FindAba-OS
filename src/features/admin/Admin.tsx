@@ -38,7 +38,13 @@ import {
   Cpu,
   Mail,
   ExternalLink,
+  ListTodo,
+  CheckSquare,
+  Calendar,
+  Plus,
+  GripVertical,
 } from "lucide-react";
+import { motion, Reorder } from "motion/react";
 import {
   BarChart,
   Bar,
@@ -62,13 +68,19 @@ import {
   purgeLocalRegistry,
   seedDatabase,
   fetchAutomationLogs,
+  fetchTasks,
+  createTaskLog,
+  updateTaskItem,
+  deleteTaskItem,
+  reorderTaskItems,
 } from "../../services/supabaseService";
 import { ARTISANS } from "../../constants";
 import { useToast } from "../../providers/ToastProvider";
+import { useBusiness } from "../../providers/BusinessProvider";
 import { triggerWebhook, WebhookEvent, validateAutomationGateway, getSamplePayload } from "../../services/webhookService";
 import { paymentService } from "../../services/paymentService";
 import { sendWelcomeEmail } from "../../services/emailService";
-import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel } from "../../types";
+import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel, Task } from "../../types";
 import { ImageUpload, MultiImageUpload } from "../../components/ImageUpload";
 import { MultiVideoUpload } from "../../components/VideoUpload";
 import StatCard from "../../components/StatCard";
@@ -637,8 +649,212 @@ const MetadataEditor: React.FC = () => {
   );
 };
 
+const TasksManager: React.FC = () => {
+  const { addToast } = useToast();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTask, setNewTask] = useState<Partial<Task>>({
+    title: '',
+    description: '',
+    status: 'pending',
+    priority: 0,
+    due_date: new Date().toISOString().split('T')[0]
+  });
+
+  const loadTasksData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchTasks();
+      setTasks(data);
+    } catch (e) {
+      addToast("Failed to sync roadmap signals.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => {
+    loadTasksData();
+  }, [loadTasksData]);
+
+  const handleAddTask = async () => {
+    if (!newTask.title) return;
+    try {
+      const created = await createTaskLog({
+        ...newTask,
+        priority: tasks.length
+      });
+      setTasks([...tasks, created]);
+      setShowAddModal(false);
+      setNewTask({ title: '', description: '', status: 'pending', priority: 0, due_date: new Date().toISOString().split('T')[0] });
+      addToast("Task added to roadmap.", "success");
+    } catch (e) {
+      addToast("Failed to commit task.", "error");
+    }
+  };
+
+  const handleToggleStatus = async (task: Task) => {
+    const newStatus = task.status === 'pending' ? 'completed' : 'pending';
+    try {
+      const updated = await updateTaskItem(task.id, { status: newStatus });
+      setTasks(tasks.map(t => t.id === task.id ? updated : t));
+    } catch (e) {
+      addToast("Failed to update task status.", "error");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteTaskItem(id);
+      setTasks(tasks.filter(t => t.id !== id));
+      addToast("Task removed from roadmap.", "info");
+    } catch (e) {
+      addToast("Failed to delete task.", "error");
+    }
+  };
+
+  const handleReorder = async (newOrder: Task[]) => {
+    setTasks(newOrder);
+    try {
+      await reorderTaskItems(newOrder);
+    } catch (e) {
+      addToast("Priority sync failed.", "error");
+    }
+  };
+
+  if (loading && tasks.length === 0) return <div className="p-20 text-center animate-pulse text-aba-gold font-black uppercase tracking-widest text-[10px]">Syncing Roadmap...</div>;
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-end">
+        <IndustrialButton 
+          variant="primary" 
+          size="md" 
+          icon={Plus}
+          onClick={() => setShowAddModal(true)}
+        >
+          Add Task
+        </IndustrialButton>
+      </div>
+
+      <Reorder.Group axis="y" values={tasks} onReorder={handleReorder} className="space-y-4">
+        {tasks.map((task) => (
+          <Reorder.Item 
+            key={task.id} 
+            value={task}
+            className="bg-white/5 p-6 rounded-[2rem] border border-white/5 flex items-center gap-6 group hover:border-aba-gold/30 transition-all cursor-grab active:cursor-grabbing shadow-xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="text-white/20 group-hover:text-aba-gold transition-colors">
+              <GripVertical size={20} />
+            </div>
+            
+            <button 
+              onClick={() => handleToggleStatus(task)}
+              className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${
+                task.status === 'completed' ? 'bg-aba-green border-aba-green text-aba-dark' : 'bg-white/5 border-white/10 text-white/20'
+              }`}
+            >
+              {task.status === 'completed' && <CheckSquare size={16} />}
+            </button>
+
+            <div className="flex-1 space-y-1">
+              <h5 className={`text-sm font-black uppercase tracking-tight ${task.status === 'completed' ? 'text-white/20 line-through' : 'text-white'}`}>
+                {task.title}
+              </h5>
+              {task.description && (
+                <p className="text-[10px] font-medium text-white/40 leading-relaxed">{task.description}</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-6">
+              {task.due_date && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                   <Calendar size={12} className="text-aba-gold" />
+                   <span className="text-[8px] font-black uppercase tracking-widest text-white/60">
+                     {new Date(task.due_date).toLocaleDateString()}
+                   </span>
+                </div>
+              )}
+              
+              <button 
+                onClick={() => handleDelete(task.id)}
+                className="p-2 text-white/10 hover:text-red-500 transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </Reorder.Item>
+        ))}
+      </Reorder.Group>
+
+      {showAddModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-aba-dark border border-white/10 p-10 rounded-[3.5rem] w-full max-w-lg space-y-8 shadow-2xl"
+          >
+            <div className="flex justify-between items-center">
+              <h4 className="text-xl font-black uppercase tracking-tight">New Roadmap Task</h4>
+              <button onClick={() => setShowAddModal(false)} className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl transition-all">
+                <Trash2 size={20} className="rotate-45" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Task Title</label>
+                <input 
+                  type="text"
+                  value={newTask.title || ''}
+                  onChange={e => setNewTask({...newTask, title: e.target.value})}
+                  className="w-full bg-black/40 border border-white/10 p-5 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs font-bold"
+                  placeholder="e.g., Integrate Logistics API"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Description</label>
+                <textarea 
+                  value={newTask.description || ''}
+                  onChange={e => setNewTask({...newTask, description: e.target.value})}
+                  className="w-full bg-black/40 border border-white/10 p-5 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs font-medium h-24 resize-none"
+                  placeholder="Brief context..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Due Date</label>
+                <input 
+                  type="date"
+                  value={newTask.due_date || ''}
+                  onChange={e => setNewTask({...newTask, due_date: e.target.value})}
+                  className="w-full bg-black/40 border border-white/10 p-5 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
+                />
+              </div>
+
+              <IndustrialButton 
+                variant="primary" 
+                size="lg" 
+                fullWidth
+                onClick={handleAddTask}
+              >
+                Commit Task
+              </IndustrialButton>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
+  const { commitAll } = useBusiness();
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const pinAuth = localStorage.getItem("findaba_admin_auth") === "true";
     const isOwner = userEmail === 'pastornelsonezi@gmail.com';
@@ -671,6 +887,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "metadata"
     | "automation"
     | "email"
+    | "tasks"
   >(() => {
     const storedTab = localStorage.getItem('findaba_admin_tab');
     if (storedTab) {
@@ -935,6 +1152,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
             label: "Signal Registry",
             icon: <Database size={16} />,
           },
+          {
+            id: "tasks",
+            label: "Tasks",
+            icon: <ListTodo size={16} />,
+          },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1096,7 +1318,16 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   <TrendingUp className="text-aba-gold" /> Quick Actions
                 </h4>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <IndustrialButton variant="secondary" size="md" icon={RefreshCcw} onClick={refreshAllData} fullWidth>
+                  <IndustrialButton 
+                    variant="secondary" 
+                    size="md" 
+                    icon={RefreshCcw} 
+                    onClick={async () => {
+                      await commitAll();
+                      await refreshAllData();
+                    }} 
+                    fullWidth
+                  >
                     Sync Registry
                   </IndustrialButton>
                   <IndustrialButton variant="secondary" size="md" icon={Zap} onClick={() => setActiveTab('signals')} fullWidth>
@@ -2333,6 +2564,17 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {activeTab === "tasks" && (
+            <div className="animate-slide-up space-y-12">
+              <SectionHeader 
+                title="Industrial Roadmap" 
+                subtitle="Execute mission-critical platform tasks and milestones"
+                icon={ListTodo}
+              />
+              <TasksManager />
             </div>
           )}
         </div>

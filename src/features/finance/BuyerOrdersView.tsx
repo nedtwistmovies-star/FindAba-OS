@@ -15,22 +15,22 @@ interface Props {
 }
 
 const BuyerOrdersView: React.FC<Props> = ({ setView }) => {
-  const { userUuid } = useAuth();
+  const { user_id } = useAuth();
   const { addToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    if (userUuid) {
+    if (user_id) {
       loadOrders();
     }
-  }, [userUuid]);
+  }, [user_id]);
 
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const data = await fetchOrdersForBuyer(userUuid!);
+      const data = await fetchOrdersForBuyer(user_id!);
       setOrders(data);
     } catch (e) {
       addToast("Failed to sync order signals.", "error");
