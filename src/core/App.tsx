@@ -126,13 +126,38 @@ const AppContent: React.FC = () => {
   // }
 
   return (
-    <Layout 
-      currentView={view} 
-      setView={setView} 
-      appLogo={appLogo} 
-      oracleAvatar={oracleAvatar} 
-      socialLinks={socialLinks}
-    >
+    <div className="relative min-h-screen overflow-hidden">
+      {/* 🔹 SUBTLE AMBIENT BACKGROUND ANIMATION */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.2, 1],
+            rotate: [0, 90, 0],
+            x: [0, 100, 0],
+            y: [0, 50, 0]
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-aba-gold/5 blur-[120px] rounded-full"
+        />
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.1, 1],
+            rotate: [0, -45, 0],
+            x: [0, -50, 0],
+            y: [0, 100, 0]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-aba-green/5 blur-[100px] rounded-full"
+        />
+      </div>
+
+      <Layout 
+        currentView={view} 
+        setView={setView} 
+        appLogo={appLogo} 
+        oracleAvatar={oracleAvatar} 
+        socialLinks={socialLinks}
+      >
       {/* Non-blocking loading indicator removed for faster launch */}
       
       <Suspense fallback={null}>
@@ -175,6 +200,7 @@ const AppContent: React.FC = () => {
         </div>
       )}
     </Layout>
+  </div>
   );
 };
 

@@ -1,5 +1,6 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 import { 
   Business, Hotel, Room, Booking, LedgerEntry, 
   LogisticsOrder, ChatMessage, Advertorial, AdPlan, 
@@ -9,6 +10,7 @@ import {
 } from '../types';
 import { triggerWebhook, WebhookEvent } from './webhookService';
 import { 
+  sendEmail,
   sendWelcomeEmail, 
   sendOrderReceivedEmail, 
   sendMerchantNewOrderEmail,
@@ -1506,4 +1508,159 @@ export const fetchAdminStats = async () => {
     users: profiles.count || 0,
     drivers: drivers.count || 0
   };
+};
+
+/**
+ * Creates a new business claim.
+ * Generates a 6-digit OTP, hashes it, and stores the claim.
+ * Then sends an email with the raw OTP.
+ */
+export const createBusinessClaim = async (businessId: string, email: string): Promise<void> => {
+  const sb = getSupabase();
+  if (!sb) throw new Error("Registry offline");
+
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) throw new Error("Authentication required to claim business.");
+
+  // 1. Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // 2. Hash OTP using bcrypt
+  const salt = await bcrypt.genSalt(10);
+  const otpHash = await bcrypt.hash(otp, salt);
+
+  // 3. Expiry (5 minutes)
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+  // 4. Check for existing pending claim for this user/business to rotate OTP or create new
+  const { data: existingClaim } = await sb
+    .from('business_claims')
+    .select('id')
+    .eq('business_id', businessId)
+    .eq('user_id', user.id)
+    .eq('status', 'pending')
+    .maybeSingle();
+
+  if (existingClaim) {
+    const { error: updateError } = await sb
+      .from('business_claims')
+      .update({
+        otp_hash: otpHash,
+        expires_at: expiresAt,
+        otp_attempts: 0,
+        last_otp_sent_at: new Date().toISOString()
+      })
+      .eq('id', existingClaim.id);
+
+    if (updateError) throw updateError;
+  } else {
+    const { error: insertError } = await sb
+      .from('business_claims')
+      .insert({
+        business_id: businessId,
+        user_id: user.id,
+        email: email,
+        otp_hash: otpHash,
+        expires_at: expiresAt,
+        last_otp_sent_at: new Date().toISOString()
+      });
+
+    if (insertError) throw insertError;
+  }
+
+  // 5. Send OTP via email
+  try {
+    const subject = "Your FindAba Verification Code";
+    await sendEmail({
+      to: email,
+      subject: subject,
+      html: `<div style="font-family: sans-serif; padding: 20px;">
+        <h2 style="color: #004d2c;">Security Protocol Initiation</h2>
+        <p>A verification signal has been requested for business claiming.</p>
+        <div style="background: #f4f4f4; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; color: #d4af37;">
+          ${otp}
+        </div>
+        <p>This code expires in 5 minutes.</p>
+        <p>If you did not request this, please ignore this email.</p>
+      </div>`
+    });
+  } catch (emailErr) {
+    console.error("Failed to send OTP email:", emailErr);
+  }
+};
+
+/**
+ * Verifies a business claim with the provided OTP.
+ */
+export const verifyBusinessClaim = async (businessId: string, otp: string): Promise<boolean> => {
+  const sb = getSupabase();
+  if (!sb) throw new Error("Registry offline");
+
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) throw new Error("Authentication required.");
+
+  // 1. Fetch claim
+  const { data: claim, error: fetchError } = await sb
+    .from('business_claims')
+    .select('*')
+    .eq('business_id', businessId)
+    .eq('user_id', user.id)
+    .eq('status', 'pending')
+    .single();
+
+  if (fetchError || !claim) {
+    throw new Error("No active claim found for this business.");
+  }
+
+  // 2. Validate Lockout
+  if (claim.locked_until && new Date(claim.locked_until) > new Date()) {
+    const minutesLeft = Math.ceil((new Date(claim.locked_until).getTime() - Date.now()) / 60000);
+    throw new Error(`Security Lockout: Too many failed attempts. Try again in ${minutesLeft} minutes.`);
+  }
+
+  // 3. Validate Expiration
+  if (new Date(claim.expires_at) < new Date()) {
+    throw new Error("OTP Expired: Please request a new verification code.");
+  }
+
+  // 4. Compare OTP
+  const isValid = await bcrypt.compare(otp, claim.otp_hash);
+
+  if (!isValid) {
+    const nextAttempts = (claim.otp_attempts || 0) + 1;
+    let lockedUntil = null;
+    
+    // Lock after 5 attempts for 10 minutes
+    if (nextAttempts >= 5) {
+      lockedUntil = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    }
+
+    await sb
+      .from('business_claims')
+      .update({ 
+        otp_attempts: nextAttempts,
+        locked_until: lockedUntil
+      })
+      .eq('id', claim.id);
+
+    if (nextAttempts >= 5) {
+      throw new Error("Security Lockout: 5 failed attempts. Access suspended for 10 minutes.");
+    } else {
+      throw new Error(`Invalid Code: ${5 - nextAttempts} attempts remaining.`);
+    }
+  }
+
+  // 5. Success: Update Claim Status
+  const { error: verifyError } = await sb
+    .from('business_claims')
+    .update({ 
+      status: 'verified',
+      otp_attempts: 0,
+      verified_at: new Date().toISOString()
+    })
+    .eq('id', claim.id);
+
+  if (verifyError) throw verifyError;
+
+  return true;
 };

@@ -17,8 +17,19 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const getStoredUserId = () => {
+    const id = localStorage.getItem('findaba_user_id');
+    const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    if (id && isUUID(id)) return id;
+    if (id) {
+       localStorage.removeItem('findaba_user_id');
+       console.warn("[Auth] Purged legacy non-UUID user identifier.");
+    }
+    return null;
+  };
+
   const [userIdentifier, setUserIdentifier] = useState<string | null>(localStorage.getItem('findaba_user_login'));
-  const [user_id, setUserId] = useState<string | null>(localStorage.getItem('findaba_user_id'));
+  const [user_id, setUserId] = useState<string | null>(getStoredUserId());
   const [userName, setUserName] = useState<string | null>(localStorage.getItem('findaba_user_name'));
   const [userRole, setUserRole] = useState<string | null>(localStorage.getItem('findaba_user_role'));
   const [profile, setProfile] = useState<any | null>(null);
@@ -62,10 +73,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       finalRole = 'admin';
     }
 
+    const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
     localStorage.setItem('findaba_user_login', identifier);
-    if (uuid) {
+    if (uuid && isUUID(uuid)) {
       localStorage.setItem('findaba_user_id', uuid);
       setUserId(uuid);
+    } else if (uuid && !isUUID(uuid)) {
+      console.warn("[Auth] Invalid UUID detected for user_id, ignoring legacy identifier:", uuid);
     }
     
     if (identifier.includes('@')) {

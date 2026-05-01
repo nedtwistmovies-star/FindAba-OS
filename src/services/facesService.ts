@@ -207,6 +207,18 @@ export const updateProfile = async (userId: string, updates: any) => {
   return data;
 };
 
+export const releaseEscrow = async (orderId: string) => {
+  const { data, error } = await supabase.rpc('release_escrow', {
+    p_order_id: orderId
+  });
+
+  if (error) {
+    console.error("[Commerce] RPC release_escrow Error:", error.message);
+    throw error;
+  }
+  return data;
+};
+
 export const toggleFollow = async (followerId: string, followingId: string) => {
   const { data: existing } = await supabase
     .from('followers')

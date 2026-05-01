@@ -49,9 +49,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 DROP POLICY IF EXISTS "profiles_select_all" ON public.profiles;
 CREATE POLICY "profiles_select_all" ON public.profiles FOR SELECT USING (true);
 DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid()::uuid = id::uuid);
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid()::text = id::text);
 DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
-CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid()::uuid = id::uuid);
+CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid()::text = id::text);
 DROP POLICY IF EXISTS "profiles_admin_all" ON public.profiles;
 CREATE POLICY "profiles_admin_all" ON public.profiles FOR ALL USING (public.check_is_admin());
 
@@ -108,8 +108,8 @@ CREATE POLICY "Public read businesses" ON public.businesses FOR SELECT USING (tr
 -- or businesses they already own, or if they are an admin.
 DROP POLICY IF EXISTS "Registry access policy" ON public.businesses;
 CREATE POLICY "Registry access policy" ON public.businesses FOR ALL 
-  USING (auth.uid()::uuid = user_id::uuid OR user_id IS NULL OR public.check_is_admin())
-  WITH CHECK (auth.uid()::uuid = user_id::uuid OR user_id IS NULL OR public.check_is_admin());
+  USING (auth.uid()::text = user_id::text OR user_id IS NULL OR public.check_is_admin())
+  WITH CHECK (auth.uid()::text = user_id::text OR user_id IS NULL OR public.check_is_admin());
 
 DROP POLICY IF EXISTS "Authenticated can insert business" ON public.businesses;
 CREATE POLICY "Authenticated can insert business" ON public.businesses FOR INSERT 
@@ -164,16 +164,16 @@ ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
 
 -- Social Policies
 CREATE POLICY "Social Read Access" ON public.posts FOR SELECT USING (true);
-CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid()::uuid = user_id);
-CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid()::uuid = user_id OR public.check_is_admin());
+CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid()::text = user_id::text OR public.check_is_admin());
 
 CREATE POLICY "Comments Read Access" ON public.comments FOR SELECT USING (true);
-CREATE POLICY "Comments Insert Access" ON public.comments FOR INSERT WITH CHECK (auth.uid()::uuid = user_id);
+CREATE POLICY "Comments Insert Access" ON public.comments FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
-CREATE POLICY "Likes All Access" ON public.likes FOR ALL USING (auth.uid()::uuid = user_id);
+CREATE POLICY "Likes All Access" ON public.likes FOR ALL USING (auth.uid()::text = user_id::text);
 
 CREATE POLICY "Stories Read Access" ON public.stories FOR SELECT USING (true);
-CREATE POLICY "Stories Insert Access" ON public.stories FOR INSERT WITH CHECK (auth.uid()::uuid = user_id);
+CREATE POLICY "Stories Insert Access" ON public.stories FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
 -- ==========================================
 -- 4. COMMERCE, ESCROW & ORDERS
@@ -200,11 +200,11 @@ ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 -- 🛡️ CRITICAL: ORDER POLICIES
 DROP POLICY IF EXISTS "Orders View Policy" ON public.orders;
 CREATE POLICY "Orders View Policy" ON public.orders FOR SELECT 
-USING (auth.uid()::uuid = buyer_id::uuid OR auth.uid()::uuid = seller_id::uuid OR public.check_is_admin());
+USING (auth.uid()::text = buyer_id::text OR auth.uid()::text = seller_id::text OR public.check_is_admin());
 
 DROP POLICY IF EXISTS "Orders Update Policy" ON public.orders;
 CREATE POLICY "Orders Update Policy" ON public.orders FOR UPDATE 
-USING (auth.uid()::uuid = buyer_id::uuid OR auth.uid()::uuid = seller_id::uuid OR public.check_is_admin());
+USING (auth.uid()::text = buyer_id::text OR auth.uid()::text = seller_id::text OR public.check_is_admin());
 
 -- ==========================================
 -- 5. MESSAGING & REALTIME
@@ -223,10 +223,10 @@ CREATE TABLE IF NOT EXISTS public.messages (
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Messages View Policy" ON public.messages FOR SELECT 
-USING (auth.uid()::uuid = sender_id OR auth.uid()::uuid = receiver_id);
+USING (auth.uid()::text = sender_id::text OR auth.uid()::text = receiver_id::text);
 
 CREATE POLICY "Messages Insert Policy" ON public.messages FOR INSERT 
-WITH CHECK (auth.uid()::uuid = sender_id);
+WITH CHECK (auth.uid()::text = sender_id::text);
 
 -- ==========================================
 -- 6. WALLET & FINANCE
@@ -254,9 +254,9 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Wallet View Policy" ON public.wallets FOR SELECT USING (auth.uid()::uuid = user_id);
+CREATE POLICY "Wallet View Policy" ON public.wallets FOR SELECT USING (auth.uid()::text = user_id::text);
 CREATE POLICY "Transaction View Policy" ON public.transactions FOR SELECT 
-USING (EXISTS (SELECT 1 FROM public.wallets WHERE id = public.transactions.wallet_id AND user_id = auth.uid()::uuid));
+USING (EXISTS (SELECT 1 FROM public.wallets WHERE id::text = public.transactions.wallet_id::text AND user_id::text = auth.uid()::text));
 
 -- ==========================================
 -- 7. ESCROW & SETTLEMENT RPCs

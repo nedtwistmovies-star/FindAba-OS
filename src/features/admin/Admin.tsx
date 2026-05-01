@@ -13,7 +13,10 @@ import {
   Zap,
   Landmark,
   CreditCard,
+  History,
+  Radio,
   LayoutGrid,
+  LayoutDashboard,
   Settings,
   Key,
   UserCheck,
@@ -80,7 +83,7 @@ import { useBusiness } from "../../providers/BusinessProvider";
 import { triggerWebhook, WebhookEvent, validateAutomationGateway, getSamplePayload } from "../../services/webhookService";
 import { paymentService } from "../../services/paymentService";
 import { sendWelcomeEmail } from "../../services/emailService";
-import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel, Task } from "../../types";
+import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel, Task, Order, OrderStatus } from "../../types";
 import { ImageUpload, MultiImageUpload } from "../../components/ImageUpload";
 import { MultiVideoUpload } from "../../components/VideoUpload";
 import StatCard from "../../components/StatCard";
@@ -878,16 +881,16 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "overview"
     | "registry"
     | "signals"
-    | "identity"
+    | "users"
+    | "automation"
+    | "tasks"
+    | "email"
+    | "metadata"
+    | "verification"
     | "settlement"
     | "supabase"
-    | "verification"
-    | "users"
     | "infrastructure"
-    | "metadata"
-    | "automation"
-    | "email"
-    | "tasks"
+    | "identity"
   >(() => {
     const storedTab = localStorage.getItem('findaba_admin_tab');
     if (storedTab) {
@@ -903,6 +906,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [signals, setSignals] = useState<BuyerSignal[]>([]);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
 
   // Supabase Config State
@@ -954,6 +958,9 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
       if (sb) {
         const { data: ledgerData } = await sb.from('ledger').select('*').order('created_at', { ascending: false });
         setLedger(ledgerData || []);
+
+        const { data: orderData } = await sb.from('orders').select('*').order('created_at', { ascending: false }).limit(20);
+        setOrders(orderData || []);
 
         const { data: profileData } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
         setProfiles(profileData || []);
@@ -1114,49 +1121,20 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
         </div>
       </header>
 
-      <nav className="flex bg-black/20 border-b border-white/5 overflow-x-auto scrollbar-hide shrink-0">
+      <nav className="flex bg-black/20 border-b border-white/5 overflow-x-auto scrollbar-hide shrink-0 sticky top-20 z-40 backdrop-blur-xl">
         {[
-          { id: "overview", label: "Overview", icon: <BarChart3 size={16} /> },
-          { id: "identity", label: "Identity", icon: <UserCheck size={16} /> },
-          {
-            id: "verification",
-            label: "Verification",
-            icon: <Shield size={16} />,
-          },
-          { id: "registry", label: "Artisans", icon: <LayoutGrid size={16} /> },
-          { id: "signals", label: "Signals", icon: <Zap size={16} /> },
-          { id: "settlement", label: "Settlement", icon: <Landmark size={16} /> },
-          { id: "users", label: "Users", icon: <Users size={16} /> },
-          {
-            id: "infrastructure",
-            label: "Infrastructure",
-            icon: <Globe size={16} />,
-          },
-          {
-            id: "metadata",
-            label: "Metadata",
-            icon: <Settings size={16} />,
-          },
-          {
-            id: "automation",
-            label: "Automation",
-            icon: <Cpu size={16} />,
-          },
-          {
-            id: "email",
-            label: "Email Audit",
-            icon: <Mail size={16} />,
-          },
-          {
-            id: "supabase",
-            label: "Signal Registry",
-            icon: <Database size={16} />,
-          },
-          {
-            id: "tasks",
-            label: "Tasks",
-            icon: <ListTodo size={16} />,
-          },
+          { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
+          { id: 'registry', label: 'Artisans', icon: <Database size={16} /> },
+          { id: 'signals', label: 'Signals', icon: <Zap size={16} /> },
+          { id: 'users', label: 'Partners', icon: <Users size={16} /> },
+          { id: 'automation', label: 'Audit Log', icon: <Activity size={16} /> },
+          { id: 'tasks', label: 'Roadmap', icon: <ListTodo size={16} /> },
+          { id: 'email', label: 'Comms', icon: <Mail size={16} /> },
+          { id: 'metadata', label: 'Config', icon: <Settings size={16} /> },
+          { id: 'verification', label: 'Veritas', icon: <Shield size={16} /> },
+          { id: 'settlement', label: 'Finance', icon: <Landmark size={16} /> },
+          { id: 'supabase', label: 'Handshake', icon: <Radio size={16} /> },
+          { id: 'infrastructure', label: 'Sys-Ops', icon: <Globe size={16} /> },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1310,6 +1288,67 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                       <GitHubSync />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+                    <History className="text-aba-gold" /> Registry Order Activity
+                  </h4>
+                  <IndustrialButton 
+                    variant="secondary" 
+                    size="sm" 
+                    icon={RefreshCcw}
+                    onClick={refreshAllData}
+                  >
+                    Sync Feed
+                  </IndustrialButton>
+                </div>
+                
+                <div className="overflow-x-auto">
+                   <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/5">
+                          <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/40">Order Ref</th>
+                          <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/40">Amount</th>
+                          <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/40">Status</th>
+                          <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/40">Timestamp</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {orders.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="py-10 text-center text-[10px] font-bold uppercase text-white/20 tracking-widest">
+                               No recent platform activity.
+                            </td>
+                          </tr>
+                        ) : orders.map((order) => (
+                          <tr key={order.id} className="group hover:bg-white/5 transition-all">
+                            <td className="py-4 font-mono text-[10px] text-white/60">
+                               {order.id.slice(0, 12).toUpperCase()}
+                            </td>
+                            <td className="py-4 font-black text-white text-[10px]">
+                               ₦{order.amount.toLocaleString()}
+                            </td>
+                            <td className="py-4">
+                               <span className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-2 w-fit ${
+                                 order.status === OrderStatus.DISPUTED ? 'bg-red-500/20 text-red-500 animate-pulse' :
+                                 order.status === OrderStatus.COMPLETED ? 'bg-aba-green/20 text-aba-green' :
+                                 'bg-white/5 text-white/40'
+                               }`}>
+                                 {order.status === OrderStatus.DISPUTED && <AlertTriangle size={10} />}
+                                 {order.status === OrderStatus.COMPLETED && <CheckSquare size={10} />}
+                                 {order.status}
+                               </span>
+                            </td>
+                            <td className="py-4 text-[10px] font-medium text-white/40">
+                               {new Date(order.created_at).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                   </table>
                 </div>
               </div>
 

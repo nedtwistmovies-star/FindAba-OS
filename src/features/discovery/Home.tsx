@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, useScroll, useTransform } from 'motion/react';
 import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader, ImageCarousel, GitHubSync, SupabaseSync, BusinessCard } from '../../components';
@@ -83,6 +84,11 @@ const CitySignals: React.FC = () => {
 };
 
 const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], heroVideos = [], myBusiness }) => {
+  const { scrollY } = useScroll();
+  const heroY = useTransform(scrollY, [0, 500], [0, 250]);
+  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+  const textY = useTransform(scrollY, [0, 500], [0, 150]);
+
   const { setSearchQuery: setGlobalSearchQuery } = useOracle();
   const { userRole, userIdentifier } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -161,7 +167,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
       {/* 1. HERO SECTION - Matching Screenshot Layout */}
       <section className="relative min-h-[70vh] md:min-h-[85vh] flex flex-col items-center justify-center px-4 sm:px-6 md:px-12 py-16 sm:py-24 overflow-hidden">
-        <div className="absolute inset-0 z-0">
+        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
           <ImageCarousel 
             images={heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES} 
             className="h-full w-full"
@@ -169,9 +175,9 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           />
           <div className="absolute inset-0 bg-aba-deep/60 backdrop-blur-[2px]" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-aba-deep/20 to-aba-deep" />
-        </div>
+        </motion.div>
         
-        <div className="relative z-10 w-full max-w-6xl flex flex-col items-center text-center space-y-8 sm:space-y-12">
+        <motion.div style={{ y: textY }} className="relative z-10 w-full max-w-6xl flex flex-col items-center text-center space-y-8 sm:space-y-12">
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 animate-fade-in">
             <IndustrialButton 
               variant="secondary"
@@ -236,7 +242,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               )}
             </form>
           </div>
-        </div>
+        </motion.div>
 
         <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-4 sm:px-6 md:px-12 z-20">
           <div className="max-w-7xl mx-auto flex gap-3 sm:gap-4 overflow-x-auto pb-8 scrollbar-hide">

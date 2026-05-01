@@ -4,7 +4,8 @@ import {
   ArrowLeft, MapPin, Phone, Globe, ShieldCheck, 
   Star, MessageCircle, ShoppingBag, Share2, 
   Heart, ExternalLink, Award, Package, Clock,
-  ChevronRight, Zap, CheckCircle2, Info, Loader2
+  ChevronRight, Zap, CheckCircle2, Info, Loader2,
+  Lock
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -12,6 +13,7 @@ import 'leaflet/dist/leaflet.css';
 import { Business, Product, ViewState, IntegrityGrade, VerificationLevel } from '../../types';
 import { ImageCarousel, PaystackOverlay, IndustrialButton, SectionHeader } from '../../components';
 import { useAuth } from '../../providers/AuthProvider';
+import { BusinessClaimFlow } from '../merchant/BusinessClaimFlow';
 
 // Fix for Leaflet marker icons
 const DefaultIcon = L.icon({
@@ -31,9 +33,10 @@ interface BusinessDetailProps {
 }
 
 const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onToggleFavorite, isFavorite, setView }) => {
-  const { userIdentifier } = useAuth();
+  const { userIdentifier, user_id } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [showClaimFlow, setShowClaimFlow] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'location' | 'reviews'>('overview');
 
   const getGradeColor = (grade: IntegrityGrade) => {
@@ -65,6 +68,8 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
   }
 
   const isVerified = business.integrity_grade === IntegrityGrade.A || business.integrity_grade === IntegrityGrade.A_PLUS;
+  const isOwner = business.user_id && user_id && business.user_id === user_id;
+  const isClaimable = !business.user_id;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -73,6 +78,11 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
   const handlePurchase = (product: Product) => {
     setSelectedProduct(product);
     setShowPayment(true);
+  };
+
+  const handleClaimSuccess = () => {
+    setShowClaimFlow(false);
+    window.location.reload(); 
   };
 
   const mediaUrls = business.catalog_images || [business.image_url];
@@ -93,6 +103,12 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
              <ArrowLeft className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
            </button>
            <div className="flex gap-2 sm:gap-3">
+              {isOwner && (
+                <div className="hidden sm:flex bg-aba-green/20 backdrop-blur-xl border border-aba-green/30 rounded-xl px-4 items-center gap-3 text-aba-green text-[10px] font-black uppercase tracking-widest">
+                   <div className="w-2 h-2 bg-aba-green rounded-full animate-pulse" />
+                   Owner Account
+                </div>
+              )}
               <button 
                 onClick={() => onToggleFavorite(business.id)}
                 className={`w-10 h-10 sm:w-12 sm:h-12 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center transition-standard active:scale-90 shadow-sm ${isFavorite ? 'bg-aba-red text-white border-aba-red' : 'bg-white/10 text-white hover:bg-white/20'}`}
@@ -140,15 +156,27 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                  </div>
               </div>
               <div className="flex gap-4">
-                 <IndustrialButton
-                    variant="primary"
-                    size="lg"
-                    icon={MessageCircle}
-                    onClick={() => setView('feed')}
-                    className="shadow-xl w-full sm:w-auto"
-                 >
-                    Contact Partner
-                 </IndustrialButton>
+                 {isClaimable ? (
+                    <IndustrialButton
+                      variant="primary"
+                      size="lg"
+                      icon={Lock}
+                      onClick={() => setShowClaimFlow(true)}
+                      className="shadow-xl w-full sm:w-auto !bg-aba-gold !text-aba-deep"
+                    >
+                      Claim This Business
+                    </IndustrialButton>
+                 ) : (
+                    <IndustrialButton
+                       variant="primary"
+                       size="lg"
+                       icon={MessageCircle}
+                       onClick={() => setView('feed')}
+                       className="shadow-xl w-full sm:w-auto"
+                    >
+                       Contact Partner
+                    </IndustrialButton>
+                 )}
               </div>
            </div>
         </div>
@@ -389,6 +417,18 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
             </div>
          </div>
       </main>
+
+      {/* 5. CLAIM FLOW OVERLAY */}
+      {showClaimFlow && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+           <BusinessClaimFlow 
+              businessId={business.id}
+              businessName={business.name}
+              onSuccess={handleClaimSuccess}
+              onCancel={() => setShowClaimFlow(false)}
+           />
+        </div>
+      )}
 
       {/* 4. PAYMENT OVERLAY */}
       {showPayment && selectedProduct && (
