@@ -5,7 +5,7 @@
 -- ==========================================
 -- 1. SYSTEM LOGS & AUDIT TRAIL
 -- ==========================================
-CREATE TABLE IF NOT EXISTS platform_logs (
+CREATE TABLE IF NOT EXISTS public.platform_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_type TEXT NOT NULL,
   severity TEXT DEFAULT 'info',
@@ -14,13 +14,16 @@ CREATE TABLE IF NOT EXISTS platform_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.platform_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins only logs" ON public.platform_logs FOR ALL USING (public.check_is_admin());
+
 -- ==========================================
 -- 2. DISPUTES SYSTEM
 -- ==========================================
-CREATE TABLE IF NOT EXISTS disputes (
+CREATE TABLE IF NOT EXISTS public.disputes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  merchant_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+  merchant_id TEXT NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id),
   reason TEXT NOT NULL,
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'resolving', 'resolved', 'cancelled')),
@@ -30,31 +33,72 @@ CREATE TABLE IF NOT EXISTS disputes (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Fix for existing tables missing the user_id column
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='disputes' AND column_name='user_id') THEN
+    ALTER TABLE public.disputes ADD COLUMN user_id UUID REFERENCES auth.users(id);
+  END IF;
+END $$;
+
+ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Involved parties view disputes" ON public.disputes;
+CREATE POLICY "Involved parties view disputes" ON public.disputes 
+  FOR SELECT USING (
+    auth.uid() = user_id 
+    OR auth.uid() IN (SELECT buyer_id FROM public.orders WHERE id = order_id)
+    OR public.check_is_admin()
+  );
+
 -- ==========================================
--- 3. ESCROW & REFUND LOGIC (RPCs)
+-- 3. ESCROW & REFUND LOGIC (UNIFIED)
 -- ==========================================
 
--- RPC: Release Escrow Funds
-CREATE OR REPLACE FUNCTION release_escrow(p_order_id UUID, p_admin_id UUID DEFAULT NULL)
+-- RPC: Unified Release Escrow with Dispute Guard
+CREATE OR REPLACE FUNCTION public.release_escrow(p_order_id UUID, p_admin_id UUID DEFAULT NULL)
 RETURNS BOOLEAN AS $$
 DECLARE
   v_order RECORD;
+  v_wallet_id UUID;
+  v_has_dispute BOOLEAN;
 BEGIN
-  SELECT * INTO v_order FROM orders WHERE id = p_order_id::uuid;
+  -- 1. Check for active disputes
+  SELECT EXISTS (
+    SELECT 1 FROM public.disputes WHERE order_id = p_order_id AND status != 'resolved'
+  ) INTO v_has_dispute;
+
+  IF v_has_dispute AND p_admin_id IS NULL THEN
+    RAISE EXCEPTION 'Escrow locked: Active dispute must be resolved before release.';
+  END IF;
+
+  -- 2. Fetch order
+  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id::uuid;
   
-  -- Logic: Only buyer or admin can release
-  IF v_order.status = 'paid' THEN
-    -- Transfer funds to seller wallet
-    UPDATE wallets 
-    SET balance = balance + v_order.amount, updated_at = NOW()
-    WHERE user_id = v_order.seller_id::uuid;
+  -- Logic: Only after delivery or explicit release
+  IF v_order.status IN ('paid', 'delivered') THEN
+    -- Ensure sellers wallet exists
+    INSERT INTO public.wallets (user_id) VALUES (v_order.seller_id)
+    ON CONFLICT (user_id) DO NOTHING;
+    
+    SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = v_order.seller_id;
+    
+    -- Transfer funds
+    UPDATE public.wallets SET balance = balance + v_order.merchant_payout, updated_at = NOW()
+    WHERE id = v_wallet_id;
+    
+    -- Record Transaction
+    INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
+    VALUES (v_wallet_id, v_order.merchant_payout, 'credit', 'success', 'Order Payout: ' || p_order_id, 'REL-' || p_order_id);
     
     -- Update order status
-    UPDATE orders SET status = 'completed' WHERE id = p_order_id::uuid;
+    UPDATE public.orders SET 
+      status = 'completed', 
+      escrow_release_at = NOW() 
+    WHERE id = p_order_id::uuid;
     
     -- Log the event
-    INSERT INTO platform_logs (event_type, severity, payload, user_id)
-    VALUES ('escrow_release', 'success', jsonb_build_object('order_id', p_order_id, 'amount', v_order.amount), v_order.seller_id::uuid);
+    INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
+    VALUES ('escrow_release', 'success', jsonb_build_object('order_id', p_order_id, 'amount', v_order.merchant_payout), v_order.seller_id);
     
     RETURN TRUE;
   END IF;
@@ -198,9 +242,11 @@ BEGIN
     
     NEW.verified_at = NOW();
     
-    -- Log the event
-    INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
-    VALUES ('business_claimed', 'info', jsonb_build_object('business_id', NEW.business_id, 'claim_id', NEW.id), NEW.user_id);
+-- INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
+    -- VALUES ('business_claimed', 'info', jsonb_build_object('business_id', NEW.business_id, 'claim_id', NEW.id), NEW.user_id);
+    
+    -- Corrected insert using internal function or direct insert
+    PERFORM public.log_system_event('business_claimed', 'info', jsonb_build_object('business_id', NEW.business_id, 'claim_id', NEW.id));
   END IF;
   RETURN NEW;
 END;
@@ -242,6 +288,19 @@ CREATE TRIGGER on_claim_created
 -- Ensure profiles are viewable by all for relationship lookups
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
+
+-- ==========================================
+-- 7. HARDENED LOGISTICS & AUDIT
+-- ==========================================
+
+-- Secure Logistics (Prevent PII leaks)
+ALTER TABLE IF EXISTS public.logistics_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can only view their own logistics" ON public.logistics_orders;
+CREATE POLICY "Users can only view their own logistics" ON public.logistics_orders
+  FOR SELECT USING (
+    (user_id IS NOT NULL AND auth.uid() = user_id)
+    OR public.check_is_admin()
+  );
 
 -- Ensure orders have proper status enum handling
 ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_status_check;

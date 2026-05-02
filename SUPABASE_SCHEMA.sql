@@ -274,39 +274,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- RPC: Release Escrow (Transfer to Seller)
-CREATE OR REPLACE FUNCTION public.release_escrow(p_order_id UUID)
-RETURNS BOOLEAN AS $$
-DECLARE
-  v_order RECORD;
-  v_wallet_id UUID;
-BEGIN
-  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id::uuid;
-  
-  -- Logic: Only after delivery or explicit release
-  IF v_order.status IN ('paid', 'delivered') THEN
-    -- Find/Create seller wallet
-    INSERT INTO public.wallets (user_id) VALUES (v_order.seller_id::uuid)
-    ON CONFLICT (user_id) DO NOTHING;
-    
-    SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = v_order.seller_id::uuid;
-    
-    -- Credit seller
-    UPDATE public.wallets SET balance = balance + v_order.merchant_payout WHERE id = v_wallet_id::uuid;
-    
-    -- Record Transaction
-    INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
-    VALUES (v_wallet_id, v_order.merchant_payout, 'credit', 'success', 'Order Payout: ' || p_order_id, 'REL-' || p_order_id);
-    
-    -- Update order
-    UPDATE public.orders SET status = 'completed', escrow_release_at = NOW() WHERE id = p_order_id::uuid;
-    
-    RETURN TRUE;
-  END IF;
-  
-  RETURN FALSE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- REMOVED REDUNDANT release_escrow (Unified version in ADDONS handles this better with dispute guard)
 
 -- ==========================================
 -- 8. TRIGGERS & REALTIME
@@ -429,7 +397,7 @@ CREATE TABLE IF NOT EXISTS public.referrals (
 
 CREATE TABLE IF NOT EXISTS public.logistics_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_email TEXT NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   tracking_id TEXT UNIQUE NOT NULL,
   status TEXT NOT NULL,
   pickup_address TEXT,
@@ -501,12 +469,42 @@ CREATE TABLE IF NOT EXISTS public.payments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable Realtime for new tables
-ALTER PUBLICATION supabase_realtime ADD TABLE public.followers;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.referrals;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.logistics_orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.ads;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.advertorials;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.quality_audits;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.hospitality_config;
+-- Enable RLS on remaining tables
+ALTER TABLE public.platform_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hospitality_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quality_audits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.followers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.logistics_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.advertorials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.automation_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ledger ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+-- Policies for specific tables
+CREATE POLICY "Public Read Config" ON public.platform_config FOR SELECT USING (true);
+CREATE POLICY "Public Read Hospitality" ON public.hospitality_config FOR SELECT USING (true);
+CREATE POLICY "User Read Notifications" ON public.notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Public Read Advertorials" ON public.advertorials FOR SELECT USING (true);
+CREATE POLICY "Followers Policy" ON public.followers FOR ALL USING (auth.uid() = follower_id OR auth.uid() = following_id);
+CREATE POLICY "Favorites Policy" ON public.favorites FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "User Payouts Policy" ON public.payments FOR SELECT USING (auth.uid() = user_id);
+
+-- Performance Indexes
+CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON public.orders(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_seller_id ON public.orders(seller_id);
+CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON public.messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_messages_receiver_id ON public.messages(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_posts_user_id ON public.posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_post_id ON public.comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_businesses_user_id ON public.businesses(user_id);
+
+-- Enable Realtime for all tables
+ALTER PUBLICATION supabase_realtime ADD TABLE public.platform_config;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.ledger;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.payments;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.disputes;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.business_claims;
