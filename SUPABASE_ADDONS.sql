@@ -15,7 +15,11 @@ CREATE TABLE IF NOT EXISTS public.platform_logs (
 );
 
 ALTER TABLE public.platform_logs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admins only logs" ON public.platform_logs FOR ALL USING (public.check_is_admin());
+DROP POLICY IF EXISTS "Admins only logs" ON public.platform_logs;
+CREATE POLICY "Admins only logs" ON public.platform_logs 
+  FOR ALL TO authenticated
+  USING (public.check_is_admin())
+  WITH CHECK (public.check_is_admin());
 
 -- ==========================================
 -- 2. DISPUTES SYSTEM
@@ -33,22 +37,25 @@ CREATE TABLE IF NOT EXISTS public.disputes (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Fix for existing tables missing the user_id column
-DO $$ 
-BEGIN 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='disputes' AND column_name='user_id') THEN
-    ALTER TABLE public.disputes ADD COLUMN user_id UUID REFERENCES auth.users(id);
-  END IF;
-END $$;
-
 ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "Involved parties view disputes" ON public.disputes;
 CREATE POLICY "Involved parties view disputes" ON public.disputes 
   FOR SELECT USING (
     auth.uid() = user_id 
     OR auth.uid() IN (SELECT buyer_id FROM public.orders WHERE id = order_id)
+    OR auth.uid() IN (SELECT seller_id FROM public.orders WHERE id = order_id)
     OR public.check_is_admin()
   );
+
+DROP POLICY IF EXISTS "Disputes insert policy" ON public.disputes;
+CREATE POLICY "Disputes insert policy" ON public.disputes
+  FOR INSERT WITH CHECK (auth.uid() = user_id OR public.check_is_admin());
+
+DROP POLICY IF EXISTS "Disputes update policy" ON public.disputes;
+CREATE POLICY "Disputes update policy" ON public.disputes
+  FOR UPDATE USING (auth.uid() = user_id OR public.check_is_admin())
+  WITH CHECK (auth.uid() = user_id OR public.check_is_admin());
 
 -- ==========================================
 -- 3. ESCROW & REFUND LOGIC (UNIFIED)
@@ -62,71 +69,105 @@ DECLARE
   v_wallet_id UUID;
   v_has_dispute BOOLEAN;
 BEGIN
-  -- 1. Check for active disputes
+  -- 1. Lock order row for update
+  SELECT * INTO v_order 
+  FROM public.orders 
+  WHERE id = p_order_id 
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Order not found: %', p_order_id;
+  END IF;
+
+  -- 2. Prevent double payout
+  IF v_order.status = 'completed' THEN
+    RAISE EXCEPTION 'Escrow already released for order: %', p_order_id;
+  END IF;
+
+  -- 3. Check for active disputes
   SELECT EXISTS (
-    SELECT 1 FROM public.disputes WHERE order_id = p_order_id AND status != 'resolved'
+    SELECT 1 FROM public.disputes 
+    WHERE order_id = p_order_id AND status != 'resolved'
   ) INTO v_has_dispute;
 
+  -- Block payout if active dispute exists (except admin override)
   IF v_has_dispute AND p_admin_id IS NULL THEN
-    RAISE EXCEPTION 'Escrow locked: Active dispute must be resolved before release.';
+    RAISE EXCEPTION 'Escrow locked: Active dispute exists for order: %', p_order_id;
   END IF;
 
-  -- 2. Fetch order
-  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id::uuid;
-  
-  -- Logic: Only after delivery or explicit release
-  IF v_order.status IN ('paid', 'delivered') THEN
-    -- Ensure sellers wallet exists
-    INSERT INTO public.wallets (user_id) VALUES (v_order.seller_id)
-    ON CONFLICT (user_id) DO NOTHING;
-    
-    SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = v_order.seller_id;
-    
-    -- Transfer funds
-    UPDATE public.wallets SET balance = balance + v_order.merchant_payout, updated_at = NOW()
-    WHERE id = v_wallet_id;
-    
-    -- Record Transaction
-    INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
-    VALUES (v_wallet_id, v_order.merchant_payout, 'credit', 'success', 'Order Payout: ' || p_order_id, 'REL-' || p_order_id);
-    
-    -- Update order status
-    UPDATE public.orders SET 
-      status = 'completed', 
-      escrow_release_at = NOW() 
-    WHERE id = p_order_id::uuid;
-    
-    -- Log the event
-    INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
-    VALUES ('escrow_release', 'success', jsonb_build_object('order_id', p_order_id, 'amount', v_order.merchant_payout), v_order.seller_id);
-    
-    RETURN TRUE;
+  -- 4. Only allow statuses 'paid' or 'delivered'
+  IF v_order.status NOT IN ('paid', 'delivered') THEN
+    RAISE EXCEPTION 'Order status % is not eligible for escrow release.', v_order.status;
   END IF;
+
+  -- 5. Credit seller wallet safely
+  -- Ensure sellers wallet exists
+  INSERT INTO public.wallets (user_id) 
+  VALUES (v_order.seller_id)
+  ON CONFLICT (user_id) DO NOTHING;
   
-  RETURN FALSE;
+  SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = v_order.seller_id;
+  
+  -- Transfer funds
+  UPDATE public.wallets 
+  SET balance = balance + v_order.merchant_payout, updated_at = NOW()
+  WHERE id = v_wallet_id;
+  
+  -- Record Transaction
+  INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
+  VALUES (v_wallet_id, v_order.merchant_payout, 'credit', 'success', 'Order Payout: ' || p_order_id, 'REL-' || p_order_id);
+  
+  -- 6. Update order status
+  UPDATE public.orders 
+  SET 
+    status = 'completed', 
+    escrow_release_at = NOW() 
+  WHERE id = p_order_id;
+  
+  -- 7. Log the event
+  INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
+  VALUES ('escrow_release', 'success', jsonb_build_object('order_id', p_order_id, 'amount', v_order.merchant_payout, 'admin_id', p_admin_id), v_order.seller_id);
+  
+  RETURN TRUE;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- RPC: Refund Order
-CREATE OR REPLACE FUNCTION refund_order(p_order_id UUID, p_reason TEXT)
+CREATE OR REPLACE FUNCTION public.refund_order(p_order_id UUID, p_reason TEXT)
 RETURNS BOOLEAN AS $$
 DECLARE
   v_order RECORD;
 BEGIN
-  SELECT * INTO v_order FROM orders WHERE id = p_order_id::uuid;
+  -- Lock the order row
+  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id::uuid FOR UPDATE;
   
-  -- Logic: Only admin can refund generally, but buyer can cancel if seller hasn't started
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Order not found: %', p_order_id;
+  END IF;
+
+  -- Logic: Only paid orders can be refunded
   IF v_order.status = 'paid' THEN
+    -- Ensure buyers wallet exists
+    INSERT INTO public.wallets (user_id) VALUES (v_order.buyer_id)
+    ON CONFLICT (user_id) DO NOTHING;
+
     -- Refund funds to buyer wallet
-    UPDATE wallets 
+    UPDATE public.wallets 
     SET balance = balance + v_order.amount, updated_at = NOW()
     WHERE user_id = v_order.buyer_id::uuid;
+
+    -- Record Transaction
+    INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
+    VALUES (
+      (SELECT id FROM public.wallets WHERE user_id = v_order.buyer_id::uuid),
+      v_order.amount, 'credit', 'success', 'Order Refund: ' || p_order_id, 'REF-' || p_order_id
+    );
     
     -- Update order status
-    UPDATE orders SET status = 'cancelled' WHERE id = p_order_id::uuid;
+    UPDATE public.orders SET status = 'reversed' WHERE id = p_order_id::uuid;
     
     -- Log the event
-    INSERT INTO platform_logs (event_type, severity, payload, user_id)
+    INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
     VALUES ('order_refund', 'warning', jsonb_build_object('order_id', p_order_id, 'reason', p_reason), v_order.buyer_id::uuid);
     
     RETURN TRUE;
@@ -134,7 +175,7 @@ BEGIN
   
   RETURN FALSE;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ==========================================
 -- 4. TASK MANAGEMENT SYSTEM
@@ -153,7 +194,9 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
 -- Only admins can manage tasks
+DROP POLICY IF EXISTS "Admins manage tasks" ON public.tasks;
 CREATE POLICY "Admins manage tasks" ON public.tasks FOR ALL
+  TO authenticated
   USING (public.check_is_admin())
   WITH CHECK (public.check_is_admin());
 
@@ -163,10 +206,10 @@ CREATE POLICY "Admins manage tasks" ON public.tasks FOR ALL
 CREATE OR REPLACE FUNCTION public.log_system_event(p_type TEXT, p_severity TEXT, p_payload JSONB)
 RETURNS VOID AS $$
 BEGIN
-  INSERT INTO public.platform_logs (event_type, severity, payload)
-  VALUES (p_type, p_severity, p_payload);
+  INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
+  VALUES (p_type, p_severity, p_payload, auth.uid());
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ==========================================
 -- 6. CONTENT & STORIES ENHANCEMENTS (RELATIONSHIP FIX)
