@@ -14,6 +14,14 @@ CREATE TABLE IF NOT EXISTS public.platform_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Ensure user_id exists if table was created without it
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='platform_logs' AND column_name='user_id') THEN
+    ALTER TABLE public.platform_logs ADD COLUMN user_id UUID REFERENCES auth.users(id);
+  END IF;
+END $$;
+
 ALTER TABLE public.platform_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins only logs" ON public.platform_logs;
 CREATE POLICY "Admins only logs" ON public.platform_logs 
@@ -37,7 +45,34 @@ CREATE TABLE IF NOT EXISTS public.disputes (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Safely add merchant_id if missing
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='disputes' AND column_name='merchant_id') THEN
+    ALTER TABLE public.disputes ADD COLUMN merchant_id TEXT;
+  END IF;
+END $$;
+
+-- Safely add merchant_id foreign key for disputes
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'disputes_merchant_id_fkey' AND table_schema = 'public') THEN
+    IF (SELECT data_type FROM information_schema.columns WHERE table_name='businesses' AND column_name='id' AND table_schema='public') = 'uuid' THEN
+      ALTER TABLE public.disputes ALTER COLUMN merchant_id TYPE UUID USING merchant_id::uuid;
+    END IF;
+    ALTER TABLE public.disputes ADD CONSTRAINT disputes_merchant_id_fkey FOREIGN KEY (merchant_id) REFERENCES public.businesses(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
 ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
+
+-- Ensure user_id exists if table was created without it
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='disputes' AND column_name='user_id') THEN
+    ALTER TABLE public.disputes ADD COLUMN user_id UUID REFERENCES auth.users(id);
+  END IF;
+END $$;
 
 DROP POLICY IF EXISTS "Involved parties view disputes" ON public.disputes;
 CREATE POLICY "Involved parties view disputes" ON public.disputes 
@@ -60,6 +95,11 @@ CREATE POLICY "Disputes update policy" ON public.disputes
 -- ==========================================
 -- 3. ESCROW & REFUND LOGIC (UNIFIED)
 -- ==========================================
+
+-- Cleanup old signatures to prevent return type mismatch errors
+DROP FUNCTION IF EXISTS public.release_escrow(uuid);
+DROP FUNCTION IF EXISTS public.release_escrow(uuid, uuid);
+DROP FUNCTION IF EXISTS public.refund_order(uuid, text);
 
 -- RPC: Unified Release Escrow with Dispute Guard
 CREATE OR REPLACE FUNCTION public.release_escrow(p_order_id UUID, p_admin_id UUID DEFAULT NULL)
@@ -212,27 +252,11 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ==========================================
--- 6. CONTENT & STORIES ENHANCEMENTS (RELATIONSHIP FIX)
+-- 6. CONTENT & STORIES ENHANCEMENTS
 -- ==========================================
-DROP TABLE IF EXISTS public.stories CASCADE;
-CREATE TABLE public.stories (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,
-  media_url TEXT NOT NULL,
-  media_type TEXT CHECK (media_type IN ('image', 'video')) DEFAULT 'image',
-  expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '24 hours'),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT stories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE
-);
-
-ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Stories are public" ON public.stories;
-CREATE POLICY "Stories are public" ON public.stories FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Users can manage their own stories" ON public.stories;
-CREATE POLICY "Users can manage their own stories" ON public.stories FOR ALL
-  USING (auth.uid()::text = user_id::text)
-  WITH CHECK (auth.uid()::text = user_id::text);
+-- (Stories are managed in master schema; adding constraints here only if needed)
+ALTER TABLE IF EXISTS public.stories DROP CONSTRAINT IF EXISTS stories_user_id_fkey;
+ALTER TABLE IF EXISTS public.stories ADD CONSTRAINT stories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 -- Fix Business RLS for Registration & Ownership
 DROP POLICY IF EXISTS "Businesses creation policy" ON public.businesses;
@@ -247,7 +271,7 @@ CREATE POLICY "Businesses ownership policy" ON public.businesses FOR ALL
 
 CREATE TABLE IF NOT EXISTS public.business_claims (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id TEXT NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  business_id TEXT NOT NULL,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'verified', 'rejected')),
@@ -260,6 +284,28 @@ CREATE TABLE IF NOT EXISTS public.business_claims (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Safely add business_id if missing
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='business_claims' AND column_name='business_id') THEN
+    ALTER TABLE public.business_claims ADD COLUMN business_id TEXT;
+  END IF;
+END $$;
+
+-- Safely add business_id foreign key with type matching for claims
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'business_claims_business_id_fkey' AND table_schema = 'public') THEN
+    IF (SELECT data_type FROM information_schema.columns WHERE table_name='businesses' AND column_name='id' AND table_schema='public') = 'text' THEN
+      ALTER TABLE public.business_claims ADD CONSTRAINT business_claims_business_id_fkey FOREIGN KEY (business_id) REFERENCES public.businesses(id) ON DELETE CASCADE;
+    ELSE
+      -- Cast if necessary
+      ALTER TABLE public.business_claims ALTER COLUMN business_id TYPE UUID USING business_id::uuid;
+      ALTER TABLE public.business_claims ADD CONSTRAINT business_claims_business_id_fkey FOREIGN KEY (business_id) REFERENCES public.businesses(id) ON DELETE CASCADE;
+    END IF;
+  END IF;
+END $$;
+
 -- Ensure only one verified claim per business
 CREATE UNIQUE INDEX IF NOT EXISTS unique_verified_business
 ON public.business_claims (business_id)
@@ -267,6 +313,7 @@ WHERE status = 'verified';
 
 ALTER TABLE public.business_claims ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own claims" ON public.business_claims;
 CREATE POLICY "Users can view own claims" ON public.business_claims
   FOR SELECT USING (auth.uid()::text = user_id::text OR public.check_is_admin());
 
@@ -285,16 +332,14 @@ BEGIN
     
     NEW.verified_at = NOW();
     
--- INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
-    -- VALUES ('business_claimed', 'info', jsonb_build_object('business_id', NEW.business_id, 'claim_id', NEW.id), NEW.user_id);
-    
     -- Corrected insert using internal function or direct insert
     PERFORM public.log_system_event('business_claimed', 'info', jsonb_build_object('business_id', NEW.business_id, 'claim_id', NEW.id));
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+DROP TRIGGER IF EXISTS on_claim_verified ON public.business_claims;
 CREATE TRIGGER on_claim_verified
   BEFORE UPDATE ON public.business_claims
   FOR EACH ROW
@@ -322,8 +367,9 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+DROP TRIGGER IF EXISTS on_claim_created ON public.business_claims;
 CREATE TRIGGER on_claim_created
   BEFORE INSERT ON public.business_claims
   FOR EACH ROW EXECUTE FUNCTION public.validate_business_claim();

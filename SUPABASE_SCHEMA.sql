@@ -163,16 +163,24 @@ ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
 
 -- Social Policies
+DROP POLICY IF EXISTS "Social Read Access" ON public.posts;
 CREATE POLICY "Social Read Access" ON public.posts FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Social Insert Access" ON public.posts;
 CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+DROP POLICY IF EXISTS "Social Update Access" ON public.posts;
 CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid()::text = user_id::text OR public.check_is_admin());
 
+DROP POLICY IF EXISTS "Comments Read Access" ON public.comments;
 CREATE POLICY "Comments Read Access" ON public.comments FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Comments Insert Access" ON public.comments;
 CREATE POLICY "Comments Insert Access" ON public.comments FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
+DROP POLICY IF EXISTS "Likes All Access" ON public.likes;
 CREATE POLICY "Likes All Access" ON public.likes FOR ALL USING (auth.uid()::text = user_id::text);
 
+DROP POLICY IF EXISTS "Stories Read Access" ON public.stories;
 CREATE POLICY "Stories Read Access" ON public.stories FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Stories Insert Access" ON public.stories;
 CREATE POLICY "Stories Insert Access" ON public.stories FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
 -- ==========================================
@@ -184,7 +192,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   product_id TEXT, 
   buyer_id UUID NOT NULL REFERENCES public.profiles(id),
   seller_id UUID NOT NULL REFERENCES public.profiles(id),
-  merchant_id TEXT REFERENCES public.businesses(id),
+  merchant_id TEXT,
   amount INTEGER NOT NULL CHECK (amount > 0),
   commission_deducted INTEGER DEFAULT 0,
   merchant_payout INTEGER DEFAULT 0,
@@ -194,6 +202,33 @@ CREATE TABLE IF NOT EXISTS public.orders (
   escrow_release_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Safely add merchant_id if missing
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='orders' AND column_name='merchant_id') THEN
+    ALTER TABLE public.orders ADD COLUMN merchant_id TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='orders' AND column_name='buyer_id') THEN
+    ALTER TABLE public.orders ADD COLUMN buyer_id UUID REFERENCES public.profiles(id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='orders' AND column_name='seller_id') THEN
+    ALTER TABLE public.orders ADD COLUMN seller_id UUID REFERENCES public.profiles(id);
+  END IF;
+END $$;
+
+-- Safely add merchant_id foreign key for orders
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'orders_merchant_id_fkey' AND table_schema = 'public') THEN
+    IF (SELECT data_type FROM information_schema.columns WHERE table_name='businesses' AND column_name='id' AND table_schema='public') = 'uuid' THEN
+      -- Drop views that depend on this column to allow type change
+      DROP VIEW IF EXISTS public.orphan_orders;
+      ALTER TABLE public.orders ALTER COLUMN merchant_id TYPE UUID USING merchant_id::uuid;
+    END IF;
+    ALTER TABLE public.orders ADD CONSTRAINT orders_merchant_id_fkey FOREIGN KEY (merchant_id) REFERENCES public.businesses(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
@@ -222,9 +257,11 @@ CREATE TABLE IF NOT EXISTS public.messages (
 
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Messages View Policy" ON public.messages;
 CREATE POLICY "Messages View Policy" ON public.messages FOR SELECT 
 USING (auth.uid()::text = sender_id::text OR auth.uid()::text = receiver_id::text);
 
+DROP POLICY IF EXISTS "Messages Insert Policy" ON public.messages;
 CREATE POLICY "Messages Insert Policy" ON public.messages FOR INSERT 
 WITH CHECK (auth.uid()::text = sender_id::text);
 
@@ -254,7 +291,10 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Wallet View Policy" ON public.wallets;
 CREATE POLICY "Wallet View Policy" ON public.wallets FOR SELECT USING (auth.uid()::text = user_id::text);
+
+DROP POLICY IF EXISTS "Transaction View Policy" ON public.transactions;
 CREATE POLICY "Transaction View Policy" ON public.transactions FOR SELECT 
 USING (EXISTS (SELECT 1 FROM public.wallets WHERE id::text = public.transactions.wallet_id::text AND user_id::text = auth.uid()::text));
 
@@ -268,11 +308,11 @@ RETURNS BOOLEAN AS $$
 BEGIN
   UPDATE public.orders 
   SET status = 'paid', reference = p_reference 
-  WHERE id = p_order_id::uuid AND status = 'pending';
+  WHERE id = p_order_id AND status = 'pending';
   
   RETURN FOUND;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- REMOVED REDUNDANT release_escrow (Unified version in ADDONS handles this better with dispute guard)
 
@@ -304,20 +344,35 @@ BEGIN
     END;
   RETURN new;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Helper to safely enable realtime for a table
+CREATE OR REPLACE FUNCTION public.enable_realtime_for(p_table_name TEXT)
+RETURNS VOID AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = p_table_name
+  ) THEN
+    EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', p_table_name);
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- Enable Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.posts;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.wallets;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
+SELECT public.enable_realtime_for('profiles');
+SELECT public.enable_realtime_for('posts');
+SELECT public.enable_realtime_for('orders');
+SELECT public.enable_realtime_for('messages');
+SELECT public.enable_realtime_for('wallets');
+SELECT public.enable_realtime_for('transactions');
 
 -- ==========================================
 -- 9. ADDITIONAL SYSTEM TABLES
@@ -349,7 +404,7 @@ CREATE TABLE IF NOT EXISTS public.hospitality_config (
 
 CREATE TABLE IF NOT EXISTS public.quality_audits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id TEXT NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  business_id TEXT NOT NULL,
   auditor_id UUID REFERENCES public.profiles(id),
   score INTEGER CHECK (score >= 0 AND score <= 100),
   findings TEXT,
@@ -358,6 +413,25 @@ CREATE TABLE IF NOT EXISTS public.quality_audits (
   next_audit_date TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Safely add business_id if missing from previous partial runs
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='quality_audits' AND column_name='business_id') THEN
+    ALTER TABLE public.quality_audits ADD COLUMN business_id TEXT;
+  END IF;
+END $$;
+
+-- Safely add business_id foreign key for quality_audits
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'quality_audits_business_id_fkey' AND table_schema = 'public') THEN
+    IF (SELECT data_type FROM information_schema.columns WHERE table_name='businesses' AND column_name='id' AND table_schema='public') = 'uuid' THEN
+      ALTER TABLE public.quality_audits ALTER COLUMN business_id TYPE UUID USING business_id::uuid;
+    END IF;
+    ALTER TABLE public.quality_audits ADD CONSTRAINT quality_audits_business_id_fkey FOREIGN KEY (business_id) REFERENCES public.businesses(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -370,6 +444,14 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Ensure user_id exists if table was created without it
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='notifications' AND column_name='user_id') THEN
+    ALTER TABLE public.notifications ADD COLUMN user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.followers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   follower_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -381,10 +463,37 @@ CREATE TABLE IF NOT EXISTS public.followers (
 CREATE TABLE IF NOT EXISTS public.favorites (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  business_id TEXT NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  business_id TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, business_id)
 );
+
+-- Ensure user_id exists if table was created without it
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='favorites' AND column_name='user_id') THEN
+    ALTER TABLE public.favorites ADD COLUMN user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+-- Safely add business_id if missing
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='favorites' AND column_name='business_id') THEN
+    ALTER TABLE public.favorites ADD COLUMN business_id TEXT;
+  END IF;
+END $$;
+
+-- Safely add business_id foreign key for favorites
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'favorites_business_id_fkey' AND table_schema = 'public') THEN
+    IF (SELECT data_type FROM information_schema.columns WHERE table_name='businesses' AND column_name='id' AND table_schema='public') = 'uuid' THEN
+      ALTER TABLE public.favorites ALTER COLUMN business_id TYPE UUID USING business_id::uuid;
+    END IF;
+    ALTER TABLE public.favorites ADD CONSTRAINT favorites_business_id_fkey FOREIGN KEY (business_id) REFERENCES public.businesses(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.referrals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -410,9 +519,17 @@ CREATE TABLE IF NOT EXISTS public.logistics_orders (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Ensure user_id exists if table was created without it
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='logistics_orders' AND column_name='user_id') THEN
+    ALTER TABLE public.logistics_orders ADD COLUMN user_id UUID REFERENCES public.profiles(id);
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.ads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id TEXT NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  business_id TEXT NOT NULL,
   type TEXT NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
@@ -424,6 +541,27 @@ CREATE TABLE IF NOT EXISTS public.ads (
   category TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Safely add business_id if missing
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='ads' AND column_name='business_id') THEN
+    ALTER TABLE public.ads ADD COLUMN business_id TEXT;
+  END IF;
+END $$;
+
+-- Safely add business_id foreign key with type matching
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'ads_business_id_fkey' AND table_schema = 'public') THEN
+    IF (SELECT data_type FROM information_schema.columns WHERE table_name='businesses' AND column_name='id' AND table_schema='public') = 'text' THEN
+      ALTER TABLE public.ads ADD CONSTRAINT ads_business_id_fkey FOREIGN KEY (business_id) REFERENCES public.businesses(id) ON DELETE CASCADE;
+    ELSE
+      ALTER TABLE public.ads ALTER COLUMN business_id TYPE UUID USING business_id::uuid;
+      ALTER TABLE public.ads ADD CONSTRAINT ads_business_id_fkey FOREIGN KEY (business_id) REFERENCES public.businesses(id) ON DELETE CASCADE;
+    END IF;
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.advertorials (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -469,6 +607,14 @@ CREATE TABLE IF NOT EXISTS public.payments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Ensure user_id exists if table was created without it
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='payments' AND column_name='user_id') THEN
+    ALTER TABLE public.payments ADD COLUMN user_id UUID REFERENCES public.profiles(id);
+  END IF;
+END $$;
+
 -- Enable RLS on remaining tables
 ALTER TABLE public.platform_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hospitality_config ENABLE ROW LEVEL SECURITY;
@@ -485,13 +631,42 @@ ALTER TABLE public.ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 
 -- Policies for specific tables
+DROP POLICY IF EXISTS "Public Read Config" ON public.platform_config;
 CREATE POLICY "Public Read Config" ON public.platform_config FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Hospitality" ON public.hospitality_config;
 CREATE POLICY "Public Read Hospitality" ON public.hospitality_config FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "User Read Notifications" ON public.notifications;
 CREATE POLICY "User Read Notifications" ON public.notifications FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Public Read Advertorials" ON public.advertorials;
 CREATE POLICY "Public Read Advertorials" ON public.advertorials FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Followers Policy" ON public.followers;
 CREATE POLICY "Followers Policy" ON public.followers FOR ALL USING (auth.uid() = follower_id OR auth.uid() = following_id);
+
+DROP POLICY IF EXISTS "Favorites Policy" ON public.favorites;
 CREATE POLICY "Favorites Policy" ON public.favorites FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "User Payouts Policy" ON public.payments;
 CREATE POLICY "User Payouts Policy" ON public.payments FOR SELECT USING (auth.uid() = user_id);
+
+-- Admin Global Access for remaining tables (Internal Ops)
+DROP POLICY IF EXISTS "Admin audit view" ON public.quality_audits;
+CREATE POLICY "Admin audit view" ON public.quality_audits FOR ALL USING (public.check_is_admin());
+
+DROP POLICY IF EXISTS "Admin ads manage" ON public.ads;
+CREATE POLICY "Admin ads manage" ON public.ads FOR ALL USING (public.check_is_admin());
+
+DROP POLICY IF EXISTS "Admin ledger manage" ON public.ledger;
+CREATE POLICY "Admin ledger manage" ON public.ledger FOR ALL USING (public.check_is_admin());
+
+DROP POLICY IF EXISTS "Admin logistics manage" ON public.logistics_orders;
+CREATE POLICY "Admin logistics manage" ON public.logistics_orders FOR ALL USING (public.check_is_admin());
+
+DROP POLICY IF EXISTS "Admin automation manage" ON public.automation_logs;
+CREATE POLICY "Admin automation manage" ON public.automation_logs FOR ALL USING (public.check_is_admin());
 
 -- Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON public.orders(buyer_id);
@@ -503,8 +678,14 @@ CREATE INDEX IF NOT EXISTS idx_comments_post_id ON public.comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_businesses_user_id ON public.businesses(user_id);
 
 -- Enable Realtime for all tables
-ALTER PUBLICATION supabase_realtime ADD TABLE public.platform_config;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.ledger;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.payments;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.disputes;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.business_claims;
+SELECT public.enable_realtime_for('platform_config');
+SELECT public.enable_realtime_for('ledger');
+SELECT public.enable_realtime_for('payments');
+SELECT public.enable_realtime_for('disputes');
+SELECT public.enable_realtime_for('business_claims');
+SELECT public.enable_realtime_for('logistics_orders');
+SELECT public.enable_realtime_for('ads');
+SELECT public.enable_realtime_for('advertorials');
+SELECT public.enable_realtime_for('notifications');
+SELECT public.enable_realtime_for('quality_audits');
+SELECT public.enable_realtime_for('hospitality_config');
