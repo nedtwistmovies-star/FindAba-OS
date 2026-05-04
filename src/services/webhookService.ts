@@ -46,8 +46,48 @@ const standardizePayload = (event: WebhookEvent, data: any, options: WebhookOpti
     reference: options.reference || data.reference || data.id || `REF-${Date.now()}`,
     tier_level: options.tier_level || data.tier_level || data.hub_tier || 'standard',
     timestamp: new Date().toISOString(),
-    metadata: data
+    metadata: data ? sanitizeData(data) : {}
   };
+};
+
+/**
+ * Ensures data is safe for transmission and not excessively large.
+ */
+const sanitizeData = (data: any): any => {
+  if (!data) return {};
+  
+  // Create a shallow copy to avoid mutating original
+  const clean: any = Array.isArray(data) ? [...data] : { ...data };
+  
+  // Recursively sanitize if needed, but for now we just handle top-level large fields
+  for (const key in clean) {
+    const val = clean[key];
+    
+    // Truncate extremely large strings (e.g. base64 images)
+    if (typeof val === 'string' && val.length > 3000) {
+      clean[key] = val.substring(0, 100) + "... [TRUNCATED DUE TO SIZE]";
+    }
+    
+    // Remove functions or potentially problematic objects
+    if (typeof val === 'function') {
+      delete clean[key];
+    }
+  }
+  
+  return clean;
+};
+
+/**
+ * Validates if a string is a properly formatted HTTP/HTTPS URL.
+ */
+const isValidUrl = (url: string): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch (e) {
+    return false;
+  }
 };
 
 /**
@@ -59,11 +99,12 @@ export const triggerWebhook = async (
   payload: any, 
   options: WebhookOptions = { retries: 3, silent: false }
 ): Promise<boolean> => {
-  const activeWebhookUrl = localStorage.getItem('findaba_make_webhook_url') || MAKE_WEBHOOK_URL;
+  const rawUrl = localStorage.getItem('findaba_make_webhook_url') || MAKE_WEBHOOK_URL;
+  const activeWebhookUrl = rawUrl?.trim();
 
-  if (!activeWebhookUrl) {
+  if (!activeWebhookUrl || !isValidUrl(activeWebhookUrl)) {
     if (!options.silent) {
-      console.warn(`[Automation] Webhook trigger skipped: No Webhook URL configured for event: ${event}`);
+      console.warn(`[Automation] Webhook trigger skipped: Invalid or missing Webhook URL for event: ${event}. Received: ${activeWebhookUrl?.substring(0, 50)}${activeWebhookUrl && activeWebhookUrl.length > 50 ? '...' : ''}`);
     }
     return false;
   }

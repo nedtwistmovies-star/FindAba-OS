@@ -299,14 +299,21 @@ const AutomationAudit: React.FC<AutomationAuditProps> = ({ status, auditing, run
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
                 placeholder="https://hook.make.com/..."
-                className="flex-1 bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
+                className={`flex-1 bg-black/40 border p-6 rounded-3xl outline-none transition-all text-xs font-mono ${
+                  webhookUrl && !webhookUrl.startsWith('http') ? 'border-red-500' : 'border-white/10 focus:border-aba-gold'
+                }`}
               />
               <IndustrialButton 
                 variant="primary" 
                 size="md" 
                 icon={Save}
+                disabled={webhookUrl !== '' && !webhookUrl.startsWith('http')}
                 onClick={() => {
-                  localStorage.setItem('findaba_make_webhook_url', webhookUrl);
+                  if (webhookUrl && !webhookUrl.startsWith('http')) {
+                    addToast("Invalid URL: Must start with http:// or https://", "error");
+                    return;
+                  }
+                  localStorage.setItem('findaba_make_webhook_url', webhookUrl.trim());
                   addToast("Webhook URL Saved", "success");
                 }}
               >
