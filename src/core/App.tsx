@@ -55,7 +55,9 @@ const AppContent: React.FC = () => {
     b.phone_whatsapp === userIdentifier ||
     (b.phone_whatsapp && userIdentifier && (b.phone_whatsapp.includes(userIdentifier) || userIdentifier.includes(b.phone_whatsapp)))
   ) : null) || null;
-  const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']);
+  const RouteComponent = (!isAuth && view !== 'signup' && view !== 'login') 
+    ? (ROUTE_MAP['login'] || ROUTE_MAP['home'])
+    : ((ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']));
 
   const [showQuickSetup, setShowQuickSetup] = React.useState(false);
   const [quickConfig, setQuickConfig] = React.useState({
