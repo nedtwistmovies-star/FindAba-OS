@@ -254,9 +254,20 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- ==========================================
 -- 6. CONTENT & STORIES ENHANCEMENTS
 -- ==========================================
--- (Stories are managed in master schema; adding constraints here only if needed)
-ALTER TABLE IF EXISTS public.stories DROP CONSTRAINT IF EXISTS stories_user_id_fkey;
-ALTER TABLE IF EXISTS public.stories ADD CONSTRAINT stories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+-- Ensure stories table has proper foreign key to profiles
+DO $$ 
+BEGIN 
+  -- First try to drop any existing FK on user_id that might have a different name
+  -- This is more aggressive but ensures we have our specific named constraint
+  IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name = 'stories' AND constraint_type = 'FOREIGN KEY') THEN
+    -- We can't easily find the name without a query, so we just rely on our named check
+    NULL; 
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'stories_user_id_fkey' AND table_schema = 'public') THEN
+    ALTER TABLE public.stories ADD CONSTRAINT stories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- Fix Business RLS for Registration & Ownership
 DROP POLICY IF EXISTS "Businesses creation policy" ON public.businesses;

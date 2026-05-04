@@ -150,12 +150,20 @@ CREATE TABLE IF NOT EXISTS public.likes (
 
 CREATE TABLE IF NOT EXISTS public.stories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL CONSTRAINT stories_user_id_fkey REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
   media_url TEXT NOT NULL,
   media_type TEXT DEFAULT 'image',
   expires_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Safely add stories_user_id_fkey if missing
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'stories_user_id_fkey' AND table_schema = 'public') THEN
+    ALTER TABLE public.stories ADD CONSTRAINT stories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
@@ -681,11 +689,152 @@ CREATE INDEX IF NOT EXISTS idx_businesses_user_id ON public.businesses(user_id);
 SELECT public.enable_realtime_for('platform_config');
 SELECT public.enable_realtime_for('ledger');
 SELECT public.enable_realtime_for('payments');
-SELECT public.enable_realtime_for('disputes');
-SELECT public.enable_realtime_for('business_claims');
 SELECT public.enable_realtime_for('logistics_orders');
 SELECT public.enable_realtime_for('ads');
 SELECT public.enable_realtime_for('advertorials');
 SELECT public.enable_realtime_for('notifications');
 SELECT public.enable_realtime_for('quality_audits');
 SELECT public.enable_realtime_for('hospitality_config');
+
+-- ==========================================
+-- 10. DRIVERS & FLEET (PURPLE FLEET)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.drivers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_email TEXT UNIQUE NOT NULL,
+  full_name TEXT NOT NULL,
+  nin_verified BOOLEAN DEFAULT FALSE,
+  bvn_verified BOOLEAN DEFAULT FALSE,
+  license_verified BOOLEAN DEFAULT FALSE,
+  device_imei TEXT,
+  compliance_level TEXT DEFAULT 'Level 1: Verified',
+  rating FLOAT DEFAULT 5.0,
+  status TEXT DEFAULT 'offline',
+  current_vehicle_id UUID,
+  total_earnings INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.vehicles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_email TEXT NOT NULL,
+  plate_number TEXT UNIQUE NOT NULL,
+  vin TEXT,
+  vehicle_model TEXT,
+  category TEXT NOT NULL,
+  status TEXT DEFAULT 'pending',
+  current_lat FLOAT,
+  current_lng FLOAT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.ride_bookings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  passenger_email TEXT NOT NULL,
+  driver_id UUID REFERENCES public.drivers(id),
+  vehicle_id UUID REFERENCES public.vehicles(id),
+  pickup_addr TEXT,
+  dropoff_addr TEXT,
+  amount INTEGER,
+  status TEXT DEFAULT 'requested',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.driver_signals (
+  driver_id UUID PRIMARY KEY REFERENCES public.drivers(id) ON DELETE CASCADE,
+  vehicle_id UUID,
+  lat FLOAT,
+  lng FLOAT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==========================================
+-- 11. HOSPITALITY ROOMS & BOOKINGS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.rooms (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  hotel_id TEXT NOT NULL,
+  room_number TEXT NOT NULL,
+  room_type TEXT NOT NULL,
+  base_price INTEGER NOT NULL,
+  status TEXT DEFAULT 'available',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.bookings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  hotel_id TEXT NOT NULL,
+  room_id UUID REFERENCES public.rooms(id),
+  check_in TIMESTAMPTZ NOT NULL,
+  check_out TIMESTAMPTZ NOT NULL,
+  total_amount INTEGER NOT NULL,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==========================================
+-- 12. DISCOVERY & BUYER SIGNALS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.buyer_signals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  buyer_email TEXT NOT NULL,
+  buyer_name TEXT,
+  category TEXT NOT NULL,
+  urgency TEXT,
+  volume TEXT,
+  requirement TEXT,
+  status TEXT DEFAULT 'open',
+  response_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.signal_interests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  signal_id UUID REFERENCES public.buyer_signals(id) ON DELETE CASCADE,
+  merchant_id TEXT NOT NULL,
+  merchant_name TEXT,
+  message TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==========================================
+-- 13. AI VISION HISTORY
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.vision_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_email TEXT NOT NULL,
+  prompt TEXT,
+  result_url TEXT,
+  mode TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Final RLS & Realtime Enabling
+ALTER TABLE public.drivers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vehicles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ride_bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.driver_signals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.buyer_signals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.signal_interests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vision_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public View Vehicles" ON public.vehicles;
+CREATE POLICY "Public View Vehicles" ON public.vehicles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public View Rooms" ON public.rooms;
+CREATE POLICY "Public View Rooms" ON public.rooms FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public View Signals" ON public.buyer_signals;
+CREATE POLICY "Public View Signals" ON public.buyer_signals FOR SELECT USING (true);
+
+-- Enable Realtime for new tables
+SELECT public.enable_realtime_for('drivers');
+SELECT public.enable_realtime_for('vehicles');
+SELECT public.enable_realtime_for('ride_bookings');
+SELECT public.enable_realtime_for('driver_signals');
+SELECT public.enable_realtime_for('rooms');
+SELECT public.enable_realtime_for('bookings');
+SELECT public.enable_realtime_for('buyer_signals');
+SELECT public.enable_realtime_for('signal_interests');
+SELECT public.enable_realtime_for('vision_history');

@@ -10,7 +10,7 @@ export const fetchPosts = async (limit = 20, offset = 0) => {
     .from('posts')
     .select(`
       *,
-      author:profiles!posts_user_id_fkey(*)
+      author:profiles(*)
     `)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -72,7 +72,7 @@ export const fetchComments = async (postId: string) => {
     .from('comments')
     .select(`
       *,
-      author:profiles!comments_user_id_fkey(*)
+      author:profiles(*)
     `)
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
@@ -87,7 +87,7 @@ export const addComment = async (postId: string, userId: string, content: string
     .insert({ post_id: postId, user_id: userId, content })
     .select(`
       *,
-      author:profiles!comments_user_id_fkey(*)
+      author:profiles(*)
     `)
     .single();
 
@@ -104,7 +104,7 @@ export const fetchStories = async () => {
     .from('stories')
     .select(`
       *,
-      author:profiles!stories_user_id_fkey(*)
+      author:profiles(*)
     `)
     .gt('expires_at', now)
     .order('created_at', { ascending: false });

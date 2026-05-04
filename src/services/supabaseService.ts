@@ -1499,7 +1499,7 @@ export const fetchAdminStats = async () => {
     client.from('businesses').select('*', { count: 'exact', head: true }),
     client.from('orders').select('*', { count: 'exact', head: true }),
     client.from('profiles').select('*', { count: 'exact', head: true }),
-    client.from('driver_partners').select('*', { count: 'exact', head: true })
+    client.from('drivers').select('*', { count: 'exact', head: true })
   ]);
   
   return {
