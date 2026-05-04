@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, ShieldCheck, Mail, Lock, 
-  User, Loader2, Zap, AlertTriangle, Eye, EyeOff, Ticket
+  User, Loader2, Zap, AlertTriangle, Eye, EyeOff, Ticket, Fingerprint
 } from 'lucide-react';
 import { ViewState } from '../types';
-import { authSignUp, createWelcomeNotification } from '../services/supabaseService';
+import { signUpWithUsername } from '../services/authService';
+import { createWelcomeNotification } from '../services/supabaseService';
 import Logo from '../components/Logo';
 
 interface SignupProps {
@@ -20,6 +21,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
   const [message, setMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
     name: '',
@@ -37,19 +39,23 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.username || formData.username.length < 3) {
+      setError("Username must be at least 3 characters.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setMessage(null);
 
     try {
-      const data = await authSignUp(formData.email, formData.password, formData.name, formData.referral_code);
+      const user = await signUpWithUsername(formData.username.toLowerCase().trim(), formData.email, formData.password);
       
-      if (data?.user) {
+      if (user) {
         // ✅ INSERT WELCOME NOTIFICATION HERE
-        await createWelcomeNotification(data.user.id);
+        await createWelcomeNotification(user.id);
         
         setMessage("Account created successfully! Welcome to FindAba.");
-        onAuthSuccess(formData.email, formData.name, 'registered', data.user.id);
+        onAuthSuccess(formData.email, formData.name, 'registered', user.id);
         
         // Redirect after a short delay to show success message
         setTimeout(() => {
@@ -101,6 +107,20 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
             )}
 
             <form onSubmit={handleSignup} className="space-y-6">
+               <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2 animate-slide-up">
+                  <div className="flex items-center">
+                    <div className="p-4"><Fingerprint className="text-aba-gold" size={20} /></div>
+                    <input 
+                       required
+                       type="text" 
+                       placeholder="INDUSTRIAL USERNAME" 
+                       className="flex-1 bg-transparent py-4 pr-6 outline-none text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
+                       value={formData.username}
+                       onChange={e => setFormData({...formData, username: e.target.value.toLowerCase().replace(/\s/g, '')})}
+                    />
+                  </div>
+               </div>
+
                <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2 animate-slide-up">
                   <div className="flex items-center">
                     <div className="p-4"><User className="text-white/20" size={20} /></div>

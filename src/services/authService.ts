@@ -70,6 +70,73 @@ export const loginWithPhone = async (phone: string, code: string) => {
   return result.session;
 };
 
+export const loginWithUsername = async (username: string, password: string, persist: boolean = true) => {
+  // First, find the email associated with this username
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('username', username)
+    .single();
+
+  if (profileError || !profile?.email) {
+    // If not found by username, try interpreting username as email
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: username,
+      password
+    });
+    
+    if (error) {
+      console.error("[Auth] Login Error:", error.message);
+      throw error;
+    }
+    return data.session;
+  }
+
+  // Login with the found email
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: profile.email,
+    password
+  });
+
+  if (error) {
+    console.error("[Auth] Login Error:", error.message);
+    throw error;
+  }
+
+  return data.session;
+};
+
+export const signUpWithUsername = async (username: string, email: string, password: string) => {
+  // 1. Check if username exists
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('username', username)
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error("Username already taken. Choose another industrial identity.");
+  }
+
+  // 2. Sign up with Supabase
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        username: username,
+      }
+    }
+  });
+
+  if (error) {
+    console.error("[Auth] Signup Error:", error.message);
+    throw error;
+  }
+
+  return data.user;
+};
+
 export const loginWithEmail = async (email: string, password: string) => {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -185,6 +252,7 @@ export const syncProfile = async (user: any) => {
         id: user.id,
         email: user.email || '',
         phone: user.phone || '',
+        username: user.user_metadata.username || null,
         full_name: user.user_metadata.full_name || cleanName,
         role: 'registered',
         referral_code: referralCode,

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Phone, Mail, Lock, ShieldCheck, ChevronRight, ArrowLeft, Loader2, Sparkles, Globe, User, Fingerprint, Zap, Wand2 } from 'lucide-react';
 import { useAuth } from '../../providers/AuthProvider';
-import { sendOTP, verifyOTP, loginWithEmail, loginWithGoogle, sendMagicLink } from '../../services/authService';
+import { sendOTP, verifyOTP, loginWithEmail, loginWithGoogle, sendMagicLink, loginWithUsername } from '../../services/authService';
 import { useToast } from '../../providers/ToastProvider';
 import Logo from '../../components/Logo';
 import { ViewState } from '../../types';
@@ -25,8 +25,9 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   // Form State
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // Unified Email/Username
   const [password, setPassword] = useState('');
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
@@ -39,11 +40,11 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!identifier) return;
     setLoading(true);
     try {
       const { resetPasswordForEmail } = await import('../../services/authService');
-      await resetPasswordForEmail(email);
+      await resetPasswordForEmail(identifier);
       addToast("Reset signal dispatched. Check your inbox.", "success");
       setStep('request'); // Back to login
     } catch (err: any) {
@@ -120,16 +121,16 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     setLoading(true);
     try {
       if (useMagicLink) {
-        await sendMagicLink(email);
+        await sendMagicLink(identifier);
         addToast("Magic signal dispatched. Check your inbox.", "success");
       } else {
-        const session = await loginWithEmail(email, password);
+        const session = await loginWithUsername(identifier.trim(), password, keepSignedIn);
         if (session?.user) {
           const user = session.user;
           const role = localStorage.getItem('findaba_user_role') || 'registered';
-          handleAuthSuccess(user.email || '', user.user_metadata.full_name || 'Citizen', role, user.id);
+          handleAuthSuccess(user.email || user.user_metadata.username || '', user.user_metadata.full_name || 'Citizen', role, user.id);
           addToast("Neural link established.", "success");
-          onAuthSuccess(user.email || '', user.user_metadata.full_name || 'Citizen', role, user.id);
+          onAuthSuccess(user.email || user.user_metadata.username || '', user.user_metadata.full_name || 'Citizen', role, user.id);
           
           setView('home');
         }
@@ -199,7 +200,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                 onClick={() => { setMethod('email'); }}
                 className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${method === 'email' ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-slate-400 hover:text-white'}`}
               >
-                Neural Key
+                Access Key
               </button>
            </div>
 
@@ -290,8 +291,8 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                        <input 
                          type="email" 
                          placeholder="RECOVERY EMAIL" 
-                         value={email}
-                         onChange={e => setEmail(e.target.value)}
+                         value={identifier}
+                         onChange={e => setIdentifier(e.target.value)}
                          className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                          required
                        />
@@ -371,12 +372,12 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                 >
                    <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
                      <div className="flex items-center">
-                       <div className="p-4"><Mail className="text-white/20" size={18} /></div>
+                       <div className="p-4"><User className="text-white/20" size={18} /></div>
                        <input 
-                         type="email" 
-                         placeholder="REGISTRY EMAIL" 
-                         value={email}
-                         onChange={e => setEmail(e.target.value)}
+                         type="text" 
+                         placeholder="USERNAME OR EMAIL" 
+                         value={identifier}
+                         onChange={e => setIdentifier(e.target.value)}
                          className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                          required
                        />
@@ -404,21 +405,36 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                    )}
 
                    <div className="flex justify-between items-center px-2">
-                     <button 
-                       type="button"
-                       onClick={() => setStep('forgot')}
-                       className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors"
-                     >
-                       Forgot Protocol Key?
-                     </button>
-                     <button 
-                       type="button"
-                       onClick={() => setUseMagicLink(!useMagicLink)}
-                       className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors flex items-center gap-2"
-                     >
-                       <Wand2 size={12} />
-                       {useMagicLink ? "Use Password Instead" : "Send Magic Link"}
-                     </button>
+                     <label className="flex items-center gap-3 cursor-pointer group">
+                       <input 
+                         type="checkbox" 
+                         checked={keepSignedIn}
+                         onChange={e => setKeepSignedIn(e.target.checked)}
+                         className="hidden"
+                       />
+                       <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${keepSignedIn ? 'bg-aba-gold border-aba-gold' : 'border-white/20 bg-white/5'}`}>
+                         {keepSignedIn && <ShieldCheck size={12} className="text-aba-deep" />}
+                       </div>
+                       <span className="text-[9px] font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">Keep me signed in</span>
+                     </label>
+                     
+                     <div className="flex items-center gap-4">
+                       <button 
+                         type="button"
+                         onClick={() => setStep('forgot')}
+                         className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors"
+                       >
+                         Forgot Key?
+                       </button>
+                       <button 
+                         type="button"
+                         onClick={() => setUseMagicLink(!useMagicLink)}
+                         className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors flex items-center gap-2"
+                       >
+                         <Wand2 size={12} />
+                         {useMagicLink ? "Password" : "Magic Link"}
+                       </button>
+                     </div>
                    </div>
 
                    <button 
