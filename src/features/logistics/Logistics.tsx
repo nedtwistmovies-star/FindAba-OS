@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { logTransaction, saveLogisticsOrder, fetchLogisticsOrders, fetchTrackingById } from '../../services/supabaseService';
 import { ShipmentStatus, ViewState } from '../../types';
+import { useToast } from '../../providers/ToastProvider';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { calculateLogisticsQuotes, generateTrackingId, getMockTrackingDetails, LogisticsQuote, ShipmentDetails } from '../../services/logisticsService';
 
@@ -23,6 +24,7 @@ const ABA_HUBS = [
 const STATUS_STEPS: ShipmentStatus[] = ['requested', 'pickup-scheduled', 'at-hub', 'in-transit', 'delivered'];
 
 const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (order: any) => void }> = ({ setView, onBookDelivery }) => {
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<'book' | 'track' | 'supply-chain'>('book');
   const [shippingTier, setShippingTier] = useState<'standard' | 'express' | 'premium'>('standard');
   const [bookingData, setBookingData] = useState({ delivery: '', item: '', email: localStorage.getItem('findaba_user_email') || '', hubId: '', weight: '1' });
@@ -44,7 +46,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
       if (data) {
         setSelectedTracking(data as any);
       } else {
-        alert("Tracking ID not found in the Industrial Registry.");
+        addToast("Tracking ID not found in the Industrial Registry.", "error");
       }
     } finally {
       setIsTrackingManual(false);
@@ -118,8 +120,9 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
       await refreshHistory();
       setShowCheckout(false); 
       setActiveTab('track');
+      addToast("Logistics signal confirmed! Cargo movement initialized.", "success");
     } catch (e) {
-      alert("Registry write signal failed. Payout confirmed.");
+      addToast("Registry write signal failed. Payout confirmed, manual audit likely required.", "error");
     } finally {
       setLoading(false);
     }

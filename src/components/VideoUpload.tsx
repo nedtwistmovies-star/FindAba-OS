@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { UploadCloud, Loader2, Video, CheckCircle2, AlertCircle, Play, X, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { uploadImage } from '../services/supabaseService';
+import { useToast } from '../providers/ToastProvider';
 
 interface VideoUploadProps {
   label?: string;
@@ -13,6 +14,7 @@ interface VideoUploadProps {
 }
 
 export const VideoUpload: React.FC<VideoUploadProps> = ({ label, onUpload, currentVideo, bucket = 'findaba', className = "", onRemove }) => {
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -35,7 +37,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({ label, onUpload, curre
     if (!file) return;
     
     if (!file.type.startsWith('video/')) {
-        alert("PROTOCOL ERROR: File must be a video format (MP4/MOV).");
+        addToast("PROTOCOL ERROR: File must be a video format (MP4/MOV).", "error");
         return;
     }
 

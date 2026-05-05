@@ -11,9 +11,11 @@ import { fetchPartnerHotels, fetchSRRooms, finalizeSRBooking, fetchUserBookings,
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { SANDALS_BRAND } from '../../constants';
 import { useAuth } from '../../providers/AuthProvider';
+import { useToast } from '../../providers/ToastProvider';
 
 const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
   const { userIdentifier, userName } = useAuth();
+  const { addToast } = useToast();
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [activeTab, setActiveTab] = useState<'registry' | 'history' | 'concierge'>('registry');
@@ -117,9 +119,10 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
         setPendingBookingId(created.id);
         setShowRegForm(false);
         setShowCheckout(true);
+        addToast("Booking initialization complete. Proceeding to settlement.", "success");
       }
     } catch (err: any) {
-      alert(`Booking Initialization Failed: ${err.message}`);
+      addToast(`Booking Initialization Failed: ${err.message}`, "error");
     } finally {
       setLoading(false);
     }
@@ -159,13 +162,13 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
       }
       const existing = JSON.parse(localStorage.getItem(`findaba_bookings_${userEmail}`) || '[]');
       localStorage.setItem(`findaba_bookings_${userEmail}`, JSON.stringify([newBooking, ...existing]));
-      alert("Executive Protocol Locked: Stay Documented and Confirmed.");
+      addToast("Executive Protocol Locked: Stay Documented and Confirmed.", "success");
       setShowCheckout(false);
       setSelectedHotel(null);
       setActiveTab('history');
       await refreshData();
     } catch (e) {
-      alert("Sync Failure. Payout confirmed but registry documentation failed.");
+      addToast("Sync Failure. Payout confirmed but registry documentation failed.", "error");
     } finally {
       setLoading(false);
     }

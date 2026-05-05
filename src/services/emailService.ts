@@ -231,3 +231,34 @@ export const sendProfileUpdateNotification = async (email: string, name: string)
     name: "FindAba Security"
   });
 };
+
+/**
+ * Sends a notification when a business/hub is registered.
+ */
+export const sendBusinessRegistrationEmail = async (email: string, businessName: string, tier: string) => {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #d4af37; border-radius: 10px; background: #0f172a; color: #f8fafc;">
+      <h1 style="color: #d4af37; border-bottom: 2px solid #334155; padding-bottom: 10px;">Hub Enrollment Successful</h1>
+      <p>Greetings Artisan,</p>
+      <p>Congratulations! Your workshop <strong>${businessName}</strong> has been successfully enrolled in the FindAba Registry.</p>
+      
+      <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Workshop Name:</strong> ${businessName}</p>
+        <p style="margin: 5px 0;"><strong>Subscription Tier:</strong> ${tier}</p>
+        <p style="margin: 5px 0;"><strong>Hub Status:</strong> Pending Verification (Active on Registry)</p>
+      </div>
+      
+      <p>You can now manage your catalog, respond to buyer signals, and view your trade analytics in the Merchant Portal.</p>
+      <p>Our verification team may contact you for physical site audit to upgrade your trust level to physically verified.</p>
+      
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Industrial Hub Network</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: "Hub Enrollment Initialized - FindAba City OS",
+    html,
+    name: "FindAba Merchant Onboarding"
+  });
+};

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { fetchThriftAccount, createThriftAccount, saveThriftContribution, updateThriftAccountSettlement, getSupabase, purgeLocalRegistry } from '../../services/supabaseService';
 import PaystackOverlay from '../../components/PaystackOverlay';
+import { useToast } from '../../providers/ToastProvider';
 
 import FidelityHero from './FidelityHero';
 
@@ -18,6 +19,7 @@ interface ThriftDashboardProps {
 }
 
 const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail }) => {
+  const { addToast } = useToast();
   const [account, setAccount] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -77,8 +79,9 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
               status: 'active'
           });
       }
+      addToast("Fidelity Unit Activated. Welcome to the SrTS Global Registry.", "success");
     } catch (err: any) {
-      alert(`SIGNAL FAILURE: ${err.message}`);
+      addToast(`SIGNAL FAILURE: ${err.message}`, "error");
     } finally {
       setActionLoading(false);
     }
@@ -91,9 +94,9 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       await updateThriftAccountSettlement(userEmail, bankDetails);
       await refreshAccount();
       setShowBankForm(false);
-      alert("Settlement Signal Locked: Bound via Paystack Gateway.");
+      addToast("Settlement Signal Locked: Bound via Paystack Gateway.", "success");
     } catch (err: any) {
-      alert(`UPDATE FAILED: ${err.message}`);
+      addToast(`UPDATE FAILED: ${err.message}`, "error");
     } finally {
       setActionLoading(false);
     }
@@ -113,18 +116,20 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       }));
 
       setShowCheckout(false);
-      alert(`Master Signal Confirmed: ₦${contributionAmount.toLocaleString()} settled via Paystack Fidelity.`);
+      addToast(`Master Signal Confirmed: ₦${contributionAmount.toLocaleString()} settled via Paystack Fidelity.`, "success");
     } catch (err: any) {
       console.error("Thrift Sync Error:", err);
       const isHtmlError = err.message.includes('Unexpected token') || err.message.includes('Signal Error');
       
       if (isHtmlError) {
+        addToast("Registry Interference Detected. Signal connection reset recommended.", "info");
+        // Maintain legacy confirm for critical recovery logic
         if (confirm(`SIGNAL INTERFERENCE: Your device is receiving invalid data from the registry. This usually happens due to a DNS or configuration fault.\n\nWould you like to reset your signal connection? (This will refresh the page)`)) {
           purgeLocalRegistry();
           window.location.reload();
         }
       } else {
-        alert(`SYNC ERROR: ${err.message}`);
+        addToast(`SYNC ERROR: ${err.message}`, "error");
       }
     } finally {
       setActionLoading(false);
@@ -274,7 +279,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
         {/* BANK FORM MODAL */}
         {showBankForm && (
-           <div className="fixed inset-0 z-[150] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6">
+           <div className="fixed inset-0 z-[10000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6">
               <div className="w-full max-w-md bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden animate-slide-up">
                  <div className="p-8 border-b border-slate-100 flex justify-between items-center">
                     <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Unit Settlement Bind</h3>

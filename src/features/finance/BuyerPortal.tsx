@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { fetchBuyerSignals, createBuyerSignal, getSupabase, submitSignalInterest, fetchSignalInterests, closeBuyerSignal } from '../../services/supabaseService';
 import { CATEGORIES } from '../../constants';
+import { useToast } from '../../providers/ToastProvider';
 
 interface Props {
   userRole: string;
@@ -20,6 +21,7 @@ interface Props {
 }
 
 const BuyerPortal: React.FC<Props> = ({ userRole, verificationStatus, isExportReady, setView }) => {
+  const { addToast } = useToast();
   const [activePortal, setActivePortal] = useState<'discover' | 'dashboard'>('discover');
   const [signals, setSignals] = useState<BuyerSignal[]>([]);
   const [mySignals, setMySignals] = useState<BuyerSignal[]>([]);
@@ -71,9 +73,9 @@ const BuyerPortal: React.FC<Props> = ({ userRole, verificationStatus, isExportRe
       });
       setShowForm(false);
       refreshSignals();
-      alert("Trade Signal Synchronized. Verified Partners are being alerted.");
+      addToast("Trade Signal Synchronized. Verified Partners are being alerted.", "success");
     } catch (e) {
-      alert("Hub signal failure.");
+      addToast("Hub signal failure. Industrial network congestion.", "error");
     } finally {
       setCreating(false);
     }
@@ -93,7 +95,7 @@ const BuyerPortal: React.FC<Props> = ({ userRole, verificationStatus, isExportRe
       setShowInterestModal(null);
       setInterestBrief('');
       refreshSignals();
-      alert("Capability Brief Logged. Procurement officer will review your factory profile.");
+      addToast("Capability Brief Logged. Procurement officer will review your factory profile.", "success");
     } finally {
       setCreating(false);
     }
@@ -275,7 +277,7 @@ const BuyerPortal: React.FC<Props> = ({ userRole, verificationStatus, isExportRe
                                    {isVerifiedHub ? <Zap size={18} fill="currentColor" /> : <Lock size={16} />}
                                    Initialize Brief
                                 </button>
-                                <button onClick={() => alert("Trade analytics require Premium Export Hub subscription.")} className="text-[8px] font-black uppercase text-slate-300 tracking-widest hover:text-aba-dark transition-colors">Economic Intel Index</button>
+                                <button onClick={() => addToast("Trade analytics require Premium Export Hub subscription.", "info")} className="text-[8px] font-black uppercase text-slate-300 tracking-widest hover:text-aba-dark transition-colors">Economic Intel Index</button>
                              </div>
                           </div>
                        );

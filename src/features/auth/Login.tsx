@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, ShieldCheck, ChevronRight, ArrowLeft, Loader2, Sparkles, Globe, User, Fingerprint, Zap, Wand2 } from 'lucide-react';
-import { useAuth } from '../../providers/AuthProvider';
-import { sendOTP, verifyOTP, loginWithEmail, loginWithGoogle, sendMagicLink, loginWithUsername } from '../../services/authService';
+import { useAuth, useOracle } from '../../providers';
+import { sendOTP, verifyOTP, loginWithEmail, loginWithGoogle, sendMagicLink, loginWithUsername, signUpWithUsername } from '../../services/authService';
+import { sendWelcomeEmail } from '../../services/emailService';
 import { useToast } from '../../providers/ToastProvider';
 import Logo from '../../components/Logo';
 import { ViewState } from '../../types';
@@ -15,26 +16,33 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   const { handleAuthSuccess } = useAuth();
+  const { view } = useOracle();
   const { addToast } = useToast();
   
   const [method, setMethod] = useState<'email'>('email');
-  const [step, setStep] = useState<'request' | 'forgot' | 'reset'>('request');
+  const [step, setStep] = useState<'request' | 'forgot' | 'reset' | 'signup'>(view === 'signup' ? 'signup' : 'request');
   const [useMagicLink, setUseMagicLink] = useState(false);
   const [loading, setLoading] = useState(false);
   
   // Form State
   const [identifier, setIdentifier] = useState(''); // Unified Email/Username
+  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
-    // Detect password recovery mode
+    // Detect password recovery mode from URL (crucial for redirect links)
     if (window.location.search.includes('type=recovery') || window.location.hash.includes('type=recovery')) {
-      setMethod('email');
       setStep('reset');
+    } else if (view === 'signup') {
+      setStep('signup');
+    } else if (view === 'login') {
+      setStep('request');
     }
-  }, []);
+  }, [view]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +107,43 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     }
   };
 
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      addToast("Keys do not match in parity.", "error");
+      return;
+    }
+    if (password.length < 6) {
+      addToast("Key must be 6+ characters for security.", "error");
+      return;
+    }
+    if (!username || !identifier) {
+      addToast("All fields required for registration.", "error");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const user = await signUpWithUsername(username.toLowerCase().trim(), identifier.trim(), password);
+      if (user) {
+        // Send Welcome Email
+        try {
+          const referralLink = `${window.location.origin}?ref=${username}`;
+          await sendWelcomeEmail(identifier.trim(), username, referralLink);
+        } catch (e) {
+          console.warn("[Auth] Welcome email protocol fault:", e);
+        }
+
+        addToast("Industrial ID generated. Please login.", "success");
+        setStep('request'); // Switch to login after signup
+      }
+    } catch (err: any) {
+      addToast(err.message || "Signup failed", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
@@ -146,7 +191,97 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
         <div className="space-y-8">
             <AnimatePresence mode="wait">
-              {step === 'forgot' ? (
+              {step === 'signup' ? (
+                <motion.form 
+                  key="signup-form"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onSubmit={handleSignup}
+                  className="space-y-6"
+                >
+                   <div className="text-center mb-4">
+                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Generate Industrial ID</p>
+                   </div>
+                   
+                   <div className="space-y-4">
+                     <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
+                       <div className="flex items-center">
+                         <div className="p-4"><User className="text-white/20" size={18} /></div>
+                         <input 
+                           type="text" 
+                           placeholder="UNIQUE USERNAME" 
+                           value={username}
+                           onChange={e => setUsername(e.target.value)}
+                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                           required
+                         />
+                       </div>
+                     </div>
+
+                     <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
+                       <div className="flex items-center">
+                         <div className="p-4"><Mail className="text-white/20" size={18} /></div>
+                         <input 
+                           type="email" 
+                           placeholder="EMAIL ADDRESS" 
+                           value={identifier}
+                           onChange={e => setIdentifier(e.target.value)}
+                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                           required
+                         />
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
+                          <div className="flex items-center">
+                            <div className="p-4"><Lock className="text-aba-gold/50" size={18} /></div>
+                            <input 
+                              type="password" 
+                              placeholder="KEY" 
+                              value={password}
+                              onChange={e => setPassword(e.target.value)}
+                              className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
+                          <div className="flex items-center">
+                            <div className="p-4"><ShieldCheck className="text-aba-gold" size={18} /></div>
+                            <input 
+                              type="password" 
+                              placeholder="CONFIRM" 
+                              value={confirmPassword}
+                              onChange={e => setConfirmPassword(e.target.value)}
+                              className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                              required
+                            />
+                          </div>
+                        </div>
+                     </div>
+                   </div>
+                   
+                   <button 
+                     type="submit"
+                     disabled={loading}
+                     className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                   >
+                      {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                        <>COMMIT NEW IDENTITY</>
+                      )}
+                   </button>
+
+                   <button 
+                     type="button"
+                     onClick={() => { setStep('request'); setView('login'); }}
+                     className="w-full text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors py-2"
+                   >
+                     Already have a node? Login
+                   </button>
+                </motion.form>
+              ) : step === 'forgot' ? (
                 <motion.form 
                   key="forgot-form"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -343,12 +478,21 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
         </div>
 
         <div className="mt-12 text-center">
-           <button 
-             onClick={() => setView('signup')}
-             className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-aba-gold transition-colors"
-           >
-              Don't have a node? <span className="text-white">Create Account</span>
-           </button>
+           {step === 'signup' ? (
+             <button 
+               onClick={() => { setStep('request'); setView('login'); }}
+               className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-aba-gold transition-colors"
+             >
+                Already have a node? <span className="text-white">Login Now</span>
+             </button>
+           ) : (
+             <button 
+               onClick={() => { setStep('signup'); setView('signup'); }}
+               className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-aba-gold transition-colors"
+             >
+                Don't have a node? <span className="text-white">Create Account</span>
+             </button>
+           )}
         </div>
       </motion.div>
       

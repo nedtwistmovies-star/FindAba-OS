@@ -55,7 +55,13 @@ const AppContent: React.FC = () => {
     b.phone_whatsapp === userIdentifier ||
     (b.phone_whatsapp && userIdentifier && (b.phone_whatsapp.includes(userIdentifier) || userIdentifier.includes(b.phone_whatsapp)))
   ) : null) || null;
-  const RouteComponent = (!isAuth && view !== 'signup' && view !== 'login') 
+  const GUEST_ALLOWED_VIEWS: ViewState[] = [
+    'home', 'discover', 'explore', 'detail', 'editorial', 'editorial-detail', 
+    'about', 'about-aba', 'legal', 'support', 'pricing', 'hotel-detail', 
+    'sandals-hotels', 'audio-heritage', 'lab'
+  ];
+
+  const RouteComponent = (!isAuth && !GUEST_ALLOWED_VIEWS.includes(view as ViewState) && view !== 'signup' && view !== 'login') 
     ? (ROUTE_MAP['login'] || ROUTE_MAP['home'])
     : ((ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']));
 
@@ -128,7 +134,7 @@ const AppContent: React.FC = () => {
   // }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-x-hidden">
       {/* 🔹 SUBTLE AMBIENT BACKGROUND ANIMATION */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <motion.div 

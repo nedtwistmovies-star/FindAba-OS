@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ShieldCheck, Loader2, X, Landmark, Lock, 
   Smartphone, CheckCircle2, ChevronRight, Zap, 
@@ -9,6 +10,7 @@ import {
 import { paymentService } from '../services/paymentService';
 import { OFFICIAL_BANK_DETAILS } from '../constants';
 import { verifyReceiptSignal } from '../services/geminiService';
+import { useToast } from '../providers/ToastProvider';
 
 interface PaystackOverlayProps {
   amount: number;
@@ -31,6 +33,7 @@ declare global {
 const PaystackOverlay: React.FC<PaystackOverlayProps> = ({ 
   amount, email, label, businessId, userId, bookingId, onSuccess, onCancel, isOpen 
 }) => {
+  const { addToast } = useToast();
   const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan'>('initialize');
   const [selectedChannel, setSelectedChannel] = useState<string[] | null>(null);
   const [reference, setReference] = useState('');
@@ -110,7 +113,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
         localStorage.setItem(`ai_verified_${reference}`, JSON.stringify({ ...verdict, timestamp: new Date().toISOString() }));
         setStep('success');
       } else {
-        alert(`Sentinel Rejection: ${verdict.reasoning || 'Image does not match industrial standards.'}`);
+        addToast(`Sentinel Rejection: ${verdict.reasoning || 'Image does not match industrial standards.'}`, "error");
         setStep('manual');
       }
     };
@@ -118,74 +121,74 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-aba-deep/95 backdrop-blur-xl p-4 font-sans text-aba-deep">
-      <div className="w-full max-w-sm bg-white rounded-[3.5rem] shadow-2xl overflow-hidden animate-slide-up border border-white/10">
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-aba-deep/98 backdrop-blur-2xl p-4 font-sans text-aba-deep overflow-y-auto">
+      <div className="w-full max-w-sm bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-slide-up border border-white/10 flex flex-col max-h-[96dvh]">
         
-        <div className={`p-10 flex flex-col items-center text-center relative overflow-hidden shrink-0 ${isPaystackActive ? 'bg-aba-gold' : 'bg-aba-dark'}`}>
+        <div className={`p-8 md:p-10 flex flex-col items-center text-center relative overflow-hidden shrink-0 ${isPaystackActive ? 'bg-aba-gold' : 'bg-aba-dark'}`}>
           <button 
             onClick={onCancel} 
-            className="absolute top-6 left-6 text-white/30 hover:text-white p-3 z-50 flex items-center gap-2 bg-white/5 rounded-xl transition-all active:scale-90"
+            className="absolute top-4 left-4 text-white/30 hover:text-white p-2 md:p-3 z-50 flex items-center gap-2 bg-white/5 rounded-xl transition-all active:scale-90"
           >
-            <ArrowLeft size={18} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Exit</span>
+            <ArrowLeft size={16} />
+            <span className="text-[7px] font-black uppercase tracking-widest">Exit</span>
           </button>
-          <button onClick={onCancel} className="absolute top-6 right-6 text-white/30 hover:text-white p-3 z-50 bg-white/5 rounded-xl transition-all active:scale-90"><X size={22} /></button>
-          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-2xl relative">
-             {step === 'auth_scan' ? <Cpu size={40} className="text-aba-gold animate-pulse" /> : isPaystackActive ? <CreditCard size={40} className="text-aba-gold" /> : <Landmark size={40} className="text-aba-dark" />}
-             {step === 'auth_scan' && <div className="absolute inset-0 rounded-3xl border-4 border-aba-gold border-t-transparent animate-spin" />}
+          
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-[1.5rem] md:rounded-3xl flex items-center justify-center mb-4 md:mb-6 shadow-2xl relative shrink-0">
+             {step === 'auth_scan' ? <Cpu size={32} className="text-aba-gold animate-pulse" /> : isPaystackActive ? <CreditCard size={32} className="text-aba-gold" /> : <Landmark size={32} className="text-aba-dark" />}
+             {step === 'auth_scan' && <div className="absolute inset-0 rounded-[1.5rem] md:rounded-3xl border-4 border-aba-gold border-t-transparent animate-spin" />}
           </div>
-          <h2 className="text-white text-xl font-black uppercase tracking-[0.3em]">
+          <h2 className="text-white text-lg md:text-xl font-black uppercase tracking-[0.3em]">
             {isPaystackActive ? 'Paystack' : 'FindAba Auth'}
           </h2>
-          <p className="text-white/60 text-[9px] font-black uppercase tracking-[0.4em] mt-2">
+          <p className="text-white/60 text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] mt-1 md:mt-2">
             {step === 'auth_scan' ? 'AI Sentinel Active' : 'Registry Settlement Gateway'}
           </p>
         </div>
 
-        <div className="p-10 overflow-y-auto max-h-[60vh] scrollbar-hide">
+        <div className="p-8 md:p-10 overflow-y-auto flex-1 scrollbar-hide">
           {step === 'initialize' && (
-            <div className="space-y-10 animate-fade-in text-center">
-              <div className="space-y-3">
-                 <p className="text-[10px] font-black text-aba-deep/30 uppercase tracking-widest">{label}</p>
-                 <h3 className="text-5xl font-black text-aba-dark tracking-tighter">₦{amount.toLocaleString()}</h3>
-                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full text-[8px] font-black text-slate-400 uppercase tracking-widest border font-mono">
+            <div className="space-y-8 md:space-y-10 animate-fade-in text-center">
+              <div className="space-y-2 md:space-y-3">
+                 <p className="text-[9px] md:text-[10px] font-black text-aba-deep/30 uppercase tracking-widest">{label}</p>
+                 <h3 className="text-4xl md:text-5xl font-black text-aba-dark tracking-tighter">₦{amount.toLocaleString()}</h3>
+                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-widest border font-mono">
                     REF: {reference}
                  </div>
               </div>
-              <div className="space-y-4">
-                <button onClick={handlePay} className={`w-full py-8 rounded-[2rem] font-black uppercase text-[11px] tracking-[0.4em] shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-4 ${isPaystackActive ? 'bg-aba-gold text-aba-dark' : 'bg-aba-gold text-aba-dark'}`}>
-                  {isPaystackActive ? <ShieldCheck size={22} /> : <Zap size={22} />}
+              <div className="space-y-3 md:space-y-4">
+                <button onClick={handlePay} className={`w-full py-6 md:py-8 rounded-[1.5rem] md:rounded-[2rem] font-black uppercase text-[10px] md:text-[11px] tracking-[0.3em] md:tracking-[0.4em] shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 md:gap-4 ${isPaystackActive ? 'bg-aba-gold text-aba-dark' : 'bg-aba-gold text-aba-dark'}`}>
+                  {isPaystackActive ? <ShieldCheck size={20} /> : <Zap size={20} />}
                   {isPaystackActive ? 'Select Payment Method' : 'Open Transfer Gateway'}
                 </button>
-                <button onClick={onCancel} className="w-full py-4 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors">Cancel Protocol</button>
+                <button onClick={onCancel} className="w-full py-2 md:py-4 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors">Cancel Protocol</button>
               </div>
             </div>
           )}
 
           {step === 'method_select' && (
-            <div className="space-y-8 animate-slide-up">
-              <div className="text-center space-y-2">
-                <h3 className="text-lg font-black uppercase tracking-tight">Select Channel</h3>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Registry Settlement Options</p>
+            <div className="space-y-6 md:space-y-8 animate-slide-up pb-4">
+              <div className="text-center space-y-1 md:space-y-2">
+                <h3 className="text-base md:text-lg font-black uppercase tracking-tight">Select Channel</h3>
+                <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest">Registry Settlement Options</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
                 {[
-                  { id: 'card', label: 'Card', icon: <CreditCard size={20} />, channels: ['card'] },
-                  { id: 'transfer', label: 'Transfer', icon: <ArrowRight size={20} />, channels: ['bank_transfer'] },
-                  { id: 'bank', label: 'Bank', icon: <Landmark size={20} />, channels: ['bank'] },
-                  { id: 'ussd', label: 'USSD', icon: <Smartphone size={20} />, channels: ['ussd'] }
+                  { id: 'card', label: 'Card', icon: <CreditCard size={18} />, channels: ['card'] },
+                  { id: 'transfer', label: 'Transfer', icon: <ArrowRight size={18} />, channels: ['bank_transfer'] },
+                  { id: 'bank', label: 'Bank', icon: <Landmark size={18} />, channels: ['bank'] },
+                  { id: 'ussd', label: 'USSD', icon: <Smartphone size={18} />, channels: ['ussd'] }
                 ].map((method) => (
                   <button 
                     key={method.id}
                     onClick={() => triggerPaystack(method.channels)}
-                    className="p-6 bg-slate-50 border border-slate-100 rounded-3xl flex flex-col items-center gap-3 hover:border-aba-gold hover:bg-aba-gold/5 transition-all group active:scale-95"
+                    className="p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-3xl flex flex-col items-center gap-2 md:gap-3 hover:border-aba-gold hover:bg-aba-gold/5 transition-all group active:scale-95"
                   >
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-300 group-hover:text-aba-gold shadow-sm transition-colors">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl flex items-center justify-center text-slate-300 group-hover:text-aba-gold shadow-sm transition-colors">
                       {method.icon}
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest">{method.label}</span>
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">{method.label}</span>
                   </button>
                 ))}
               </div>
@@ -193,97 +196,97 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
               <div className="pt-4 border-t border-slate-100">
                 <button 
                   onClick={() => setStep('manual')}
-                  className="w-full p-6 bg-blue-50 border border-blue-100 rounded-3xl flex items-center justify-between group hover:bg-blue-100 transition-all"
+                  className="w-full p-4 md:p-6 bg-blue-50 border border-blue-100 rounded-2xl md:rounded-3xl flex items-center justify-between group hover:bg-blue-100 transition-all"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
-                      <Cpu size={20} />
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className="w-8 h-8 md:w-10 md:h-10 bg-white rounded-lg md:rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
+                      <Cpu size={18} />
                     </div>
                     <div className="text-left">
-                      <p className="text-[9px] font-black uppercase tracking-widest">AI Verified Transfer</p>
-                      <p className="text-[7px] font-bold text-blue-400 uppercase tracking-widest">Manual Hub Activation</p>
+                      <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">AI Verified Transfer</p>
+                      <p className="text-[6px] md:text-[7px] font-bold text-blue-400 uppercase tracking-widest">Manual Hub Activation</p>
                     </div>
                   </div>
-                  <ChevronRight size={16} className="text-blue-300 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight size={14} className="text-blue-300 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
 
-              <button onClick={() => setStep('initialize')} className="w-full py-4 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors flex items-center justify-center gap-2">
-                <ArrowLeft size={14} /> Back to Summary
+              <button onClick={() => setStep('initialize')} className="w-full py-2 md:py-4 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors flex items-center justify-center gap-2">
+                <ArrowLeft size={12} /> Back to Summary
               </button>
             </div>
           )}
 
           {step === 'manual' && (
-            <div className="space-y-8 animate-slide-up">
-               <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-100 space-y-8 relative overflow-hidden select-none">
-                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] -rotate-12"><Landmark size={120} /></div>
-                  <div className="space-y-6 relative z-10">
+            <div className="space-y-6 md:space-y-8 animate-slide-up pb-4">
+               <div className="bg-slate-50 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 space-y-6 md:space-y-8 relative overflow-hidden select-none">
+                  <div className="absolute top-0 right-0 p-4 md:p-8 opacity-[0.03] -rotate-12"><Landmark size={100} /></div>
+                  <div className="space-y-4 md:space-y-6 relative z-10 text-left">
                     <div className="flex justify-between items-end group cursor-pointer" onClick={() => handleCopy(OFFICIAL_BANK_DETAILS.accountNumber)}>
                       <div className="space-y-1">
-                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Account</p>
-                        <p className="text-3xl font-black font-mono tracking-tighter">{OFFICIAL_BANK_DETAILS.accountNumber}</p>
+                        <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Account</p>
+                        <p className="text-2xl md:text-3xl font-black font-mono tracking-tighter">{OFFICIAL_BANK_DETAILS.accountNumber}</p>
                       </div>
-                      <div className="p-4 bg-white rounded-2xl border shadow-sm group-hover:border-aba-gold transition-all">{copied ? <Check size={20} className="text-aba-green"/> : <Copy size={20} className="text-slate-300"/>}</div>
+                      <div className="p-3 md:p-4 bg-white rounded-xl md:rounded-2xl border shadow-sm group-hover:border-aba-gold transition-all">{copied ? <Check size={18} className="text-aba-green"/> : <Copy size={18} className="text-slate-300"/>}</div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Bank</p>
-                      <p className="text-lg font-black uppercase tracking-tight">{OFFICIAL_BANK_DETAILS.bankName}</p>
+                      <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Bank</p>
+                      <p className="text-base md:text-lg font-black uppercase tracking-tight">{OFFICIAL_BANK_DETAILS.bankName}</p>
                     </div>
                   </div>
                </div>
                
-               <div className="space-y-6">
-                  <div className="p-6 bg-blue-50 border border-blue-100 rounded-[2rem] flex gap-4 items-center">
-                    <Activity size={24} className="text-blue-600 shrink-0" />
-                    <p className="text-[10px] font-bold text-blue-800 uppercase leading-relaxed tracking-widest">Automatic Activation: Upload your transfer receipt below for instant AI verification.</p>
+               <div className="space-y-4 md:space-y-6 text-left">
+                  <div className="p-4 md:p-6 bg-blue-50 border border-blue-100 rounded-[1.5rem] md:rounded-[2rem] flex gap-3 md:gap-4 items-center">
+                    <Activity size={20} className="text-blue-600 shrink-0" />
+                    <p className="text-[8px] md:text-[9px] font-bold text-blue-800 uppercase leading-relaxed tracking-widest">Automatic Activation: Upload your transfer receipt below for instant AI verification.</p>
                   </div>
 
                   <div className="relative group">
                     <input type="file" accept="image/*" onChange={handleReceiptUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                    <div className="w-full py-10 rounded-[3rem] border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-4 group-hover:border-aba-gold group-hover:bg-aba-gold/5 transition-all shadow-inner">
-                      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm text-slate-300 group-hover:text-aba-gold transition-colors">
-                        <Camera size={32} />
+                    <div className="w-full py-8 md:py-10 rounded-[2rem] md:rounded-[3rem] border-2 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-3 md:gap-4 group-hover:border-aba-gold group-hover:bg-aba-gold/5 transition-all shadow-inner">
+                      <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm text-slate-300 group-hover:text-aba-gold transition-colors">
+                        <Camera size={28} />
                       </div>
-                      <span className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Scan Transfer Receipt</span>
+                      <span className="text-[9px] md:text-[11px] font-black uppercase text-slate-400 tracking-widest">Scan Transfer Receipt</span>
                     </div>
                   </div>
 
-                  <button onClick={() => setStep('initialize')} className="w-full py-4 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors flex items-center justify-center gap-2">
-                    <ArrowLeft size={14} /> Back to Summary
+                  <button onClick={() => setStep('initialize')} className="w-full py-2 md:py-4 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors flex items-center justify-center gap-2">
+                    <ArrowLeft size={12} /> Back to Summary
                   </button>
                </div>
             </div>
           )}
 
           {step === 'auth_scan' && (
-            <div className="py-12 flex flex-col items-center justify-center text-center space-y-10">
-               <div className="relative w-32 h-32 bg-slate-100 rounded-[2.5rem] overflow-hidden border-2 border-slate-100">
+            <div className="py-10 md:py-12 flex flex-col items-center justify-center text-center space-y-8 md:space-y-10">
+               <div className="relative w-28 h-28 md:w-32 md:h-32 bg-slate-100 rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-2 border-slate-100">
                   <div className="absolute top-0 left-0 w-full h-1 bg-aba-gold shadow-[0_0_15px_rgba(255,215,0,0.8)] animate-[scan_2s_ease-in-out_infinite]" />
-                  <FileText size={48} className="absolute inset-0 m-auto text-slate-300" />
+                  <FileText size={40} className="absolute inset-0 m-auto text-slate-300" />
                </div>
                <div className="space-y-2">
-                 <p className="text-[10px] font-black text-aba-dark uppercase tracking-[0.4em] animate-pulse">{authStatus}</p>
-                 <p className="text-[7px] font-bold text-slate-300 uppercase tracking-widest">Industrial Trinity Protocol v20.0</p>
+                 <p className="text-[9px] md:text-[10px] font-black text-aba-dark uppercase tracking-[0.4em] animate-pulse">{authStatus}</p>
+                 <p className="text-[6px] md:text-[7px] font-bold text-slate-300 uppercase tracking-widest">Industrial Trinity Protocol v20.0</p>
                </div>
             </div>
           )}
 
           {step === 'processing' && (
-            <div className="py-20 flex flex-col items-center justify-center text-center space-y-8">
-               <Loader2 className="w-16 h-16 text-aba-gold animate-spin" />
-               <p className="text-[9px] font-bold text-slate-300 uppercase animate-pulse">Synchronizing Partner Registry...</p>
+            <div className="py-16 md:py-20 flex flex-col items-center justify-center text-center space-y-6 md:space-y-8">
+               <Loader2 className="w-12 h-12 md:w-16 md:h-16 text-aba-gold animate-spin" />
+               <p className="text-[8px] md:text-[9px] font-bold text-slate-300 uppercase animate-pulse">Synchronizing Partner Registry...</p>
             </div>
           )}
 
           {step === 'success' && (
-            <div className="py-10 text-center space-y-10 animate-slide-up">
-               <div className="w-24 h-24 bg-aba-green/10 rounded-full mx-auto flex items-center justify-center text-aba-green shadow-[0_0_50px_rgba(0,140,82,0.2)]"><CheckCircle2 size={64} /></div>
-               <div className="space-y-2">
-                 <h4 className="text-2xl font-black uppercase tracking-tighter">Auth Confirmed</h4>
-                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">AI Verified Activation</p>
+            <div className="py-8 md:py-10 text-center space-y-8 md:space-y-10 animate-slide-up">
+               <div className="w-20 h-20 md:w-24 md:h-24 bg-aba-green/10 rounded-full mx-auto flex items-center justify-center text-aba-green shadow-[0_0_50px_rgba(0,140,82,0.2)]"><CheckCircle2 size={50} /></div>
+               <div className="space-y-1 md:space-y-2">
+                 <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Auth Confirmed</h4>
+                 <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">AI Verified Activation</p>
                </div>
-               <button onClick={() => onSuccess({ reference, status: 'success' })} className="w-full bg-aba-dark text-white py-6 rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.3em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">Enter Registry <ArrowRight size={18} /></button>
+               <button onClick={() => onSuccess({ reference, status: 'success' })} className="w-full bg-aba-dark text-white py-5 md:py-6 rounded-2xl md:rounded-[1.5rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.3em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">Enter Registry <ArrowRight size={16} /></button>
             </div>
           )}
         </div>
@@ -296,7 +299,8 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
           100% { top: 100%; opacity: 0; }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 };
 

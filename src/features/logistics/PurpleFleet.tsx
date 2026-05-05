@@ -8,10 +8,12 @@ import { ViewState, Vehicle, VehicleCategory, RideBooking } from '../../types';
 import MapView from '../../components/MapView';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import RideBookingSheet from './RideBookingSheet';
+import { useToast } from '../../providers/ToastProvider';
 import { fetchAvailableVehicles, createRideBooking, fetchAllVehicles, getSupabase, subscribeToDriverSignals } from '../../services/supabaseService';
 import { getCurrentPosition, calculateDistance } from '../../services/locationService';
 
 const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
+  const { addToast } = useToast();
   const [pickup, setPickup] = useState('');
   const [dropoff, setDropoff] = useState('');
   const [passengers, setPassengers] = useState(1);
@@ -129,8 +131,9 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
       const res = await createRideBooking(booking);
       setCurrentRide(res);
       setBookingStep('live');
+      addToast("Ride requested! Signal locked to driver.", "success");
     } catch (e) {
-      alert("Booking failed. Signal lost.");
+      addToast("Booking failed. Industrial network interference.", "error");
     }
   };
 

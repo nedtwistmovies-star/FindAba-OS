@@ -4,9 +4,10 @@ import {
   Megaphone, TrendingUp, BarChart3, Plus, ArrowLeft, 
   CheckCircle2, Clock, Eye, MousePointer2, ShieldCheck, Loader2, Sparkles, X, LayoutGrid, Zap, AlertCircle, Info, Scale
 } from 'lucide-react';
-import { ViewState, Business, AdCampaign, AdType } from '../../types';
+import { AdCampaign, AdType, Business, ViewState } from '../../types';
 import { AD_TIERS, LEGAL_POLICIES } from '../../constants';
 import { fetchMerchantAds, saveAdCampaign } from '../../services/supabaseService';
+import { useToast } from '../../providers/ToastProvider';
 import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 const AdManager: React.FC<Props> = ({ business, onBack, setView }) => {
+  const { addToast } = useToast();
   const [ads, setAds] = useState<AdCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -65,9 +67,9 @@ const AdManager: React.FC<Props> = ({ business, onBack, setView }) => {
       setAds(updated);
       setCreating(false);
       setShowCheckout(false);
-      alert("Ad Signal Locked: Synced with Paystack Registry.");
+      addToast("Ad Signal Locked: Synced with Paystack Registry.", "success");
     } catch (e) {
-      alert("Sync failed.");
+      addToast("Industrial Sync Failure. Please retry the signal.", "error");
     }
   };
 

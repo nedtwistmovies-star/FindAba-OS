@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { ViewState, Business, VerificationStatus } from '../../types';
 import { updateBusinessInDB } from '../../services/supabaseService';
+import { useToast } from '../../providers/ToastProvider';
 import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
+  const { addToast } = useToast();
   const [step, setStep] = useState<'benefits' | 'documents' | 'payment' | 'completion'>('benefits');
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -32,7 +34,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
   const handleDocumentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.cac_number || !formData.identity_url) {
-      alert("Required: CAC Number and Identity Proof are mandatory for audit.");
+      addToast("Required: CAC Number and Identity Proof are mandatory for audit.", "error");
       return;
     }
     setStep('payment');
@@ -48,8 +50,9 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
         description: `${business.description}\n\n[AUDIT LOG]: CAC: ${formData.cac_number} | TaxID: ${formData.tax_id}`
       });
       setStep('completion');
+      addToast("Registry signal received. Documents held for audit.", "success");
     } catch (err) {
-      alert("Registry Sync Error. Payout recorded, but status update failed. Contact support.");
+      addToast("Registry Sync Error. Payout recorded, but status update failed. Please contact registrar support.", "error");
     } finally {
       setLoading(false);
     }

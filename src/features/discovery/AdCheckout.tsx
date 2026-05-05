@@ -4,8 +4,10 @@ import { ViewState, AdPlan, SubscriptionTier } from '../../types';
 import { ArrowLeft, Landmark, ShieldCheck, Loader2, Lock, Smartphone, CheckCircle2, Zap, AlertTriangle, Calendar, Info, ArrowRight, LayoutGrid, Sparkles } from 'lucide-react';
 import { logPayment, activatePlanFeatures } from '../../services/supabaseService';
 import PaystackOverlay from '../../components/PaystackOverlay';
+import { useToast } from '../../providers/ToastProvider';
 
 const AdCheckout: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
+  const { addToast } = useToast();
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -37,9 +39,10 @@ const AdCheckout: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
 
       await activatePlanFeatures(myBusinessId, plan.id);
       localStorage.removeItem('findaba_selected_plan');
+      addToast("Commercial Tier Synchronized. 45-Day Industrial Cycle Activated.", "success");
       setIsCompleted(true);
     } catch (e) {
-      alert("Registry Sync failure. Payout confirmed.");
+      addToast("Registry Sync failure. Payout confirmed but documentation failed.", "error");
     } finally {
       setLoading(false);
     }

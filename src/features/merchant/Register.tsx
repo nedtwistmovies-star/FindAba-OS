@@ -12,6 +12,7 @@ import { BUSINESS_PLANS, CATEGORIES, ABA_AREAS } from '../../constants';
 import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
+import { sendBusinessRegistrationEmail } from '../../services/emailService';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToast } from '../../providers/ToastProvider';
 import IndustrialButton from '../../components/IndustrialButton';
@@ -126,6 +127,14 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
     try {
       console.log("[Registry] Submitting hub payload:", newBusiness);
       await saveBusinessToDB(newBusiness);
+      
+      // Notify Merchant via Email
+      try {
+        await sendBusinessRegistrationEmail(newBusiness.email, newBusiness.name, newBusiness.subscription_tier || 'Free');
+      } catch (e) {
+        console.warn("[Registry] Email notification protocol failure:", e);
+      }
+
       setRegisteredBusiness(newBusiness);
       setStep('success');
       onRegister(newBusiness);

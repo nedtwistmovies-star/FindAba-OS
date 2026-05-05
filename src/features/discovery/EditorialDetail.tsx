@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { EditorialStory, ViewState } from '../../types';
 import { IndustrialButton } from '../../components';
+import { useToast } from '../../providers/ToastProvider';
 
 interface EditorialDetailProps {
   story: EditorialStory;
@@ -15,6 +16,7 @@ interface EditorialDetailProps {
 }
 
 const EditorialDetail: React.FC<EditorialDetailProps> = ({ story, onBack, setView }) => {
+  const { addToast } = useToast();
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -24,7 +26,7 @@ const EditorialDetail: React.FC<EditorialDetailProps> = ({ story, onBack, setVie
       }).catch(console.error);
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
+      addToast('Link copied to clipboard!', 'info');
     }
   };
 

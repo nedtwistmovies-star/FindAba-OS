@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Send, Loader2, Landmark, ShieldCheck, Zap, X } from 'lucide-react';
 import { ChatMessage, Business } from '../../types';
 import { sendMessageToSupabase, subscribeToMessages, fetchMessagesFromDB, getSupabase } from '../../services/supabaseService';
+import { useToast } from '../../providers/ToastProvider';
 import PaystackOverlay from '../../components/PaystackOverlay';
 
 interface ChatViewProps {
@@ -12,6 +13,7 @@ interface ChatViewProps {
 }
 
 const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, onBack }) => {
+  const { addToast } = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -64,7 +66,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, o
     try { 
       await sendMessageToSupabase(msg); 
     } catch (err) { 
-      alert("Signal failed."); 
+      addToast("Signal failed. Industrial network error.", "error"); 
     } finally { 
       setLoading(false); 
     }
@@ -72,7 +74,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, o
 
   const handleTradeCommit = () => {
     if (settlementAmount <= 0) {
-      alert("Invalid Amount Signal.");
+      addToast("Invalid Amount Signal. Positive value required.", "error");
       return;
     }
     setShowSettlement(true);
@@ -91,7 +93,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, o
     };
     await sendMessageToSupabase(msg);
     setSettlementAmount(0);
-    alert("Trade Signal Locked: Funds held by Registry.");
+    addToast("Trade Signal Locked: Funds held by Registry.", "success");
   };
 
   return (
