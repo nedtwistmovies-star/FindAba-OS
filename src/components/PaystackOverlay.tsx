@@ -39,6 +39,8 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
   const [reference, setReference] = useState('');
   const [copied, setCopied] = useState(false);
   const [authStatus, setAuthStatus] = useState<string>('Initializing AI Sentinel...');
+  const [isAiVerifiedLocal, setIsAiVerifiedLocal] = useState(false);
+  const [aiVerdict, setAiVerdict] = useState<any>(null);
   const isPaystackActive = paymentService.hasKey();
 
   useEffect(() => {
@@ -73,12 +75,14 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
         ...config,
         channels: channels || ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
         onClose: () => {
-          console.log('Window closed');
+          console.log('[Paystack] Window closed by user.');
         },
         callback: (response: any) => {
-          setStep('processing');
-          onSuccess({ reference: response.reference, status: 'success' });
+          console.log('[Paystack] Payment Successful:', response.reference);
+          setReference(response.reference);
+          setIsAiVerifiedLocal(false);
           setStep('success');
+          addToast("Registry Settlement Confirmed via Paystack.", "success");
         }
       });
       handler.openIframe();
@@ -101,19 +105,52 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
+    reader.onerror = () => {
+      addToast("Failed to read image signal.", "error");
+      setStep('manual');
+    };
     reader.onload = async () => {
-      const base64 = reader.result as string;
-      setAuthStatus('AI Sentinel Auditing Ledger...');
-      
-      const verdict = await verifyReceiptSignal(base64, amount, OFFICIAL_BANK_DETAILS.accountNumber);
-      
-      if (verdict.is_valid && verdict.confidence_score > 75) {
-        setAuthStatus('Consensus Reached. Signal Authentic.');
-        await new Promise(r => setTimeout(r, 1500));
-        localStorage.setItem(`ai_verified_${reference}`, JSON.stringify({ ...verdict, timestamp: new Date().toISOString() }));
-        setStep('success');
-      } else {
-        addToast(`Sentinel Rejection: ${verdict.reasoning || 'Image does not match industrial standards.'}`, "error");
+      try {
+        const base64 = reader.result as string;
+        setAuthStatus('AI Sentinel Auditing Ledger...');
+        console.log("[Sentinel] Verifying Receipt for ₦" + amount);
+        
+        const verdict = await verifyReceiptSignal(base64, amount, OFFICIAL_BANK_DETAILS.accountNumber);
+        console.log("[Sentinel] Verdict:", verdict);
+        
+        if (!verdict) {
+          throw new Error("Sentinel signal lost. Verification could not be completed.");
+        }
+        
+        // Handle both decimal (0.95) and percentage (95) scales for confidence_score
+        const score = verdict.confidence_score <= 1 ? (verdict.confidence_score * 100) : (verdict.confidence_score || 0);
+        
+        if (verdict.is_valid && score >= 70) {
+          setAuthStatus('Consensus Reached. Signal Authentic.');
+          localStorage.setItem(`ai_verified_${reference}`, JSON.stringify({ ...verdict, timestamp: new Date().toISOString() }));
+          
+          addToast("AI Verification Successful: Signal matches expected ledger parity.", "success");
+          console.log("[Sentinel] Success Handshake. Dispatching to Registry...");
+          
+          setIsAiVerifiedLocal(true);
+          setAiVerdict(verdict);
+          
+          // Staggered transition to success and automatic completion
+          setStep('success');
+          
+          // Automatically trigger success after a brief delay
+          setTimeout(() => {
+            console.log("[Sentinel] Automatic Sync Triggering...");
+            onSuccess({ reference, status: 'success', ai_verified: true, verdict });
+          }, 4000);
+        } else {
+          console.warn("[Sentinel] Verification Reject:", verdict.reasoning);
+          addToast(`Sentinel Rejection: ${verdict.reasoning || 'Image does not match industrial standards.'}`, "error");
+          setStep('manual');
+        }
+      } catch (err: any) {
+        console.error("[Sentinel] Critical Failure:", err);
+        addToast("Sentinel System Fault: " + (err.message || "Unknown Error"), "error");
         setStep('manual');
       }
     };
@@ -192,6 +229,26 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                   </button>
                 ))}
               </div>
+
+              {!isPaystackActive && (
+                <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl md:rounded-3xl space-y-3">
+                   <div className="flex items-center gap-2">
+                      <AlertTriangle size={14} className="text-orange-500" />
+                      <p className="text-[8px] font-black uppercase text-orange-700 tracking-widest">Paystack key missing</p>
+                   </div>
+                   <button 
+                    onClick={() => {
+                      setReference(`SIM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
+                      setIsAiVerifiedLocal(false);
+                      setStep('success');
+                      addToast("Internal Simulation Channel Opened.", "info");
+                    }}
+                    className="w-full py-4 bg-orange-600 text-white rounded-xl font-black uppercase text-[9px] tracking-[0.2em] shadow-lg shadow-orange-600/20 active:scale-95 transition-all"
+                   >
+                     Simulate Digital Payment
+                   </button>
+                </div>
+              )}
 
               <div className="pt-4 border-t border-slate-100">
                 <button 
@@ -281,12 +338,24 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
 
           {step === 'success' && (
             <div className="py-8 md:py-10 text-center space-y-8 md:space-y-10 animate-slide-up">
-               <div className="w-20 h-20 md:w-24 md:h-24 bg-aba-green/10 rounded-full mx-auto flex items-center justify-center text-aba-green shadow-[0_0_50px_rgba(0,140,82,0.2)]"><CheckCircle2 size={50} /></div>
+               <div className="w-20 h-20 md:w-24 md:h-24 bg-aba-green/10 rounded-full mx-auto flex items-center justify-center text-aba-green shadow-[0_0_50px_rgba(0,140,82,0.2)]">
+                 <CheckCircle2 size={50} className="animate-bounce" />
+               </div>
                <div className="space-y-1 md:space-y-2">
                  <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Auth Confirmed</h4>
-                 <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">AI Verified Activation</p>
+                 <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Finalizing Settlement Signal (Auto)...</p>
                </div>
-               <button onClick={() => onSuccess({ reference, status: 'success' })} className="w-full bg-aba-dark text-white py-5 md:py-6 rounded-2xl md:rounded-[1.5rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.3em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">Enter Registry <ArrowRight size={16} /></button>
+               <button 
+                 onClick={() => onSuccess({ 
+                    reference, 
+                    status: 'success', 
+                    ai_verified: isAiVerifiedLocal, 
+                    verdict: aiVerdict 
+                 })} 
+                 className="w-full bg-aba-dark text-white py-5 md:py-6 rounded-2xl md:rounded-[1.5rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.3em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+               >
+                 Enter Registry <ArrowRight size={16} />
+               </button>
             </div>
           )}
         </div>

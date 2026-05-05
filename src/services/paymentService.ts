@@ -35,7 +35,7 @@ export const paymentService = {
   },
 
   hasKey: () => {
-    const key = localStorage.getItem(PAYSTACK_KEY_STORAGE);
+    const key = paymentService.getApiKey();
     return !!key && key.length > 20;
   },
 

@@ -10,6 +10,7 @@ import {
 import { fetchThriftAccount, createThriftAccount, saveThriftContribution, updateThriftAccountSettlement, getSupabase, purgeLocalRegistry } from '../../services/supabaseService';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { useToast } from '../../providers/ToastProvider';
+import { paymentService } from '../../services/paymentService';
 
 import FidelityHero from './FidelityHero';
 
@@ -26,8 +27,10 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const [contributionAmount, setContributionAmount] = useState<number>(5000);
   const [showBankForm, setShowBankForm] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   
   const isRegistryConnected = !!getSupabase();
+  const isPaystackActive = paymentService.hasKey();
 
   const [bankDetails, setBankDetails] = useState({
     bank_name: '',
@@ -104,32 +107,63 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
   const handlePaymentSuccess = async (res: any) => {
     setActionLoading(true);
+    const isAiVerified = res?.ai_verified === true;
+    
+    if (isAiVerified) {
+       addToast("Sentinel Signature Detected. Expediting Registry Settlement...", "success");
+    } else {
+       addToast("Signal Received. Negotiating Settlement with Registry...", "info");
+    }
+    
     try {
-      // Fixed: Removed the third 'daily' argument to match the 2-parameter signature in supabaseService.ts
-      await saveThriftContribution(userEmail, contributionAmount);
-      await refreshAccount();
+      console.log("[Thrift] Success Signal Received:", res);
+      setIsUpdatingBalance(true);
       
-      // Local state update fallback if DB sync is slow
-      setAccount((prev: any) => ({
+      const amountToSave = contributionAmount;
+      const updatedAccount = await saveThriftContribution(userEmail, amountToSave);
+      
+      console.log("[Thrift] Update Result:", updatedAccount);
+
+      if (updatedAccount) {
+        setAccount((prev: any) => ({
           ...prev,
-          total_saved: (prev?.total_saved || 0) + contributionAmount
-      }));
+          ...updatedAccount,
+          total_saved: Number(updatedAccount.total_saved)
+        }));
+      } else {
+        setAccount((prev: any) => ({
+          ...prev,
+          total_saved: (Number(prev?.total_saved) || 0) + amountToSave
+        }));
+      }
 
       setShowCheckout(false);
-      addToast(`Master Signal Confirmed: ₦${contributionAmount.toLocaleString()} settled via Paystack Fidelity.`, "success");
+      
+      const successMsg = isAiVerified 
+        ? `Sentinel Confirmed: ₦${amountToSave.toLocaleString()} settled. Parity index verified.`
+        : `Registry Synchronized: ₦${amountToSave.toLocaleString()} successfully committed to ledger.`;
+        
+      addToast(successMsg, "success");
+      
+      // Secondary background sync to ensure DB parity
+      setTimeout(async () => {
+        await refreshAccount();
+        setIsUpdatingBalance(false);
+      }, 2000);
+      
     } catch (err: any) {
       console.error("Thrift Sync Error:", err);
-      const isHtmlError = err.message.includes('Unexpected token') || err.message.includes('Signal Error');
+      
+      const isHtmlError = err.message?.includes('Unexpected token') || err.message?.includes('Signal Error');
       
       if (isHtmlError) {
         addToast("Registry Interference Detected. Signal connection reset recommended.", "info");
-        // Maintain legacy confirm for critical recovery logic
-        if (confirm(`SIGNAL INTERFERENCE: Your device is receiving invalid data from the registry. This usually happens due to a DNS or configuration fault.\n\nWould you like to reset your signal connection? (This will refresh the page)`)) {
+        if (confirm(`SIGNAL INTERFERENCE: Your device is receiving invalid data from the registry.\n\nWould you like to reset your signal connection?`)) {
           purgeLocalRegistry();
           window.location.reload();
         }
       } else {
-        addToast(`SYNC ERROR: ${err.message}`, "error");
+        addToast(`SYNC ERROR: ${err.message || 'Validation failed at the unit level.'}`, "error");
       }
     } finally {
       setActionLoading(false);
@@ -173,10 +207,17 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       <div className="p-8 bg-white border-b border-slate-200 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl bg-opacity-90">
         <div className="flex items-center gap-5">
           <button onClick={() => setView('home')} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-slate-400 hover:text-slate-900 transition-all"><ArrowLeft size={20} /></button>
-          <div>
-            <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900">Fidelity Dashboard</h2>
-            <p className="text-[8px] font-black text-blue-600 uppercase tracking-[0.4em]">Paystack Protocol v10.0</p>
-          </div>
+            <div>
+              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">Fidelity Dashboard</h2>
+              <div className="flex items-center gap-2">
+                <p className="text-[8px] font-black text-blue-600 uppercase tracking-[0.4em]">Protocol v10.0</p>
+                <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                <div className="flex items-center gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isPaystackActive ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`} />
+                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">{isPaystackActive ? 'Paystack Live' : 'Paystack Offline'}</p>
+                </div>
+              </div>
+            </div>
         </div>
         <button onClick={refreshAccount} disabled={actionLoading} className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 active:scale-90 transition-all">
           {actionLoading ? <Loader2 size={24} className="animate-spin" /> : <RefreshCcw size={24} />}
@@ -191,8 +232,11 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                  <ShieldCheck size={16} className="text-blue-400" />
                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Gross Accumulated Savings (Global Sync)</p>
               </div>
-              <div className="space-y-2">
-                <h3 className="text-6xl md:text-7xl font-black tracking-tighter">₦{account.total_saved?.toLocaleString() || '0'}</h3>
+              <div className={`space-y-2 transition-all duration-700 ${isUpdatingBalance ? 'scale-110 text-blue-400' : ''}`}>
+                <h3 className="text-6xl md:text-7xl font-black tracking-tighter">
+                   {isUpdatingBalance && <span className="animate-pulse opacity-50 mr-2">₦</span>}
+                   ₦{account.total_saved?.toLocaleString() || '0'}
+                </h3>
                 <p className="text-sm font-medium text-white/30 uppercase tracking-widest">≈ ${(account.total_saved / 1500).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</p>
               </div>
               <div className="pt-8 flex flex-wrap gap-4">

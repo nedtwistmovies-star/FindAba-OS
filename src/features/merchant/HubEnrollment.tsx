@@ -124,17 +124,38 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
     setShowPayment(true);
   };
 
-  const onPaymentSuccess = async () => {
+  const onPaymentSuccess = async (res?: any) => {
     if (!selectedTier) return;
     setShowPayment(false);
     setVerifying(true);
     
-    // We don't call updateBusinessTier here anymore.
-    // The Paystack Webhook on the server will handle the payment insertion,
-    // which triggers the apply_tier_upgrade RPC, which updates the profile.
-    // Our Realtime listener in useEffect will catch the profile update and show success.
-    
-    console.log('[Enrollment] Payment success signal received. Waiting for Registry confirmation...');
+    try {
+      console.log('[Enrollment] Payment success signal received. Updating Registry...', res);
+      
+      // AI Studio Environment Fix: Since there is no server-side webhook listener, 
+      // we must manually update the business tier in the registry.
+      const tierLabel = tiers.find(t => t.id === selectedTier)?.id || selectedTier;
+      await updateBusinessTier(business.id, tierLabel as HubTier);
+      
+      // If payment was via AI scan, store verification proof
+      if (res?.ai_verified && res.verdict) {
+         localStorage.setItem(`verification_proof_${business.id}`, JSON.stringify(res.verdict));
+      }
+
+      // Manually trigger the success state after a brief registry sync delay
+      setTimeout(() => {
+        setUpgradeSuccess(true);
+        setVerifying(false);
+        fireConfetti();
+        if (onUpdate) onUpdate();
+      }, 2000);
+
+    } catch (err) {
+      console.error('[Enrollment] Registry update failed:', err);
+      setVerifying(false);
+      // Fallback to inform the user
+      alert("Registry Sync Failed: Your signal was received but could not be committed to the master ledger. Please refresh and try again.");
+    }
   };
 
   if (upgradeSuccess) {

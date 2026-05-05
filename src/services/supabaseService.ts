@@ -895,11 +895,18 @@ export const saveThriftContribution = async (email: string, amount: number) => {
     const account = await fetchThriftAccount(normalizedEmail);
     if (!account) throw new Error("No active thrift account found for this user.");
     
-    const { error } = await client.from('thrift_accounts').update({ 
-      total_saved: Number(account.total_saved) + amount 
-    }).eq('user_email', normalizedEmail);
+    const newTotal = (Number(account.total_saved) || 0) + Number(amount);
+    
+    console.log(`[Thrift] Syncing ₦${amount} to ${normalizedEmail}. New Balance: ₦${newTotal}`);
+    
+    const { data, error } = await client.from('thrift_accounts').update({ 
+      total_saved: newTotal 
+    })
+    .eq('user_email', normalizedEmail)
+    .select();
     
     if (error) throw error;
+    return data?.[0] || { total_saved: newTotal };
   } catch (e: any) {
     console.error("[Thrift] Sync fault:", e);
     throw e;

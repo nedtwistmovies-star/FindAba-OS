@@ -23,7 +23,7 @@ const getAI = () => {
     console.warn("[Oracle] Signal missing. No API key found in localStorage, process.env or import.meta.env.");
   } else {
     const source = localKey ? "localStorage" : (envKey ? "process.env" : (metaKey ? "import.meta.env" : "hardcoded"));
-    console.log(`[Oracle] Signal detected. Key source: ${source}`);
+    console.log(`[Oracle] Signal detected. Key source: ${source}. Key prefix: ${key.substring(0, 6)}...`);
   }
   return new GoogleGenAI({ apiKey: key });
 };
@@ -124,6 +124,11 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
           localStorage.setItem('findaba_openrouter_key', config.openRouterKey);
           console.log("[Oracle] OpenRouter Signal Synchronized via Server Partner.");
           synced = true;
+        }
+
+        if (config.paystackKey && config.paystackKey !== 'undefined' && config.paystackKey.trim() !== '') {
+          localStorage.setItem('findaba_paystack_public_key', config.paystackKey);
+          console.log("[Oracle] Paystack Settlement Signal Synchronized.");
         }
         
         if (synced) {
@@ -374,17 +379,17 @@ export const getOracleStream = async (
         lastError = e2;
         console.warn("[Oracle] Flash Lite Congested. Switching to Pro Standard...");
         
-        // Attempt 3: Gemini 1.5 Pro (Standard)
+        // Attempt 3: Gemini 3.1 Pro (Standard)
         try {
-          const response = await callModel('gemini-1.5-pro');
+          const response = await callModel('gemini-3.1-pro-preview');
           return processOracleResponse(response);
         } catch (e3: any) {
           lastError = e3;
           console.warn("[Oracle] Pro Standard Congested. Emergency Protocol: Disabling Search Grounding...");
           
-          // Attempt 4: Gemini 1.5 Flash without Search (Lowest Quota usage)
+          // Attempt 4: Gemini 3 Flash without Search (Lowest Quota usage)
           try {
-            const response = await callModel('gemini-1.5-flash', false);
+            const response = await callModel('gemini-3-flash-preview', false);
             return processOracleResponse(response);
           } catch (e4: any) {
             lastError = e4;
@@ -441,15 +446,15 @@ export const generateIndustrialVideo = async (prompt: string) => {
   try {
     const ai = getAI();
     let operation = await ai.models.generateVideos({
-      model: 'veo-3.1-fast-generate-preview',
+      model: 'veo-3.1-lite-generate-preview',
       prompt: `Industrial film: ${prompt}. Aba, Nigeria.`,
-      config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
+      config: { numberOfVideos: 1, resolution: '1080p', aspectRatio: '16:9' }
     });
     while (!operation.done) {
       await new Promise(r => setTimeout(r, 10000));
       operation = await ai.operations.getVideosOperation({ operation: operation });
     }
-    const envKey = process.env.API_KEY || '';
+    const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
     return `${operation.response?.generatedVideos?.[0]?.video?.uri}&key=${envKey}`;
   } catch (e) { return null; }
 };
@@ -473,11 +478,11 @@ export const generateHistoryAudio = async (title: string, lang: string = 'Englis
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
+      model: "gemini-3.1-flash-tts-preview",
       contents: [{ parts: [{ text: `Narrate industrial history: ${title} in ${lang}. Tone: Informative, professional, and friendly.` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName as any } } }
+        speechConfig: { voiceConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName as any } } } }
       },
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
