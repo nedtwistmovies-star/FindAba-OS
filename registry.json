@@ -1,6 +1,6 @@
 {
   "version": "v6.0",
-  "lastUpdated": "2026-05-04T21:01:01.535Z",
+  "lastUpdated": "2026-05-05T05:57:01.590Z",
   "businesses": [
     {
       "name": "sandals royalle resources",
@@ -38,7 +38,7 @@
       "location": null,
       "user_id": null,
       "id": "66ff051e-e9f1-4b1a-b824-5b5b3951a35d",
-      "updated_at": "2026-05-04T20:49:43.495647"
+      "updated_at": "2026-05-05T05:56:51.362936"
     },
     {
       "name": "AmyOils",
@@ -79,7 +79,7 @@
       "location": null,
       "user_id": null,
       "id": "9cc51706-15ff-4e2b-a276-380cf7a9eb30",
-      "updated_at": "2026-05-04T20:49:54.268415"
+      "updated_at": "2026-05-05T05:56:51.826731"
     },
     {
       "name": "SANDALSROYALLE S&P SERVICES",
@@ -120,7 +120,7 @@
       "location": null,
       "user_id": null,
       "id": "f9ff6756-d24f-4daf-b47a-993ef1534725",
-      "updated_at": "2026-05-04T20:49:55.947337"
+      "updated_at": "2026-05-05T05:56:52.204041"
     },
     {
       "name": "Rutch Afrique",
@@ -161,7 +161,7 @@
       "location": null,
       "user_id": null,
       "id": "81ab35e3-1f49-4386-a539-4f7f2575ef34",
-      "updated_at": "2026-05-04T20:49:58.132939"
+      "updated_at": "2026-05-05T05:56:52.580554"
     },
     {
       "name": "FindAba Magazine ",
@@ -202,7 +202,7 @@
       "location": null,
       "user_id": null,
       "id": "cf1d8d6a-f619-4cb6-8d33-7f2675aef57f",
-      "updated_at": "2026-05-04T20:50:02.500228"
+      "updated_at": "2026-05-05T05:56:52.950643"
     }
   ]
 }
