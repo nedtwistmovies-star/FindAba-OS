@@ -33,7 +33,19 @@ export const ABA_AREAS = [
   'Azikiwe Road Central',
   'Powerline Zone',
   'Ogbor Hill Industrial',
-  'Faulks Road Hub'
+  'Faulks Road Hub',
+  'Umungasi Hub',
+  'Osisioma Industrial',
+  'Abayi Zone',
+  'Over Rail Hub',
+  'Cemetery Road Zone',
+  'Port Harcourt Road Hub',
+  'Uratta Industrial',
+  'Milverton Central',
+  'Ama-Hausa Hub',
+  'Tonimas Zone',
+  'Eziukwu Market Area',
+  'Market Road Central'
 ];
 
 export const MOCK_EDITORIAL_STORIES: EditorialStory[] = [

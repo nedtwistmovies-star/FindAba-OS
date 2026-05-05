@@ -482,7 +482,7 @@ export const generateHistoryAudio = async (title: string, lang: string = 'Englis
       contents: [{ parts: [{ text: `Narrate industrial history: ${title} in ${lang}. Tone: Informative, professional, and friendly.` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
-        speechConfig: { voiceConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName as any } } } }
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName as any } } }
       },
     });
     return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;

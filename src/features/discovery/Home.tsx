@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader, ImageCarousel, GitHubSync, SupabaseSync, BusinessCard } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
@@ -150,12 +150,18 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
   }, [artisanTab, businesses]);
 
   const categories = [
-    { id: 'explore', label: 'Restaurants', icon: <Users size={20} /> },
+    { id: 'explore', label: 'Shoemaking & Leather', icon: <Footprints size={20} /> },
+    { id: 'explore', label: 'Fashion & Tailoring', icon: <Scissors size={20} /> },
+    { id: 'explore', label: 'Engineering Hub', icon: <Hammer size={20} /> },
+    { id: 'explore', label: 'Tech & Gadgets', icon: <Cpu size={20} /> },
     { id: 'sandals-hotels', label: 'Hotels & Stays', icon: <Hotel size={20} /> },
-    { id: 'explore', label: 'Tailor / Fashion Designer', icon: <Users size={20} /> },
-    { id: 'explore', label: 'Market Vendors', icon: <Building2 size={20} /> },
-    { id: 'explore', label: 'Healthcare', icon: <ShieldCheck size={20} /> },
-    { id: 'explore', label: 'Shopping', icon: <PlusCircle size={20} /> },
+    { id: 'explore', label: 'Thrift & Finance', icon: <Wallet size={20} /> },
+    { id: 'explore', label: 'Plastics & Polythene', icon: <Droplets size={20} /> },
+    { id: 'explore', label: 'Solar & Energy', icon: <Sun size={20} /> },
+    { id: 'explore', label: 'Used Bales (Jumbo)', icon: <Package size={20} /> },
+    { id: 'explore', label: 'Auto Parts', icon: <Car size={20} /> },
+    { id: 'explore', label: 'Printing & Marketing', icon: <Newspaper size={20} /> },
+    { id: 'explore', label: 'Healthcare Hub', icon: <ShieldCheck size={20} /> },
   ];
 
   return (

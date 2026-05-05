@@ -18,6 +18,8 @@ export enum WebhookEvent {
   SEARCH_QUERY = 'search_query',
   LOGISTICS_ORDER_CREATED = 'logistics_order_created',
   REFERRAL_SUCCESS = 'referral_success',
+  THRIFT_CONTRIBUTION = 'thrift_contribution',
+  THRIFT_WITHDRAWAL = 'thrift_withdrawal',
   SYSTEM_AUDIT = 'system_audit'
 }
 

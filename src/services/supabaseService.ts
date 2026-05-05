@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { 
   Business, Hotel, Room, Booking, LedgerEntry, 
   LogisticsOrder, ChatMessage, Advertorial, AdPlan, 
-  PaymentLog, ThriftAccount, Order, OrderStatus, Dispute, PlatformConfig,
+  PaymentLog, ThriftAccount, ThriftContribution, ThriftGroup, ThriftGroupMember, ThriftGroupContribution, ThriftPayout, Order, OrderStatus, Dispute, PlatformConfig,
   QualityAudit, SubscriptionTier, RoomType, BuyerSignal, SignalInterest, AdCampaign, HospitalityConfig,
   AppNotification, HubTier, Task
 } from '../types';
@@ -878,12 +878,47 @@ export const fetchThriftAccount = async (email: string): Promise<ThriftAccount |
   }
 };
 
-export const createThriftAccount = async (email: string, cycle: string) => {
+export const createThriftAccount = async (email: string, cycle: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly') => {
   const client = getSupabase();
   if (!client) return;
   const normalizedEmail = normalizeEmail(email);
-  const { error } = await client.from('thrift_accounts').insert({ user_email: normalizedEmail, cycle, total_saved: 0, status: 'active', start_date: new Date().toISOString() });
+  
+  // Arrangement: 3.5% management fee
+  const service_fee_rate = 0.035;
+  
+  const startDate = new Date();
+  let lockedUntil = new Date();
+  
+  if (cycle === 'daily') lockedUntil.setDate(startDate.getDate() + 1);
+  else if (cycle === 'weekly') lockedUntil.setDate(startDate.getDate() + 7);
+  else if (cycle === 'monthly') lockedUntil.setMonth(startDate.getMonth() + 1);
+  else if (cycle === 'quarterly') lockedUntil.setMonth(startDate.getMonth() + 3);
+  else if (cycle === 'yearly') lockedUntil.setFullYear(startDate.getFullYear() + 1);
+  
+  const { error } = await client.from('thrift_accounts').insert({ 
+    user_email: normalizedEmail, 
+    cycle, 
+    total_saved: 0, 
+    status: 'active', 
+    start_date: startDate.toISOString(),
+    locked_until: lockedUntil.toISOString(),
+    service_fee_rate
+  });
   if (error) throw error;
+};
+
+export const fetchThriftContributions = async (thriftId: string): Promise<ThriftContribution[]> => {
+  const client = getSupabase();
+  if (!client) return [];
+  try {
+    const { data, error } = await client
+      .from('thrift_contributions')
+      .select('*')
+      .eq('thrift_id', thriftId)
+      .order('created_at', { ascending: false });
+    if (error && error.code === '42P01') return [];
+    return data || [];
+  } catch (e) { return []; }
 };
 
 export const saveThriftContribution = async (email: string, amount: number) => {
@@ -895,22 +930,170 @@ export const saveThriftContribution = async (email: string, amount: number) => {
     const account = await fetchThriftAccount(normalizedEmail);
     if (!account) throw new Error("No active thrift account found for this user.");
     
+    // Safety check: Don't allow contribution after lock date
+    if (account.locked_until && new Date(account.locked_until) <= new Date()) {
+      throw new Error("Savings cycle has ended. Cannot contribute.");
+    }
+
+    const { data: contrib, error: contribError } = await client.from('thrift_contributions').insert({
+      thrift_id: account.id,
+      user_email: normalizedEmail,
+      amount: Number(amount)
+    }).select().single();
+    
+    if (contribError) throw contribError;
+
     const newTotal = (Number(account.total_saved) || 0) + Number(amount);
     
-    console.log(`[Thrift] Syncing ₦${amount} to ${normalizedEmail}. New Balance: ₦${newTotal}`);
-    
-    const { data, error } = await client.from('thrift_accounts').update({ 
+    const { error: updateError } = await client.from('thrift_accounts').update({ 
       total_saved: newTotal 
     })
-    .eq('user_email', normalizedEmail)
-    .select();
+    .eq('id', account.id);
     
-    if (error) throw error;
-    return data?.[0] || { total_saved: newTotal };
+    if (updateError) throw updateError;
+    
+    // Log automation event
+    await triggerWebhook(WebhookEvent.THRIFT_CONTRIBUTION, { email: normalizedEmail, amount, new_total: newTotal });
+    
+    return { ...account, total_saved: newTotal };
   } catch (e: any) {
     console.error("[Thrift] Sync fault:", e);
     throw e;
   }
+};
+
+export const withdrawThriftSavings = async (email: string) => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry Offline");
+  const normalizedEmail = normalizeEmail(email);
+
+  try {
+    const account = await fetchThriftAccount(normalizedEmail);
+    if (!account) throw new Error("No account found.");
+    
+    // Check maturity
+    const isMatured = account.locked_until && new Date(account.locked_until) <= new Date();
+    if (!isMatured && account.status !== 'matured') {
+      throw new Error("Funds are locked until cycle ends.");
+    }
+
+    if (account.status === 'withdrawn') throw new Error("Funds already withdrawn.");
+
+    const total = Number(account.total_saved);
+    const commission = total * (account.service_fee_rate || 0.035);
+    const payout = total - commission;
+
+    // Update status to withdrawn
+    const { error: updateError } = await client.from('thrift_accounts').update({ 
+      status: 'withdrawn',
+      total_saved: 0 // Reset balance after withdrawal
+    }).eq('id', account.id);
+
+    if (updateError) throw updateError;
+
+    await triggerWebhook(WebhookEvent.THRIFT_WITHDRAWAL, { 
+      email: normalizedEmail, 
+      payout, 
+      commission
+    });
+
+    return { payout, commission };
+  } catch (e: any) {
+    console.error("[Thrift] Withdrawal failure:", e);
+    throw e;
+  }
+};
+
+// --- GROUP THRIFT (ISUSU) SERVICES ---
+
+export const fetchThriftGroups = async (): Promise<ThriftGroup[]> => {
+  const client = getSupabase();
+  if (!client) return [];
+  const { data, error } = await client
+    .from('thrift_groups')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error && error.code === '42P01') return [];
+  return data || [];
+};
+
+export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmail: string) => {
+  const client = getSupabase();
+  if (!client) return;
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Auth Required");
+
+  const { data, error } = await client
+    .from('thrift_groups')
+    .insert({
+      ...group,
+      creator_id: user.user.id,
+      status: 'forming'
+    })
+    .select()
+    .single();
+  
+  if (error) throw error;
+
+  // Add creator as first member
+  await client.from('thrift_group_members').insert({
+    group_id: data.id,
+    user_id: user.user.id,
+    payout_position: 1
+  });
+
+  return data;
+};
+
+export const joinThriftGroup = async (groupId: string) => {
+  const client = getSupabase();
+  if (!client) return;
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Auth Required");
+
+  // Get current members count
+  const { data: members } = await client
+    .from('thrift_group_members')
+    .select('id')
+    .eq('group_id', groupId);
+  
+  const nextPosition = (members?.length || 0) + 1;
+
+  const { error } = await client.from('thrift_group_members').insert({
+    group_id: groupId,
+    user_id: user.user.id,
+    payout_position: nextPosition
+  });
+
+  if (error) throw error;
+};
+
+export const fetchThriftGroupDetails = async (groupId: string) => {
+  const client = getSupabase();
+  if (!client) return null;
+
+  const { data: group } = await client.from('thrift_groups').select('*').eq('id', groupId).single();
+  const { data: members } = await client.from('thrift_group_members').select('*').eq('group_id', groupId);
+  const { data: contributions } = await client.from('thrift_group_contributions').select('*').eq('group_id', groupId);
+  const { data: payouts } = await client.from('thrift_payouts').select('*').eq('group_id', groupId);
+
+  return { group, members, contributions, payouts };
+};
+
+export const saveGroupContribution = async (groupId: string, amount: number, cycleNumber: number) => {
+  const client = getSupabase();
+  if (!client) return;
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Auth Required");
+
+  const { error } = await client.from('thrift_group_contributions').insert({
+    group_id: groupId,
+    user_id: user.user.id,
+    amount,
+    cycle_number: cycleNumber
+  });
+
+  if (error) throw error;
 };
 
 export const updateThriftAccountSettlement = async (email: string, details: any) => {

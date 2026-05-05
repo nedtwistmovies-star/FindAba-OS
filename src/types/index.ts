@@ -215,6 +215,20 @@ export enum Category {
   REAL_ESTATE = 'Real Estate & Construction',
   BEAUTY_PERSONAL_CARE = 'Beauty, Salons & Spas',
   FOOD_RESTAURANTS = 'Restaurants & Food Hubs',
+  PLASTICS = 'Plastics & Polythene',
+  COSMETICS = 'Cosmetics & Soap Making',
+  PHARMACEUTICALS = 'Industrial Pharmaceutics',
+  GLASS_ALUMINUM = 'Glass & Aluminum Works',
+  ELECTRICAL = 'Electrical & Wiring',
+  HARDWARE = 'Industrial Tools & Hardware',
+  WASTE_MANAGEMENT = 'Waste Sync & Recycling',
+  SOLAR_ENERGY = 'Solar & Renewable Energy',
+  SECURITY = 'Security Systems & Gadgets',
+  OFFICE_SUPPLIES = 'Office Supplies & Stationery',
+  BAKERY = 'Bakeries & Confectionery',
+  CLEANING = 'Industrial Cleaning Services',
+  TRAVEL = 'Travel & Tourism Agencies',
+  CONSULTANCY = 'Business Consultancy & R&D',
   PUBLIC_SERVICES = 'Public Services & Utilities'
 }
 
@@ -396,15 +410,67 @@ export interface HospitalityConfig {
 }
 
 export interface ThriftAccount {
+  id: string;
   user_email: string;
-  cycle: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  cycle: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
   total_saved: number;
-  status: 'active' | 'settled';
+  status: 'active' | 'settled' | 'matured' | 'withdrawn';
   start_date: string;
+  locked_until?: string;
+  service_fee_rate?: number; // 0.035 for 3.5% fee
   bank_name?: string;
   account_number?: string;
   account_name?: string;
   swift_code?: string;
+}
+
+export interface ThriftContribution {
+  id: string;
+  thrift_id: string;
+  user_email: string;
+  amount: number;
+  created_at: string;
+}
+
+export interface ThriftGroup {
+  id: string;
+  name: string;
+  creator_id: string;
+  contribution_amount: number;
+  cycle_length: number; // Number of members
+  payout_frequency: 'daily' | 'weekly' | 'monthly';
+  start_date: string | null;
+  status: 'forming' | 'active' | 'completed';
+  created_at: string;
+}
+
+export interface ThriftGroupMember {
+  id: string;
+  group_id: string;
+  user_id: string;
+  user_email?: string; // For display
+  payout_position: number | null;
+  has_received: boolean;
+  joined_at: string;
+}
+
+export interface ThriftGroupContribution {
+  id: string;
+  group_id: string;
+  user_id: string;
+  amount: number;
+  cycle_number: number;
+  created_at: string;
+}
+
+export interface ThriftPayout {
+  id: string;
+  group_id: string;
+  user_id: string;
+  cycle_number: number;
+  amount: number;
+  status: 'pending' | 'paid';
+  paid_at: string | null;
 }
 
 export interface Advertorial {
