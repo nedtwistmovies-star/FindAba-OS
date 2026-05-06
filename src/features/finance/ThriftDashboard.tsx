@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, History, Plus, 
   ShieldCheck, Calendar, Info,
@@ -638,17 +639,21 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
         {/* Create Group Modal */}
         {showCreateGroup && (
-           <div className="fixed inset-0 z-[1000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6">
-              <div className="bg-white w-full max-w-xl rounded-[3.5rem] p-12 space-y-10 relative animate-slide-up">
+           <div className="fixed inset-0 z-[1000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="bg-white w-full max-w-xl rounded-[2.5rem] p-8 sm:p-12 space-y-8 relative my-auto shadow-2xl"
+              >
                  <button 
                     onClick={() => setShowCreateGroup(false)} 
-                    className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-colors"
+                    className="absolute top-6 right-6 p-2 text-slate-300 hover:text-slate-900 transition-colors"
                  >
-                    <X />
+                    <X size={24} />
                  </button>
                  
-                 <div className="space-y-2">
-                    <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Form Isusu Group</h2>
+                 <div className="space-y-1">
+                    <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-slate-900">Form Isusu Group</h2>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Initialize a collective rotating savings unit.</p>
                  </div>
 
@@ -658,17 +663,17 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                        <input 
                          type="text" 
                          placeholder="e.g. Ariaria Shoe Guild Alpha"
-                         className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 font-bold outline-none"
+                         className="w-full bg-slate-50 p-5 rounded-2xl border border-slate-100 font-bold outline-none focus:ring-4 focus:ring-blue-500/10 transition-all text-sm"
                          onChange={e => setNewGroup({...newGroup, name: e.target.value})}
                        />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Contribution (₦)</label>
                           <input 
                             type="number" 
                             value={newGroup.contribution_amount}
-                            className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 font-bold outline-none"
+                            className="w-full bg-slate-50 p-5 rounded-2xl border border-slate-100 font-bold outline-none focus:ring-4 focus:ring-blue-500/10 transition-all text-sm"
                             onChange={e => setNewGroup({...newGroup, contribution_amount: Number(e.target.value)})}
                           />
                         </div>
@@ -677,19 +682,19 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                           <input 
                             type="number" 
                             value={newGroup.cycle_length}
-                            className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 font-bold outline-none"
+                            className="w-full bg-slate-50 p-5 rounded-2xl border border-slate-100 font-bold outline-none focus:ring-4 focus:ring-blue-500/10 transition-all text-sm"
                             onChange={e => setNewGroup({...newGroup, cycle_length: Number(e.target.value)})}
                           />
                         </div>
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Frequency</label>
-                       <div className="flex gap-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Frequency Protocol</label>
+                       <div className="grid grid-cols-3 gap-2">
                           {['daily', 'weekly', 'monthly'].map(f => (
                              <button 
                                 key={f}
                                 onClick={() => setNewGroup({...newGroup, payout_frequency: f})}
-                                className={`flex-1 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${newGroup.payout_frequency === f ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-400 border-slate-100'}`}
+                                className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${newGroup.payout_frequency === f ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}
                              >
                                {f}
                              </button>
@@ -701,13 +706,14 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                  <button 
                     onClick={handleCreateGroup}
                     disabled={actionLoading}
-                    className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
+                    className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                  >
                     {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={18} />} Form Isusu Unit
                  </button>
-              </div>
+              </motion.div>
            </div>
         )}
+
 
         {/* PAYSTACK OVERLAY */}
         {showCheckout && (
