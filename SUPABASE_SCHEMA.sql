@@ -349,28 +349,79 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- 8. TRIGGERS & REALTIME
 -- ==========================================
 
--- Trigger: New Profile on Signup
+-- 🛡️ HARDENED PROFILE TRIGGER
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
+DECLARE
+  v_username TEXT;
+  v_full_name TEXT;
+  v_referral_code TEXT;
+  v_referred_by UUID;
 BEGIN
-  INSERT INTO public.profiles (id, email, phone, full_name, role)
+  -- Extract Metadata with Fallbacks
+  v_username := COALESCE(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1));
+  v_full_name := COALESCE(new.raw_user_meta_data->>'full_name', v_username);
+  
+  -- Referral Logic
+  v_referral_code := COALESCE(
+    new.raw_user_meta_data->>'referral_code', 
+    'ABA' || upper(substring(md5(random()::text), 1, 6))
+  );
+
+  -- Handle referred_by if code exists
+  IF new.raw_user_meta_data->>'referred_by_code' IS NOT NULL THEN
+    SELECT id INTO v_referred_by FROM public.profiles 
+    WHERE referral_code = new.raw_user_meta_data->>'referred_by_code' 
+    LIMIT 1;
+  END IF;
+
+  -- Insert into Profiles
+  INSERT INTO public.profiles (
+    id, 
+    email, 
+    phone, 
+    full_name, 
+    username, 
+    role, 
+    referral_code, 
+    referred_by,
+    created_at,
+    updated_at
+  )
   VALUES (
     new.id, 
     new.email, 
     new.phone,
-    new.raw_user_meta_data->>'full_name', 
+    v_full_name,
+    v_username,
     CASE 
       WHEN new.email = 'pastornelsonezi@gmail.com' THEN 'admin'
       ELSE COALESCE(new.raw_user_meta_data->>'role', 'registered')
-    END
+    END,
+    v_referral_code,
+    v_referred_by,
+    now(),
+    now()
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     phone = EXCLUDED.phone,
-    role = CASE 
-      WHEN EXCLUDED.email = 'pastornelsonezi@gmail.com' THEN 'admin'
-      ELSE public.profiles.role
-    END;
+    full_name = COALESCE(public.profiles.full_name, EXCLUDED.full_name),
+    username = COALESCE(public.profiles.username, EXCLUDED.username),
+    referral_code = COALESCE(public.profiles.referral_code, EXCLUDED.referral_code),
+    updated_at = now();
+
+  RETURN new;
+EXCEPTION WHEN OTHERS THEN
+  -- Last ditch effort to ensure the user is saved even if metadata processing fails
+  INSERT INTO public.profiles (id, email, role, referral_code)
+  VALUES (
+    new.id, 
+    new.email, 
+    'registered', 
+    'ABA' || upper(substring(md5(new.id::text), 1, 6))
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;

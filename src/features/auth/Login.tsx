@@ -124,7 +124,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     setLoading(true);
     try {
-      const user = await signUpWithUsername(username.toLowerCase().trim(), identifier.trim(), password);
+      const user = await signUpWithUsername(username.toLowerCase().trim(), identifier.trim(), password, fullName.trim());
       if (user) {
         // Send Welcome Email
         try {
@@ -208,6 +208,20 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                      <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
                        <div className="flex items-center">
                          <div className="p-4"><User className="text-white/20" size={18} /></div>
+                         <input 
+                           type="text" 
+                           placeholder="FULL NAME" 
+                           value={fullName}
+                           onChange={e => setFullName(e.target.value)}
+                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                           required
+                         />
+                       </div>
+                     </div>
+
+                     <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
+                       <div className="flex items-center">
+                         <div className="p-4"><Fingerprint className="text-white/20" size={18} /></div>
                          <input 
                            type="text" 
                            placeholder="UNIQUE USERNAME" 

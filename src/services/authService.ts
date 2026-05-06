@@ -106,7 +106,7 @@ export const loginWithUsername = async (username: string, password: string, pers
   return data.session;
 };
 
-export const signUpWithUsername = async (username: string, email: string, password: string) => {
+export const signUpWithUsername = async (username: string, email: string, password: string, fullName?: string) => {
   // 1. Check if username exists
   const { data: existing } = await supabase
     .from('profiles')
@@ -118,6 +118,9 @@ export const signUpWithUsername = async (username: string, email: string, passwo
     throw new Error("Username already taken. Choose another industrial identity.");
   }
 
+  // Generate a robust referral code (ABA prefix + 5 random chars)
+  const referralCode = `ABA${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
   // 2. Sign up with Supabase
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -125,6 +128,9 @@ export const signUpWithUsername = async (username: string, email: string, passwo
     options: {
       data: {
         username: username,
+        full_name: fullName || username,
+        referral_code: referralCode,
+        role: 'registered'
       }
     }
   });

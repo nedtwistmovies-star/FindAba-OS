@@ -530,17 +530,76 @@ end;
 $$;
 
 -- Automatically create a profile on signup
+-- 🛡️ HARDENED PROFILE TRIGGER
 create or replace function public.handle_new_user()
 returns trigger as $$
+declare
+  v_username text;
+  v_full_name text;
+  v_referral_code text;
+  v_referred_by uuid;
 begin
-  insert into public.profiles (id, email, full_name, referral_code, referred_by)
+  -- Extract Metadata with Fallbacks
+  v_username := coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1));
+  v_full_name := coalesce(new.raw_user_meta_data->>'full_name', v_username);
+  
+  -- Referral Logic
+  v_referral_code := coalesce(
+    new.raw_user_meta_data->>'referral_code', 
+    'ABA' || upper(substring(md5(random()::text), 1, 6))
+  );
+
+  -- Handle referred_by if code exists
+  if new.raw_user_meta_data->>'referred_by_code' is not null then
+    select id into v_referred_by from public.profiles 
+    where referral_code = new.raw_user_meta_data->>'referred_by_code' 
+    limit 1;
+  end if;
+
+  -- Insert into Profiles
+  insert into public.profiles (
+    id, 
+    email, 
+    full_name, 
+    username, 
+    role, 
+    referral_code, 
+    referred_by,
+    created_at,
+    updated_at
+  )
   values (
     new.id, 
     new.email, 
-    new.raw_user_meta_data->>'full_name',
-    new.raw_user_meta_data->>'referral_code',
-    (select id from public.profiles where referral_code = new.raw_user_meta_data->>'referred_by_code' limit 1)
-  );
+    v_full_name,
+    v_username,
+    case 
+      WHEN new.email = 'pastornelsonezi@gmail.com' THEN 'admin'
+      ELSE coalesce(new.raw_user_meta_data->>'role', 'registered')
+    end,
+    v_referral_code,
+    v_referred_by,
+    now(),
+    now()
+  )
+  on conflict (id) do update set
+    email = excluded.email,
+    full_name = coalesce(public.profiles.full_name, excluded.full_name),
+    username = coalesce(public.profiles.username, excluded.username),
+    referral_code = coalesce(public.profiles.referral_code, excluded.referral_code),
+    updated_at = now();
+
+  return new;
+exception when others then
+  -- Last ditch effort to ensure the user is saved even if metadata processing fails
+  insert into public.profiles (id, email, role, referral_code)
+  values (
+    new.id, 
+    new.email, 
+    'registered', 
+    'ABA' || upper(substring(md5(new.id::text), 1, 6))
+  )
+  on conflict (id) do nothing;
   return new;
 end;
 $$ language plpgsql security definer;
