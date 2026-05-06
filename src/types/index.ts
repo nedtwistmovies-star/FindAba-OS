@@ -299,7 +299,14 @@ export enum Category {
   HOUSE_HELP_AGENCY = 'House Help & Domestic Staff',
   SECURITY_GUARD_FIRM = 'Private Security & Guards',
   SOLAR_INSTALLATION = 'Solar Panel Installation',
-  WEIGHT_LOSS_HERBAL = 'Weight Loss & Herbal Hub'
+  WEIGHT_LOSS_HERBAL = 'Weight Loss & Herbal Hub',
+  DENTAL_CLINIC = 'Dental Clinics & Orthodontics',
+  PETS_VETERINARY = 'Pets & Veterinary Care',
+  LIBRARIES_KNOWLEDGE = 'Libraries & Archives',
+  LEGAL_ADVOCACY = 'Legal Aid & Advocacy',
+  FASHION_MODELING = 'Modeling & Talent Agencies',
+  EVENT_PLANNING = 'Event Planning & Decoration',
+  GARDENING_LANDSCAPE = 'Gardening & Landscaping'
 }
 
 export enum VerificationStatus {
@@ -565,6 +572,7 @@ export interface PlatformConfig {
   instagram_url?: string;
   twitter_url?: string;
   tiktok_url?: string;
+  domain_activated?: boolean;
   updated_at: string;
 }
 

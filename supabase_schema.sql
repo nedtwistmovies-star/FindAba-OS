@@ -116,6 +116,7 @@ create table if not exists public.platform_config (
   instagram_url text,
   twitter_url text,
   tiktok_url text,
+  domain_activated boolean default false,
   updated_at timestamptz default now()
 );
 

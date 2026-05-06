@@ -321,9 +321,9 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
             className={`group flex items-center gap-2 sm:gap-2.5 transition-all outline-none ${isLiked ? 'text-aba-red' : 'text-white/40 hover:text-aba-red'}`}
           >
             <motion.div whileTap={{ scale: 1.5 }}>
-              <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} className="sm:w-[22px] sm:h-[22px] transition-transform group-hover:scale-110" />
+              <Heart size={18} fill={isLiked ? 'currentColor' : 'none'} className="sm:w-[20px] sm:h-[20px] transition-transform group-hover:scale-110" />
             </motion.div>
-            <span className="text-[10px] sm:text-xs font-black tracking-widest">{likesCount}</span>
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest">{likesCount > 0 ? likesCount : 'Like'}</span>
           </button>
           
           <button 
@@ -331,8 +331,8 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
             aria-label="View comments"
             className={`flex items-center gap-2 sm:gap-2.5 transition-all group outline-none ${showComments ? 'text-aba-gold' : 'text-white/40 hover:text-aba-gold'}`}
           >
-            <MessageSquare size={20} className="sm:w-[22px] sm:h-[22px] group-hover:scale-110 transition-transform" />
-            <span className="text-[10px] sm:text-xs font-black tracking-widest">{post.comments_count || comments.length}</span>
+            <MessageSquare size={18} className="sm:w-[20px] sm:h-[20px] group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest">{post.comments_count || comments.length > 0 ? (post.comments_count || comments.length) : 'Comment'}</span>
           </button>
           
           <button 
@@ -341,9 +341,10 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
               addToast("Signal link copied to clipboard.", "success");
             }}
             aria-label="Share post"
-            className="text-white/40 hover:text-aba-green transition-all hover:scale-110 outline-none"
+            className="flex items-center gap-2 text-white/40 hover:text-aba-green transition-all group outline-none"
           >
-            <Send size={20} className="sm:w-[22px] sm:h-[22px]" />
+            <Send size={18} className="sm:w-[20px] sm:h-[20px] group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest">Share</span>
           </button>
         </div>
 

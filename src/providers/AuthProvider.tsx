@@ -37,23 +37,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
-      const sb = getSupabase();
-      if (!sb) return;
+      try {
+        const sb = getSupabase();
+        if (!sb) return;
 
-      const { data: { session } } = await sb.auth.getSession();
-      if (session?.user) {
-        const user = session.user;
+        const { data: { session }, error: sessionError } = await sb.auth.getSession();
         
-        // Sync Profile from DB
-        const prof = await syncProfile(user);
-        setProfile(prof);
-        
-        const identifier = user.email || user.phone || '';
-        const name = prof?.full_name || user.user_metadata.full_name || 'Verified Citizen';
-        const role = prof?.role || 'registered';
-        const uuid = user.id;
-        
-        handleAuthSuccess(identifier, name, role, uuid);
+        if (sessionError) {
+           console.warn("[Auth] Session fetch error:", sessionError.message);
+           return;
+        }
+
+        if (session?.user) {
+          const user = session.user;
+          
+          // Sync Profile from DB
+          try {
+            const prof = await syncProfile(user);
+            setProfile(prof);
+            
+            const identifier = user.email || user.phone || '';
+            const name = prof?.full_name || user.user_metadata.full_name || 'Verified Citizen';
+            const role = prof?.role || 'registered';
+            const uuid = user.id;
+            
+            handleAuthSuccess(identifier, name, role, uuid);
+          } catch (profileErr) {
+            console.error("[Auth] Profile sync error:", profileErr);
+          }
+        }
+      } catch (e) {
+        console.warn("[Auth] Initialization fault (likely network):", e);
       }
     };
 

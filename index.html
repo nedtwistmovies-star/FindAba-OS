@@ -100,7 +100,7 @@
           if (el.innerText && (el.innerText.includes('Launch!') || el.innerText.includes('Vercel'))) {
              // If it's a small floating button/pill
              const rect = el.getBoundingClientRect();
-             if (rect.width < 150 && rect.height < 150) {
+             if (rect && rect.width < 150 && rect.height < 150) {
                 el.style.display = 'none';
                 el.style.opacity = '0';
                 el.style.pointerEvents = 'none';
@@ -119,26 +119,6 @@
         hideOverlays();
       });
       observer.observe(document.documentElement, { childList: true, subtree: true });
-
-      // Block Vercel script injection and any script that looks like a toolbar
-      const originalCreateElement = document.createElement;
-      document.createElement = function(tagName: string, options?: ElementCreationOptions) {
-        const element = originalCreateElement.call(document, tagName, options);
-        if (tagName.toLowerCase() === 'script') {
-          const scriptObserver = new MutationObserver(() => {
-            const src = (element as HTMLScriptElement).src;
-            const id = (element as HTMLElement).id;
-            const data = (element as HTMLElement).getAttribute('data-vercel-toolbar');
-            if (src.includes('vercel') || src.includes('toolbar') || id.includes('vercel') || data !== null) {
-              console.log('[Security] Blocked Vercel/Toolbar script:', src || id || 'data-attr');
-              (element as HTMLScriptElement).src = '';
-              element.remove();
-            }
-          });
-          scriptObserver.observe(element, { attributes: true, attributeFilter: ['src', 'id', 'data-vercel-toolbar'] });
-        }
-        return element;
-      } as any;
     </script>
 </head>
 <body>

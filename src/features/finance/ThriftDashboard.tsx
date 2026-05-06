@@ -128,14 +128,19 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
   const handlePaymentSuccess = async (res: any) => {
     setIsUpdatingBalance(true);
     try {
-      // Paystack response often contains the amount in kobo or as part of verification
-      // Ensure we treat it as Naira.
+      // Robust amount detection: Prefer res.amount in kobo, or fall back to local input
       let actualAmountPaid = contributionAmount;
       if (res?.amount) {
-        // res.amount is usually in kobo if from standard Paystack pop
-        actualAmountPaid = res.amount / 100;
-        // If it's still way off (e.g. they paid ₦200 and we got 200), check logic
-        if (actualAmountPaid < 1) actualAmountPaid = res.amount; 
+        // Paystack usually returns amount in kobo (e.g. 20000 for 200 NGN)
+        const amountFromRes = Number(res.amount);
+        if (!isNaN(amountFromRes)) {
+           // If it's a huge number compared to what we expected, it's likely kobo
+           if (amountFromRes > contributionAmount * 50) {
+             actualAmountPaid = amountFromRes / 100;
+           } else {
+             actualAmountPaid = amountFromRes;
+           }
+        }
       }
       
       if (activeTab === 'individual') {
@@ -704,7 +709,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                        <input 
                          type="text" 
                          placeholder="e.g. Ariaria Shoe Guild Alpha"
-                         className="w-full bg-slate-50 p-5 sm:p-6 rounded-2xl border border-slate-200 font-bold outline-none focus:ring-4 focus:ring-blue-600/10 transition-all text-sm text-slate-900 placeholder:text-slate-300"
+                         className="w-full bg-white p-5 sm:p-6 rounded-2xl border border-slate-300 font-black outline-none focus:ring-4 focus:ring-blue-600/10 transition-all text-sm text-slate-900 placeholder:text-slate-400"
                          onChange={e => setNewGroup({...newGroup, name: e.target.value})}
                        />
                     </div>

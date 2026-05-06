@@ -8,6 +8,11 @@ CREATE TABLE IF NOT EXISTS public.platform_config (
     app_logo TEXT,
     oracle_avatar TEXT,
     hero_images TEXT[] DEFAULT '{}',
+    facebook_url TEXT,
+    instagram_url TEXT,
+    twitter_url TEXT,
+    tiktok_url TEXT,
+    domain_activated BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

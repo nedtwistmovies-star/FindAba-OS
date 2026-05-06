@@ -1088,7 +1088,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const isWwwDomain = currentHostname === "www.findaba.com.ng";
   const isVercelDomain = currentHostname.endsWith(".vercel.app");
   const isProductionVercel = currentHostname === "findabaos-six.vercel.app";
-  const isCustomDomainActive = isApexDomain || isWwwDomain;
+  const isCustomDomainActive = isApexDomain || isWwwDomain || platformConfig?.domain_activated;
 
   return (
     <div className="flex-1 bg-[#020617] flex flex-col text-white animate-fade-in font-sans h-full">
@@ -1760,10 +1760,27 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-                      <Globe className="text-aba-gold" /> Domain Configuration
-                    </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+                    <Globe className="text-aba-gold" /> Domain Configuration
+                  </h4>
+                  <div className="flex items-center gap-4">
+                    {/* 🔹 MANUAL ACTIVATION OVERRIDE */}
+                    <button 
+                      onClick={async () => {
+                        const newState = !platformConfig?.domain_activated;
+                        await updatePlatformConfig({ domain_activated: newState });
+                        await refreshAllData();
+                        addToast(newState ? "Secondary Signals Ignored: Domain Activated" : "Secondary Signals Enabled: Tracking Nodes", "info");
+                      }}
+                      className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 transition-all ${
+                        platformConfig?.domain_activated ? 'bg-aba-gold text-aba-dark border-aba-gold' : 'bg-white/5 text-white/40 border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <Check size={12} />
+                      <span className="text-[8px] font-black uppercase tracking-widest">Manual Signal Override</span>
+                    </button>
+
                     <div className={`px-3 py-1 rounded-full flex items-center gap-2 ${isCustomDomainActive ? 'bg-aba-green/10 border border-aba-green/20' : 'bg-red-500/10 border border-red-500/20'}`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${isCustomDomainActive ? 'bg-aba-green' : 'bg-red-500 animate-pulse'}`} />
                       <span className={`text-[8px] font-black uppercase tracking-widest ${isCustomDomainActive ? 'text-aba-green' : 'text-red-500'}`}>
@@ -1771,6 +1788,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                       </span>
                     </div>
                   </div>
+                </div>
 
                   <p className="text-[10px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
                     To connect your custom domain to the FindAba OS network, you must update your DNS records at your domain registrar (e.g., Namecheap, GoDaddy, Whogohost).

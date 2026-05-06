@@ -54,7 +54,8 @@ export const getSupabase = (): SupabaseClient | null => {
   }
 
   // Prevent using the app's own URL as Supabase URL (common misconfiguration)
-  if (url.includes(window.location.hostname) && !url.includes('supabase.co')) {
+  // Only check in browser context
+  if (typeof window !== 'undefined' && url.includes(window.location.hostname) && !url.includes('supabase.co')) {
     console.error("[Registry] Loopback detected: Supabase URL points to the application itself. This will cause SYNC ERROR (HTML response). URL:", url);
     return null;
   }
@@ -457,6 +458,7 @@ export const fetchPlatformConfig = async (): Promise<PlatformConfig | null> => {
     instagram_url: 'https://instagram.com/find_aba',
     twitter_url: 'https://twitter.com/findaba',
     tiktok_url: '',
+    domain_activated: false,
     updated_at: new Date().toISOString()
   };
 

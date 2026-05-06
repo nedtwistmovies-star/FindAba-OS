@@ -9,7 +9,6 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from 'resend';
-import { sendPaymentSuccessEmail } from './src/services/emailService.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +16,8 @@ const __dirname = path.dirname(__filename);
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 let supabase: any;
+
+const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
 
 try {
   if (supabaseKey) {
@@ -34,8 +35,34 @@ try {
   console.error("[Industrial-OS] Supabase init failed:", e);
 }
 
-const resendKey = process.env.RESEND_API_KEY || 're_placeholder';
-const resend = new Resend(resendKey);
+// Helper for server-side email sending
+const sendServerEmail = async (to: string, subject: string, amount: number, reference: string) => {
+  try {
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #d4af37; border-radius: 10px; background: #0f172a; color: #f8fafc;">
+        <h1 style="color: #22c55e; border-bottom: 2px solid #334155; padding-bottom: 10px;">Payment Successful</h1>
+        <p>Excellent news!</p>
+        <p>Payment successful. Your order is confirmed and the funds have been secured.</p>
+        <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Transaction Ref:</strong> ${reference}</p>
+          <p style="margin: 5px 0;"><strong>Amount Paid:</strong> ₦${amount.toLocaleString()}</p>
+        </div>
+        <p>Your industrial assets are now being prepared for fulfillment.</p>
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Financial Handshake Complete</p>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: 'FindAba Finance <onboarding@findaba.com.ng>',
+      to,
+      subject,
+      html
+    });
+    console.log(`[Email] Server-side payment confirmation sent to ${to}`);
+  } catch (err) {
+    console.error("[Email] Server-side send failed:", err);
+  }
+};
 
 console.log("Initializing FindAba City OS Server...");
 console.log("Environment Check:", {
@@ -260,6 +287,44 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     }
   });
 
+  // Automation Webhook Proxy
+  app.post("/api/automation/trigger", async (req, res) => {
+    const { url, event, payload, options = { retries: 3 } } = req.body;
+    const targetUrl = url || process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
+
+    if (!targetUrl) {
+      return res.status(400).json({ error: "No target Webhook URL configured" });
+    }
+
+    try {
+      console.log(`[Automation Proxy] Relaying signal for event: ${event} to ${targetUrl.substring(0, 40)}...`);
+      
+      const response = await axios.post(targetUrl, {
+        ...payload,
+        proxy_relay: true,
+        relay_timestamp: new Date().toISOString()
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-FindAba-Event': event,
+          'X-FindAba-Relayed': 'true'
+        },
+        timeout: 15000 // 15s timeout
+      });
+
+      console.log(`[Automation Proxy] Relay success: ${event} (Status: ${response.status})`);
+      res.json({ success: true, data: response.data });
+    } catch (error: any) {
+      const status = error.response?.status || 500;
+      console.error(`[Automation Proxy] Relay failure for ${event}:`, error.response?.data || error.message);
+      res.status(status).json({ 
+        error: error.message, 
+        details: error.response?.data,
+        status 
+      });
+    }
+  });
+
   // Paystack Webhook Handler
   app.post("/api/paystack-webhook", async (req, res) => {
     const secret = process.env.PAYSTACK_SECRET_KEY;
@@ -336,7 +401,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
             .single();
 
           if (!profileError && profile.email) {
-            sendPaymentSuccessEmail(profile.email, reference, amount / 100).catch(err => 
+            sendServerEmail(profile.email, "Payment Confirmed - FindAba City OS", amount / 100, reference).catch(err => 
               console.error("[Email] Payment success email failed:", err.message)
             );
           }

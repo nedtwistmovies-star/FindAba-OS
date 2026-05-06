@@ -177,6 +177,27 @@ DROP POLICY IF EXISTS "Social Insert Access" ON public.posts;
 CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 DROP POLICY IF EXISTS "Social Update Access" ON public.posts;
 CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid()::text = user_id::text OR public.check_is_admin());
+DROP POLICY IF EXISTS "Social Delete Access" ON public.posts;
+CREATE POLICY "Social Delete Access" ON public.posts FOR DELETE USING (auth.uid()::text = user_id::text OR public.check_is_admin());
+
+-- ==========================================
+-- 3.1. CONTENT MODERATION (REPORTS)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  target_id UUID NOT NULL, -- post_id, business_id, etc.
+  target_type TEXT NOT NULL, -- 'post', 'business', 'comment'
+  reason TEXT NOT NULL,
+  status TEXT DEFAULT 'pending', -- 'pending', 'reviewed', 'action_taken'
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Reports Insert Policy" ON public.reports;
+CREATE POLICY "Reports Insert Policy" ON public.reports FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Reports Admin View" ON public.reports;
+CREATE POLICY "Reports Admin View" ON public.reports FOR SELECT USING (public.check_is_admin());
 
 DROP POLICY IF EXISTS "Comments Read Access" ON public.comments;
 CREATE POLICY "Comments Read Access" ON public.comments FOR SELECT USING (true);
@@ -396,6 +417,7 @@ CREATE TABLE IF NOT EXISTS public.platform_config (
   instagram_url TEXT,
   twitter_url TEXT,
   tiktok_url TEXT,
+  domain_activated BOOLEAN DEFAULT FALSE,
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT single_row CHECK (id = 1)
 );
@@ -695,6 +717,7 @@ SELECT public.enable_realtime_for('advertorials');
 SELECT public.enable_realtime_for('notifications');
 SELECT public.enable_realtime_for('quality_audits');
 SELECT public.enable_realtime_for('hospitality_config');
+SELECT public.enable_realtime_for('reports');
 
 -- ==========================================
 -- 10. DRIVERS & FLEET (PURPLE FLEET)

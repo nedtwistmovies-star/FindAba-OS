@@ -15,6 +15,16 @@ interface EmailOptions {
 
 export const sendEmail = async (options: EmailOptions): Promise<{ success: boolean; id?: string; error?: string }> => {
   try {
+    const isServer = typeof window === 'undefined';
+    
+    // On the server, we don't fetch our own API via relative URL
+    // Instead, we just Return a failure or better yet, the server should use Resend directly.
+    // However, since we want to share this service, we'll guard it.
+    if (isServer) {
+      console.warn("[EmailService] sendEmail called on server. This should be handled by Resend directly in server.ts.");
+      return { success: false, error: "Server-side fetch not supported in shared service" };
+    }
+
     const response = await fetch('/api/send-email', {
       method: 'POST',
       headers: {
