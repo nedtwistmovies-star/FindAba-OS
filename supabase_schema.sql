@@ -235,14 +235,70 @@ create table if not exists public.ads (
 -- Thrift Accounts
 create table if not exists public.thrift_accounts (
   user_email text primary key,
-  cycle text default 'daily',
+  cycle text default 'monthly',
   total_saved numeric default 0,
+  locked_until timestamptz,
+  service_fee_rate numeric default 0.035,
   status text default 'active',
   start_date timestamptz default now(),
   bank_name text,
   account_number text,
   account_name text,
   swift_code text
+);
+
+-- Thrift Contributions (Individual)
+create table if not exists public.thrift_contributions (
+  id uuid primary key default uuid_generate_v4(),
+  thrift_id text references public.thrift_accounts(user_email) on delete cascade,
+  user_email text not null,
+  amount numeric not null,
+  created_at timestamptz default now()
+);
+
+-- Isusu Groups (Rotating Savings)
+create table if not exists public.thrift_groups (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null,
+  creator_id uuid references public.profiles(id),
+  contribution_amount numeric not null,
+  cycle_length integer not null,
+  payout_frequency text not null, -- daily, weekly, monthly
+  start_date timestamptz,
+  status text default 'forming', -- forming, active, completed
+  created_at timestamptz default now()
+);
+
+-- Isusu Group Members
+create table if not exists public.thrift_group_members (
+  id uuid primary key default uuid_generate_v4(),
+  group_id uuid references public.thrift_groups(id) on delete cascade,
+  user_id uuid references public.profiles(id),
+  payout_position integer,
+  has_received boolean default false,
+  joined_at timestamptz default now(),
+  unique(group_id, user_id)
+);
+
+-- Isusu Group Contributions
+create table if not exists public.thrift_group_contributions (
+  id uuid primary key default uuid_generate_v4(),
+  group_id uuid references public.thrift_groups(id) on delete cascade,
+  user_id uuid references public.profiles(id),
+  amount numeric not null,
+  cycle_number integer not null,
+  created_at timestamptz default now()
+);
+
+-- Isusu Payouts
+create table if not exists public.thrift_payouts (
+  id uuid primary key default uuid_generate_v4(),
+  group_id uuid references public.thrift_groups(id),
+  user_id uuid references public.profiles(id),
+  cycle_number integer,
+  amount numeric,
+  status text default 'pending', -- pending, paid
+  paid_at timestamptz
 );
 
 -- Hotels
@@ -497,6 +553,12 @@ create trigger on_auth_user_created
 alter table public.profiles enable row level security;
 alter table public.businesses enable row level security;
 alter table public.orders enable row level security;
+alter table public.thrift_accounts enable row level security;
+alter table public.thrift_contributions enable row level security;
+alter table public.thrift_groups enable row level security;
+alter table public.thrift_group_members enable row level security;
+alter table public.thrift_group_contributions enable row level security;
+alter table public.thrift_payouts enable row level security;
 
 -- Profiles: Users can view all profiles, but only edit their own
 create policy "Public profiles are viewable by everyone" on public.profiles for select using (true);
@@ -511,5 +573,25 @@ create policy "Users can view their own orders" on public.orders for select
 using (auth.uid() = buyer_id or exists (
   select 1 from public.businesses b where b.id = public.orders.merchant_id and b.user_id = auth.uid()
 ));
+
+-- Thrift Policies
+create policy "Users can view their own thrift account" on public.thrift_accounts for select using (auth.jwt()->>'email' = user_email);
+create policy "Users can create their own thrift account" on public.thrift_accounts for insert with check (auth.jwt()->>'email' = user_email);
+create policy "Users can update their own thrift account" on public.thrift_accounts for update using (auth.jwt()->>'email' = user_email);
+
+create policy "Users can view their own contributions" on public.thrift_contributions for select using (auth.jwt()->>'email' = user_email);
+create policy "Users can insert their own contributions" on public.thrift_contributions for insert with check (auth.jwt()->>'email' = user_email);
+
+-- Group Thrift Policies
+create policy "Anyone can view forming groups" on public.thrift_groups for select using (status = 'forming' or creator_id = auth.uid() or id in (select group_id from public.thrift_group_members where user_id = auth.uid()));
+create policy "Users can create groups" on public.thrift_groups for insert with check (auth.uid() is not null);
+
+create policy "Users can view group members" on public.thrift_group_members for select using (auth.uid() is not null);
+create policy "Users can join groups" on public.thrift_group_members for insert with check (auth.uid() is not null);
+
+create policy "Members can view contributions" on public.thrift_group_contributions for select using (group_id in (select group_id from public.thrift_group_members where user_id = auth.uid()));
+create policy "Members can contribute" on public.thrift_group_contributions for insert with check (user_id = auth.uid());
+
+create policy "Users can view payouts" on public.thrift_payouts for select using (user_id = auth.uid() or group_id in (select group_id from public.thrift_group_members where user_id = auth.uid()));
 
 -- (Add more policies as needed for other tables)

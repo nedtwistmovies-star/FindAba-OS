@@ -1583,6 +1583,61 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 icon={Globe}
               />
 
+              {/* 🔹 VERCEL DNS TROUBLESHOOTING (Registry Solution) */}
+              <div className="bg-red-500/5 p-8 sm:p-12 rounded-[3rem] border border-red-500/10 space-y-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
+                    <AlertTriangle size={24} />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-black uppercase tracking-tight text-white">Domain Node Conflicts</h4>
+                    <p className="text-[10px] font-bold text-red-500/60 uppercase tracking-widest">Resolving Vercel DNS "Invalid Record" Signals</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="space-y-6">
+                      <p className="text-xs font-medium text-white/60 leading-relaxed uppercase">
+                         If your Vercel dashboard indicates "Invalid Record" for <span className="text-white">findaba.com.ng</span>, ensure the following A-records are committed to your registrar:
+                      </p>
+                      <div className="space-y-4">
+                         <div className="p-5 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between group">
+                            <div>
+                               <p className="text-[9px] font-black uppercase text-white/40 tracking-widest">A Record (Root)</p>
+                               <p className="text-xs font-mono text-aba-gold">76.76.21.21</p>
+                            </div>
+                            <button onClick={() => { navigator.clipboard.writeText('76.76.21.21'); addToast("A Record Copied", "success"); }} className="p-3 bg-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-all"><Copy size={14}/></button>
+                         </div>
+                         <div className="p-5 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between group">
+                            <div>
+                               <p className="text-[9px] font-black uppercase text-white/40 tracking-widest">CNAME (WWW)</p>
+                               <p className="text-xs font-mono text-aba-gold">cname.vercel-dns.com</p>
+                            </div>
+                            <button onClick={() => { navigator.clipboard.writeText('cname.vercel-dns.com'); addToast("CNAME Copied", "success"); }} className="p-3 bg-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-all"><Copy size={14}/></button>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-6">
+                      <h5 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-3">
+                         <Info size={16} className="text-aba-gold" /> Critical Protocol
+                      </h5>
+                      <ul className="space-y-4">
+                         {[
+                            "Remove conflicting AAAA (IPv6) records from host.",
+                            "Ensure only ONE A-record exists for the root domain.",
+                            "Wait for propagation (typically 300s - 3600s).",
+                            "Verify NameServers point to findaba.com.ng authoritative nodes."
+                         ].map((text, i) => (
+                            <li key={i} className="flex items-start gap-3 text-[10px] font-bold text-white/40 uppercase tracking-tight leading-relaxed">
+                               <div className="w-1 h-1 rounded-full bg-aba-gold mt-1.5 shrink-0" /> {text}
+                            </li>
+                         ))}
+                      </ul>
+                   </div>
+                </div>
+              </div>
+
               {/* Signal Configuration */}
               <div className="bg-white/5 p-8 sm:p-12 rounded-[3rem] border border-white/5 space-y-10">
                 <SectionHeader 

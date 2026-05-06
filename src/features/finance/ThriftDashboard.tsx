@@ -240,7 +240,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Service Fee</span>
                  <span className="text-xs font-black text-orange-600 uppercase tracking-widest">3.5%</span>
               </div>
-              <p className="text-[10px] text-slate-400 italic">This is a zero-yield locked savings system for capital protection.</p>
+              <p className="text-[10px] text-slate-400 italic">This is a reflection-free locked savings protocol for industrial depth.</p>
            </div>
 
            <button 
@@ -298,6 +298,28 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
         <div className="max-w-4xl mx-auto p-8 space-y-12">
           {activeTab === 'individual' ? (
             <>
+              {/* 🔹 FINANCIAL PROTOCOL CLARIFICATION */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-8 bg-blue-50 rounded-[2.5rem] border border-blue-100 flex items-center gap-6 group hover:bg-blue-100 transition-all">
+                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-200">
+                        <Wallet size={24} />
+                    </div>
+                    <div>
+                        <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-widest">Fidelity Wallet</h4>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight leading-tight mt-1">Daily Operational Funds. Liquid for immediate use.</p>
+                    </div>
+                </div>
+                <div className="p-8 bg-orange-50 rounded-[2.5rem] border border-orange-100 flex items-center gap-6 border-dashed border-2">
+                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-orange-600 shadow-sm border border-orange-200">
+                        <ShieldCheck size={24} />
+                    </div>
+                    <div>
+                        <h4 className="text-[10px] font-black uppercase text-orange-600 tracking-widest">Thrift (Active)</h4>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight leading-tight mt-1">Industrial Capital Vault. Locked for discipline.</p>
+                    </div>
+                </div>
+              </div>
+
               {/* Dashboard Content */}
               <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden text-white">
                 <div className="relative z-10 space-y-6">
@@ -396,7 +418,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                 </div>
               </div>
 
-              {/* Projections (Static, no yield) */}
+              {/* Projections (Disciplined Growth) */}
               <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
                  <div className="flex items-center gap-4">
                     <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-blue-600/20">
@@ -593,10 +615,10 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
               <div className="bg-slate-900 p-12 rounded-[3.5rem] text-white space-y-6 relative overflow-hidden">
                  <div className="relative z-10 space-y-4">
                    <h4 className="text-blue-400 text-xs font-black uppercase tracking-[0.4em]">Industrial Logic</h4>
-                   <h3 className="text-2xl font-black uppercase tracking-tight leading-tight">No-Yield Discipline</h3>
+                   <h3 className="text-2xl font-black uppercase tracking-tight leading-tight">Industrial Stability</h3>
                    <p className="text-slate-400 text-sm leading-relaxed">
                      FindAba Savings operates on the principle of <span className="text-white">Capital Protection</span>. 
-                     By removing speculative yields, we ensure your industrial liquidity is 100% backed and physically secure from regional volatility.
+                     By removing speculative volatility, we ensure your industrial liquidity is 100% backed and physically secure.
                    </p>
                  </div>
                  <Globe size={240} className="absolute -right-20 -bottom-20 opacity-10 pointer-events-none" />
@@ -604,11 +626,11 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
               <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 space-y-6">
                  <h4 className="text-slate-400 text-xs font-black uppercase tracking-[0.4em]">Transparency</h4>
-                 <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Zero-Ambiguity Payouts</h3>
+                 <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Pure Capital Settlement</h3>
                  <p className="text-slate-500 text-sm leading-relaxed">
                    Your final withdrawal is strictly: <br/> 
-                   <span className="text-slate-900 font-black">Total Saved - 3.5% Platform Fee</span>. <br/>
-                   No hidden charges, no market exposure. Pure financial clarity for Aba's entrepreneurs.
+                   <span className="text-slate-900 font-black">Total Contributed - 3.5% Platform Fee</span>. <br/>
+                   No hidden charges, no market exposure. Pure financial clarity for Aba's hub entrepreneurs.
                  </p>
               </div>
           </div>

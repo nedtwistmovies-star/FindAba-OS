@@ -140,12 +140,21 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
     switch (artisanTab) {
       case 'new':
-        return uniqueArtisans.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).slice(0, 4);
+        return uniqueArtisans
+          .sort((a, b) => {
+            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return dateB - dateA;
+          })
+          .slice(0, 4);
       case 'top':
         return uniqueArtisans.sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 4);
       case 'featured':
       default:
-        return uniqueArtisans.filter(a => a.verification_level === VerificationLevel.SIGNATURE || a.premium_features_enabled).slice(0, 4);
+        return uniqueArtisans
+          .filter(a => a.verification_level === VerificationLevel.SIGNATURE || a.premium_features_enabled)
+          .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+          .slice(0, 4);
     }
   }, [artisanTab, businesses]);
 

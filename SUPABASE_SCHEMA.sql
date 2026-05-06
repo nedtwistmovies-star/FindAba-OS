@@ -838,3 +838,125 @@ SELECT public.enable_realtime_for('bookings');
 SELECT public.enable_realtime_for('buyer_signals');
 SELECT public.enable_realtime_for('signal_interests');
 SELECT public.enable_realtime_for('vision_history');
+
+-- ==========================================
+-- 14. THRIFT SAVINGS & GROUP THRIFT (ISUSU)
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.thrift_accounts (
+  user_email TEXT PRIMARY KEY,
+  cycle TEXT DEFAULT 'monthly',
+  total_saved NUMERIC DEFAULT 0,
+  locked_until TIMESTAMPTZ,
+  service_fee_rate NUMERIC DEFAULT 0.035,
+  status TEXT DEFAULT 'active',
+  start_date TIMESTAMPTZ DEFAULT NOW(),
+  bank_name TEXT,
+  account_number TEXT,
+  account_name TEXT,
+  swift_code TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.thrift_contributions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  thrift_id TEXT REFERENCES public.thrift_accounts(user_email) ON DELETE CASCADE,
+  user_email TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.thrift_groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  creator_id UUID REFERENCES public.profiles(id),
+  contribution_amount NUMERIC NOT NULL,
+  cycle_length INTEGER NOT NULL,
+  payout_frequency TEXT NOT NULL,
+  start_date TIMESTAMPTZ,
+  status TEXT DEFAULT 'forming',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.thrift_group_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES public.thrift_groups(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id),
+  payout_position INTEGER,
+  has_received BOOLEAN DEFAULT FALSE,
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(group_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.thrift_group_contributions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES public.thrift_groups(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id),
+  amount NUMERIC NOT NULL,
+  cycle_number INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.thrift_payouts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES public.thrift_groups(id),
+  user_id UUID REFERENCES public.profiles(id),
+  cycle_number INTEGER,
+  amount NUMERIC,
+  status TEXT DEFAULT 'pending',
+  paid_at TIMESTAMPTZ
+);
+
+ALTER TABLE public.thrift_accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.thrift_contributions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.thrift_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.thrift_group_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.thrift_group_contributions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.thrift_payouts ENABLE ROW LEVEL SECURITY;
+
+-- Thrift Policies
+DROP POLICY IF EXISTS "thrift_accounts_select_own" ON public.thrift_accounts;
+CREATE POLICY "thrift_accounts_select_own" ON public.thrift_accounts FOR SELECT USING (auth.jwt()->>'email' = user_email OR public.check_is_admin());
+DROP POLICY IF EXISTS "thrift_accounts_insert_own" ON public.thrift_accounts;
+CREATE POLICY "thrift_accounts_insert_own" ON public.thrift_accounts FOR INSERT WITH CHECK (auth.jwt()->>'email' = user_email);
+DROP POLICY IF EXISTS "thrift_accounts_update_own" ON public.thrift_accounts;
+CREATE POLICY "thrift_accounts_update_own" ON public.thrift_accounts FOR UPDATE USING (auth.jwt()->>'email' = user_email OR public.check_is_admin());
+
+DROP POLICY IF EXISTS "thrift_contrib_select_own" ON public.thrift_contributions;
+CREATE POLICY "thrift_contrib_select_own" ON public.thrift_contributions FOR SELECT USING (auth.jwt()->>'email' = user_email OR public.check_is_admin());
+DROP POLICY IF EXISTS "thrift_contrib_insert_own" ON public.thrift_contributions;
+CREATE POLICY "thrift_contrib_insert_own" ON public.thrift_contributions FOR INSERT WITH CHECK (auth.jwt()->>'email' = user_email);
+
+-- Group Thrift Policies
+DROP POLICY IF EXISTS "thrift_groups_select" ON public.thrift_groups;
+CREATE POLICY "thrift_groups_select" ON public.thrift_groups FOR SELECT USING (status = 'forming' OR creator_id = auth.uid() OR id IN (SELECT group_id FROM public.thrift_group_members WHERE user_id = auth.uid()) OR public.check_is_admin());
+DROP POLICY IF EXISTS "thrift_groups_insert" ON public.thrift_groups;
+CREATE POLICY "thrift_groups_insert" ON public.thrift_groups FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "thrift_members_select" ON public.thrift_group_members;
+CREATE POLICY "thrift_members_select" ON public.thrift_group_members FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "thrift_members_insert" ON public.thrift_group_members;
+CREATE POLICY "thrift_members_insert" ON public.thrift_group_members FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "thrift_group_contrib_select" ON public.thrift_group_contributions;
+CREATE POLICY "thrift_group_contrib_select" ON public.thrift_group_contributions FOR SELECT USING (group_id IN (SELECT group_id FROM public.thrift_group_members WHERE user_id = auth.uid()) OR public.check_is_admin());
+DROP POLICY IF EXISTS "thrift_group_contrib_insert" ON public.thrift_group_contributions;
+CREATE POLICY "thrift_group_contrib_insert" ON public.thrift_group_contributions FOR INSERT WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "thrift_payouts_select" ON public.thrift_payouts;
+CREATE POLICY "thrift_payouts_select" ON public.thrift_payouts FOR SELECT USING (user_id = auth.uid() OR group_id IN (SELECT group_id FROM public.thrift_group_members WHERE user_id = auth.uid()) OR public.check_is_admin());
+
+-- Realtime for Thrift
+SELECT public.enable_realtime_for('thrift_accounts');
+SELECT public.enable_realtime_for('thrift_contributions');
+SELECT public.enable_realtime_for('thrift_groups');
+SELECT public.enable_realtime_for('thrift_group_members');
+SELECT public.enable_realtime_for('thrift_group_contributions');
+SELECT public.enable_realtime_for('thrift_payouts');
+
+-- Performance Indices for Thrift
+CREATE INDEX IF NOT EXISTS idx_thrift_contrib_email ON public.thrift_contributions(user_email);
+CREATE INDEX IF NOT EXISTS idx_thrift_groups_status ON public.thrift_groups(status);
+CREATE INDEX IF NOT EXISTS idx_thrift_members_group ON public.thrift_group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_thrift_members_user ON public.thrift_group_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_thrift_group_contrib_group ON public.thrift_group_contributions(group_id);
+CREATE INDEX IF NOT EXISTS idx_thrift_payouts_user ON public.thrift_payouts(user_id);

@@ -114,6 +114,33 @@ const WalletView: React.FC = () => {
            </button>
         </div>
 
+        {/* 🔹 FINANCIAL PROTOCOL CLARIFICATION */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+           <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 space-y-4">
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-lg bg-aba-gold/20 flex items-center justify-center text-aba-gold">
+                    <Zap size={16} />
+                 </div>
+                 <h4 className="text-xs font-black uppercase tracking-widest text-aba-gold">Fidelity (Current)</h4>
+              </div>
+              <p className="text-[10px] text-white/60 leading-relaxed uppercase font-bold tracking-tight">
+                 Your daily liquidity hub. Use this for immediate commerce, payouts, and incoming settlements. Funds here are always liquid and ready for any industrial signal.
+              </p>
+           </div>
+           
+           <div className="p-8 bg-aba-green/5 rounded-[2.5rem] border border-aba-green/10 space-y-4">
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-lg bg-aba-green/20 flex items-center justify-center text-aba-green">
+                    <ShieldCheck size={16} />
+                 </div>
+                 <h4 className="text-xs font-black uppercase tracking-widest text-aba-green">Thrift (Locked)</h4>
+              </div>
+              <p className="text-[10px] text-white/40 leading-relaxed uppercase font-bold tracking-tight">
+                 Capital accumulation unit. Funds in the Capital Vault are locked until maturity. This is for long-term industrial stability and is separate from your daily Fidelity balance.
+              </p>
+           </div>
+        </div>
+
         {/* Transaction History */}
         <div className="space-y-8">
            <div className="flex items-center justify-between">

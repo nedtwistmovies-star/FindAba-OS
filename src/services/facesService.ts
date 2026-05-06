@@ -104,7 +104,7 @@ export const fetchStories = async () => {
     .from('stories')
     .select(`
       *,
-      author:profiles(*)
+      author:profiles!stories_user_id_fkey(*)
     `)
     .gt('expires_at', now)
     .order('created_at', { ascending: false });
