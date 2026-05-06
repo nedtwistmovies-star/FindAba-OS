@@ -1017,17 +1017,29 @@ export const fetchThriftGroups = async (): Promise<ThriftGroup[]> => {
   return data || [];
 };
 
-export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmail: string) => {
+export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmail: string, explicitUserId?: string) => {
   const client = getSupabase();
   if (!client) return;
-  const { data: user } = await client.auth.getUser();
-  if (!user.user) throw new Error("Auth Required");
+  
+  let userId = explicitUserId;
+  if (!userId) {
+    const { data: user } = await client.auth.getUser();
+    userId = user.user?.id;
+  }
+
+  // Final fallback: try to find user by email in profiles
+  if (!userId && creatorEmail) {
+    const { data: profile } = await client.from('profiles').select('id').eq('email', normalizeEmail(creatorEmail)).maybeSingle();
+    userId = profile?.id;
+  }
+
+  if (!userId) throw new Error("AUTH REQUIRED: Please log in to your Aba industrial account.");
 
   const { data, error } = await client
     .from('thrift_groups')
     .insert({
       ...group,
-      creator_id: user.user.id,
+      creator_id: userId,
       status: 'forming'
     })
     .select()
@@ -1038,18 +1050,24 @@ export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmai
   // Add creator as first member
   await client.from('thrift_group_members').insert({
     group_id: data.id,
-    user_id: user.user.id,
+    user_id: userId,
     payout_position: 1
   });
 
   return data;
 };
 
-export const joinThriftGroup = async (groupId: string) => {
+export const joinThriftGroup = async (groupId: string, explicitUserId?: string) => {
   const client = getSupabase();
   if (!client) return;
-  const { data: user } = await client.auth.getUser();
-  if (!user.user) throw new Error("Auth Required");
+  
+  let userId = explicitUserId;
+  if (!userId) {
+    const { data: user } = await client.auth.getUser();
+    userId = user.user?.id;
+  }
+
+  if (!userId) throw new Error("AUTH REQUIRED: Please log in to join this unit.");
 
   // Get current members count
   const { data: members } = await client
@@ -1061,7 +1079,7 @@ export const joinThriftGroup = async (groupId: string) => {
 
   const { error } = await client.from('thrift_group_members').insert({
     group_id: groupId,
-    user_id: user.user.id,
+    user_id: userId,
     payout_position: nextPosition
   });
 
@@ -1080,15 +1098,21 @@ export const fetchThriftGroupDetails = async (groupId: string) => {
   return { group, members, contributions, payouts };
 };
 
-export const saveGroupContribution = async (groupId: string, amount: number, cycleNumber: number) => {
+export const saveGroupContribution = async (groupId: string, amount: number, cycleNumber: number, explicitUserId?: string) => {
   const client = getSupabase();
   if (!client) return;
-  const { data: user } = await client.auth.getUser();
-  if (!user.user) throw new Error("Auth Required");
+  
+  let userId = explicitUserId;
+  if (!userId) {
+    const { data: user } = await client.auth.getUser();
+    userId = user.user?.id;
+  }
+  
+  if (!userId) throw new Error("AUTH REQUIRED: Contribution failed.");
 
   const { error } = await client.from('thrift_group_contributions').insert({
     group_id: groupId,
-    user_id: user.user.id,
+    user_id: userId,
     amount,
     cycle_number: cycleNumber
   });

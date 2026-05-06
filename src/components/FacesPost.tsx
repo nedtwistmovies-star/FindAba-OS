@@ -313,26 +313,26 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
       </div>
 
       {/* Footer / Actions */}
-      <div className="px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between border-t border-white/5 bg-white/[0.02]">
-        <div className="flex items-center gap-8 sm:gap-10">
+      <div className="px-4 sm:px-6 py-4 sm:py-5 flex flex-wrap items-center justify-between border-t border-white/5 bg-white/[0.02] gap-y-4">
+        <div className="flex items-center gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
           <button 
             onClick={handleLike}
             aria-label={isLiked ? "Unlike post" : "Like post"}
-            className={`group flex items-center gap-2.5 transition-all ${isLiked ? 'text-aba-red' : 'text-white/40 hover:text-aba-red'}`}
+            className={`group flex items-center gap-2 sm:gap-2.5 transition-all outline-none ${isLiked ? 'text-aba-red' : 'text-white/40 hover:text-aba-red'}`}
           >
             <motion.div whileTap={{ scale: 1.5 }}>
-              <Heart size={22} fill={isLiked ? 'currentColor' : 'none'} className="transition-transform group-hover:scale-110" />
+              <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} className="sm:w-[22px] sm:h-[22px] transition-transform group-hover:scale-110" />
             </motion.div>
-            <span className="text-xs font-black tracking-widest">{likesCount}</span>
+            <span className="text-[10px] sm:text-xs font-black tracking-widest">{likesCount}</span>
           </button>
           
           <button 
             onClick={handleFetchComments}
             aria-label="View comments"
-            className={`flex items-center gap-2.5 transition-all group ${showComments ? 'text-aba-gold' : 'text-white/40 hover:text-aba-gold'}`}
+            className={`flex items-center gap-2 sm:gap-2.5 transition-all group outline-none ${showComments ? 'text-aba-gold' : 'text-white/40 hover:text-aba-gold'}`}
           >
-            <MessageSquare size={22} className="group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-black tracking-widest">{post.comments_count || comments.length}</span>
+            <MessageSquare size={20} className="sm:w-[22px] sm:h-[22px] group-hover:scale-110 transition-transform" />
+            <span className="text-[10px] sm:text-xs font-black tracking-widest">{post.comments_count || comments.length}</span>
           </button>
           
           <button 
@@ -341,18 +341,21 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
               addToast("Signal link copied to clipboard.", "success");
             }}
             aria-label="Share post"
-            className="text-white/40 hover:text-aba-green transition-all hover:scale-110"
+            className="text-white/40 hover:text-aba-green transition-all hover:scale-110 outline-none"
           >
-            <Send size={22} />
+            <Send size={20} className="sm:w-[22px] sm:h-[22px]" />
           </button>
         </div>
 
-        <div className="flex -space-x-2">
-          {[1,2,3].map(i => (
-            <div key={i} className="w-6 h-6 rounded-full border-2 border-aba-deep bg-aba-deep overflow-hidden">
-               <img src={`https://picsum.photos/seed/face${i}/50/50`} alt="" className="w-full h-full object-cover" loading="lazy" />
-            </div>
-          ))}
+        <div className="flex items-center gap-3">
+           <div className="flex -space-x-1.5 sm:-space-x-2">
+            {[1,2,3].map(i => (
+              <div key={i} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-aba-deep bg-aba-deep overflow-hidden">
+                 <img src={`https://picsum.photos/seed/face${i}/50/50`} alt="" className="w-full h-full object-cover" loading="lazy" />
+              </div>
+            ))}
+          </div>
+          <span className="text-[8px] font-black uppercase text-white/20 tracking-tighter">Viewed by community</span>
         </div>
       </div>
 
@@ -394,7 +397,7 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
               </div>
 
               {user_id && (
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2 sm:gap-3 pt-2">
                   <input 
                     ref={commentInputRef}
                     type="text"
@@ -403,14 +406,14 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
                     onKeyDown={e => e.key === 'Enter' && !submittingComment && handleSubmitComment()}
                     placeholder="Enter signal response..."
                     disabled={submittingComment}
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-aba-gold/50 transition-all"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 sm:px-6 py-3 sm:py-4 text-[10px] sm:text-xs text-white outline-none focus:border-aba-gold/50 transition-all placeholder:text-white/20"
                   />
                   <button 
                     onClick={handleSubmitComment}
                     disabled={submittingComment || !newComment.trim()}
-                    className="p-2.5 bg-aba-gold text-aba-deep rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                    className="p-3 sm:p-4 bg-aba-gold text-aba-deep rounded-2xl shadow-xl active:scale-95 transition-all disabled:opacity-50 hover:bg-white"
                   >
-                    {submittingComment ? <Loader2 size={16} className="animate-spin" /> : <SendHorizontal size={16} />}
+                    {submittingComment ? <Loader2 size={16} className="animate-spin" /> : <SendHorizontal size={18} className="sm:w-5 sm:h-5 text-aba-deep" />}
                   </button>
                 </div>
               )}

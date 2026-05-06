@@ -187,6 +187,7 @@ const AppContent: React.FC = () => {
           onRefresh={refreshData}
           onAuthSuccess={handleAuthSuccess}
           userEmail={userIdentifier}
+          userId={user_id}
           userRole={userRole}
           isRegistryLoading={businessLoading}
         />

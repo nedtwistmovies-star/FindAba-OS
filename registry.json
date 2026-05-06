@@ -1,6 +1,6 @@
 {
   "version": "v6.0",
-  "lastUpdated": "2026-05-06T12:36:03.936Z",
+  "lastUpdated": "2026-05-06T15:30:52.010Z",
   "businesses": [
     {
       "name": "sandals royalle resources",
@@ -13,7 +13,7 @@
       "image_url": "https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=800",
       "rating": 0,
       "review_count": 0,
-      "status": "pending",
+      "status": "active",
       "verification_status": "Unverified",
       "verification_level": "None",
       "is_export_ready": false,
@@ -38,7 +38,7 @@
       "location": null,
       "user_id": null,
       "id": "66ff051e-e9f1-4b1a-b824-5b5b3951a35d",
-      "updated_at": "2026-05-06T09:41:30.384668"
+      "updated_at": "2026-05-06T15:18:17.697701"
     },
     {
       "name": "AmyOils",
@@ -52,8 +52,8 @@
       "rating": 5,
       "review_count": 0,
       "status": "active",
-      "verification_status": "Pending",
-      "verification_level": "Listed",
+      "verification_status": "Unverified",
+      "verification_level": "None",
       "is_export_ready": false,
       "capacity_indicator": "Active",
       "premium_features_enabled": false,
@@ -79,7 +79,7 @@
       "location": null,
       "user_id": null,
       "id": "9cc51706-15ff-4e2b-a276-380cf7a9eb30",
-      "updated_at": "2026-05-06T09:41:31.327358"
+      "updated_at": "2026-05-06T15:18:27.399483"
     },
     {
       "name": "SANDALSROYALLE S&P SERVICES",
@@ -93,8 +93,8 @@
       "rating": 5,
       "review_count": 0,
       "status": "active",
-      "verification_status": "Pending",
-      "verification_level": "Listed",
+      "verification_status": "Unverified",
+      "verification_level": "None",
       "is_export_ready": false,
       "capacity_indicator": "Active",
       "premium_features_enabled": false,
@@ -120,7 +120,7 @@
       "location": null,
       "user_id": null,
       "id": "f9ff6756-d24f-4daf-b47a-993ef1534725",
-      "updated_at": "2026-05-06T09:41:36.638058"
+      "updated_at": "2026-05-06T15:18:35.25894"
     },
     {
       "name": "Rutch Afrique",
@@ -134,8 +134,8 @@
       "rating": 5,
       "review_count": 0,
       "status": "active",
-      "verification_status": "Pending",
-      "verification_level": "Listed",
+      "verification_status": "Unverified",
+      "verification_level": "None",
       "is_export_ready": false,
       "capacity_indicator": "Active",
       "premium_features_enabled": false,
@@ -161,7 +161,7 @@
       "location": null,
       "user_id": null,
       "id": "81ab35e3-1f49-4386-a539-4f7f2575ef34",
-      "updated_at": "2026-05-06T09:41:42.409519"
+      "updated_at": "2026-05-06T15:18:42.595768"
     },
     {
       "name": "FindAba Magazine ",
@@ -175,8 +175,8 @@
       "rating": 5,
       "review_count": 0,
       "status": "active",
-      "verification_status": "Pending",
-      "verification_level": "Listed",
+      "verification_status": "Unverified",
+      "verification_level": "None",
       "is_export_ready": false,
       "capacity_indicator": "Active",
       "premium_features_enabled": false,
@@ -202,7 +202,7 @@
       "location": null,
       "user_id": null,
       "id": "cf1d8d6a-f619-4cb6-8d33-7f2675aef57f",
-      "updated_at": "2026-05-06T09:41:43.989227"
+      "updated_at": "2026-05-06T15:18:50.856975"
     }
   ]
 }

@@ -171,6 +171,10 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
     { id: 'explore', label: 'Auto Parts', icon: <Car size={20} /> },
     { id: 'explore', label: 'Printing & Marketing', icon: <Newspaper size={20} /> },
     { id: 'explore', label: 'Healthcare Hub', icon: <ShieldCheck size={20} /> },
+    { id: 'explore', label: 'Agro-Allied Industry', icon: <Box size={20} /> },
+    { id: 'explore', label: 'Catering & Logistics', icon: <Truck size={20} /> },
+    { id: 'explore', label: 'Real Estate & Land', icon: <Building2 size={20} /> },
+    { id: 'explore', label: 'Entertainment & Arts', icon: <Radio size={20} /> },
   ];
 
   return (

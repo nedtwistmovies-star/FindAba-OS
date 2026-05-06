@@ -23,9 +23,10 @@ import FidelityHero from './FidelityHero';
 interface ThriftDashboardProps {
   setView: (v: ViewState) => void;
   userEmail: string;
+  userId?: string;
 }
 
-const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail }) => {
+const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, userId }) => {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<'individual' | 'group'>('individual');
   const [account, setAccount] = useState<ThriftAccount | null>(null);
@@ -127,14 +128,26 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const handlePaymentSuccess = async (res: any) => {
     setIsUpdatingBalance(true);
     try {
+      // Paystack response often contains the amount in kobo or as part of verification
+      // Ensure we treat it as Naira.
+      let actualAmountPaid = contributionAmount;
+      if (res?.amount) {
+        // res.amount is usually in kobo if from standard Paystack pop
+        actualAmountPaid = res.amount / 100;
+        // If it's still way off (e.g. they paid ₦200 and we got 200), check logic
+        if (actualAmountPaid < 1) actualAmountPaid = res.amount; 
+      }
+      
       if (activeTab === 'individual') {
-        const amountToSave = contributionAmount;
-        await saveThriftContribution(userEmail, amountToSave);
-        addToast(`Contribution Locked: ₦${amountToSave.toLocaleString()}`, "success");
-        await refreshData();
+        const result = await saveThriftContribution(userEmail, actualAmountPaid);
+        if (result) {
+          addToast(`Contribution Locked: ₦${actualAmountPaid.toLocaleString()}`, "success");
+          await refreshData();
+        } else {
+          addToast("Contribution could not be saved. Check balance.", "error");
+        }
       } else if (selectedGroup) {
-        // Handle group contribution
-        await saveGroupContribution(selectedGroup.group.id, selectedGroup.group.contribution_amount, 1); // Cycle 1 for now
+        await saveGroupContribution(selectedGroup.group.id, selectedGroup.group.contribution_amount, 1, userId);
         addToast("Group Isusu Contribution Recorded", "success");
         await openGroupDetails(selectedGroup.group.id);
       }
@@ -151,7 +164,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
     if (!newGroup.name) return addToast("Group name required", "error");
     setActionLoading(true);
     try {
-      await createThriftGroup(newGroup as any, userEmail);
+      await createThriftGroup(newGroup as any, userEmail, userId);
       addToast("Isusu Group Forming!", "success");
       setShowCreateGroup(false);
       await refreshData();
@@ -165,7 +178,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const handleJoinGroup = async (groupId: string) => {
     setActionLoading(true);
     try {
-      await joinThriftGroup(groupId);
+      await joinThriftGroup(groupId, userId);
       addToast("Joined Isusu Group Successfully", "success");
       await refreshData();
     } catch (e: any) {
@@ -329,27 +342,47 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                         <ShieldCheck size={16} className="text-blue-400" />
                         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Savings Total</p>
                       </div>
-                      <div className="bg-blue-600/20 px-4 py-2 rounded-xl border border-blue-400/20 text-[10px] font-black uppercase text-blue-400 tracking-widest">
-                        {timeLeft}
+                      <div className="bg-blue-600/20 px-4 py-2 rounded-xl border border-blue-400/20 text-[10px] font-black uppercase text-blue-400 tracking-widest flex items-center gap-2">
+                        <Calendar size={12} /> {timeLeft}
                       </div>
                     </div>
                     <div className={`space-y-4 transition-all ${isUpdatingBalance ? 'scale-105' : ''}`}>
                       <h3 className="text-7xl font-black tracking-tighter">
                         ₦{account?.total_saved?.toLocaleString() || '0'}
                       </h3>
-                      <p className="text-sm font-medium text-white/30 uppercase tracking-[0.2em]">≈ ${( (account?.total_saved || 0) / 1500 ).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</p>
+                      <div className="flex items-center gap-3">
+                         <p className="text-sm font-medium text-white/30 uppercase tracking-[0.2em]">≈ ${( (account?.total_saved || 0) / 1500 ).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</p>
+                         <div className="h-1 w-1 rounded-full bg-white/20" />
+                         <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{account?.cycle} Commitment</p>
+                      </div>
                     </div>
-                    <div className="pt-8 flex flex-wrap gap-4">
-                      <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 flex flex-col">
-                          <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Protocol</span>
-                          <span className="text-xs font-black text-white uppercase tracking-widest">{account?.cycle}</span>
+                    <div className="pt-8 space-y-4">
+                       <p className="text-[10px] font-black uppercase text-white/20 tracking-widest ml-2">Protocol Frequency</p>
+                       <div className="flex flex-wrap gap-3">
+                        {['daily', 'weekly', 'monthly', 'quarterly'].map((c) => (
+                          <button 
+                            key={c}
+                            disabled={account?.status === 'active'} // Can't change active protocol
+                            onClick={() => {
+                              if (account?.status !== 'active') {
+                                setSelectedCycle(c as any);
+                              } else {
+                                addToast("Protocol locked for active cycle.", "info");
+                              }
+                            }}
+                            className={`px-6 py-3 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${account?.cycle === c ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20' : 'bg-white/5 text-white/30 border-white/5 disabled:opacity-40'}`}
+                          >
+                            {c}
+                          </button>
+                        ))}
                       </div>
-                      <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 flex flex-col">
-                          <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Maturity Date</span>
-                          <span className="text-xs font-black text-blue-400 uppercase tracking-widest">
-                            {account?.locked_until ? new Date(account.locked_until).toLocaleDateString() : 'Active'}
-                          </span>
-                      </div>
+                    </div>
+                    
+                    <div className="pt-4 p-6 bg-white/5 border border-white/5 rounded-3xl flex items-start gap-4 mx-2">
+                       <Zap size={18} className="text-blue-400 shrink-0 mt-1" />
+                       <p className="text-[10px] text-white/40 leading-relaxed uppercase font-bold tracking-tighter">
+                          Individual thrift operates on <span className="text-blue-400 font-black">Daily</span>, <span className="text-blue-400 font-black">Weekly</span>, or <span className="text-blue-400 font-black">Monthly</span> frequency protocols. Once a cycle is initialized, it is hard-locked for security until maturity.
+                       </p>
                     </div>
                 </div>
 
@@ -397,12 +430,12 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                       <span className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-300 font-black text-4xl">₦</span>
                    </div>
 
-                   <div className="grid grid-cols-4 gap-4">
-                      {[1000, 5000, 10000, 50000].map(amt => (
+                   <div className="grid grid-cols-5 gap-3">
+                      {[200, 1000, 5000, 10000, 50000].map(amt => (
                         <button 
                           key={amt}
                           onClick={() => setContributionAmount(amt)}
-                          className={`py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${contributionAmount === amt ? 'bg-orange-600 text-white border-orange-600' : 'bg-slate-50 text-slate-400 border-slate-100'}`}
+                          className={`py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${contributionAmount === amt ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-600/20' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}
                         >
                           ₦{amt >= 1000 ? `${amt/1000}k` : amt}
                         </button>
@@ -446,7 +479,15 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                     <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
                        <History size={16} /> Registry Logs
                     </h4>
-                    <span className="text-[10px] font-black text-slate-400 uppercase">{contributions.length} SIGNALS</span>
+                    <div className="flex items-center gap-4">
+                        <button 
+                           onClick={refreshData}
+                           className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all"
+                        >
+                           <RefreshCcw size={12} className={loading ? 'animate-spin' : ''} /> Re-sync Registry
+                        </button>
+                        <span className="text-[10px] font-black text-slate-400 uppercase">{contributions.length} SIGNALS</span>
+                    </div>
                  </div>
                  <div className="space-y-4">
                    {contributions.map((c, i) => (
@@ -643,60 +684,60 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="bg-white w-full max-w-xl rounded-[2.5rem] p-8 sm:p-12 space-y-8 relative my-auto shadow-2xl"
+                className="bg-white w-full max-w-xl rounded-[2.5rem] p-6 sm:p-12 space-y-6 sm:space-y-8 relative my-auto shadow-2xl border border-white/20"
               >
                  <button 
                     onClick={() => setShowCreateGroup(false)} 
-                    className="absolute top-6 right-6 p-2 text-slate-300 hover:text-slate-900 transition-colors"
+                    className="absolute top-6 right-6 p-2 text-slate-300 hover:text-slate-900 transition-colors bg-slate-50 rounded-full"
                  >
-                    <X size={24} />
+                    <X size={20} />
                  </button>
                  
-                 <div className="space-y-1">
-                    <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-slate-900">Form Isusu Group</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Initialize a collective rotating savings unit.</p>
+                 <div className="space-y-2">
+                    <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-slate-900 leading-tight">Form Isusu Group</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Initialize a collective rotating savings unit with high-visibility tracking.</p>
                  </div>
 
-                 <div className="space-y-6">
+                 <div className="space-y-5 sm:space-y-6">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Unit Name</label>
+                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-500">Unit Name</label>
                        <input 
                          type="text" 
                          placeholder="e.g. Ariaria Shoe Guild Alpha"
-                         className="w-full bg-slate-50 p-5 rounded-2xl border border-slate-100 font-bold outline-none focus:ring-4 focus:ring-blue-500/10 transition-all text-sm"
+                         className="w-full bg-slate-50 p-5 sm:p-6 rounded-2xl border border-slate-200 font-bold outline-none focus:ring-4 focus:ring-blue-600/10 transition-all text-sm text-slate-900 placeholder:text-slate-300"
                          onChange={e => setNewGroup({...newGroup, name: e.target.value})}
                        />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Contribution (₦)</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-500">Contribution (₦)</label>
                           <input 
                             type="number" 
                             value={newGroup.contribution_amount}
-                            className="w-full bg-slate-50 p-5 rounded-2xl border border-slate-100 font-bold outline-none focus:ring-4 focus:ring-blue-500/10 transition-all text-sm"
+                            className="w-full bg-slate-50 p-5 sm:p-6 rounded-2xl border border-slate-200 font-bold outline-none focus:ring-4 focus:ring-blue-600/10 transition-all text-sm text-slate-900"
                             onChange={e => setNewGroup({...newGroup, contribution_amount: Number(e.target.value)})}
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Total Members</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-500">Total Members</label>
                           <input 
                             type="number" 
                             value={newGroup.cycle_length}
-                            className="w-full bg-slate-50 p-5 rounded-2xl border border-slate-100 font-bold outline-none focus:ring-4 focus:ring-blue-500/10 transition-all text-sm"
+                            className="w-full bg-slate-50 p-5 sm:p-6 rounded-2xl border border-slate-200 font-bold outline-none focus:ring-4 focus:ring-blue-600/10 transition-all text-sm text-slate-900"
                             onChange={e => setNewGroup({...newGroup, cycle_length: Number(e.target.value)})}
                           />
                         </div>
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Frequency Protocol</label>
-                       <div className="grid grid-cols-3 gap-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-500">Frequency Protocol</label>
+                       <div className="grid grid-cols-3 gap-2 sm:gap-3">
                           {['daily', 'weekly', 'monthly'].map(f => (
                              <button 
                                 key={f}
                                 onClick={() => setNewGroup({...newGroup, payout_frequency: f})}
-                                className={`py-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${newGroup.payout_frequency === f ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}
+                                className={`py-4 sm:py-5 rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest border transition-all ${newGroup.payout_frequency === f ? 'bg-blue-600 text-white border-blue-600 shadow-xl shadow-blue-600/20 active:scale-95' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}`}
                              >
-                               {f}
+                                {f}
                              </button>
                           ))}
                        </div>
@@ -706,7 +747,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                  <button 
                     onClick={handleCreateGroup}
                     disabled={actionLoading}
-                    className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                    className="w-full py-6 sm:py-7 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 hover:bg-blue-600"
                  >
                     {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={18} />} Form Isusu Unit
                  </button>
