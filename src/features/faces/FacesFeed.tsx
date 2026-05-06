@@ -17,10 +17,14 @@ import { useAuth } from '../../providers/AuthProvider';
 import { useOracle } from '../../providers/OracleProvider';
 import { useToast } from '../../providers/ToastProvider';
 
-const PostRow = memo(({ data, index, style }: { data: Post[], index: number, style: React.CSSProperties }) => {
+const PostRow = memo(({ data, index, style }: { data: { posts: Post[], onRefresh: () => void }, index: number, style: React.CSSProperties }) => {
+  const { posts, onRefresh } = data;
   return (
     <div style={style} className="px-2 sm:px-4">
-      <FacesPost post={data[index]} />
+      <FacesPost 
+        post={posts[index]} 
+        onPostAction={() => onRefresh()} 
+      />
     </div>
   );
 });
@@ -169,7 +173,7 @@ const FacesFeed: React.FC = () => {
               itemCount={posts.length}
               itemSize={getRowHeight}
               width="100%"
-              itemData={posts}
+              itemData={{ posts, onRefresh: () => loadData(true) }}
               className="scrollbar-hide"
             >
               {PostRow}

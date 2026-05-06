@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, MessageSquare, Send, ShoppingBag, MoreHorizontal, Star, Trash2, Loader2, SendHorizontal } from 'lucide-react';
+import { Heart, MessageSquare, Send, ShoppingBag, MoreHorizontal, Star, Trash2, Loader2, SendHorizontal, Edit3, Flag, Share2, AlertCircle } from 'lucide-react';
 import { Post, OrderStatus, Comment } from '../types';
 import { useAuth } from '../providers/AuthProvider';
-import { toggleLike, createOrderFromAction, fetchComments, addComment } from '../services/facesService';
+import { toggleLike, createOrderFromAction, fetchComments, addComment, deletePost } from '../services/facesService';
 import { useToast } from '../providers/ToastProvider';
 
 interface FacesPostProps {
@@ -23,6 +23,9 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
   const [loadingComments, setLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const commentInputRef = React.useRef<HTMLInputElement>(null);
 
   // Initial like state check
   useEffect(() => {
@@ -79,6 +82,25 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
       addToast("Failed to fetch comments.", "error");
     } finally {
       setLoadingComments(false);
+      if (!showComments) {
+        setTimeout(() => commentInputRef.current?.focus(), 100);
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Permanently remove this industrial record from the social mesh?")) return;
+    setIsDeleting(true);
+    try {
+      await deletePost(post.id);
+      addToast("Post decommissioned successfully.", "success");
+      // Ideally trigger a refresh in parent, but for now we hide it optimistically
+      onPostAction?.(post); // Reusing this to notify parent
+    } catch (e) {
+      addToast("Failed to delete post.", "error");
+    } finally {
+      setIsDeleting(false);
+      setShowOptions(false);
     }
   };
 
@@ -172,12 +194,71 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
             </p>
           </div>
         </div>
-        <button 
-          aria-label="Post options"
-          className="p-2 text-white/40 hover:text-white transition-standard"
-        >
-          <MoreHorizontal size={20} />
-        </button>
+        <div className="relative">
+          <button 
+            onClick={() => setShowOptions(!showOptions)}
+            aria-label="Post options"
+            className={`p-2 rounded-xl transition-all ${showOptions ? 'bg-white/10 text-aba-gold' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+          >
+            <MoreHorizontal size={20} />
+          </button>
+
+          <AnimatePresence>
+            {showOptions && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowOptions(false)} 
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  className="absolute right-0 mt-2 w-48 bg-aba-deep border border-white/10 rounded-2xl shadow-2xl z-20 py-2 overflow-hidden backdrop-blur-xl"
+                >
+                  {user_id === post.user_id ? (
+                    <>
+                      <button 
+                        onClick={() => { addToast("Edit mode coming soon.", "info"); setShowOptions(false); }}
+                        className="w-full px-4 py-3 flex items-center gap-3 text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest"
+                      >
+                        <Edit3 size={14} /> Edit Signal
+                      </button>
+                      <button 
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="w-full px-4 py-3 flex items-center gap-3 text-xs font-bold text-aba-red hover:bg-aba-red/5 transition-all uppercase tracking-widest disabled:opacity-50"
+                      >
+                        {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} 
+                        Delete Record
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => { addToast("Signal reported to Oracle.", "success"); setShowOptions(false); }}
+                        className="w-full px-4 py-3 flex items-center gap-3 text-xs font-bold text-white/60 hover:text-aba-red hover:bg-aba-red/5 transition-all uppercase tracking-widest"
+                      >
+                        <AlertCircle size={14} /> Report Node
+                      </button>
+                    </>
+                  )}
+                  <div className="h-px bg-white/5 my-1" />
+                  <button 
+                    onClick={() => { 
+                      navigator.clipboard.writeText(window.location.origin + "/feed?post=" + post.id);
+                      addToast("Link copied.", "success");
+                      setShowOptions(false);
+                    }}
+                    className="w-full px-4 py-3 flex items-center gap-3 text-xs font-bold text-white/60 hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest"
+                  >
+                    <Share2 size={14} /> Copy Signal ID
+                  </button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -232,26 +313,26 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
       </div>
 
       {/* Footer / Actions */}
-      <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between border-t border-white/5 bg-white/[0.02]">
-        <div className="flex items-center gap-6">
+      <div className="px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between border-t border-white/5 bg-white/[0.02]">
+        <div className="flex items-center gap-8 sm:gap-10">
           <button 
             onClick={handleLike}
             aria-label={isLiked ? "Unlike post" : "Like post"}
-            className={`group flex items-center gap-2 transition-all ${isLiked ? 'text-aba-red' : 'text-white/40 hover:text-aba-red'}`}
+            className={`group flex items-center gap-2.5 transition-all ${isLiked ? 'text-aba-red' : 'text-white/40 hover:text-aba-red'}`}
           >
             <motion.div whileTap={{ scale: 1.5 }}>
-              <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} className="transition-transform group-hover:scale-110" />
+              <Heart size={22} fill={isLiked ? 'currentColor' : 'none'} className="transition-transform group-hover:scale-110" />
             </motion.div>
-            <span className="text-xs font-bold">{likesCount}</span>
+            <span className="text-xs font-black tracking-widest">{likesCount}</span>
           </button>
           
           <button 
             onClick={handleFetchComments}
             aria-label="View comments"
-            className={`flex items-center gap-2 transition-all ${showComments ? 'text-aba-gold' : 'text-white/40 hover:text-aba-gold'}`}
+            className={`flex items-center gap-2.5 transition-all group ${showComments ? 'text-aba-gold' : 'text-white/40 hover:text-aba-gold'}`}
           >
-            <MessageSquare size={20} className="group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-bold">{post.comments_count || comments.length}</span>
+            <MessageSquare size={22} className="group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-black tracking-widest">{post.comments_count || comments.length}</span>
           </button>
           
           <button 
@@ -262,7 +343,7 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
             aria-label="Share post"
             className="text-white/40 hover:text-aba-green transition-all hover:scale-110"
           >
-            <Send size={20} />
+            <Send size={22} />
           </button>
         </div>
 
@@ -315,6 +396,7 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
               {user_id && (
                 <div className="flex gap-3 pt-2">
                   <input 
+                    ref={commentInputRef}
                     type="text"
                     value={newComment}
                     onChange={e => setNewComment(e.target.value)}
