@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Car, Shield, MapPin, ArrowLeft, Navigation, 
-  ShieldCheck, Loader2, Zap, Truck, MessageSquare
+  ShieldCheck, Loader2, Zap, Truck, MessageSquare,
+  AlertTriangle, Share2
 } from 'lucide-react';
 import { ViewState, Vehicle, VehicleCategory, RideBooking } from '../../types';
 import MapView from '../../components/MapView';

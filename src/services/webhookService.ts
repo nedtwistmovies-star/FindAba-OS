@@ -5,6 +5,7 @@
  */
 
 const MAKE_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || '';
+const DEFAULT_MAKE_URL = 'https://hook.us1.make.com/default';
 
 export enum WebhookEvent {
   NEW_REGISTRATION = 'new_registration',

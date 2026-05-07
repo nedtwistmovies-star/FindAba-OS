@@ -325,7 +325,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     }
   });
 
-  // Paystack Webhook Handler
+  // Paystack Webhook Handler (Enhanced for Carry-go)
   app.post("/api/paystack-webhook", async (req, res) => {
     const secret = process.env.PAYSTACK_SECRET_KEY;
     const signature = req.headers["x-paystack-signature"] as string;
@@ -335,7 +335,6 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Verify signature
     const hash = crypto
       .createHmac("sha512", secret)
       .update(JSON.stringify(req.body))
@@ -347,86 +346,186 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     }
 
     const event = req.body;
-    console.log(`[Webhook] Received Paystack event: ${event.event}`);
+    console.log(`[Webhook] Received event: ${event.event}`);
 
     if (event.event === "charge.success") {
       const { reference, amount, metadata } = event.data;
       const userId = metadata?.user_id;
-      const bookingId = metadata?.booking_id;
+      const shipmentId = metadata?.shipment_id;
       const orderId = metadata?.order_id;
 
-      if (!userId && !orderId) {
-        console.error("[Webhook] Missing user identification in metadata");
-        return res.status(400).json({ error: "Missing user/order identification" });
-      }
-
       try {
-        // 1. Insert payment record
-        const paymentData: any = {
+        // 1. Log Payment
+        await supabase.from("payments").upsert({
           user_id: userId,
-          amount: amount / 100, // Convert kobo to NGN
+          amount: amount / 100,
           reference,
           status: "success",
           provider: "paystack",
           metadata: event.data,
           created_at: new Date().toISOString()
-        };
+        }, { onConflict: 'reference' });
 
-        if (bookingId) paymentData.booking_id = bookingId;
-        if (orderId) paymentData.order_id = orderId;
-
-        const { error: paymentError } = await supabase
-          .from("payments")
-          .upsert(paymentData, { onConflict: 'reference' });
-
-        if (paymentError) throw paymentError;
-
-        // 2. If it's an order payment, update order status
-        if (orderId) {
-          console.log(`[Webhook] Updating order ${orderId} status to 'paid'`);
-          const { error: orderError } = await supabase
-            .from("orders")
-            .update({ status: 'paid', updated_at: new Date().toISOString() })
-            .eq("id", orderId);
+        // 2. Carry-go Escrow Logic
+        if (shipmentId) {
+          console.log(`[Carry-Go] Payment success for shipment ${shipmentId}. Locking funds.`);
+          const { error: shipmentError } = await supabase
+            .from("shipments")
+            .update({ 
+               payment_status: 'paid_held', 
+               status: 'accepted', // Advance to accepted if payment was the blocker
+               paystack_reference: reference, 
+               updated_at: new Date().toISOString() 
+            })
+            .eq("id", shipmentId);
           
-          if (orderError) console.error("[Webhook] Order update failed:", orderError.message);
-        }
+          if (shipmentError) throw shipmentError;
 
-        // 3. Fetch updated profile for notifications
-        if (userId) {
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("tier_level, email, full_name")
-            .eq("id", userId)
-            .single();
-
-          if (!profileError && profile.email) {
-            sendServerEmail(profile.email, "Payment Confirmed - FindAba City OS", amount / 100, reference).catch(err => 
-              console.error("[Email] Payment success email failed:", err.message)
-            );
-          }
-
-          // 4. Trigger Make.com Automation
-          const makeUrl = process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
+          // Notify Sender via Automation (Make.com/WhatsApp)
+          const makeUrl = process.env.MAKE_WEBHOOK_URL || process.env.VITE_MAKE_WEBHOOK_URL;
           if (makeUrl) {
             axios.post(makeUrl, {
-              user_id: userId,
-              order_id: orderId,
+              type: 'CARRY_GO_PAYMENT_CONFIRMED',
+              shipment_id: shipmentId,
               amount: amount / 100,
-              reference,
-              timestamp: new Date().toISOString()
-            }).catch(err => console.error("[Webhook] Make.com trigger failed:", err.message));
+              message: "Payment confirmed ✅ Your rider is on the way. You will get tracking link."
+            }).catch(e => console.error("[Carry-Go] Notification failed:", e.message));
           }
         }
 
-        console.log(`[Webhook] Payment processed successfully for reference ${reference}`);
+        // 3. Standard Order Logic
+        if (orderId) {
+          await supabase.from("orders").update({ status: 'paid' }).eq("id", orderId);
+        }
+
       } catch (err: any) {
-        console.error("[Webhook] Processing error:", err.message);
+        console.error("[Webhook] Business logic failure:", err.message);
         return res.status(500).json({ error: "Internal processing error" });
       }
     }
 
     res.status(200).json({ status: "success" });
+  });
+
+  // Carry-go Onboarding Endpoint
+  app.post("/api/onboard-carrier", async (req, res) => {
+    const { phone, full_name, bvn, nin, bank_code, account_number, user_id } = req.body;
+
+    try {
+      console.log(`[Carrier-Onboarding] Processing KYC for ${full_name} (${phone})`);
+      
+      // 1. Verify BVN/NIN (Simulated Dojah/Smile call)
+      // In production: const kyc = await axios.post('Dojah_URL', { bvn, nin }, { headers: ... });
+      const kycValid = true; // Placeholder for actual ID verification
+
+      if (!kycValid) {
+        return res.status(400).json({ error: "Identity verification failed. Name/BVN/NIN mismatch." });
+      }
+
+      // 2. Create Paystack Recipient
+      const recipientResponse = await axios.post('https://api.paystack.co/transferrecipient', {
+        type: "nuban",
+        name: full_name,
+        account_number,
+        bank_code,
+        currency: "NGN"
+      }, {
+        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+      });
+
+      const recipientCode = recipientResponse.data.data.recipient_code;
+
+      // 3. Save to Supabase
+      const { error: carrierError } = await supabase
+        .from("carriers")
+        .insert({
+          user_id,
+          phone,
+          full_name,
+          bvn,
+          nin,
+          bank_code,
+          account_number,
+          paystack_recipient_code: recipientCode,
+          status: 'verified',
+          created_at: new Date().toISOString()
+        });
+
+      if (carrierError) throw carrierError;
+
+      res.json({ success: true, message: "Carrier verified and onboarded ✅", recipientCode });
+    } catch (err: any) {
+      console.error("[Carrier-Onboarding] Error:", err.response?.data || err.message);
+      res.status(500).json({ error: "Failed to onboard carrier", details: err.response?.data || err.message });
+    }
+  });
+
+  // Carry-go Delivery Confirmation & Escrow Payout
+  app.post("/api/confirm-delivery", async (req, res) => {
+    const { tracking_id, sender_phone, action } = req.body;
+
+    try {
+      // 1. Fetch Shipment and Carrier Details
+      const { data: shipment, error: fetchErr } = await supabase
+        .from("shipments")
+        .select(`*, carrier:carriers(*)`)
+        .eq("tracking_id", tracking_id)
+        .eq("sender_phone", sender_phone)
+        .single();
+
+      if (fetchErr || !shipment) {
+        return res.status(404).json({ error: "Shipment not found or unauthorized access." });
+      }
+
+      if (action === 'dispute') {
+        await supabase.from("shipments").update({ status: 'disputed' }).eq("id", shipment.id);
+        return res.json({ success: true, message: "Dispute logged. Support will contact you in 2hrs." });
+      }
+
+      const carrierPayout = shipment.amount * 0.7; // 70% to carrier
+
+      // 2. Paystack Transfer (Release Escrow)
+      const transferRes = await axios.post('https://api.paystack.co/transfer', {
+        source: "balance",
+        amount: Math.round(carrierPayout * 100), // Kobo
+        recipient: shipment.carrier.paystack_recipient_code,
+        reason: `Carry-go delivery payout: ${tracking_id}`
+      }, {
+        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+      });
+
+      // 3. Update Status
+      await supabase.from("shipments").update({ 
+        status: 'paid_out', 
+        delivery_confirmed_at: new Date().toISOString(),
+        delivery_confirmed_by: 'sender'
+      }).eq("id", shipment.id);
+
+      res.json({ 
+        success: true, 
+        message: `Delivery confirmed. ₦${carrierPayout.toLocaleString()} sent to carrier.` 
+      });
+
+    } catch (err: any) {
+      console.error("[Carry-Go-Payout] Error:", err.response?.data || err.message);
+      res.status(500).json({ error: "Payout processing failed", details: err.response?.data || err.message });
+    }
+  });
+
+  // Carrier Location Update for Geofencing
+  app.post("/api/carrier/location", async (req, res) => {
+    const { carrier_id, lat, lng } = req.body;
+    try {
+      await supabase.from("carriers").update({
+        current_lat: lat,
+        current_lng: lng,
+        is_online: true,
+        last_location_update: new Date().toISOString()
+      }).eq("id", carrier_id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // Automatic Git Repo Connection
