@@ -104,16 +104,25 @@ ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read businesses" ON public.businesses;
 CREATE POLICY "Public read businesses" ON public.businesses FOR SELECT USING (true);
 
--- Allow any authenticated user full access to unowned businesses (for registration/claiming)
--- or businesses they already own, or if they are an admin.
-DROP POLICY IF EXISTS "Registry access policy" ON public.businesses;
-CREATE POLICY "Registry access policy" ON public.businesses FOR ALL 
-  USING (auth.uid()::text = user_id::text OR user_id IS NULL OR public.check_is_admin())
-  WITH CHECK (auth.uid()::text = user_id::text OR user_id IS NULL OR public.check_is_admin());
-
+-- Allow authenticated users to create businesses
 DROP POLICY IF EXISTS "Authenticated can insert business" ON public.businesses;
-CREATE POLICY "Authenticated can insert business" ON public.businesses FOR INSERT 
-  WITH CHECK (auth.uid()::uuid IS NOT NULL);
+CREATE POLICY "businesses_insert_authenticated" ON public.businesses 
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+-- Allow owners to manage their businesses
+DROP POLICY IF EXISTS "Registry access policy" ON public.businesses;
+CREATE POLICY "businesses_owner_manage" ON public.businesses 
+  FOR ALL USING (
+    auth.uid() = user_id OR 
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+  );
+
+-- Policy: Admin control for unowned records
+CREATE POLICY "businesses_admin_unowned" ON public.businesses
+  FOR ALL USING (
+    (user_id IS NULL) AND 
+    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+  );
 
 -- ==========================================
 -- 3. SOCIAL COMMERCE (FACES)

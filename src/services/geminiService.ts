@@ -60,19 +60,23 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
     const hasInitialKey = !!(envKey || metaKey);
 
     // 2. Sync from server (AI Studio Environment)
-    // Use a relative path to be more robust across different proxy/iframe configurations
-    const syncUrl = '/api/config';
-    console.log(`[Oracle] Syncing from: ${syncUrl} (Host: ${typeof window !== 'undefined' ? window.location.host : 'unknown'})`);
+    // Use a robust URL construction to handle various environment contexts
+    const isProd = typeof window !== 'undefined' && (window.location.hostname !== 'localhost' && !window.location.hostname.includes('0.0.0.0'));
+    const syncUrl = isProd ? '/api/config' : `${window.location.origin}/api/config`;
+    
+    console.log(`[Oracle] Initiating Sync Protocol. Target: ${syncUrl}`);
+    console.log(`[Oracle] Context: Host=${typeof window !== 'undefined' ? window.location.host : 'unknown'}, Proto=${typeof window !== 'undefined' ? window.location.protocol : 'unknown'}`);
     
     let response: Response | undefined;
     let retries = 3; 
+    let lastNetworkError: any = null;
+
     while (retries > 0) {
       try {
-        console.log(`[Oracle] Sync Attempt ${4 - retries} to ${syncUrl}...`);
+        console.log(`[Oracle] Relay attempt ${4 - retries} to ${syncUrl}...`);
         
-        // Add a timeout to the fetch call
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); 
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
         
         response = await fetch(syncUrl, { 
           signal: controller.signal,
@@ -80,29 +84,32 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache',
             'Accept': 'application/json'
-          }
+          },
+          credentials: 'omit' // No cookies needed for public config
         });
         clearTimeout(timeoutId);
         
         if (response.ok) {
           const contentType = response.headers.get("content-type");
           if (contentType && contentType.includes("application/json")) {
-            console.log("[Oracle] Server Connection Established. Signal Valid.");
+            console.log("[Oracle] Signal relay established. Connection verified.");
             break;
           } else {
-            const text = await response.text();
-            console.warn(`[Oracle] Attempt ${4 - retries} received non-JSON response (${contentType}):`, text.substring(0, 100));
+            const bodyPreview = (await response.text()).substring(0, 100);
+            console.warn(`[Oracle] Relay attempt ${4 - retries} returned non-JSON (${contentType}): ${bodyPreview}`);
           }
         } else {
-          console.warn(`[Oracle] Attempt ${4 - retries} failed with status: ${response.status}`);
+          console.warn(`[Oracle] Relay attempt ${4 - retries} failed with status: ${response.status}`);
         }
       } catch (e: any) {
-        console.warn(`[Oracle] Attempt ${4 - retries} failed with error:`, e.name === 'AbortError' ? 'Timeout' : (e.message || e));
+        lastNetworkError = e;
+        const msg = e.name === 'AbortError' ? 'Signal Timeout (20s)' : (e.message || e);
+        console.warn(`[Oracle] Relay attempt ${4 - retries} hardware fault: ${msg}`);
       }
       retries--;
-      if (retries > 0) {
-        const delay = (4 - retries) * 1500; 
-        console.log(`[Oracle] Waiting ${delay}ms before next relay attempt...`);
+      if (retries > 0 && !response?.ok) {
+        const delay = (4 - retries) * 2000; 
+        console.log(`[Oracle] Cooling down for ${delay}ms before next relay...`);
         await new Promise(r => setTimeout(r, delay));
       }
     }
@@ -115,8 +122,8 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
 
         if (config.supabaseUrl && config.supabaseUrl !== 'undefined' && config.supabaseUrl.trim() !== '') {
           // Prevent loopback configuration
-          if (config.supabaseUrl.includes(window.location.hostname) && !config.supabaseUrl.includes('supabase.co')) {
-            console.error("[Oracle] Loopback detected in server config: Supabase URL points to the application itself. Ignoring.");
+          if (typeof window !== 'undefined' && config.supabaseUrl.includes(window.location.hostname) && !config.supabaseUrl.includes('supabase.co')) {
+            console.error("[Oracle] Loopback detected in server config. Ignoring Supabase URL.");
           } else {
             localStorage.setItem('findaba_supabase_url', config.supabaseUrl);
             synced = true;
@@ -130,25 +137,30 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
 
         if (config.geminiKey && config.geminiKey !== 'undefined' && config.geminiKey.trim() !== '') {
           localStorage.setItem('findaba_gemini_key', config.geminiKey);
-          console.log("[Oracle] Gemini Signal Synchronized via Server Partner.");
+          console.log("[Oracle] Signal Logic: Gemini Key Synchronized.");
           synced = true;
         }
 
         if (config.openRouterKey && config.openRouterKey !== 'undefined' && config.openRouterKey.trim() !== '') {
           localStorage.setItem('findaba_openrouter_key', config.openRouterKey);
-          console.log("[Oracle] OpenRouter Signal Synchronized via Server Partner.");
+          console.log("[Oracle] Signal Logic: OpenRouter Key Synchronized.");
           synced = true;
         }
 
         if (config.paystackKey && config.paystackKey !== 'undefined' && config.paystackKey.trim() !== '') {
           localStorage.setItem('findaba_paystack_public_key', config.paystackKey);
-          console.log("[Oracle] Paystack Settlement Signal Synchronized.");
+          console.log("[Oracle] Settlement Signal Synchronized.");
         }
         
         if (synced) {
           return { status: 'healthy', message: 'Oracle Signals Synchronized (Server)', source: 'server' };
         }
       }
+    }
+
+    // 3. Fallback logic: If server sync failed, check for last network error message
+    if (lastNetworkError && !envKey && !metaKey) {
+      console.error("[Oracle] Server Sync Protocol Failed. Diagnostic:", lastNetworkError.message || lastNetworkError);
     }
 
     // 3. Environment Variable Fallback
