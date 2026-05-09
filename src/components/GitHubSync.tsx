@@ -24,24 +24,38 @@ export const GitHubSync: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const callbackUrl = `${window.location.origin}/api/auth/github/callback`;
 
-  const fetchUser = async () => {
+  const fetchUser = async (retries = 3) => {
     try {
+      console.log(`[GitHub] Attempting to fetch user info (Remaining retries: ${retries})...`);
       const response = await fetch('/api/github/user');
       if (response.ok) {
         const data = await response.json();
         setUser(data);
+        console.log('[GitHub] User info fetched successfully');
       } else if (response.status === 401) {
         setUser(null);
+        console.log('[GitHub] User not authenticated');
       } else {
         const errData = await response.json().catch(() => ({}));
-        console.warn('[GitHub] Fetch failed:', response.status, errData);
-        setUser(null);
+        console.warn('[GitHub] Fetch failed with status:', response.status, errData);
+        if (retries > 0) {
+          setTimeout(() => fetchUser(retries - 1), 2000);
+        } else {
+          setUser(null);
+        }
       }
     } catch (error: any) {
       console.error('Failed to fetch GitHub user:', error.message || error);
-      setUser(null);
+      if (retries > 0 && (error.message === 'Failed to fetch' || error.name === 'TypeError')) {
+        console.log('[GitHub] Network error, retrying...');
+        setTimeout(() => fetchUser(retries - 1), 3000);
+      } else {
+        setUser(null);
+      }
     } finally {
-      setLoading(false);
+      if (retries === 0) setLoading(false);
+      // Ensure loading state is cleared after a long enough time even if retries are pending
+      setTimeout(() => setLoading(false), 10000);
     }
   };
 

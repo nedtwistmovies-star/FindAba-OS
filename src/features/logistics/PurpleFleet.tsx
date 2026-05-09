@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   Car, Shield, MapPin, ArrowLeft, Navigation, 
   ShieldCheck, Loader2, Zap, Truck, MessageSquare,
-  AlertTriangle, Share2
+  AlertTriangle, Share2, Phone
 } from 'lucide-react';
 import { ViewState, Vehicle, VehicleCategory, RideBooking } from '../../types';
 import MapView from '../../components/MapView';
@@ -29,6 +30,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
   const [userLoc, setUserLoc] = useState<{ latitude: number, longitude: number } | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [liveSignals, setLiveSignals] = useState<Record<string, { lat: number, lng: number }>>({});
+  const [emergencyPhone, setEmergencyPhone] = useState<string>(localStorage.getItem('findaba_emergency_phone') || '');
 
   useEffect(() => {
     getCurrentPosition().then(pos => {
@@ -105,6 +107,24 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
     }
   };
 
+  useEffect(() => {
+    let interval: any;
+    if (currentRide && currentRide.status === 'in_progress') {
+      interval = setInterval(() => {
+        if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition((pos) => {
+            axios.post('/api/ride/location', {
+              ride_id: currentRide.id,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude
+            }).catch(() => {});
+          });
+        }
+      }, 30000);
+    }
+    return () => clearInterval(interval);
+  }, [currentRide?.status, currentRide?.id]);
+
   const handleSelectVehicle = (vehicle: any) => {
     setSelectedVehicle(vehicle);
     setSelectedCategory(vehicle.category);
@@ -114,27 +134,65 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
   const finalizeBooking = async () => {
     const userEmail = localStorage.getItem('findaba_user_email') || 'guest@findaba.com';
     const userName = localStorage.getItem('findaba_user_name') || 'Guest User';
+    const userPhone = localStorage.getItem('findaba_user_phone') || '';
     
-    const booking: Partial<RideBooking> = {
-      id: `RIDE-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-      passenger_email: userEmail,
-      passenger_name: userName,
-      vehicle_id: selectedVehicle?.id || availableVehicles[0]?.id,
-      pickup_addr: pickup,
-      dropoff_addr: dropoff,
-      pickup_notes: note,
-      amount: getPrice(selectedCategory),
-      status: 'requested',
-      created_at: new Date().toISOString()
-    };
-
+    setLoading(true);
     try {
-      const res = await createRideBooking(booking);
-      setCurrentRide(res);
-      setBookingStep('live');
-      addToast("Ride requested! Signal locked to driver.", "success");
+      const response = await axios.post('/api/ride/request', {
+        passenger_phone: userPhone,
+        pickup_lat: userLoc?.latitude,
+        pickup_lng: userLoc?.longitude,
+        dropoff_lat: 0, // Mock for now, would use geocoding
+        dropoff_lng: 0,
+        vehicle_type: selectedCategory === VehicleCategory.STANDARD ? 'keke' : 'taxi',
+        emergency_contact_phone: emergencyPhone
+      });
+
+      if (response.data.success) {
+        if (emergencyPhone) localStorage.setItem('findaba_emergency_phone', emergencyPhone);
+        setCurrentRide(response.data.ride);
+        setBookingStep('live');
+        addToast("Ride requested! Signal locked to driver.", "success");
+      }
     } catch (e) {
       addToast("Booking failed. Industrial network interference.", "error");
+    } finally {
+      setLoading(false);
+      setShowCheckout(false);
+    }
+  };
+
+  const handleVerifyOTP = async (otp: string) => {
+    if (!currentRide) return;
+    try {
+      const res = await axios.post('/api/ride/verify-otp', {
+        ride_id: currentRide.id,
+        otp
+      });
+      if (res.data.success) {
+        addToast("OTP Verified. Commencing Ride.", "success");
+        // State will update via real-time subscription
+      } else {
+        addToast("Invalid OTP Signal code.", "error");
+      }
+    } catch (e) {
+      addToast("Verification failure.", "error");
+    }
+  };
+
+  const handleEmergency = async () => {
+    if (!currentRide) return;
+    const userPhone = localStorage.getItem('findaba_user_phone') || '';
+    try {
+      const res = await axios.post('/api/ride/sos', {
+        ride_id: currentRide.id,
+        phone: userPhone
+      });
+      if (res.data.success) {
+        addToast(res.data.message || "EMERGENCY SIGNAL BROADCASTED. HELP IS ON THE WAY.", "error");
+      }
+    } catch (e) {
+      addToast("SOS broadcast failed. Signal lost.", "error");
     }
   };
 
@@ -207,6 +265,8 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
           setDropoff={setDropoff}
           passengers={passengers}
           setPassengers={setPassengers}
+          emergencyPhone={emergencyPhone}
+          setEmergencyPhone={setEmergencyPhone}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
           onConfirm={handleSearchVehicles}
@@ -250,6 +310,19 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                      
                      {currentRide?.status !== 'completed' && (
                        <div className="flex flex-col gap-4 pt-4">
+                         {currentRide?.status === 'accepted' && (
+                           <div className="bg-aba-gold/10 border border-aba-gold/20 p-6 rounded-2xl space-y-4">
+                              <p className="text-[10px] font-black uppercase text-aba-gold text-center">Security Handshake Required</p>
+                              <div className="flex justify-center gap-3">
+                                {[1,2,3,4].map(i => (
+                                  <div key={i} className="w-12 h-14 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-xl font-bold">
+                                    {currentRide.otp?.[i-1] || '•'}
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-[8px] font-bold text-white/40 text-center uppercase">Provide these digits to driver upon vessel arrival</p>
+                           </div>
+                         )}
                          <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 flex justify-between items-center">
                              <div className="flex items-center gap-5">
                                <div className="w-14 h-14 rounded-2xl bg-aba-gold/20 flex items-center justify-center text-aba-gold text-sm font-black border border-aba-gold/20">09</div>
@@ -258,7 +331,10 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">{selectedVehicle?.vehicle_model || 'Vessel Unit'} • {selectedVehicle?.plate_number}</p>
                                </div>
                              </div>
-                             <button className="p-4 bg-aba-gold text-aba-dark rounded-2xl active:scale-90 transition-all shadow-lg shadow-aba-gold/20"><Zap size={20} /></button>
+                             <div className="flex gap-2">
+                               <button onClick={handleEmergency} className="p-4 bg-red-500 text-white rounded-2xl active:scale-90 transition-all shadow-lg shadow-red-500/20"><AlertTriangle size={20} /></button>
+                               <button className="p-4 bg-aba-gold text-aba-dark rounded-2xl active:scale-90 transition-all shadow-lg shadow-aba-gold/20"><Phone size={20} /></button>
+                             </div>
                          </div>
                          <button onClick={() => setBookingStep('pickup')} className="w-full py-5 bg-white/5 border border-white/10 rounded-2xl font-black uppercase text-[10px] tracking-widest text-white/40 hover:text-white transition-all">Cancel Signal</button>
                        </div>

@@ -86,10 +86,10 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     setLoading(true);
     try {
       if (useMagicLink) {
-        await sendMagicLink(identifier);
+        await sendMagicLink(identifier.toLowerCase().trim());
         addToast("Magic signal dispatched. Check your inbox.", "success");
       } else {
-        const session = await loginWithUsername(identifier.trim(), password, keepSignedIn);
+        const session = await loginWithUsername(identifier.toLowerCase().trim(), password, keepSignedIn);
         if (session?.user) {
           const user = session.user;
           const role = localStorage.getItem('findaba_user_role') || 'registered';
@@ -256,7 +256,8 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                               placeholder="KEY" 
                               value={password}
                               onChange={e => setPassword(e.target.value)}
-                              className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                              className="flex-1 bg-transparent py-4 text-sm font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
+                              autoComplete="new-password"
                               required
                             />
                           </div>
@@ -269,7 +270,8 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                               placeholder="CONFIRM" 
                               value={confirmPassword}
                               onChange={e => setConfirmPassword(e.target.value)}
-                              className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                              className="flex-1 bg-transparent py-4 text-sm font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
+                            autoComplete="current-password"
                               required
                             />
                           </div>
@@ -400,7 +402,9 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                          placeholder="USERNAME OR EMAIL" 
                          value={identifier}
                          onChange={e => setIdentifier(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                         className="flex-1 bg-transparent py-4 text-[16px] font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                         autoComplete="username"
+                         autoCapitalize="none"
                          required
                        />
                      </div>

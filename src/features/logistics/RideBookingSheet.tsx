@@ -16,6 +16,8 @@ interface RideBookingSheetProps {
   setDropoff: (v: string) => void;
   passengers: number;
   setPassengers: (v: number) => void;
+  emergencyPhone: string;
+  setEmergencyPhone: (v: string) => void;
   selectedCategory: VehicleCategory;
   setSelectedCategory: (v: VehicleCategory) => void;
   onConfirm: () => void;
@@ -24,7 +26,8 @@ interface RideBookingSheetProps {
 
 const RideBookingSheet: React.FC<RideBookingSheetProps> = ({
   pickup, setPickup, dropoff, setDropoff,
-  passengers, setPassengers, selectedCategory, setSelectedCategory,
+  passengers, setPassengers, emergencyPhone, setEmergencyPhone,
+  selectedCategory, setSelectedCategory,
   onConfirm, loading
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -95,25 +98,30 @@ const RideBookingSheet: React.FC<RideBookingSheetProps> = ({
               </div>
 
               {/* PASSENGER STEPPER */}
-              <div className={`flex items-center justify-between ${inputHeight} bg-white/5 rounded-2xl border border-white/10 px-4`}>
-                <div className="flex items-center gap-3">
-                  <Users className="text-white/40" size={20} />
-                  <span className="text-xs font-bold uppercase tracking-widest text-white/60">Passengers</span>
+              <div className="flex gap-2">
+                <div className={`flex-[0.4] flex items-center justify-between ${inputHeight} bg-white/5 rounded-2xl border border-white/10 px-4`}>
+                    <button 
+                      onClick={() => setPassengers(Math.max(1, passengers - 1))}
+                      className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-aba-gold active:scale-90 transition-all text-xs"
+                    >
+                      -
+                    </button>
+                    <span className="text-sm font-black text-white">{passengers}</span>
+                    <button 
+                      onClick={() => setPassengers(Math.min(4, passengers + 1))}
+                      className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-aba-gold active:scale-90 transition-all text-xs"
+                    >
+                      +
+                    </button>
                 </div>
-                <div className="flex items-center gap-6">
-                  <button 
-                    onClick={() => setPassengers(Math.max(1, passengers - 1))}
-                    className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-aba-gold active:scale-90 transition-all"
-                  >
-                    -
-                  </button>
-                  <span className="text-lg font-black text-white w-4 text-center">{passengers}</span>
-                  <button 
-                    onClick={() => setPassengers(Math.min(4, passengers + 1))}
-                    className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-aba-gold active:scale-90 transition-all"
-                  >
-                    +
-                  </button>
+                <div className={`flex-[0.6] flex items-center ${inputHeight} bg-white/5 rounded-2xl border border-white/10 px-4 gap-3`}>
+                  <Shield size={16} className="text-white/40" />
+                  <input 
+                    value={emergencyPhone}
+                    onChange={(e) => setEmergencyPhone(e.target.value)}
+                    placeholder="SOS Contact"
+                    className="flex-1 bg-transparent outline-none text-xs font-bold text-white placeholder:text-white/20"
+                  />
                 </div>
               </div>
 

@@ -20,21 +20,35 @@ const MapView: React.FC<MapViewProps> = ({ businesses, onBusinessClick, userLoca
 
   // Initialize Map
   useEffect(() => {
-    if (!mapContainerRef.current || !L) return;
+    if (!mapContainerRef.current) return;
+    
+    // Check if L is available, if not, wait a bit
+    const initMap = () => {
+      const leaflet = (window as any).L;
+      if (!leaflet || mapRef.current) return;
 
-    if (!mapRef.current) {
-      mapRef.current = L.map(mapContainerRef.current, {
+      mapRef.current = leaflet.map(mapContainerRef.current, {
         zoomControl: false,
         attributionControl: false,
         fadeAnimation: true,
         markerZoomAnimation: true
       }).setView([5.1065, 7.3633], 14);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      leaflet.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19
       }).addTo(mapRef.current);
-    }
-  }, [L]);
+    };
+
+    initMap();
+    const interval = setInterval(() => {
+      if ((window as any).L) {
+        initMap();
+        clearInterval(interval);
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Update Route
   useEffect(() => {

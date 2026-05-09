@@ -22,19 +22,20 @@ serve(async (req) => {
     }),
   });
 
-  // Send via Termii
-  await fetch("https://api.termii.com/api/sms/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: phone,
-      from: Deno.env.get("TERMII_SENDER_ID") || "FindAba",
-      sms: `Your FindAba OTP is ${code}`,
-      type: "plain",
-      channel: "generic",
-      api_key: Deno.env.get("TERMII_API_KEY"),
-    }),
-  });
+  // Send via WhatsApp (via Make.com Webhook)
+  const makeUrl = Deno.env.get("MAKE_WEBHOOK_URL");
+  if (makeUrl) {
+    await fetch(makeUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "OTP_VERIFICATION",
+        phone,
+        otp: code,
+        message: `Your FindAba Verification Code is: ${code}. 🛡️\nDo not share this code with anyone.`
+      }),
+    });
+  }
 
   return new Response(JSON.stringify({ success: true }), { 
     status: 200,

@@ -3,11 +3,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Truck, Package, Shield, User, 
   ArrowRight, MapPin, CheckCircle2, History,
-  Bike, Navigation, Wallet, Settings
+  Bike, Navigation, Wallet, Settings,
+  Car, Layers
 } from 'lucide-react';
 import SenderBooking from './SenderBooking';
 import CarrierDashboard from './CarrierDashboard';
 import CarrierOnboarding from './CarrierOnboarding';
+import PurpleFleet from './PurpleFleet';
+import ThriftDashboard from '../finance/ThriftDashboard';
 import SettingsView from './SettingsView';
 import HistoryView from './HistoryView';
 import { useAuth } from '../../providers/AuthProvider';
@@ -19,10 +22,14 @@ const CarryGoDash: React.FC = () => {
   const { isAuth, user_id } = useAuth();
   const supabase = getSupabase();
   const [persona, setPersona] = useState<Persona>('guest');
-  const [view, setView] = useState<'hub' | 'booking' | 'dashboard' | 'onboarding' | 'settings' | 'history'>('hub');
+  const [view, setView] = useState<'hub' | 'booking' | 'dashboard' | 'onboarding' | 'settings' | 'history' | 'purple-fleet' | 'thrift'>('hub');
 
   const renderView = () => {
     switch (view) {
+      case 'purple-fleet':
+        return <PurpleFleet setView={setView as any} />;
+      case 'thrift':
+        return <ThriftDashboard setView={setView as any} userEmail={localStorage.getItem('findaba_user_email') || ''} userId={user_id || undefined} />;
       case 'settings':
         return <SettingsView />;
       case 'history':
@@ -59,11 +66,45 @@ const CarryGoDash: React.FC = () => {
                     <Package size={28} />
                   </div>
                   <div className="text-left">
-                    <h2 className="text-xl font-black uppercase tracking-tighter">Send Parcel</h2>
-                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Book a rider for Ariaria / Lagos / PH</p>
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Carry-Go</h2>
+                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Industrial Logistics & Cargo Relay</p>
                   </div>
                 </div>
                 <ArrowRight className="text-white/20 group-hover:text-aba-gold transition-colors" />
+              </button>
+
+              <button 
+                onClick={() => setView('purple-fleet')}
+                className="group relative bg-white/5 border border-white/10 p-8 rounded-[2.5rem] flex items-center justify-between hover:bg-white/10 transition-all overflow-hidden"
+              >
+                 <div className="absolute inset-x-0 bottom-0 h-1 bg-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center gap-6">
+                  <div className="p-5 bg-purple-500 text-white rounded-2xl shadow-xl">
+                    <Car size={28} />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Purple Fleet</h2>
+                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Secure Taxi & Keke Hailing Node</p>
+                  </div>
+                </div>
+                <ArrowRight className="text-white/20 group-hover:text-purple-500 transition-colors" />
+              </button>
+
+              <button 
+                onClick={() => setView('thrift')}
+                className="group relative bg-white/5 border border-white/10 p-8 rounded-[2.5rem] flex items-center justify-between hover:bg-white/10 transition-all overflow-hidden"
+              >
+                 <div className="absolute inset-x-0 bottom-0 h-1 bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center gap-6">
+                  <div className="p-5 bg-blue-500 text-white rounded-2xl shadow-xl">
+                    <Layers size={28} />
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Thrift Guild</h2>
+                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Community Isusu & Savings Relay</p>
+                  </div>
+                </div>
+                <ArrowRight className="text-white/20 group-hover:text-blue-500 transition-colors" />
               </button>
 
               <button 
@@ -76,8 +117,8 @@ const CarryGoDash: React.FC = () => {
                     <Bike size={28} />
                   </div>
                   <div className="text-left">
-                    <h2 className="text-xl font-black uppercase tracking-tighter">Earn as Carrier</h2>
-                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Onboard your bike or van today</p>
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Carrier Onboarding</h2>
+                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Register your vehicle to earn</p>
                   </div>
                 </div>
                 <ArrowRight className="text-white/20 group-hover:text-aba-green transition-colors" />

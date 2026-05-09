@@ -180,7 +180,10 @@ const CarrierDashboard: React.FC = () => {
                         <div className="flex justify-between">
                             <div className="flex items-center gap-2">
                                 <div className="p-2 bg-aba-gold/10 rounded-lg"><Package size={14} className="text-aba-gold" /></div>
-                                <p className="text-xs font-bold uppercase">{job.parcel_size} Parcel</p>
+                                <div className="flex flex-col">
+                                    <p className="text-xs font-bold uppercase">{job.parcel_size} Parcel</p>
+                                    <p className="text-[8px] font-black uppercase text-aba-gold/60">{job.urgency} • {job.preferred_window}</p>
+                                </div>
                             </div>
                             <p className="text-lg font-black tracking-tighter">₦{(job.amount * 0.7).toLocaleString()}</p>
                         </div>

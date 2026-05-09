@@ -82,5 +82,6 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'fleet-admin': lazyWithRetry(() => import('../features/logistics/FleetAdmin')),
   'hardware-audit': lazyWithRetry(() => import('../features/tech/HardwareAudit')),
   'carry-go-dash': lazyWithRetry(() => import('../features/logistics/CarryGoDash')),
-  onboarding: lazyWithRetry(() => import('../features/auth/Onboarding'))
+  onboarding: lazyWithRetry(() => import('../features/auth/Onboarding')),
+  tracking: lazyWithRetry(() => import('../features/logistics/LiveTracking'))
 };

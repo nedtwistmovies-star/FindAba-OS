@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import axios from 'axios';
 import { 
   ArrowLeft, Car, ShieldCheck, User, 
   Smartphone, Loader2, CheckCircle2, Landmark, 
@@ -55,6 +56,40 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
     }
   };
 
+  const handleOnboarding = async () => {
+    setLoading(true);
+    const userId = localStorage.getItem('findaba_user_id');
+    const userPhone = localStorage.getItem('findaba_user_phone');
+    
+    // Bank mapping for MVP
+    const bankCodes: Record<string, string> = {
+      'Access': '044', 'GTB': '058', 'FirstBank': '011', 'UBA': '033', 'Zenith': '057', 'Paystack': '000'
+    };
+
+    try {
+      const response = await axios.post('/api/onboard-driver', {
+        user_id: userId,
+        phone: userPhone,
+        full_name: formData.driver_name,
+        bvn: formData.driver_nin, // Reusing NIN for BVN simulation or adding field
+        nin: formData.driver_nin,
+        vehicle_type: formData.category === VehicleCategory.STANDARD ? 'keke' : 'taxi',
+        plate_number: formData.plate_number,
+        bank_code: bankCodes[formData.bank_name] || '044',
+        account_number: formData.account_number
+      });
+
+      if (response.data.success) {
+        setStep('success');
+        addToast("Driver node activated! Signal clear.", "success");
+      }
+    } catch (e: any) {
+      addToast(e.response?.data?.error || "Registry synchronization failure.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (step === 'success') {
     return (
       <div className="fixed inset-0 z-[6000] bg-[#002113] flex flex-col items-center justify-center p-8 text-center animate-fade-in font-sans">
@@ -74,7 +109,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-aba-dark animate-fade-in pb-40">
-      <PaystackOverlay isOpen={showCheckout} amount={15000} email={localStorage.getItem('findaba_user_email') || ''} label="Fleet Enrollment" onSuccess={() => setStep('success')} onCancel={() => setShowCheckout(false)} />
+      <PaystackOverlay isOpen={showCheckout} amount={15000} email={localStorage.getItem('findaba_user_email') || ''} label="Fleet Enrollment" onSuccess={handleOnboarding} onCancel={() => setShowCheckout(false)} />
 
       <header className="bg-white p-8 flex items-center justify-between border-b border-slate-100 sticky top-0 z-[500]">
         <div className="flex items-center gap-6">
