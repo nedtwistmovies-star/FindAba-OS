@@ -361,6 +361,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                         <input 
                           type="email" 
                           placeholder=" "
+                          autoCapitalize="none"
                           className="w-full bg-black/40 border border-white/10 p-6 pl-16 rounded-2xl text-xs font-bold outline-none focus:border-aba-gold transition-all" 
                           value={bookingData.email} 
                           onChange={e => setBookingData({...bookingData, email: e.target.value})} 

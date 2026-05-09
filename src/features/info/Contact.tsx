@@ -150,7 +150,8 @@ const Contact: React.FC<ContactProps> = ({ language, setView }) => {
                           type="email" 
                           required
                           placeholder="Registry Email" 
-                          className="w-full pl-16 pr-6 py-6 bg-white/5 border-2 border-transparent rounded-[2.2rem] outline-none focus:border-aba-gold/50 text-sm font-black uppercase transition-all" 
+                          autoCapitalize="none"
+                          className="w-full pl-16 pr-6 py-6 bg-white/5 border-2 border-transparent rounded-[2.2rem] outline-none focus:border-aba-gold/50 text-sm font-black transition-all" 
                         />
                       </div>
                       <div className="relative group">

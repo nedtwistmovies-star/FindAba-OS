@@ -224,6 +224,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
           <input 
             type="email" 
             placeholder="Registered Email" 
+            autoCapitalize="none"
             className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold outline-none focus:border-aba-gold transition-all"
             value={authEmail}
             onChange={e => setAuthEmail(e.target.value)}

@@ -114,9 +114,10 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                        required
                        type="text" 
                        placeholder="INDUSTRIAL USERNAME" 
-                       className="flex-1 bg-transparent py-4 pr-6 outline-none text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
+                       className="flex-1 bg-transparent py-4 pr-6 outline-none text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 text-white"
                        value={formData.username}
                        onChange={e => setFormData({...formData, username: e.target.value.toLowerCase().replace(/\s/g, '')})}
+                       autoCapitalize="none"
                     />
                   </div>
                </div>
@@ -142,9 +143,10 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                        required
                        type="email" 
                        placeholder="REGISTRY EMAIL ADDRESS" 
-                       className="flex-1 bg-transparent py-4 pr-6 outline-none text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
+                       className="flex-1 bg-transparent py-4 pr-6 outline-none text-[16px] font-bold tracking-wide placeholder:text-white/20 text-white"
                        value={formData.email}
                        onChange={e => setFormData({...formData, email: e.target.value})}
+                       autoCapitalize="none"
                     />
                   </div>
                </div>

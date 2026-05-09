@@ -468,9 +468,19 @@ CREATE TABLE IF NOT EXISTS public.platform_config (
   instagram_url TEXT,
   twitter_url TEXT,
   tiktok_url TEXT,
+  make_webhook_url TEXT,
+  meta_config JSONB DEFAULT '{}',
   domain_activated BOOLEAN DEFAULT FALSE,
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT single_row CHECK (id = 1)
+);
+
+CREATE TABLE IF NOT EXISTS public.otp_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone TEXT NOT NULL,
+  code TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.hospitality_config (

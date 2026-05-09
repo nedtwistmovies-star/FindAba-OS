@@ -20,6 +20,10 @@ create table if not exists public.profiles (
   referred_by uuid references public.profiles(id),
   referral_count integer default 0,
   referral_earnings numeric default 0,
+  is_verified boolean default false,
+  verified_at timestamptz,
+  verification_status text default 'unverified',
+  identity_docs jsonb default '{}',
   preferred_language text default 'en',
   notification_settings jsonb default '{"email": true, "sms": false, "push": true}',
   dark_mode boolean default false,
@@ -116,6 +120,10 @@ create table if not exists public.platform_config (
   instagram_url text,
   twitter_url text,
   tiktok_url text,
+  make_webhook_url text,
+  meta_config jsonb default '{}',
+  facebook_app_id text,
+  meta_business_id text,
   domain_activated boolean default false,
   updated_at timestamptz default now()
 );

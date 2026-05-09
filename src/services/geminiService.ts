@@ -60,24 +60,26 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
     const hasInitialKey = !!(envKey || metaKey);
 
     // 2. Sync from server (AI Studio Environment)
-    // Use an absolute-style relative path to be more robust
-    const syncUrl = `${window.location.origin}/api/config`;
-    console.log(`[Oracle] Syncing from: ${syncUrl}`);
+    // Use a relative path to be more robust across different proxy/iframe configurations
+    const syncUrl = '/api/config';
+    console.log(`[Oracle] Syncing from: ${syncUrl} (Host: ${typeof window !== 'undefined' ? window.location.host : 'unknown'})`);
     
-    let response;
-    let retries = 5; // Increased retries
+    let response: Response | undefined;
+    let retries = 3; 
     while (retries > 0) {
       try {
-        console.log(`[Oracle] Sync Attempt ${6 - retries} to ${syncUrl}... (CORS: ${window.location.origin})`);
+        console.log(`[Oracle] Sync Attempt ${4 - retries} to ${syncUrl}...`);
+        
         // Add a timeout to the fetch call
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased timeout to 20s
+        const timeoutId = setTimeout(() => controller.abort(), 15000); 
         
         response = await fetch(syncUrl, { 
           signal: controller.signal,
           headers: {
             'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Pragma': 'no-cache',
+            'Accept': 'application/json'
           }
         });
         clearTimeout(timeoutId);
@@ -89,17 +91,17 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
             break;
           } else {
             const text = await response.text();
-            console.warn(`[Oracle] Attempt ${6 - retries} received non-JSON response (${contentType}):`, text.substring(0, 50));
+            console.warn(`[Oracle] Attempt ${4 - retries} received non-JSON response (${contentType}):`, text.substring(0, 100));
           }
         } else {
-          console.warn(`[Oracle] Attempt ${6 - retries} failed with status: ${response.status}`);
+          console.warn(`[Oracle] Attempt ${4 - retries} failed with status: ${response.status}`);
         }
       } catch (e: any) {
-        console.warn(`[Oracle] Attempt ${6 - retries} failed with error:`, e.message || e);
+        console.warn(`[Oracle] Attempt ${4 - retries} failed with error:`, e.name === 'AbortError' ? 'Timeout' : (e.message || e));
       }
       retries--;
       if (retries > 0) {
-        const delay = (6 - retries) * 2000; // Exponential backoff simulation
+        const delay = (4 - retries) * 1500; 
         console.log(`[Oracle] Waiting ${delay}ms before next relay attempt...`);
         await new Promise(r => setTimeout(r, delay));
       }

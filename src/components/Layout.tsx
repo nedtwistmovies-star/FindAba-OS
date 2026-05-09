@@ -571,6 +571,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                     <input 
                       type="email" 
                       placeholder="Enter your email" 
+                      autoCapitalize="none"
                       className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm outline-none focus:border-aba-gold transition-standard"
                     />
                   </div>

@@ -98,11 +98,18 @@ interface AutomationAuditProps {
   runAudit: () => Promise<void>;
 }
 
-const AutomationAudit: React.FC<AutomationAuditProps> = ({ status, auditing, runAudit }) => {
+  const AutomationAudit: React.FC<AutomationAuditProps> = ({ status, auditing, runAudit }) => {
   const { addToast } = useToast();
-  const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('findaba_make_webhook_url') || '');
+  const { config, updateConfig } = useBusiness();
+  const [webhookUrl, setWebhookUrl] = useState('');
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+
+  useEffect(() => {
+    if (config?.make_webhook_url) {
+      setWebhookUrl(config.make_webhook_url);
+    }
+  }, [config]);
 
   const loadLogs = useCallback(async () => {
     setLoadingLogs(true);
@@ -308,11 +315,12 @@ const AutomationAudit: React.FC<AutomationAuditProps> = ({ status, auditing, run
                 size="md" 
                 icon={Save}
                 disabled={webhookUrl !== '' && !webhookUrl.startsWith('http')}
-                onClick={() => {
+                onClick={async () => {
                   if (webhookUrl && !webhookUrl.startsWith('http')) {
                     addToast("Invalid URL: Must start with http:// or https://", "error");
                     return;
                   }
+                  await updateConfig({ make_webhook_url: webhookUrl.trim() });
                   localStorage.setItem('findaba_make_webhook_url', webhookUrl.trim());
                   addToast("Webhook URL Saved", "success");
                 }}
@@ -480,6 +488,7 @@ const EmailAudit: React.FC = () => {
               <input 
                 type="email"
                 value={testEmail}
+                autoCapitalize="none"
                 onChange={(e) => setTestEmail(e.target.value)}
                 placeholder="email@example.com"
                 className="flex-1 bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
@@ -608,6 +617,7 @@ const MetadataEditor: React.FC = () => {
           <input 
             type="email" 
             value={metadata.contact_email || ''} 
+            autoCapitalize="none"
             onChange={e => setMetadata({...metadata, contact_email: e.target.value})}
             className="w-full bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
           />

@@ -213,7 +213,8 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                            placeholder="FULL NAME" 
                            value={fullName}
                            onChange={e => setFullName(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                           className="flex-1 bg-transparent py-4 text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
+                           autoComplete="name"
                            required
                          />
                        </div>
@@ -227,7 +228,8 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                            placeholder="UNIQUE USERNAME" 
                            value={username}
                            onChange={e => setUsername(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                           className="flex-1 bg-transparent py-4 text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
+                           autoComplete="username"
                            required
                          />
                        </div>
@@ -241,7 +243,9 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                            placeholder="EMAIL ADDRESS" 
                            value={identifier}
                            onChange={e => setIdentifier(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                           className="flex-1 bg-transparent py-4 text-[16px] font-bold tracking-wide placeholder:text-white/20 outline-none"
+                           autoComplete="email"
+                           autoCapitalize="none"
                            required
                          />
                        </div>
@@ -317,7 +321,9 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                          placeholder="RECOVERY EMAIL" 
                          value={identifier}
                          onChange={e => setIdentifier(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                         className="flex-1 bg-transparent py-4 text-[16px] font-bold tracking-wide placeholder:text-white/20 outline-none"
+                         autoComplete="email"
+                         autoCapitalize="none"
                          required
                        />
                      </div>
@@ -361,7 +367,8 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                          placeholder="NEW PROTOCOL KEY" 
                          value={newPassword}
                          onChange={e => setNewPassword(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                         className="flex-1 bg-transparent py-4 text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
+                         autoComplete="new-password"
                          required
                        />
                      </div>
@@ -402,7 +409,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                          placeholder="USERNAME OR EMAIL" 
                          value={identifier}
                          onChange={e => setIdentifier(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-[16px] font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                         className="flex-1 bg-transparent py-4 text-[16px] font-black placeholder:text-white/20 outline-none"
                          autoComplete="username"
                          autoCapitalize="none"
                          required
@@ -423,7 +430,8 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                            placeholder="PROTOCOL KEY" 
                            value={password}
                            onChange={e => setPassword(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
+                           className="flex-1 bg-transparent py-4 text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
+                           autoComplete="current-password"
                            required={!useMagicLink}
                          />
                        </div>

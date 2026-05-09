@@ -193,7 +193,13 @@ const HotelPartnerControl: React.FC<{ setView: (v: ViewState) => void }> = ({ se
                            </div>
                            <div className="space-y-1">
                               <label className="text-[8px] font-black uppercase text-white/60 tracking-widest ml-1">Registry Email</label>
-                              <input type="email" className="w-full p-5 bg-black/40 border border-white/10 rounded-2xl text-xs font-black outline-none focus:border-aba-gold text-white" value={hotelForm.email} onChange={e => setHotelForm({...hotelForm, email: e.target.value})} />
+                              <input 
+                                type="email" 
+                                autoCapitalize="none"
+                                className="w-full p-5 bg-black/40 border border-white/10 rounded-2xl text-xs font-black outline-none focus:border-aba-gold text-white" 
+                                value={hotelForm.email} 
+                                onChange={e => setHotelForm({...hotelForm, email: e.target.value})} 
+                              />
                            </div>
                          </div>
                          <div className="space-y-1">

@@ -305,9 +305,10 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                     required
                     type="email"
                     value={formData.email}
+                    autoCapitalize="none"
                     onChange={e => setFormData({...formData, email: e.target.value})}
                     placeholder="master@hub.com"
-                    className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
+                    className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold tracking-tight"
                   />
                 </div>
                 <div className="space-y-3">

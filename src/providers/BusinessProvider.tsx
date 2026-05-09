@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Business, EditorialStory } from '../types';
+import { Business, EditorialStory, PlatformConfig } from '../types';
 import { ARTISANS } from '../constants';
 import { fetchAllBusinesses, fetchFavorites } from '../services/supabaseService';
 import { useAuth } from './AuthProvider';
@@ -25,6 +25,8 @@ interface BusinessContextType {
   isSearching: boolean;
   loading: boolean;
   error: string | null;
+  config: PlatformConfig | null;
+  updateConfig: (updates: Partial<PlatformConfig>) => Promise<void>;
   gitSyncStatus: any;
 }
 
@@ -58,6 +60,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Business[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [config, setConfig] = useState<PlatformConfig | null>(null);
 
   const [loading, setLoading] = useState(() => {
     try {
@@ -87,6 +90,28 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
   }, [gitStatus, addToast]);
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const { fetchPlatformConfig } = await import('../services/supabaseService');
+        const data = await fetchPlatformConfig();
+        setConfig(data);
+      } catch (e) { console.warn("Config signal weak", e); }
+    };
+    loadConfig();
+  }, []);
+
+  const updateConfig = async (updates: Partial<PlatformConfig>) => {
+    try {
+      const { updatePlatformConfig: updateService } = await import('../services/supabaseService');
+      await updateService(updates);
+      setConfig(prev => prev ? { ...prev, ...updates } : null);
+    } catch (e) {
+      console.error("Config update failed", e);
+      throw e;
+    }
+  };
 
   const toggleFavorite = async (id: string) => {
     if (!userIdentifier) {
@@ -283,6 +308,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       selectedStory, setSelectedStory, selectedAdvertorial, setSelectedAdvertorial, 
       toggleFavorite, refreshData, commitAll, loading, error,
       searchQuery, setSearchQuery, searchResults, isSearching,
+      config, updateConfig,
       gitSyncStatus: gitStatus
     }}>
       {children}

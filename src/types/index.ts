@@ -574,6 +574,7 @@ export interface PlatformConfig {
   twitter_url?: string;
   tiktok_url?: string;
   domain_activated?: boolean;
+  make_webhook_url?: string;
   updated_at: string;
 }
 
@@ -724,6 +725,10 @@ export interface Profile {
     push: boolean;
   };
   dark_mode?: boolean;
+  is_verified?: boolean;
+  verified_at?: string;
+  verification_status?: string;
+  identity_docs?: any;
   created_at: string;
 }
 
