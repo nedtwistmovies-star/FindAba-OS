@@ -58,16 +58,23 @@ ALTER TABLE thrift_group_contributions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE thrift_payouts ENABLE ROW LEVEL SECURITY;
 
 -- Policies for Groups
+DROP POLICY IF EXISTS "Anyone can view forming groups" ON thrift_groups;
 CREATE POLICY "Anyone can view forming groups" ON thrift_groups FOR SELECT USING (status = 'forming' OR creator_id = auth.uid() OR id IN (SELECT group_id FROM thrift_group_members WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "Members can create groups" ON thrift_groups;
 CREATE POLICY "Members can create groups" ON thrift_groups FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Policies for Members
+DROP POLICY IF EXISTS "Members can view their group members" ON thrift_group_members;
 CREATE POLICY "Members can view their group members" ON thrift_group_members FOR SELECT USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Users can join groups" ON thrift_group_members;
 CREATE POLICY "Users can join groups" ON thrift_group_members FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Policies for Contributions
+DROP POLICY IF EXISTS "Members can view group contributions" ON thrift_group_contributions;
 CREATE POLICY "Members can view group contributions" ON thrift_group_contributions FOR SELECT USING (group_id IN (SELECT group_id FROM thrift_group_members WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "Members can make contributions" ON thrift_group_contributions;
 CREATE POLICY "Members can make contributions" ON thrift_group_contributions FOR INSERT WITH CHECK (user_id = auth.uid());
 
 -- Policies for Payouts
+DROP POLICY IF EXISTS "Users can view their payouts" ON thrift_payouts;
 CREATE POLICY "Users can view their payouts" ON thrift_payouts FOR SELECT USING (user_id = auth.uid() OR group_id IN (SELECT group_id FROM thrift_group_members WHERE user_id = auth.uid()));

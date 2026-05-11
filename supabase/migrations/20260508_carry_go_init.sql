@@ -107,21 +107,30 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS notify_delivery_confirmed B
 
 -- RLS for Thrift Groups (Fix for Screenshot 0)
 ALTER TABLE public.thrift_groups ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can view groups" ON public.thrift_groups;
 CREATE POLICY "Anyone can view groups" ON public.thrift_groups FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Verified users can create groups" ON public.thrift_groups;
 CREATE POLICY "Verified users can create groups" ON public.thrift_groups FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Owners can update groups" ON public.thrift_groups;
 CREATE POLICY "Owners can update groups" ON public.thrift_groups FOR UPDATE USING (auth.uid() = creator_id);
 
 -- RLS for new tables
 ALTER TABLE public.ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.escalations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view relevant ratings" ON public.ratings;
 CREATE POLICY "Users can view relevant ratings" ON public.ratings FOR SELECT USING (auth.uid() = reviewer_id OR auth.uid() = reviewee_id);
+DROP POLICY IF EXISTS "Users can insert own ratings" ON public.ratings;
 CREATE POLICY "Users can insert own ratings" ON public.ratings FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
 
+DROP POLICY IF EXISTS "Users can view own escalations" ON public.escalations;
 CREATE POLICY "Users can view own escalations" ON public.escalations FOR SELECT USING (auth.uid() = reported_by OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+DROP POLICY IF EXISTS "Users can insert escalations" ON public.escalations;
 CREATE POLICY "Users can insert escalations" ON public.escalations FOR INSERT WITH CHECK (auth.uid() = reported_by);
 
+DROP POLICY IF EXISTS "Carriers view own Profile" ON public.carriers;
 CREATE POLICY "Carriers view own Profile" ON public.carriers FOR SELECT USING (auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+DROP POLICY IF EXISTS "Senders view own Shipments" ON public.shipments;
 CREATE POLICY "Senders view own Shipments" ON public.shipments FOR SELECT USING (auth.uid() = sender_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- FUNCTIONS

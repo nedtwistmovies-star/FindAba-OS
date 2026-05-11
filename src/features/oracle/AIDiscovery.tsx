@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Business, ViewState } from '../../types';
 import { findArtisansAI } from '../../services/geminiService';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AIDiscoveryProps {
   businesses: Business[];

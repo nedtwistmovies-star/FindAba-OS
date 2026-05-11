@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, ShieldCheck, Truck, Wallet, 
   MessageSquare, ArrowRight, ChevronRight, 
@@ -101,14 +101,23 @@ const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
            full_name: formData.name,
            role: formData.role === 'business' ? 'merchant' : 'registered'
          }).eq('id', user.id);
+         
+         localStorage.setItem('findaba_onboarded', 'true');
+         localStorage.setItem('findaba_user_role', formData.role === 'business' ? 'merchant' : 'registered');
+         
+         if (formData.role === 'business') {
+           setView('register'); // Go straight to hub registration
+         } else {
+           setView('home');
+         }
+       } else {
+         // Guest user trying to finalize -> Send to Login but save intent
+         localStorage.setItem('findaba_pending_name', formData.name);
+         localStorage.setItem('findaba_pending_role', formData.role);
+         setView('login');
        }
-       
-       localStorage.setItem('findaba_onboarded', 'true');
-       localStorage.setItem('findaba_user_role', formData.role === 'business' ? 'merchant' : 'registered');
-       setView('home');
     } catch (err) {
        console.error("Onboarding sync failed", err);
-       // Fallback to home anyway so as not to block user
        setView('home');
     } finally {
        setIsSubmitting(false);
@@ -242,18 +251,18 @@ const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
                 {step.icon}
               </div>
               <div className="space-y-4">
-                <h3 className={`text-[10px] font-black uppercase tracking-[0.5em] ${step.accent}`}>{step.subtitle}</h3>
-                <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-[0.9] text-white">{step.title}</h2>
+                <h3 className={`text-xs font-black uppercase tracking-[0.5em] ${step.accent}`}>{step.subtitle}</h3>
+                <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[0.85] text-white underline decoration-aba-gold/30 underline-offset-8 decoration-4">{step.title}</h2>
                 <div className="max-w-md">
-                   {currentStep === -1 ? (
-                     <p className="text-lg md:text-xl font-medium text-white/80 leading-relaxed italic font-serif border-l-2 border-aba-gold/30 pl-6 py-2">
-                       "{step.description}"
-                     </p>
-                   ) : (
-                     <p className="text-white/60 text-base md:text-lg font-medium leading-relaxed">
-                       {step.description}
-                     </p>
-                   )}
+                    {currentStep === -1 ? (
+                      <p className="text-2xl md:text-3xl font-black text-white leading-tight italic font-serif border-l-8 border-aba-gold pl-8 py-3">
+                        "{step.description}"
+                      </p>
+                    ) : (
+                      <p className="text-white text-xl md:text-2xl font-black leading-snug tracking-tight">
+                        {step.description}
+                      </p>
+                    )}
                 </div>
               </div>
             </motion.div>

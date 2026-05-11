@@ -19,9 +19,9 @@ export const SANDALS_BRAND = {
 
 // MANUAL SETTLEMENT GATEWAY v1.0
 export const OFFICIAL_BANK_DETAILS = {
-  bankName: "SANDALSROYALLE OFFICIAL BANK",
-  accountNumber: import.meta.env.VITE_ACCOUNT_NUMBER || "0000000000",
-  accountName: "SANDALSroyalle Special Events Hub",
+  bankName: import.meta.env.VITE_BANK_NAME || "Moniepoint",
+  accountNumber: import.meta.env.VITE_ACCOUNT_NUMBER || "8024101540",
+  accountName: import.meta.env.VITE_ACCOUNT_NAME || "SANDALSroyalle S P Services",
   transferNote: "Include Partner-ID in Transfer Memo"
 };
 

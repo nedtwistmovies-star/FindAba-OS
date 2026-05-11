@@ -704,6 +704,16 @@ export interface AppNotification {
   timestamp: string;
 }
 
+export interface SupportMessage {
+  id?: string;
+  name?: string;
+  email: string;
+  subject?: string;
+  message: string;
+  status?: 'unread' | 'read' | 'archived';
+  created_at?: string;
+}
+
 export interface Profile {
   id: string;
   auth_id?: string;

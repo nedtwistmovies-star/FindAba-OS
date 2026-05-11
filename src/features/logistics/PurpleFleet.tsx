@@ -63,7 +63,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
         .on('postgres_changes', { 
           event: 'UPDATE', 
           schema: 'public', 
-          table: 'ride_bookings',
+          table: 'rides',
           filter: `id=eq.${currentRide.id}`
         }, (payload: any) => {
           setCurrentRide(payload.new as RideBooking);
@@ -99,7 +99,13 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
         });
       }
       setAvailableVehicles(vehicles.slice(0, 3));
-      setBookingStep('confirm');
+      if (vehicles.length > 0) {
+        setSelectedVehicle(vehicles[0]); // Auto-select best match
+        setBookingStep('confirm');
+        setShowCheckout(true); // Proceed to checkout
+      } else {
+        addToast("No vessels currently on the industrial grid. Try another category.", "info");
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -138,12 +144,16 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
     
     setLoading(true);
     try {
+      // Calculate a mock dropoff near the pickup to avoid 0,0 issues
+      const dLat = (userLoc?.latitude || 5.1065) + (Math.random() - 0.5) * 0.02;
+      const dLng = (userLoc?.longitude || 7.3633) + (Math.random() - 0.5) * 0.02;
+
       const response = await axios.post('/api/ride/request', {
         passenger_phone: userPhone,
         pickup_lat: userLoc?.latitude,
         pickup_lng: userLoc?.longitude,
-        dropoff_lat: 0, // Mock for now, would use geocoding
-        dropoff_lng: 0,
+        dropoff_lat: dLat,
+        dropoff_lng: dLng,
         vehicle_type: selectedCategory === VehicleCategory.STANDARD ? 'keke' : 'taxi',
         emergency_contact_phone: emergencyPhone
       });
@@ -239,7 +249,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
           onBusinessClick={() => {}} 
           userLocation={userLoc}
         />
-        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
       </div>
 
       {/* HEADER OVERLAY */}
@@ -302,7 +312,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                            currentRide?.status === 'completed' ? 'Mission Finalized' :
                            'Signal Active'}
                         </h3>
-                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em] leading-relaxed max-w-xs mx-auto">
+                        <p className="text-xs font-black text-white uppercase tracking-[0.2em] leading-relaxed max-w-xs mx-auto">
                            {currentRide?.status === 'completed' ? 'Registry Settlement Committed. Thank you for using Purple Fleet.' : 
                             'Officer Partner is navigating to your pickup partner. Registry Handshake Verified.'}
                         </p>

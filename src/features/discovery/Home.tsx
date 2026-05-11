@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, useScroll, useTransform } from 'motion/react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane } from 'lucide-react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane, Settings2, Rocket } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader, ImageCarousel, GitHubSync, SupabaseSync, BusinessCard } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
@@ -100,16 +100,16 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         <CitySignals />
       </div>
 
-      {/* 1. HERO SECTION - WhatsApp First */}
-      <section className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 md:px-12 py-16 overflow-hidden">
+      {/* 1. HERO SECTION - Industrial Matrix First */}
+      <section className="relative min-h-[85vh] flex flex-col items-center justify-center px-6 md:px-12 py-16 overflow-hidden">
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
           <ImageCarousel 
             images={heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES} 
-            className="h-full w-full"
+            className="h-full w-full opacity-60 grayscale-[0.8]"
             interval={8000}
           />
-          <div className="absolute inset-0 bg-aba-deep/70 backdrop-blur-[1px]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-aba-deep/30 to-aba-deep" />
+          <div className="absolute inset-0 bg-[#00120b]/80 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#00120b]/40 to-aba-deep" />
         </motion.div>
         
         <motion.div style={{ y: textY }} className="relative z-10 w-full max-w-6xl flex flex-col items-center text-center space-y-12">
@@ -117,90 +117,145 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-3 px-4 py-2 bg-aba-gold/10 backdrop-blur-md rounded-full border border-aba-gold/20 text-aba-gold text-[10px] md:text-xs font-black uppercase tracking-[0.2em]"
+              className="inline-flex items-center gap-3 px-5 py-2.5 bg-aba-gold/10 backdrop-blur-md rounded-full border border-aba-gold/20 text-aba-gold text-[10px] md:text-xs font-black uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(255,215,0,0.1)]"
             >
-              <Zap size={14} className="animate-pulse" /> Direct WhatsApp Connection
+              <Cpu size={14} className="animate-pulse" /> Enyimba Industrial Matrix OS
             </motion.div>
 
-            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black text-white tracking-tighter leading-[0.9] uppercase italic">
-              FindAba<span className="text-aba-gold">.com.ng</span> <br/>
-              <span className="text-white">🚚🚕 Ready Now.</span>
+            <h1 className="text-5xl sm:text-7xl md:text-9xl font-black text-white tracking-tighter leading-[0.85] uppercase italic text-center drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+              Aba's Digital <br/>
+              <span className="text-aba-gold">Heartbeat.</span>
             </h1>
 
-            <p className="text-white/70 text-sm md:text-xl font-bold max-w-2xl mx-auto uppercase tracking-widest leading-relaxed">
-              Send parcel, book keke, all for WhatsApp. <br className="hidden md:block" />
-              <span className="text-aba-gold">No app download. No long form.</span>
+            <p className="text-white/60 text-xs sm:text-base md:text-xl font-bold max-w-2xl mx-auto uppercase tracking-[0.2em] leading-relaxed text-center px-4">
+              Find verified artisans, book industrial hubs, <br className="hidden md:block" />
+              and trade securely in the heart of Enyimba.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-6 w-full max-w-2xl">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full max-w-2xl px-4">
+            <button 
+              onClick={() => setView('onboarding')}
+              className="w-full sm:flex-1 h-20 bg-white hover:bg-aba-gold text-aba-deep rounded-3xl flex items-center justify-center gap-4 group transition-all duration-500 shadow-[0_0_50px_-10px_rgba(255,255,255,0.2)] active:scale-[0.98] cursor-pointer"
+            >
+              <div className="w-12 h-12 bg-aba-deep text-white rounded-2xl flex items-center justify-center group-hover:bg-aba-deep group-hover:scale-110 transition-all duration-500">
+                <Search size={24} strokeWidth={3} />
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Digital Registry</p>
+                <p className="text-lg font-black uppercase tracking-tighter">Join Matrix →</p>
+              </div>
+            </button>
+
             <a 
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:flex-1 h-20 bg-aba-gold hover:bg-white text-aba-deep rounded-2xl flex items-center justify-center gap-4 group transition-all duration-500 shadow-[0_0_40px_-10px_rgba(255,200,0,0.3)] hover:shadow-aba-gold/40 active:scale-[0.98]"
+              className="w-full sm:flex-1 h-20 bg-aba-green hover:bg-white text-white hover:text-aba-green rounded-3xl flex items-center justify-center gap-4 group transition-all duration-500 shadow-[0_0_50px_-10px_rgba(34,197,94,0.2)] active:scale-[0.98] cursor-pointer"
             >
-              <div className="w-12 h-12 bg-aba-deep text-aba-gold rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+              <div className="w-12 h-12 bg-white/20 text-white group-hover:bg-aba-green group-hover:text-white rounded-2xl flex items-center justify-center transition-all duration-500">
                 <MessageSquare size={24} strokeWidth={3} />
               </div>
               <div className="text-left">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Open WhatsApp</p>
-                <p className="text-lg font-black uppercase tracking-tighter">Start for Chat →</p>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Human Handshake</p>
+                <p className="text-lg font-black uppercase tracking-tighter">Chat Kalu ✨</p>
               </div>
             </a>
-
-            <div 
-              onClick={() => setView('explore')}
-              className="w-full sm:w-auto h-20 px-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center gap-4 cursor-pointer hover:bg-white/10 transition-all duration-500 active:scale-[0.98]"
-            >
-              <Search size={20} className="text-white/40" />
-              <span className="text-xs font-black text-white uppercase tracking-widest">Browse Registry</span>
-            </div>
           </div>
+
+          {/* Floating WhatsApp Button */}
+          <motion.a
+            href={whatsappLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="fixed bottom-8 right-8 z-[1000] w-16 h-16 bg-aba-green text-white rounded-full flex items-center justify-center shadow-2xl border-4 border-aba-deep"
+          >
+            <MessageSquare size={32} />
+            <div className="absolute top-0 right-0 w-4 h-4 bg-aba-gold rounded-full border-2 border-aba-deep animate-ping" />
+          </motion.a>
 
           <div className="flex items-center gap-8 pt-8">
             <div className="flex -space-x-3">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="w-10 h-10 rounded-full border-2 border-aba-deep bg-aba-gold/20 backdrop-blur-md flex items-center justify-center overflow-hidden">
-                  <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="user" className="w-full h-full object-cover" />
+                  <img src={`https://i.pravatar.cc/100?img=${i + 20}`} alt="user" className="w-full h-full object-cover grayscale" />
                 </div>
               ))}
               <div className="w-10 h-10 rounded-full border-2 border-aba-deep bg-aba-gold text-aba-deep flex items-center justify-center text-[10px] font-bold">
-                +200
+                +500
               </div>
             </div>
             <p className="text-[10px] sm:text-xs font-bold text-white/40 uppercase tracking-widest">
-              200+ Aba Riders Active Online
+              500+ Nodes Synchronized This Week
             </p>
           </div>
         </motion.div>
       </section>
 
-      {/* 🔹 HOW E DEY WORK */}
+      {/* 🔹 REGISTRY PROTOCOL */}
       <section className="px-6 md:px-12 py-24 max-w-7xl mx-auto w-full">
         <SectionHeader 
-          title="How e dey work" 
-          subtitle="The Logistics Protocol"
-          icon={Cpu}
+          title="Registry Protocol" 
+          subtitle="The Onboarding Flow"
+          icon={Zap}
         />
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {[
-            { step: '01', title: 'Reply 1', desc: 'Carry-Go [Aba → PH]. Send parcel fast.', color: 'text-aba-gold' },
-            { step: '02', title: 'Reply 2', desc: 'Purple Fleet. Book Keke/Taxi for Aba town.', color: 'text-aba-green' },
-            { step: '03', title: 'Secure Pay', desc: 'Pay small with Paystack. We hold am till e deliver.', color: 'text-aba-gold' },
-            { step: '04', title: 'Live Map', desc: 'Track am live. Rider snap picture when e reach.', color: 'text-aba-green' }
+            { step: '01', title: 'Initialize', desc: 'Secure your digital identity with WhatsApp OTP verification.', color: 'text-aba-gold', icon: <Key size={24} /> },
+            { step: '02', title: 'Audit', desc: 'Verify your capacity and bank details for automated settlements.', color: 'text-aba-green', icon: <ShieldCheck size={24} /> },
+            { step: '03', title: 'Deliver', desc: 'Accept cargo and get paid 70% instantly upon delivery.', color: 'text-aba-gold', icon: <Truck size={24} /> },
+            { step: '04', title: 'Cycle', desc: 'Build your integrity index and unlock executive dispatch.', color: 'text-aba-green', icon: <Rocket size={24} /> }
           ].map((item, i) => (
-            <div key={i} className="bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/5 relative overflow-hidden group hover:border-white/20 transition-all duration-500">
-              <span className={`text-6xl font-black absolute -top-4 -right-4 opacity-5 italic ${item.color}`}>{item.step}</span>
-              <div className="relative z-10 space-y-4">
-                <h3 className={`text-xl font-black uppercase tracking-tighter ${item.color}`}>{item.title}</h3>
-                <p className="text-white/60 text-sm font-medium uppercase tracking-wider leading-relaxed">
-                  {item.desc}
-                </p>
+            <div key={i} className="bg-white/5 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 relative overflow-hidden group hover:border-aba-gold/30 transition-all duration-500">
+              <span className={`text-6xl font-black absolute -top-4 -right-4 opacity-5 italic font-mono ${item.color}`}>{item.step}</span>
+              <div className="relative z-10 space-y-6">
+                <div className={`w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center ${item.color}`}>
+                  {item.icon}
+                </div>
+                <div className="space-y-2">
+                  <h3 className={`text-xl font-black uppercase tracking-tighter ${item.color}`}>{item.title}</h3>
+                  <p className="text-white/50 text-sm font-medium uppercase tracking-wider leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+
+      {/* 🔹 PARTNER GRID - Social Proof */}
+      <section className="px-6 md:px-12 py-12 border-y border-white/5 bg-white/[0.02]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
+          <div className="space-y-1 text-center md:text-left">
+            <p className="text-[10px] font-black uppercase text-aba-gold tracking-[0.3em]">Network Integrity</p>
+            <h3 className="text-xl font-black text-white uppercase tracking-tighter">Industrial Partners</h3>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale saturate-0 items-center">
+             <div className="flex items-center gap-2">
+                <Box className="w-6 h-6" />
+                <span className="font-black text-xs uppercase tracking-widest">Ariaria Matrix</span>
+             </div>
+             <div className="flex items-center gap-2">
+                <ShieldCheck className="w-6 h-6" />
+                <span className="font-black text-xs uppercase tracking-widest">Aba Shoemakers</span>
+             </div>
+             <div className="flex items-center gap-2">
+                <Settings2 className="w-6 h-6" />
+                <span className="font-black text-xs uppercase tracking-widest">Logistics Union</span>
+             </div>
+             <div className="flex items-center gap-2">
+                <Building2 className="w-6 h-6" />
+                <span className="font-black text-xs uppercase tracking-widest">Abia Trade Bureau</span>
+             </div>
+          </div>
         </div>
       </section>
 
@@ -248,7 +303,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             </div>
             
             <h2 className="text-2xl md:text-4xl font-black text-white uppercase italic tracking-tighter leading-tight">
-              "Before now I dey trek go park. Now I just WhatsApp <span className="text-aba-gold">FindAba</span>, rider come pick am for my shop."
+              "Before now I dey trek go park. Now I just use <span className="text-aba-gold">FindAba Registry</span>, and verified riders come pick am for my shop."
             </h2>
             
             <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-6">
@@ -271,20 +326,20 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           
           <div className="relative z-10 space-y-6">
             <h2 className="text-4xl md:text-7xl font-black text-white uppercase italic tracking-tighter leading-none">
-              Try am <span className="text-aba-gold">now.</span>
+              Initialize <span className="text-aba-gold">Hub.</span>
             </h2>
             <p className="text-white/70 text-sm md:text-xl font-bold max-w-2xl mx-auto uppercase tracking-widest">
-              No sign up, no long form. <br />
-              Just open WhatsApp and start your journey.
+              Join 500+ verified artisans in the digital matrix. <br />
+              Secure your node and start growing your trade.
             </p>
             
             <div className="pt-8">
-              <a 
-                href={whatsappLink}
+              <button 
+                onClick={() => setView('onboarding')}
                 className="inline-flex items-center gap-4 bg-aba-gold hover:bg-white text-aba-deep px-12 py-6 rounded-2xl text-lg font-black uppercase tracking-widest shadow-2xl transition-all duration-500 scale-110 hover:scale-105 active:scale-95"
               >
-                Chat FindAba on WhatsApp <ArrowRight size={20} strokeWidth={3} />
-              </a>
+                Join Now <ArrowRight size={20} strokeWidth={3} />
+              </button>
             </div>
           </div>
         </div>

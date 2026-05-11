@@ -53,7 +53,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Sync Profile from DB
           try {
-            const prof = await syncProfile(user);
+            let prof = await syncProfile(user);
+            
+            // Check for pending onboarding data
+            const pendingName = localStorage.getItem('findaba_pending_name');
+            const pendingRole = localStorage.getItem('findaba_pending_role');
+            
+            if ((pendingName || pendingRole) && prof) {
+              console.log("[Auth] Syncing pending onboarding data for:", user.email);
+              const updates: any = {};
+              if (pendingName) updates.full_name = pendingName;
+              if (pendingRole) updates.role = pendingRole === 'business' ? 'merchant' : 'registered';
+              
+              const { data: updatedProf, error: updateError } = await sb
+                .from('profiles')
+                .update(updates)
+                .eq('id', user.id)
+                .select()
+                .single();
+                
+              if (!updateError) {
+                prof = updatedProf;
+                localStorage.removeItem('findaba_pending_name');
+                localStorage.removeItem('findaba_pending_role');
+                localStorage.setItem('findaba_onboarded', 'true');
+              }
+            }
+            
             setProfile(prof);
             
             const identifier = user.email || user.phone || '';

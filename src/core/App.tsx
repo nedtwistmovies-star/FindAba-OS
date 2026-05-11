@@ -1,6 +1,6 @@
 
 import React, { Suspense, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
 import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast } from '../components';
 import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } from '../providers';
@@ -58,7 +58,7 @@ const AppContent: React.FC = () => {
   const GUEST_ALLOWED_VIEWS: ViewState[] = [
     'home', 'discover', 'explore', 'detail', 'editorial', 'editorial-detail', 
     'about', 'about-aba', 'legal', 'support', 'pricing', 'hotel-detail', 
-    'sandals-hotels', 'audio-heritage', 'lab'
+    'sandals-hotels', 'audio-heritage', 'lab', 'onboarding'
   ];
 
   const RouteComponent = (!isAuth && !GUEST_ALLOWED_VIEWS.includes(view as ViewState) && view !== 'signup' && view !== 'login') 
@@ -180,6 +180,7 @@ const AppContent: React.FC = () => {
           advertorial={selectedAdvertorial}
           myBusiness={myBusiness}
           favorites={favorites}
+          isFavorite={selectedBusiness ? favorites.includes(selectedBusiness.id) : false}
           onToggleFavorite={toggleFavorite}
           onBusinessClick={handleBusinessClick}
           onStoryClick={handleStoryClick}

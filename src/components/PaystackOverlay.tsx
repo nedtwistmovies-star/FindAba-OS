@@ -42,6 +42,25 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
   const [isAiVerifiedLocal, setIsAiVerifiedLocal] = useState(false);
   const [aiVerdict, setAiVerdict] = useState<any>(null);
   const isPaystackActive = paymentService.hasKey();
+  const [bankDetails, setBankDetails] = useState(OFFICIAL_BANK_DETAILS);
+
+  useEffect(() => {
+    // Try to load dynamic bank details from platform config
+    const configStr = localStorage.getItem('findaba_platform_config');
+    if (configStr) {
+      try {
+        const config = JSON.parse(configStr);
+        if (config.settings?.bank_details) {
+          setBankDetails({
+            ...OFFICIAL_BANK_DETAILS,
+            ...config.settings.bank_details
+          });
+        }
+      } catch (e) {
+        console.warn("[Overlay] Config parse failed, using hardcoded defaults.");
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -115,7 +134,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
         setAuthStatus('AI Sentinel Auditing Ledger...');
         console.log("[Sentinel] Verifying Receipt for ₦" + amount);
         
-        const verdict = await verifyReceiptSignal(base64, amount, OFFICIAL_BANK_DETAILS.accountNumber);
+        const verdict = await verifyReceiptSignal(base64, amount, bankDetails.accountNumber);
         console.log("[Sentinel] Verdict:", verdict);
         
         if (!verdict) {
@@ -279,16 +298,20 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                <div className="bg-slate-50 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 space-y-6 md:space-y-8 relative overflow-hidden select-none">
                   <div className="absolute top-0 right-0 p-4 md:p-8 opacity-[0.03] -rotate-12"><Landmark size={100} /></div>
                   <div className="space-y-4 md:space-y-6 relative z-10 text-left">
-                    <div className="flex justify-between items-end group cursor-pointer" onClick={() => handleCopy(OFFICIAL_BANK_DETAILS.accountNumber)}>
+                    <div className="flex justify-between items-end group cursor-pointer" onClick={() => handleCopy(bankDetails.accountNumber)}>
                       <div className="space-y-1">
                         <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Account</p>
-                        <p className="text-2xl md:text-3xl font-black font-mono tracking-tighter">{OFFICIAL_BANK_DETAILS.accountNumber}</p>
+                        <p className="text-2xl md:text-3xl font-black font-mono tracking-tighter">{bankDetails.accountNumber}</p>
                       </div>
                       <div className="p-3 md:p-4 bg-white rounded-xl md:rounded-2xl border shadow-sm group-hover:border-aba-gold transition-all">{copied ? <Check size={18} className="text-aba-green"/> : <Copy size={18} className="text-slate-300"/>}</div>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Bank</p>
-                      <p className="text-base md:text-lg font-black uppercase tracking-tight">{OFFICIAL_BANK_DETAILS.bankName}</p>
+                      <p className="text-base md:text-lg font-black uppercase tracking-tight">{bankDetails.bankName}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Name</p>
+                      <p className="text-[10px] md:text-xs font-black uppercase tracking-wider text-aba-deep/70">{bankDetails.accountName}</p>
                     </div>
                   </div>
                </div>

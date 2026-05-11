@@ -95,7 +95,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
     const newBusiness: Business = {
       id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
-      user_id: user_id || undefined,
+      user_id: (user_id && user_id.length > 5) ? user_id : null as any,
       name: formData.name,
       email: formData.email.toLowerCase().trim(),
       phone: formData.phone,
@@ -125,7 +125,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
     };
 
     try {
-      console.log("[Registry] Submitting hub payload:", newBusiness);
+      console.log("[Registry] Committing hub payload:", { ...newBusiness, meta: { auth: isAuth, uid: user_id } });
       await saveBusinessToDB(newBusiness);
       
       // Notify Merchant via Email
@@ -140,7 +140,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
       onRegister(newBusiness);
       addToast("Hub successfully committed to registry!", "success");
     } catch (error: any) {
-      console.error("Registration failed:", error);
+      console.error("Registration failed. Payload:", newBusiness, "Error:", error);
       addToast(`Registration failed: ${error.message || "Unknown error"}`, "error");
     } finally {
       setLoading(false);

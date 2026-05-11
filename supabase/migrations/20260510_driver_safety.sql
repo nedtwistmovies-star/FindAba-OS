@@ -20,4 +20,5 @@ CREATE TABLE IF NOT EXISTS driver_shifts (
 );
 
 ALTER TABLE driver_shifts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Drivers can view their own shifts" ON driver_shifts;
 CREATE POLICY "Drivers can view their own shifts" ON driver_shifts FOR SELECT USING (true);

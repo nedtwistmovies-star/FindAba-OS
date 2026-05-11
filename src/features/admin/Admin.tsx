@@ -76,6 +76,8 @@ import {
   updateTaskItem,
   deleteTaskItem,
   reorderTaskItems,
+  fetchSupportMessages,
+  updateSupportMessageStatus,
 } from "../../services/supabaseService";
 import { ARTISANS } from "../../constants";
 import { useToast } from "../../providers/ToastProvider";
@@ -83,7 +85,7 @@ import { useBusiness } from "../../providers/BusinessProvider";
 import { triggerWebhook, WebhookEvent, validateAutomationGateway, getSamplePayload } from "../../services/webhookService";
 import { paymentService } from "../../services/paymentService";
 import { sendWelcomeEmail } from "../../services/emailService";
-import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel, Task, Order, OrderStatus } from "../../types";
+import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel, Task, Order, OrderStatus, SupportMessage } from "../../types";
 import { ImageUpload, MultiImageUpload } from "../../components/ImageUpload";
 import { MultiVideoUpload } from "../../components/VideoUpload";
 import StatCard from "../../components/StatCard";
@@ -543,7 +545,7 @@ const MetadataEditor: React.FC = () => {
   const [metadata, setMetadata] = useState<any>(null);
 
   useEffect(() => {
-    fetch('/metadata.json')
+    fetch(window.location.origin + '/metadata.json')
       .then(res => res.json())
       .then(data => {
         setMetadata(data);
@@ -558,9 +560,10 @@ const MetadataEditor: React.FC = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/metadata', {
+      const response = await fetch(window.location.origin + '/api/metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(metadata)
       });
       if (response.ok) {
@@ -872,6 +875,110 @@ const TasksManager: React.FC = () => {
   );
 };
 
+const SupportMessagesManager: React.FC = () => {
+  const { addToast } = useToast();
+  const [messages, setMessages] = useState<SupportMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadMessages = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchSupportMessages();
+      setMessages(data);
+    } catch (e) {
+      addToast("Failed to load support signals.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => {
+    loadMessages();
+  }, [loadMessages]);
+
+  const handleUpdateStatus = async (id: string, status: 'read' | 'archived') => {
+    try {
+      const { error } = await updateSupportMessageStatus(id, status);
+      if (error) throw error;
+      setMessages(messages.map(m => m.id === id ? { ...m, status } : m));
+      addToast(`Message marked as ${status}`, "success");
+    } catch (e) {
+      addToast("Failed to update status", "error");
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+            <Mail className="text-aba-gold" /> Support Signals
+          </h4>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Inquiries via Footer & Contact Hub</p>
+        </div>
+        <button 
+          onClick={loadMessages}
+          className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-white/40 hover:text-aba-gold"
+        >
+          <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        {loading ? (
+          <div className="py-20 text-center animate-pulse text-aba-gold font-black uppercase tracking-widest text-[10px]">Interfacing with Registry...</div>
+        ) : messages.length === 0 ? (
+          <div className="py-20 text-center bg-white/5 rounded-[3rem] border border-white/5 text-white/20 font-black uppercase tracking-widest text-[10px]">No Signals Detected</div>
+        ) : (
+          messages.filter(m => m.status !== 'archived').map((msg) => (
+            <div key={msg.id} className={`p-8 rounded-[3rem] border transition-all space-y-6 ${msg.status === 'unread' ? 'bg-white/10 border-aba-gold/50 shadow-2xl' : 'bg-white/5 border-white/5'}`}>
+              <div className="flex justify-between items-start">
+                <div className="flex gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${msg.status === 'unread' ? 'bg-aba-gold text-aba-deep' : 'bg-white/5 text-white/20'}`}>
+                    <Mail size={20} />
+                  </div>
+                  <div>
+                    <h5 className="font-black uppercase tracking-tight">{msg.name || 'Visitor'}</h5>
+                    <p className="text-[10px] font-mono text-white/40">{msg.email}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="text-[8px] font-black uppercase tracking-widest text-white/20">
+                    {msg.created_at ? new Date(msg.created_at).toLocaleString() : 'Recent'}
+                  </span>
+                  <div className="flex gap-2">
+                    {msg.status === 'unread' && (
+                      <button 
+                        onClick={() => handleUpdateStatus(msg.id!, 'read')}
+                        className="px-3 py-1 bg-aba-green/10 text-aba-green text-[8px] font-black uppercase tracking-widest rounded-full border border-aba-green/20 hover:bg-aba-green hover:text-white transition-all"
+                      >
+                        Mark Read
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => handleUpdateStatus(msg.id!, 'archived')}
+                      className="px-3 py-1 bg-white/10 text-white/40 text-[8px] font-black uppercase tracking-widest rounded-full border border-white/10 hover:bg-red-500 hover:text-white transition-all"
+                    >
+                      Archive
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 bg-black/40 rounded-[2rem] border border-white/5 space-y-4">
+                {msg.subject && (
+                  <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">{msg.subject}</p>
+                )}
+                <p className="text-sm font-medium leading-relaxed text-white/80 whitespace-pre-wrap">{msg.message}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
   const { commitAll } = useBusiness();
@@ -898,6 +1005,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "overview"
     | "registry"
     | "signals"
+    | "messages"
     | "users"
     | "automation"
     | "tasks"
@@ -1143,6 +1251,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
           { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
           { id: 'registry', label: 'Artisans', icon: <Database size={16} /> },
           { id: 'signals', label: 'Signals', icon: <Zap size={16} /> },
+          { id: 'messages', label: 'Inquiries', icon: <MessageSquare size={16} /> },
           { id: 'users', label: 'Partners', icon: <Users size={16} /> },
           { id: 'automation', label: 'Audit Log', icon: <Activity size={16} /> },
           { id: 'tasks', label: 'Roadmap', icon: <ListTodo size={16} /> },
@@ -2693,6 +2802,12 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {activeTab === "messages" && (
+            <div className="animate-slide-up">
+              <SupportMessagesManager />
             </div>
           )}
 

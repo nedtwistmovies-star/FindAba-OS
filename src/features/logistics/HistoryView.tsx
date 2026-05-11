@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'motion/react';
 import { Package, MapPin, CheckCircle2, RefreshCcw, Star, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../providers/AuthProvider';
@@ -32,18 +33,25 @@ const HistoryView: React.FC = () => {
 
   const confirmReceipt = async (id: string, shipment: any) => {
     try {
-      const { error } = await supabase
-        .from('shipments')
-        .update({ status: 'delivered' })
-        .eq('id', id);
+      setLoading(true);
+      // Trigger Payout via Server
+      const userId = localStorage.getItem('findaba_user_id');
+      const response = await axios.post('/api/confirm-delivery', {
+        tracking_id: shipment.tracking_id,
+        sender_phone: shipment.sender_phone,
+        action: 'confirm'
+      });
 
-      if (error) throw error;
-      addToast("Delivery confirmed. Funds released to carrier.", "success");
-      setShipmentToRate(shipment);
-      setShowRatingModal(true);
-      fetchShipments();
+      if (response.data.success) {
+        addToast(response.data.message || "Delivery confirmed. Funds released to carrier.", "success");
+        setShipmentToRate(shipment);
+        setShowRatingModal(true);
+        fetchShipments();
+      }
     } catch (err: any) {
-      addToast(err.message, "error");
+      addToast(err.response?.data?.error || err.message, "error");
+    } finally {
+      setLoading(false);
     }
   };
 

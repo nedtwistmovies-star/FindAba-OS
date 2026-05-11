@@ -25,11 +25,12 @@ export const sendEmail = async (options: EmailOptions): Promise<{ success: boole
       return { success: false, error: "Server-side fetch not supported in shared service" };
     }
 
-    const response = await fetch('/api/send-email', {
+    const response = await fetch(window.location.origin + '/api/send-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
       body: JSON.stringify({
         ...options,
         from: options.from || 'onboarding@findaba.com.ng',

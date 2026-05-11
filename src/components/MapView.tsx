@@ -34,8 +34,9 @@ const MapView: React.FC<MapViewProps> = ({ businesses, onBusinessClick, userLoca
         markerZoomAnimation: true
       }).setView([5.1065, 7.3633], 14);
 
-      leaflet.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19
+      leaflet.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
       }).addTo(mapRef.current);
     };
 
@@ -252,7 +253,7 @@ const MapView: React.FC<MapViewProps> = ({ businesses, onBusinessClick, userLoca
         .marker-pulse { animation: marker-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
         @keyframes marker-ping { 75%, 100% { transform: scale(1.5); opacity: 0; } }
       `}</style>
-      <div ref={mapContainerRef} className="w-full h-full grayscale-[0.2] brightness-[0.8]" />
+      <div ref={mapContainerRef} className="w-full h-full brightness-[1.1] contrast-[1.1]" />
       
       {/* Map Controls */}
       <div className="absolute top-6 right-6 z-[400] flex flex-col gap-3">

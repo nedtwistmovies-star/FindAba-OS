@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import { 
   Shield, User, Smartphone, MapPin, Power, 
   Activity, ArrowLeft, Loader2, ChevronRight, 
@@ -168,12 +169,22 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
 
   const completeRide = async () => {
     if (!currentRide) return;
+    setLoading(true);
     try {
-      await updateRideBookingStatus(currentRide.id, 'completed');
-      if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
-      setShowRatingModal(true);
-    } catch (e) {
-      addToast("Settlement error.", "error");
+      // Trigger Payout via Server
+      const response = await axios.post('/api/ride/complete', {
+        ride_id: currentRide.id
+      });
+      
+      if (response.data.success) {
+        addToast("Ride Completed. Funds dispatched to your account.", "success");
+        if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
+        setShowRatingModal(true);
+      }
+    } catch (e: any) {
+      addToast(e.response?.data?.error || "Settlement error.", "error");
+    } finally {
+      setLoading(false);
     }
   };
 

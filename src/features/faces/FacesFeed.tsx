@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, MessageSquare, Plus, ShoppingBag, Search, Bell, History, X } from 'lucide-react';
 import { VariableSizeList } from 'react-window';
 import { Post, Story } from '../../types';

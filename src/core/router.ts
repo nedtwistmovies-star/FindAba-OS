@@ -1,5 +1,5 @@
 
-import { lazy } from 'react';
+import { lazy, ComponentType } from 'react';
 import { ViewState } from '../types';
 
 /**
@@ -7,28 +7,34 @@ import { ViewState } from '../types';
  * This prevents the "Failed to fetch dynamically imported module" error 
  * when a new version of the app is deployed.
  */
-const lazyWithRetry = (componentImport: () => Promise<any>) => {
-  return lazy(async () => {
-    const pageHasBeenForceRefreshed = JSON.parse(
-      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
-    );
+const lazyWithRetry = (componentImport: () => Promise<{ default: ComponentType<any> }>) => {
+  return lazy(() => 
+    componentImport()
+      .then(component => {
+        // Successful load, reset the refresh flag
+        window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
+        return component;
+      })
+      .catch(error => {
+        const pageHasBeenForceRefreshed = JSON.parse(
+          window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
+        );
 
-    try {
-      const component = await componentImport();
-      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
-      return component;
-    } catch (error) {
-      if (!pageHasBeenForceRefreshed) {
-        // Logging the fault to the console
-        console.warn('Industrial Module Fault detected. Attempting synchronization...');
-        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
-        return window.location.reload();
-      }
+        if (!pageHasBeenForceRefreshed) {
+          // Logging the fault to the console
+          console.warn('Industrial Module Fault detected. Attempting synchronization...');
+          window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
+          window.location.reload();
+          
+          // Return a promise that never resolves to avoid React trying to process undefined 
+          // while the page reloads. This prevents "Cannot use 'in' operator to search for 'default' in undefined"
+          return new Promise<{ default: ComponentType<any> }>(() => {});
+        }
 
-      // If we already refreshed and it still fails, let the error boundary handle it
-      throw error;
-    }
-  });
+        // If we already refreshed and it still fails, let the error boundary handle it
+        throw error;
+      })
+  );
 };
 
 export const ROUTE_MAP: Record<ViewState, any> = {

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ViewState, AppNotification } from '../types';
+import { ViewState, AppNotification, SupportMessage } from '../types';
 import { useToast } from '../providers/ToastProvider';
 import { 
   Home, Compass, UserCircle, Search, Menu, X, Globe, Building2, Zap, ShieldCheck,
@@ -12,7 +12,12 @@ import Logo from './Logo';
 import { GitHubSync } from './GitHubSync';
 import { SupabaseSync } from './SupabaseSync';
 import { generateWelcomeMessage } from '../services/geminiService';
-import { getSupabase, fetchNotifications, markNotificationAsRead } from '../services/supabaseService';
+import { 
+  getSupabase, 
+  fetchNotifications, 
+  markNotificationAsRead,
+  sendSupportMessage
+} from '../services/supabaseService';
 import { useAuth } from '../providers/AuthProvider';
 import { useBusiness } from '../providers/BusinessProvider';
 import { SANDALS_BRAND } from '../constants';
@@ -149,6 +154,44 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const [healthMessage, setHealthMessage] = useState<string>('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  const [footerEmail, setFooterEmail] = useState('');
+  const [footerMessage, setFooterMessage] = useState('');
+  const [isFooterSending, setIsFooterSending] = useState(false);
+
+  useEffect(() => {
+    if (userIdentifier) {
+      setFooterEmail(userIdentifier);
+    }
+  }, [userIdentifier]);
+
+  const handleFooterSubmit = async () => {
+    if (!footerEmail.trim() || !footerMessage.trim()) {
+      addToast("Please provide both email and message.", "info");
+      return;
+    }
+    
+    setIsFooterSending(true);
+    try {
+      const { error } = await sendSupportMessage({
+        email: footerEmail,
+        message: footerMessage,
+        subject: "Footer Contact Signal",
+        name: userName || "Visitor",
+        status: 'unread'
+      });
+      
+      if (error) throw error;
+      
+      addToast("Signal Transmitted. Enyimba Hub has received your message.", "success");
+      setFooterMessage('');
+    } catch (err) {
+      console.error("[Footer] Submit error:", err);
+      addToast("Failed to transmit signal. Connection error.", "error");
+    } finally {
+      setIsFooterSending(false);
+    }
+  };
   
   const [activeLogo, setActiveLogo] = useState<string>(appLogo || SANDALS_BRAND.logo);
   
@@ -570,16 +613,30 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
                     <input 
                       type="email" 
+                      value={footerEmail}
+                      onChange={(e) => setFooterEmail(e.target.value)}
                       placeholder="Enter your email" 
                       autoCapitalize="none"
                       className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm outline-none focus:border-aba-gold transition-standard"
                     />
                   </div>
+                  <div className="relative">
+                    <MessageCircle className="absolute left-4 top-4 text-white/20" size={16} />
+                    <textarea 
+                      value={footerMessage}
+                      onChange={(e) => setFooterMessage(e.target.value)}
+                      placeholder="How can the Hub assist you today?" 
+                      rows={3}
+                      className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm outline-none focus:border-aba-gold transition-standard resize-none"
+                    />
+                  </div>
                   <button 
-                    onClick={() => addToast("Signal Transmitted. We will contact you.", "success")}
-                    className="w-full py-3 bg-aba-gold text-aba-deep rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm active:scale-[0.98] transition-standard flex items-center justify-center gap-2"
+                    disabled={isFooterSending}
+                    onClick={handleFooterSubmit}
+                    className="w-full py-3 bg-aba-gold text-aba-deep rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm active:scale-[0.98] transition-standard flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    <Send size={14} /> Send Signal
+                    {isFooterSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} 
+                    {isFooterSending ? "Transmitting Signal..." : "Send Signal"}
                   </button>
                 </div>
               </div>

@@ -121,11 +121,13 @@ export const triggerWebhook = async (
 
     try {
       // 🔹 PROXY UPGRADE: Use server-side proxy to avoid browser CORS/Network blocks
-      const response = await fetch('/api/automation/trigger', {
+      const apiPath = '/api/automation/trigger';
+      const response = await fetch(window.location.origin + apiPath, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           url: activeWebhookUrl,
           event: event,

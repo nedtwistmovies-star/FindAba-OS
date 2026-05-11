@@ -633,9 +633,13 @@ create policy "Public profiles are viewable by everyone" on public.profiles for 
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
 
 -- Businesses: Viewable by all, but only owners or admins can edit
+drop policy if exists "Businesses are viewable by everyone" on public.businesses;
 create policy "Businesses are viewable by everyone" on public.businesses for select using (true);
+drop policy if exists "Authenticated users can create businesses" on public.businesses;
 create policy "Authenticated users can create businesses" on public.businesses for insert with check (auth.uid() is not null);
+drop policy if exists "Business owners can update their nodes" on public.businesses;
 create policy "Business owners can update their nodes" on public.businesses for update using (auth.uid() = user_id or (select role from public.profiles where id = auth.uid()) = 'admin');
+drop policy if exists "Business owners can delete their nodes" on public.businesses;
 create policy "Business owners can delete their nodes" on public.businesses for delete using (auth.uid() = user_id or (select role from public.profiles where id = auth.uid()) = 'admin');
 
 -- Orders: Only buyers or sellers can view their orders

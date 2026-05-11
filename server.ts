@@ -314,7 +314,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
           'X-FindAba-Event': event,
           'X-FindAba-Relayed': 'true'
         },
-        timeout: 15000 // 15s timeout
+        timeout: 30000 // Increased to 30s for complex automation flows
       });
 
       console.log(`[Automation Proxy] Relay success: ${event} (Status: ${response.status})`);
@@ -375,7 +375,81 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     }
   });
 
-  // Haversine Distance Utility (KM)
+  // ==========================================
+  // DRIVER OTP & VERIFICATION
+  // ==========================================
+  app.post("/api/drivers/request-otp", async (req, res) => {
+    const { email, phone } = req.body;
+    try {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 mins
+
+      // 1. Update driver record with OTP
+      const { error } = await supabase
+        .from("drivers")
+        .update({
+          otp_code: otp,
+          otp_expires_at: expiresAt,
+          phone: phone
+        })
+        .eq("user_email", email);
+
+      if (error) throw error;
+
+      // 2. Send via WhatsApp (Webhook)
+      const makeUrl = process.env.MAKE_WEBHOOK_URL || process.env.VITE_MAKE_WEBHOOK_URL;
+      if (makeUrl) {
+        await axios.post(makeUrl, {
+          type: 'DRIVER_OTP_VERIFICATION',
+          phone,
+          otp,
+          message: `FindAba Carrier Onboarding 🚛\nYour verification code is: ${otp}\nValid for 10 minutes.`
+        }).catch(e => console.error("[OTP] Webhook send failed:", e.message));
+      }
+
+      res.json({ success: true, message: "OTP sent to your WhatsApp number" });
+    } catch (err: any) {
+      console.error("[OTP] Request failed:", err.message);
+      res.status(500).json({ error: "Failed to send OTP", details: err.message });
+    }
+  });
+
+  app.post("/api/drivers/verify-otp", async (req, res) => {
+    const { email, code } = req.body;
+    try {
+      const { data: driver, error } = await supabase
+        .from("drivers")
+        .select("*")
+        .eq("user_email", email)
+        .single();
+
+      if (error || !driver) return res.status(404).json({ error: "Driver record not found" });
+
+      if (driver.otp_code !== code) {
+        return res.status(400).json({ error: "Invalid verification code" });
+      }
+
+      if (new Date() > new Date(driver.otp_expires_at)) {
+        return res.status(400).json({ error: "Code has expired" });
+      }
+
+      // Mark as verified
+      await supabase
+        .from("drivers")
+        .update({
+          otp_verified: true,
+          otp_code: null, // Clear after use
+          otp_expires_at: null
+        })
+        .eq("user_email", email);
+
+      res.json({ success: true, message: "OTP verified successfully" });
+    } catch (err: any) {
+      console.error("[OTP] Verification failed:", err.message);
+      res.status(500).json({ error: "Verification failed", details: err.message });
+    }
+  });
+
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -508,7 +582,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       const now = new Date();
       const { data: drivers } = await supabase.from("drivers")
         .select("*")
-        .eq("is_active", true)
+        .eq("status", "online")
         .eq("vehicle_type", vehicle_type)
         .eq("is_on_shift", true);
 
@@ -598,7 +672,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
       const { data: ride } = await supabase.from("rides").select("*, driver:drivers(*)").eq("id", ride_id).single();
       if (!ride) return res.status(404).json({ error: "Ride not found" });
 
-      const driverPayout = ride.fare * 0.8; // 80% to driver
+      const driverPayout = ride.fare * 0.7; // 70% to driver
 
       // Paystack Transfer
       if (ride.driver?.paystack_recipient_code) {

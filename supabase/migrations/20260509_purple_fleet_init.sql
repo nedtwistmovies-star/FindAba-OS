@@ -91,7 +91,11 @@ ALTER TABLE rides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE carriers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE drivers ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Access shipments" ON shipments;
 CREATE POLICY "Access shipments" ON shipments FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Access rides" ON rides;
 CREATE POLICY "Access rides" ON rides FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Access carriers" ON carriers;
 CREATE POLICY "Access carriers" ON carriers FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Access drivers" ON drivers;
 CREATE POLICY "Access drivers" ON drivers FOR SELECT USING (true);

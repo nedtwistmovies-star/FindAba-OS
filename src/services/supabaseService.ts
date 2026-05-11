@@ -6,7 +6,7 @@ import {
   LogisticsOrder, ChatMessage, Advertorial, AdPlan, 
   PaymentLog, ThriftAccount, ThriftContribution, ThriftGroup, ThriftGroupMember, ThriftGroupContribution, ThriftPayout, Order, OrderStatus, Dispute, PlatformConfig,
   QualityAudit, SubscriptionTier, RoomType, BuyerSignal, SignalInterest, AdCampaign, HospitalityConfig,
-  AppNotification, HubTier, Task
+  AppNotification, HubTier, Task, SupportMessage
 } from '../types';
 import { triggerWebhook, WebhookEvent } from './webhookService';
 import { 
@@ -777,7 +777,15 @@ export const saveBusinessToDB = async (business: Business) => {
       }
       
       console.error("[Registry] Save Failure:", error);
-      throw new Error(`Registry Sync Error: ${error.message} (${error.code})`);
+      const diagnosticInfo = {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        payload_keys: Object.keys(currentPayload),
+        has_uid: 'user_id' in currentPayload
+      };
+      throw new Error(`Registry Sync Error: ${error.message} (Code: ${error.code}) Diagnostics: ${JSON.stringify(diagnosticInfo)}`);
     }
     
     // Success
@@ -1496,7 +1504,7 @@ export const updateVehicleLocation = async (vehicleId: string, lat: number, lng:
 export const createRideBooking = async (booking: any) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
-  const { data, error } = await client.from('ride_bookings').insert(booking).select().single();
+  const { data, error } = await client.from('rides').insert(booking).select().single();
   if (error) throw error;
   
   // Trigger Automation Webhook
@@ -1508,14 +1516,14 @@ export const createRideBooking = async (booking: any) => {
 export const fetchRideBookingsForDriver = async (driverId: string) => {
   const client = getSupabase();
   if (!client) return [];
-  const { data } = await client.from('ride_bookings').select('*').eq('driver_id', driverId).order('created_at', { ascending: false });
+  const { data } = await client.from('rides').select('*').eq('driver_id', driverId).order('created_at', { ascending: false });
   return data || [];
 };
 
 export const updateRideBookingStatus = async (id: string, status: string) => {
   const client = getSupabase();
   if (!client) return;
-  await client.from('ride_bookings').update({ status }).eq('id', id);
+  await client.from('rides').update({ status }).eq('id', id);
 };
 
 export const fetchAllVehicles = async () => {
@@ -1539,7 +1547,7 @@ export const subscribeToRideRequests = (driverId: string, callback: (payload: an
     .on('postgres_changes', { 
       event: 'INSERT', 
       schema: 'public', 
-      table: 'ride_bookings',
+      table: 'rides',
       filter: `driver_id=eq.${driverId}`
     }, callback)
     .subscribe();
@@ -1879,4 +1887,41 @@ export const verifyBusinessClaim = async (businessId: string, otp: string): Prom
   if (verifyError) throw verifyError;
 
   return true;
+};
+
+export const sendSupportMessage = async (msg: SupportMessage) => {
+  const sb = getSupabase();
+  if (!sb) return { error: "Offline" };
+  
+  return await sb
+    .from('support_messages')
+    .insert([msg])
+    .select()
+    .single();
+};
+
+export const fetchSupportMessages = async () => {
+  const sb = getSupabase();
+  if (!sb) return [];
+  
+  const { data, error } = await sb
+    .from('support_messages')
+    .select('*')
+    .order('created_at', { ascending: false });
+    
+  if (error) {
+    console.error("[Registry] Failed to fetch support signals:", error);
+    return [];
+  }
+  return data;
+};
+
+export const updateSupportMessageStatus = async (id: string, status: 'read' | 'archived') => {
+  const sb = getSupabase();
+  if (!sb) return { error: "Offline" };
+  
+  return await sb
+    .from('support_messages')
+    .update({ status })
+    .eq('id', id);
 };
