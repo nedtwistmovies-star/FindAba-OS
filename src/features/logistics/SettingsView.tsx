@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Bell, Shield, Smartphone, ArrowLeft, Save, RefreshCcw } from 'lucide-react';
 import { useAuth } from '../../providers/AuthProvider';
 import { getSupabase } from '../../services/supabaseService';

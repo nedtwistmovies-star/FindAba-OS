@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Package, MapPin, CheckCircle2, RefreshCcw, Star, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../providers/AuthProvider';
 import { getSupabase } from '../../services/supabaseService';

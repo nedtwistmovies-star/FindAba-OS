@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   preferred_language TEXT DEFAULT 'en',
   notification_settings JSONB DEFAULT '{"email": true, "sms": false, "push": true}',
   dark_mode BOOLEAN DEFAULT FALSE,
+  streak INTEGER DEFAULT 0,
+  metrics JSONB DEFAULT '{}',
+  phone_status TEXT DEFAULT 'pending',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

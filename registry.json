@@ -1,6 +1,6 @@
 {
   "version": "v6.0",
-  "lastUpdated": "2026-05-11T22:22:22.104Z",
+  "lastUpdated": "2026-05-11T23:08:38.794Z",
   "businesses": [
     {
       "name": "sandals royalle resources",
@@ -161,7 +161,7 @@
       "location": null,
       "user_id": null,
       "id": "81ab35e3-1f49-4386-a539-4f7f2575ef34",
-      "updated_at": "2026-05-11T09:31:08.699768"
+      "updated_at": "2026-05-11T22:22:22.191425"
     },
     {
       "name": "FindAba Magazine ",
@@ -202,7 +202,7 @@
       "location": null,
       "user_id": null,
       "id": "cf1d8d6a-f619-4cb6-8d33-7f2675aef57f",
-      "updated_at": "2026-05-11T09:31:09.082823"
+      "updated_at": "2026-05-11T22:22:22.647888"
     }
   ]
 }

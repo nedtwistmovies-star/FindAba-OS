@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Business, ViewState, Product, Order, OrderStatus, IntegrityGrade } from '../../types';
 import { useToast } from '../../providers/ToastProvider';
 import { 

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getSupabase, fetchOrdersForBuyer, updateOrderStatus } from "../services/supabaseService";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { User, Shield, CreditCard, ShoppingBag, Clock, MapPin, Package, CheckCircle2, ChevronRight, X, AlertCircle } from "lucide-react";
 import SectionHeader from "../components/SectionHeader";
 import { Order, OrderStatus } from "../types";

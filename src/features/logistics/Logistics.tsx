@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Truck, Package, Clock, Zap, CheckCircle2, Warehouse, 
   Loader2, Info, MessageSquare, Sparkles, ArrowLeft, 

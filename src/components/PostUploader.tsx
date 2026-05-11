@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Image, Video, X, Loader2, AlertCircle, Send, UploadCloud, CheckCircle2 } from 'lucide-react';
 import { storageService } from '../lib/storage';
 import { supabase } from '../lib/supabaseClient';

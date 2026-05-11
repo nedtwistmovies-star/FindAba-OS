@@ -7,7 +7,7 @@ import {
   TrendingUp, Globe, ShieldCheck, ArrowLeft,
   Check, AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ViewState, HubTier, SubscriptionTier, Business } from '../../types';
 import { BUSINESS_PLANS } from '../../constants';
 import PaystackOverlay from '../../components/PaystackOverlay';

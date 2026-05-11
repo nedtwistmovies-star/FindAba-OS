@@ -47,7 +47,7 @@ import {
   Plus,
   GripVertical,
 } from "lucide-react";
-import { motion, Reorder } from "motion/react";
+import { motion, Reorder } from "framer-motion";
 import {
   BarChart,
   Bar,

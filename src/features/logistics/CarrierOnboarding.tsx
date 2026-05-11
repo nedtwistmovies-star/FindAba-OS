@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Shield, Landmark, Phone, Camera, 
   Video, CheckCircle2, ChevronRight, Fingerprint, RefreshCcw

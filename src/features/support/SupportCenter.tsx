@@ -5,7 +5,7 @@ import {
   User, Globe, ShieldCheck, Sparkles, ArrowLeft,
   LifeBuoy, BookOpen, Clock, HelpCircle, Loader2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ViewState } from '../../types';
 import { getSupportResponse } from '../../services/geminiService';
 

@@ -6,7 +6,7 @@ import {
   ChevronUp, ChevronDown, ArrowRight,
   Clock, CreditCard
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { VehicleCategory } from '../../types';
 
 interface RideBookingSheetProps {

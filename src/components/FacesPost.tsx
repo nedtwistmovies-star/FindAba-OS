@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, memo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageSquare, Send, ShoppingBag, MoreHorizontal, Star, Trash2, Loader2, SendHorizontal, Edit3, Flag, Share2, AlertCircle } from 'lucide-react';
 import { Post, OrderStatus, Comment } from '../types';
 import { useAuth } from '../providers/AuthProvider';

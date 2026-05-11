@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Mail, Key, Loader2, CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { IndustrialButton } from '../../components';
 import { createBusinessClaim, verifyBusinessClaim } from '../../services/supabaseService';

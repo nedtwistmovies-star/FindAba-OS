@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Wallet, ArrowUpRight, ArrowDownLeft, ChevronRight, Filter, Download, Landmark, CreditCard, Zap, History, ShieldCheck, AlertCircle, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../providers/AuthProvider';
 import { fetchWallet, fetchTransactions } from '../../services/facesService';

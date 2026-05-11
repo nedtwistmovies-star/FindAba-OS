@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { 
   ShieldCheck, Zap, Clock, Globe, TrendingUp, 
   ArrowRight, Lock, Shield, CheckCircle2, 
