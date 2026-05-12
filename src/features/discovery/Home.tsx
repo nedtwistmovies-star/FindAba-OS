@@ -90,8 +90,8 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
   const textY = useTransform(scrollY, [0, 500], [0, 150]);
 
   const { userIdentifier } = useAuth();
-  const whatsappNumber = "2347036444855"; // Example WhatsApp number for the bot
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=Hi`;
+  const whatsappNumber = SANDALS_BRAND.supportPhone;
+  const whatsappLink = `https://wa.me/${whatsappNumber}?text=Hello%20FindAba%20Support!%20I'm%20interested%20in%20onboarding%20my%20business.`;
 
   return (
     <div className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans">

@@ -14,6 +14,7 @@ export const SANDALS_BRAND = {
   instagram: "https://instagram.com/find_aba",
   accent: "#FFD700",
   email: "suite@sandalsroyalle.com",
+  supportPhone: "2348024101540", // Official FindAba support number
   country: "Nigeria"
 };
 
