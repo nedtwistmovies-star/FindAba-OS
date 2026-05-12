@@ -63,8 +63,8 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                  <ArrowLeft className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                </button>
                <div>
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold uppercase tracking-tight text-white leading-none">City Registry</h2>
-                  <p className="text-[9px] sm:text-[10px] font-bold text-aba-gold/60 uppercase tracking-widest mt-1">Verified Industrial Partners</p>
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold uppercase tracking-tight text-white leading-none">Business Directory</h2>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-aba-gold/60 uppercase tracking-widest mt-1">Verified Businesses</p>
                </div>
             </div>
             <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
@@ -87,7 +87,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
             <div className="relative flex-1 group">
                <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-aba-gold transition-standard w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                <input 
-                 placeholder="Search registry..." 
+                 placeholder="Search businesses..." 
                  className="w-full pl-10 sm:pl-12 pr-4 sm:pr-6 py-3 sm:py-4 bg-white/5 border border-white/10 rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-aba-gold/50 transition-standard text-white placeholder:text-white/20 uppercase"
                  value={searchQuery}
                  onChange={e => setSearchQuery(e.target.value)}
@@ -101,7 +101,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                onClick={() => setView('business-verification')}
                className="hidden lg:flex"
             >
-               Verify Partner
+               Verify My Business
             </IndustrialButton>
 
             <button 
@@ -123,7 +123,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
             <div className="max-w-7xl mx-auto w-full pt-4 space-y-6 animate-fade-in">
                <div className="flex flex-col md:flex-row md:items-center gap-8 border-t border-white/5 pt-6">
                   <div className="space-y-3 flex-1 overflow-hidden">
-                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Industrial Segment</p>
+                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Category</p>
                      <div className="flex overflow-x-auto gap-2 scrollbar-hide pb-2">
                         {['All Categories', ...CATEGORIES].map(cat => (
                           <button 
@@ -138,7 +138,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                   </div>
 
                   <div className="space-y-3 shrink-0 min-w-[150px]">
-                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Trust Clearance</p>
+                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Verification</p>
                      <div className="flex gap-2">
                         {['All', VerificationStatus.VERIFIED, VerificationStatus.UNVERIFIED].map(status => (
                           <button 
@@ -154,7 +154,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                   </div>
 
                   <div className="space-y-3 shrink-0 min-w-[200px]">
-                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Operational Area</p>
+                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Location</p>
                      <select 
                         value={areaFilter}
                         onChange={(e) => setAreaFilter(e.target.value)}
@@ -166,7 +166,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                   </div>
 
                   <div className="space-y-3 shrink-0">
-                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Sort Signal</p>
+                     <p className="text-[10px] font-bold uppercase text-white/20 tracking-widest ml-1">Sort By</p>
                      <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                         <button 
                           onClick={() => setSortBy('name')} 
@@ -190,7 +190,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                       onClick={() => { setCategoryFilter('All Categories'); setStatusFilter('All'); setAreaFilter('All Areas'); }}
                       className="text-[10px] font-bold uppercase text-aba-red flex items-center gap-2 hover:underline"
                     >
-                      <X size={12}/> Reset Signals
+                      <X size={12}/> Clear Filters
                     </button>
                  </div>
                )}
@@ -223,13 +223,13 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/5 rounded-3xl flex items-center justify-center text-aba-gold mb-6 sm:mb-8 border border-white/5">
                    <Search className="w-8 h-8 sm:w-10 sm:h-10" />
                  </div>
-                 <h3 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-white leading-none">No Partner Detected</h3>
-                 <p className="text-[9px] sm:text-[10px] font-bold uppercase mt-3 sm:mt-4 text-aba-gold/60 tracking-widest">Adjust registry filters for active signals.</p>
+                 <h3 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-white leading-none">No Businesses Found</h3>
+                 <p className="text-[9px] sm:text-[10px] font-bold uppercase mt-3 sm:mt-4 text-aba-gold/60 tracking-widest">Try adjusting your filters.</p>
                  <button 
                    onClick={() => { setCategoryFilter('All Categories'); setStatusFilter('All'); setSearchQuery(''); }}
                    className="mt-8 sm:mt-10 px-6 sm:px-8 py-3 sm:py-4 bg-white/5 text-white/40 rounded-xl font-bold uppercase text-[9px] sm:text-[10px] tracking-widest border border-white/10 hover:text-white transition-standard"
                  >
-                   Reset All Signals
+                   Clear All
                  </button>
               </div>
             )}

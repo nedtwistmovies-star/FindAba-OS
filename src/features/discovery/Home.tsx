@@ -74,7 +74,7 @@ const CitySignals: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white leading-none">
-            {registryStatus === 'online' ? 'Registry Online' : 'Registry Offline'}
+            {registryStatus === 'online' ? 'System Online' : 'System Offline'}
           </span>
           <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">System Status</span>
         </div>
@@ -119,7 +119,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               animate={{ opacity: 1, y: 0 }}
               className="inline-flex items-center gap-3 px-5 py-2.5 bg-aba-gold/10 backdrop-blur-md rounded-full border border-aba-gold/20 text-aba-gold text-[10px] md:text-xs font-black uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(255,215,0,0.1)]"
             >
-              <Cpu size={14} className="animate-pulse" /> Enyimba Industrial Matrix OS
+              <Cpu size={14} className="animate-pulse" /> FindAba Business Network
             </motion.div>
 
             <h1 className="text-5xl sm:text-7xl md:text-9xl font-black text-white tracking-tighter leading-[0.85] uppercase italic text-center drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
@@ -142,8 +142,8 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 <Search size={24} strokeWidth={3} />
               </div>
               <div className="text-left">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Digital Registry</p>
-                <p className="text-lg font-black uppercase tracking-tighter">Join Matrix →</p>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Business Listing</p>
+                <p className="text-lg font-black uppercase tracking-tighter">Get Started →</p>
               </div>
             </button>
 
@@ -157,8 +157,8 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 <MessageSquare size={24} strokeWidth={3} />
               </div>
               <div className="text-left">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Human Handshake</p>
-                <p className="text-lg font-black uppercase tracking-tighter">Chat Kalu ✨</p>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Customer Support</p>
+                <p className="text-lg font-black uppercase tracking-tighter">Chat With Us ✨</p>
               </div>
             </a>
           </div>
@@ -190,26 +190,26 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               </div>
             </div>
             <p className="text-[10px] sm:text-xs font-bold text-white/40 uppercase tracking-widest">
-              500+ Nodes Synchronized This Week
+              500+ Businesses Joined This Week
             </p>
           </div>
         </motion.div>
       </section>
 
-      {/* 🔹 REGISTRY PROTOCOL */}
+      {/* 🔹 HOW IT WORKS */}
       <section className="px-6 md:px-12 py-24 max-w-7xl mx-auto w-full">
         <SectionHeader 
-          title="Registry Protocol" 
-          subtitle="The Onboarding Flow"
+          title="How it Works" 
+          subtitle="Easy Onboarding"
           icon={Zap}
         />
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {[
-            { step: '01', title: 'Initialize', desc: 'Secure your digital identity with WhatsApp OTP verification.', color: 'text-aba-gold', icon: <Key size={24} /> },
-            { step: '02', title: 'Audit', desc: 'Verify your capacity and bank details for automated settlements.', color: 'text-aba-green', icon: <ShieldCheck size={24} /> },
-            { step: '03', title: 'Deliver', desc: 'Accept cargo and get paid 70% instantly upon delivery.', color: 'text-aba-gold', icon: <Truck size={24} /> },
-            { step: '04', title: 'Cycle', desc: 'Build your integrity index and unlock executive dispatch.', color: 'text-aba-green', icon: <Rocket size={24} /> }
+            { step: '01', title: 'Sign Up', desc: 'Secure your account with WhatsApp OTP verification.', color: 'text-aba-gold', icon: <Key size={24} /> },
+            { step: '02', title: 'Verify', desc: 'Verify your business and bank details for automated payments.', color: 'text-aba-green', icon: <ShieldCheck size={24} /> },
+            { step: '03', title: 'Deliver', desc: 'Accept orders and get paid 70% instantly upon delivery.', color: 'text-aba-gold', icon: <Truck size={24} /> },
+            { step: '04', title: 'Grow', desc: 'Build your trust rating and unlock more business features.', color: 'text-aba-green', icon: <Rocket size={24} /> }
           ].map((item, i) => (
             <div key={i} className="bg-white/5 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 relative overflow-hidden group hover:border-aba-gold/30 transition-all duration-500">
               <span className={`text-6xl font-black absolute -top-4 -right-4 opacity-5 italic font-mono ${item.color}`}>{item.step}</span>
@@ -303,7 +303,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             </div>
             
             <h2 className="text-2xl md:text-4xl font-black text-white uppercase italic tracking-tighter leading-tight">
-              "Before now I dey trek go park. Now I just use <span className="text-aba-gold">FindAba Registry</span>, and verified riders come pick am for my shop."
+              "Before now I dey trek go park. Now I just use <span className="text-aba-gold">FindAba Directory</span>, and verified riders come pick am for my shop."
             </h2>
             
             <div className="flex flex-col md:flex-row items-center justify-center gap-6 pt-6">
@@ -326,11 +326,11 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           
           <div className="relative z-10 space-y-6">
             <h2 className="text-4xl md:text-7xl font-black text-white uppercase italic tracking-tighter leading-none">
-              Initialize <span className="text-aba-gold">Hub.</span>
+              Start Your <span className="text-aba-gold">Business.</span>
             </h2>
             <p className="text-white/70 text-sm md:text-xl font-bold max-w-2xl mx-auto uppercase tracking-widest">
-              Join 500+ verified artisans in the digital matrix. <br />
-              Secure your node and start growing your trade.
+              Join 500+ verified artisans on FindAba. <br />
+              Create your profile and start growing your trade.
             </p>
             
             <div className="pt-8">

@@ -77,7 +77,7 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       color: 'text-white/40',
       bgColor: 'bg-white/5',
       borderColor: 'border-white/10',
-      description: 'Entry-level presence in the Enyimba registry.',
+      description: 'Basic listing in our business directory.',
       amount: 0,
       features: ['Basic Directory Entry', 'Standard Contact', 'Community Access']
     },
@@ -88,9 +88,9 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       color: 'text-aba-green',
       bgColor: 'bg-aba-green/10',
       borderColor: 'border-aba-green/20',
-      description: 'Verified status for trusted local artisans.',
+      description: 'Get a verified badge and more visibility.',
       amount: 2500,
-      features: ['Trusted Partner Badge', 'Verified Hub Profile', 'Local Signal Priority']
+      features: ['Trusted Member Badge', 'Verified Profile', 'Priority in Local Searches']
     },
     {
       id: HubTier.GROWTH_ENGINE,
@@ -99,9 +99,9 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       color: 'text-aba-gold',
       bgColor: 'bg-aba-gold/10',
       borderColor: 'border-aba-gold/20',
-      description: 'High-velocity scaling for master workshops.',
+      description: 'Boost your business with priority search.',
       amount: 5000,
-      features: ['Search Priority Partner', 'Creative Lab Access', 'City Pulse Insights']
+      features: ['Search Priority', 'Advanced Tools', 'Business Insights']
     },
     {
       id: HubTier.EXPORT_READY,
@@ -110,9 +110,9 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
       borderColor: 'border-blue-500/20',
-      description: 'Global trade connectivity for industrial leaders.',
+      description: 'Reach global buyers and get top ranking.',
       amount: 10000,
-      features: ['Verified Exporter Partner', 'Unlimited Ranking', 'Global Buyer Signals']
+      features: ['Verified Exporter Status', 'Unlimited Ranking', 'Global Buyer Leads']
     }
   ];
 
@@ -151,10 +151,10 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       }, 2000);
 
     } catch (err) {
-      console.error('[Enrollment] Registry update failed:', err);
+      console.error('[Enrollment] Update failed:', err);
       setVerifying(false);
       // Fallback to inform the user
-      alert("Registry Sync Failed: Your signal was received but could not be committed to the master ledger. Please refresh and try again.");
+      alert("Something went wrong with your update. Please refresh and try again.");
     }
   };
 
@@ -198,12 +198,12 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
             transition={{ delay: 0.5 }}
             className="mt-16 space-y-6"
           >
-            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em]">Registry Updated Successfully</p>
+            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em]">Plan Updated Successfully</p>
             <button 
               onClick={() => setView('merchant-portal')}
               className="group relative px-16 py-6 bg-white text-aba-dark rounded-2xl font-black uppercase text-xs tracking-[0.4em] overflow-hidden transition-all hover:pr-20 active:scale-95"
             >
-              <span className="relative z-10">Return to Command</span>
+              <span className="relative z-10">Go to Dashboard</span>
               <ArrowRight className="absolute right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all" size={20} />
             </button>
           </motion.div>
@@ -240,11 +240,11 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
               <Loader2 size={48} className="animate-spin" />
               <div className="absolute inset-0 border-4 border-aba-gold/20 rounded-[2rem] animate-pulse" />
             </motion.div>
-            <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-2">Verifying Settlement</h3>
-            <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em] animate-pulse">Waiting for Registry Confirmation...</p>
+            <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-2">Verifying Payment</h3>
+            <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em] animate-pulse">Waiting for Confirmation...</p>
             <div className="mt-12 max-w-xs p-6 bg-white/5 rounded-2xl border border-white/10">
               <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
-                Our AI Sentinel is auditing the ledger. Your tier will upgrade automatically once the signal is confirmed.
+                Our system is checking your payment. Your plan will update automatically once confirmed.
               </p>
             </div>
           </motion.div>
@@ -258,8 +258,8 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
              <ArrowLeft size={20} />
           </button>
           <div>
-            <h2 className="text-xl font-black uppercase tracking-tighter leading-none">Hub <span className="text-aba-gold">Enrollment</span></h2>
-            <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em] mt-2">Tier Progression Protocol</p>
+            <h2 className="text-xl font-black uppercase tracking-tighter leading-none">Choose <span className="text-aba-gold">Your Plan</span></h2>
+            <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em] mt-2">Upgrade Your Business</p>
           </div>
         </div>
       </header>
@@ -268,7 +268,7 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
         {/* PROGRESS STACK */}
         <div className="space-y-4">
            <div className="flex justify-between items-end mb-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/40">Progression Stack</h3>
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/40">Available Plans</h3>
               <span className="text-[10px] font-black text-aba-gold uppercase tracking-widest">Level {currentTierIndex + 1} / 4</span>
            </div>
            
@@ -297,7 +297,7 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
                   >
                     {isActive && (
                       <div className="absolute top-0 right-0 px-6 py-2 bg-aba-gold text-aba-dark text-[8px] font-black uppercase tracking-widest rounded-bl-2xl">
-                        Current Tier
+                        Current Plan
                       </div>
                     )}
 
@@ -386,7 +386,7 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
                   You're at the highest tier
                 </div>
               )}
-              <p className="text-[7px] text-center font-black uppercase text-white/20 tracking-[0.5em] mt-6">Industrial Settlement Protocol v2.0</p>
+              <p className="text-[7px] text-center font-black uppercase text-white/20 tracking-[0.5em] mt-6">Version 2.0</p>
            </div>
         </div>
       </main>

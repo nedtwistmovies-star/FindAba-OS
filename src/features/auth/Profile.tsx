@@ -63,7 +63,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
   }, [refreshData]);
 
   const handleLogout = async () => {
-    if (!confirm("Terminate secure industrial session?")) return;
+    if (!confirm("Are you sure you want to logout?")) return;
     await authSignOut();
     localStorage.removeItem('findaba_is_auth');
     localStorage.removeItem('findaba_user_id');
@@ -98,7 +98,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                <User size={28} className="sm:size-[48px] relative z-10" />
             </div>
             <div className="text-white min-w-0">
-              <h2 className="text-xl sm:text-4xl font-black uppercase tracking-tighter leading-none truncate">{isAuth ? 'Verified Partner' : 'Guest Citizen'}</h2>
+              <h2 className="text-xl sm:text-4xl font-black uppercase tracking-tighter leading-none truncate">{isAuth ? 'Registered Member' : 'Guest User'}</h2>
               <div className="flex flex-wrap items-center gap-2 mt-1.5 sm:mt-3">
                 <p className="text-aba-gold text-[7px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.5em] opacity-60 truncate max-w-[120px] sm:max-w-none">{userEmail?.toUpperCase() || 'ANONYMOUS'}</p>
                 {userRole && (
@@ -143,17 +143,17 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
           
           {activeTab === 'overview' && (
             <div className="animate-slide-up space-y-12">
-              <SectionHeader title="Industrial Overview" icon={Activity} />
+              <SectionHeader title="Account Summary" icon={Activity} />
               
               <BentoGrid>
                 <StatCard 
-                  title="Registry Status" 
+                  title="System Status" 
                   value={dbHealth.status === 'healthy' ? 'Online' : 'Offline'} 
                   icon={Database} 
                   color={dbHealth.status === 'healthy' ? 'text-aba-green' : 'text-red-500'}
                 />
                 <StatCard 
-                  title="Partner Identity" 
+                  title="Member Status" 
                   value={isAuth ? 'Verified' : 'Guest'} 
                   icon={ShieldCheck} 
                   color="text-aba-gold"
@@ -180,7 +180,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                     
                     <div className="relative z-10">
                       <SectionHeader 
-                        title="Referral Protocol" 
+                        title="Invite Friends" 
                         subtitle="Invite partners and earn rewards"
                         icon={Ticket} 
                       />
@@ -224,7 +224,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
               )}
 
               <div className="space-y-4">
-                <SectionHeader title="Active Partners" icon={Zap} />
+                <SectionHeader title="My Services" icon={Zap} />
                 
                 {myBusiness && (
                   <button 
@@ -243,8 +243,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                      <ChevronRight size={20} className="text-aba-gold group-hover:translate-x-1 transition-transform sm:size-[24px]" />
                   </button>
                 )}
-                
-                {!isAuth && (
+                                {!isAuth && (
                   <button 
                     onClick={() => setView('login')}
                     className="w-full bg-[#002113] p-8 rounded-[3rem] shadow-2xl border border-white/5 flex items-center justify-between group transition-all active:scale-[0.98] hover:border-aba-gold/30"
@@ -254,8 +253,8 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                            <Shield size={32} />
                         </div>
                         <div className="text-left">
-                           <h4 className="text-xl font-black uppercase tracking-tight text-white leading-none">Registry User Auth</h4>
-                           <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.5em] mt-2">Establish Personal Partner ID</p>
+                           <h4 className="text-xl font-black uppercase tracking-tight text-white leading-none">Sign In</h4>
+                           <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.5em] mt-2">Continue to Login</p>
                         </div>
                      </div>
                      <ChevronRight size={24} className="text-white/20 group-hover:text-aba-gold transition-all group-hover:translate-x-1" />
@@ -271,8 +270,8 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                         <Terminal size={32} />
                       </div>
                       <div className="text-left">
-                         <h4 className="text-xl font-black uppercase tracking-tight text-white leading-none group-hover:text-aba-gold transition-colors">Hardware Audit</h4>
-                         <p className="text-[9px] font-black text-aba-gold/60 uppercase tracking-[0.5em] mt-2">Analyze Migration Specs</p>
+                         <h4 className="text-xl font-black uppercase tracking-tight text-white leading-none group-hover:text-aba-gold transition-colors">App Info</h4>
+                         <p className="text-[9px] font-black text-aba-gold/60 uppercase tracking-[0.5em] mt-2">Check App version</p>
                       </div>
                    </div>
                    <ChevronRight size={24} className="text-white/20 group-hover:text-aba-gold transition-all group-hover:translate-x-1" />
@@ -302,8 +301,8 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
           {activeTab === 'identity' && (
             <div className="animate-slide-up space-y-12">
               <SectionHeader 
-                title="Platform Identity" 
-                subtitle="Configure visual assets and social node connections"
+                title="Platform Settings" 
+                subtitle="Update photos and social links"
                 icon={UserCheck}
               />
               
@@ -407,8 +406,8 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
           {activeTab === 'verification' && (
             <div className="animate-slide-up space-y-12">
               <SectionHeader 
-                title="Verification Bureau" 
-                subtitle="Review Artisan Credentials"
+                title="Review Center" 
+                subtitle="Review Business Requests"
                 icon={ShieldCheck}
               />
               
@@ -450,7 +449,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Preferred Dialect</label>
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Language</label>
                     <select 
                       value={profile?.preferred_language || 'en'}
                       onChange={async (e) => {
@@ -459,28 +458,28 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                         setLoading(true);
                         try {
                           await updateUserProfile(profile.id, { preferred_language: lang });
-                          addToast("Linguistic preference synced", "success");
+                          addToast("Language preference updated", "success");
                           await refreshData();
                           // Notify via Resend
                           sendProfileUpdateNotification(profile.email, profile.full_name || 'Citizen').catch(console.error);
                         } catch (err) {
-                          addToast("Sync fault in preferences", "error");
+                          addToast("Error updating preferences", "error");
                         } finally {
                           setLoading(false);
                         }
                       }}
                       className="w-full bg-black/40 border border-white/10 p-5 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs text-white uppercase font-black tracking-widest cursor-pointer"
                     >
-                      <option value="en">English (Official)</option>
-                      <option value="ig">Igbo (Zonal)</option>
-                      <option value="pcm">Pidgin (Regional)</option>
+                      <option value="en">English</option>
+                      <option value="ig">Igbo</option>
+                      <option value="pcm">Pidgin</option>
                       <option value="yo">Yoruba</option>
                       <option value="ha">Hausa</option>
                     </select>
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Notification Mesh</label>
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Notification Settings</label>
                     <div className="flex flex-wrap gap-3">
                       {['email', 'sms', 'push'].map((type) => (
                         <button
@@ -514,7 +513,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Protocol Interface</label>
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Theme</label>
                     <div className="flex gap-3">
                       <button
                         onClick={async () => {
@@ -526,7 +525,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                             addToast(`Dark Mode ${updated ? 'ENABLED' : 'DISABLED'}`, "success");
                             await refreshData();
                           } catch (err) {
-                            addToast("Sync fault in logic", "error");
+                            addToast("Sync error", "error");
                           } finally {
                             setLoading(false);
                           }
@@ -538,7 +537,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                         }`}
                       >
                         {profile?.dark_mode ? <Zap size={14} fill="currentColor" /> : <Globe size={14} />}
-                        {profile?.dark_mode ? 'VANGUARD DARK' : 'STANDARD LIGHT'}
+                        {profile?.dark_mode ? 'Dark Theme' : 'Light Theme'}
                       </button>
                     </div>
                   </div>
@@ -546,10 +545,10 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
               </div>
 
               <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-10">
-                <SectionHeader title="Registry Connection" icon={Database} />
+                <SectionHeader title="Network Connection" icon={Database} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Supabase URL</label>
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">System URL</label>
                     <input
                       type="text"
                       value={dbConfig.url}
@@ -559,7 +558,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Anon Key</label>
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Access Key</label>
                     <input
                       type="password"
                       value={dbConfig.key}
@@ -572,10 +571,10 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                 
                 <div className="flex gap-4">
                   <IndustrialButton variant="primary" size="md" icon={RefreshCcw} onClick={handleDbReconnect} fullWidth>
-                    Reconnect Signal
+                    Reconnect
                   </IndustrialButton>
                   <IndustrialButton variant="danger" size="md" icon={Trash2} onClick={() => { purgeLocalRegistry(); setDbConfig({url:'', key:''}); }} fullWidth>
-                    Purge Local Partner
+                    Reset Connection
                   </IndustrialButton>
                 </div>
               </div>
@@ -589,7 +588,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   fullWidth
                   className="mt-12"
                 >
-                  TERMINATE HANDSHAKE
+                  LOGOUT
                 </IndustrialButton>
               )}
             </div>

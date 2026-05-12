@@ -70,7 +70,7 @@ export const BrandSignature: React.FC<{ light?: boolean; className?: string }> =
     <div className={`flex items-center gap-4 opacity-20 ${light ? 'text-white' : 'text-aba-deep'}`}>
       <div className="h-px w-8 bg-current" />
       <span className="text-[10px] font-bold uppercase tracking-[0.3em]">
-        FindAba OS v6.0
+        FindAba v6.0
       </span>
       <div className="h-px w-8 bg-current" />
     </div>
@@ -84,7 +84,7 @@ export const BrandSignature: React.FC<{ light?: boolean; className?: string }> =
     <div className={`px-4 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${
       light ? 'bg-white/5 border-white/10 text-white/40' : 'bg-aba-green/5 border-aba-green/10 text-aba-green/60'
     }`}>
-      Official Industrial Signal
+      Official Business Hub
     </div>
   </div>
 );
@@ -123,7 +123,7 @@ const AIWelcomeSection: React.FC<{ light?: boolean }> = ({ light }) => {
       </p>
       <div className="flex items-center justify-center gap-2 opacity-30">
         <ShieldCheck size={12} className="text-aba-green" />
-        <span className="text-[9px] font-bold uppercase tracking-widest">Handshake Verified</span>
+        <span className="text-[9px] font-bold uppercase tracking-widest">Secure Connection</span>
       </div>
     </div>
   );
@@ -196,8 +196,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const [activeLogo, setActiveLogo] = useState<string>(appLogo || SANDALS_BRAND.logo);
   
   const [notifications, setNotifications] = useState<AppNotification[]>([
-    { id: '1', title: 'Registry Synchronized', message: 'Industrial Partner v6.0 mesh established.', type: 'info', read: false, timestamp: new Date().toISOString() },
-    { id: '2', title: 'Security Protocol', message: 'Fidelity Handshake verified via Paystack.', type: 'success', read: false, timestamp: new Date().toISOString() }
+    { id: '1', title: 'System Connected', message: 'FindAba v6.0 is ready.', type: 'info', read: false, timestamp: new Date().toISOString() },
+    { id: '2', title: 'Payment Secure', message: 'Payment confirmed via Paystack.', type: 'success', read: false, timestamp: new Date().toISOString() }
   ]);
 
   useEffect(() => {
@@ -259,19 +259,19 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
   const menuItems = [
     { label: 'City Faces', icon: <Users size={20} />, view: 'feed' as ViewState },
-    { label: 'Fidelity Wallet', icon: <Landmark size={20} />, view: 'wallet' as ViewState },
-    { label: 'Purple Fleet', icon: <Car size={20} />, view: 'purple-fleet' as ViewState },
-    { label: 'SANDALSroyalle Hotels & Suites', icon: <Building2 size={20} />, view: 'sandals-hotels' as ViewState },
-    { label: 'Carry-Go Cargo', icon: <Truck size={20} />, view: 'cargo' as ViewState },
+    { label: 'Wallet', icon: <Landmark size={20} />, view: 'wallet' as ViewState },
+    { label: 'Taxis', icon: <Car size={20} />, view: 'purple-fleet' as ViewState },
+    { label: 'Hotels & Suites', icon: <Building2 size={20} />, view: 'sandals-hotels' as ViewState },
+    { label: 'Logistics', icon: <Truck size={20} />, view: 'cargo' as ViewState },
     { label: 'Thrift Savings', icon: <Wallet size={20} />, view: 'srts-dashboard' as ViewState },
-    { label: 'Audio Archive', icon: <Radio size={20} />, view: 'audio-heritage' as ViewState },
+    { label: 'Audio Archives', icon: <Radio size={20} />, view: 'audio-heritage' as ViewState },
     { label: 'Creative Lab', icon: <Sparkles size={20} />, view: 'lab' as ViewState },
-    { label: 'Hardware Audit', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
+    { label: 'System Status', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
     { label: 'Aba History', icon: <BookOpen size={20} />, view: 'about-aba' as ViewState },
-    { label: 'City Registry', icon: <Layers size={20} />, view: 'explore' as ViewState },
-    { label: 'Oracle Hub', icon: <Cpu size={20} />, view: 'oracle' as ViewState },
-    { label: 'System Console', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
-    { label: 'System Support', icon: <LifeBuoy size={20} />, view: 'support' as ViewState },
+    { label: 'Directory', icon: <Layers size={20} />, view: 'explore' as ViewState },
+    { label: 'AI Assistant', icon: <Cpu size={20} />, view: 'oracle' as ViewState },
+    { label: 'Admin Panel', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
+    { label: 'Support', icon: <LifeBuoy size={20} />, view: 'support' as ViewState },
     { label: 'Discover', icon: <Sparkles size={20} />, view: 'discover' as ViewState },
     { label: 'Stories', icon: <BookOpen size={20} />, view: 'editorial' as ViewState },
     { label: 'Executive HQ', icon: <ShieldCheck size={20} />, view: 'srts-office' as ViewState },
@@ -365,7 +365,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Universal Industrial Search..." 
+                  placeholder="Search for businesses..." 
                   className="w-full pl-12 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-aba-gold/50 transition-all font-bold tracking-tight"
                 />
                 
@@ -375,7 +375,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                     {isSearching ? (
                       <div className="p-8 flex flex-col items-center justify-center gap-4">
                         <Loader2 className="animate-spin text-aba-gold" size={24} />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Syncing Registry...</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Searching...</span>
                       </div>
                     ) : searchResults.length > 0 ? (
                       <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-hide">
@@ -410,18 +410,18 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                         </div>
                         <div className="space-y-2">
                           <h6 className="text-sm font-black uppercase tracking-widest">No Matches Found</h6>
-                          <p className="text-[10px] font-medium text-white/40">The industrial signal for "{searchQuery}" is not present in the verified mesh.</p>
+                          <p className="text-[10px] font-medium text-white/40">No businesses found matching "{searchQuery}".</p>
                         </div>
                       </div>
                     )}
                     
                     <div className="p-4 bg-white/5 border-t border-white/5 flex justify-between items-center">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">FindAba OS Search Engine</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">FindAba Search</span>
                       <button 
                         onClick={() => setSearchQuery('')}
                         className="text-[9px] font-black uppercase tracking-widest text-aba-gold hover:underline"
                       >
-                        Clear Signal
+                        Clear
                       </button>
                     </div>
                   </div>
@@ -542,10 +542,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
               <div className="space-y-6">
                 <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Registry</h4>
                 <div className="space-y-3">
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Verified Hubs</button>
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Industrial Partners</button>
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Export Readiness</button>
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Trade Analytics</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Verified Businesses</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Business Partners</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Export Status</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Business Insights</button>
                 </div>
               </div>
 
@@ -636,7 +636,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                     className="w-full py-3 bg-aba-gold text-aba-deep rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm active:scale-[0.98] transition-standard flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {isFooterSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} 
-                    {isFooterSending ? "Transmitting Signal..." : "Send Signal"}
+                    {isFooterSending ? "Sending..." : "Send Message"}
                   </button>
                 </div>
               </div>
@@ -663,8 +663,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
         {[
           { id: 'home', icon: <Home size={18} />, label: 'HOME' },
           { id: 'feed', icon: <Users size={18} />, label: 'FACES' },
-          { id: 'oracle', icon: <Cpu size={18} />, label: 'ORACLE' },
-          { id: 'wallet', icon: <Landmark size={18} />, label: 'Fidelity' },
+          { id: 'oracle', icon: <Cpu size={18} />, label: 'AI' },
+          { id: 'wallet', icon: <Landmark size={18} />, label: 'WALLET' },
           { id: 'profile', icon: <UserCircle size={18} />, label: 'PROFILE' }
         ].map((btn, i) => (
           <button 
