@@ -721,26 +721,23 @@ export const updateBusinessInDB = async (id: string, updates: Partial<Business>)
   }
 };
 
-export const saveBusinessToDB = async (business: Business) => {
+export const saveBusinessToDB = async (business: Business): Promise<Business> => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
   // 🔹 INDUSTRIAL PAYLOAD CLEANING PROTOCOL
-  // Strictly filter to columns known to exist in the DB schema to prevent PGRST204
   const VALID_CHASSIS_COLUMNS = [
     'id', 'user_id', 'name', 'email', 'phone_whatsapp', 'category', 'area', 'address',
     'primary_product_or_service', 'description', 'image_url', 'rating', 'review_count',
     'status', 'verification_status', 'verification_level', 'integrity_grade',
     'is_export_ready', 'capacity_indicator', 'premium_features_enabled',
-    'subscription_tier', 'active_features', 'products', 'created_at',
+    'subscription_tier', 'hub_tier', 'active_features', 'products', 'created_at',
     'latitude', 'longitude', 'video_caption', 'business_type', 'is_verified',
     'catalog_images', 'videos', 'bank_name', 'account_number', 'account_name',
     'skills', 'experience_years', 'portfolio_images'
   ];
 
   let currentPayload: any = {};
-  
-  // Auto-map legacy or misnamed fields
   const mapper: Record<string, string> = {
     'whatsapp': 'phone_whatsapp',
     'primary_product': 'primary_product_or_service'
@@ -753,78 +750,91 @@ export const saveBusinessToDB = async (business: Business) => {
     }
   });
 
-  // Normalize critical fields
   if (currentPayload.email) currentPayload.email = normalizeEmail(currentPayload.email);
-  if (!currentPayload.id) currentPayload.id = `biz-${Math.random().toString(36).substr(2, 9)}`;
-  let attempts = 0;
-  const maxAttempts = 10; // Allow for multiple missing columns
+  
+  // We use stable ID if provided, otherwise generate one
+  if (!currentPayload.id) currentPayload.id = business.id || `biz-${Math.random().toString(36).substr(2, 9)}`;
 
-  console.log(`[Registry] Attempting to commit hub: ${currentPayload.email} (ID: ${currentPayload.id})`);
+  console.log(`[Registry] Synchronizing Hub: ${currentPayload.email} (Input ID: ${currentPayload.id})`);
 
-  while (attempts < maxAttempts) {
-    // Use upsert to handle existing emails/IDs permanently
-    const { data, error } = await client
+  try {
+    const { data: { session } } = await client.auth.getSession();
+    if (session && !currentPayload.user_id) {
+       currentPayload.user_id = session.user.id;
+    }
+
+    // 🔹 Phase 1: Identity Resolution (Email-based)
+    // We check by email to prevent duplicate registrations and allow claiming
+    const { data: existing } = await client
       .from('businesses')
-      .upsert(currentPayload, { onConflict: 'email' })
-      .select();
-    
-    if (error) {
-      console.error(`[Registry] Save attempt ${attempts + 1} failed:`, error);
+      .select('*')
+      .eq('email', currentPayload.email)
+      .maybeSingle();
 
-      // Handle duplicate key explicitly if upsert didn't catch it
-      if (error.code === '23505') {
-        console.warn("[Registry] Duplicate key detected despite upsert. Attempting targeted update...");
-        const { email, ...updateData } = currentPayload;
-        const { error: updateError } = await client
-          .from('businesses')
-          .update(updateData)
-          .eq('email', email);
-        
-        if (!updateError) {
-          console.log("[Registry] Targeted update successful.");
-          triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);
-          return;
-        }
-        console.error("[Registry] Targeted update failed:", updateError);
-        throw new Error(`Registry Sync Error: Duplicate Email detected and update failed. (${updateError.message})`);
-      }
+    if (existing) {
+      console.log(`[Registry] Identity Match Found (Current ID: ${existing.id}). Performing Targeted Sync...`);
+      
+      // CRITICAL: When updating, we MUST preserve the existing ID to avoid FK violations
+      const updatePayload = { ...currentPayload };
+      delete updatePayload.id; // Removing ID from SET clause
+      delete updatePayload.created_at; // Preserve creation timestamp
+      
+      const { data: updated, error: updateError } = await client
+        .from('businesses')
+        .update(updatePayload)
+        .eq('id', existing.id)
+        .select()
+        .single();
 
-      // Handle missing columns gracefully (PGRST204)
-      // Handle missing columns gracefully (PGRST204)
-      if (error.code === 'PGRST204') {
-        const match = error.message.match(/Could not find the ['"](.+)['"] column/i);
-        if (match && match[1]) {
-          const missingColumn = match[1];
-          // Case-insensitive lookup for pruning
-          const payloadKey = Object.keys(currentPayload).find(k => k.toLowerCase() === missingColumn.toLowerCase());
-          
-          if (payloadKey) {
-            console.warn(`[Registry] Auto-pruning incompatible column: ${payloadKey}`);
-            delete currentPayload[payloadKey];
-            attempts++;
-            continue;
-          }
+      if (updateError) {
+        console.error("[Registry] Sync Fault:", updateError);
+        // Handle RLS
+        if (updateError.message.includes('row level security')) {
+           throw new Error(`Access Denied: You do not have authority to modify this hub (${existing.id}).`);
         }
+        throw updateError;
       }
       
-      console.error("[Registry] Save Failure:", error);
-      const diagnosticInfo = {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        payload_keys: Object.keys(currentPayload),
-        has_uid: 'user_id' in currentPayload
-      };
-      throw new Error(`Registry Sync Error: ${error.message} (Code: ${error.code}) Diagnostics: ${JSON.stringify(diagnosticInfo)}`);
+      console.log("[Registry] Sync Complete.");
+      triggerWebhook(WebhookEvent.NEW_REGISTRATION, updated);
+      return updated as Business;
     }
-    
-    // Success
-    triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);
-    return;
+
+    // 🔹 Phase 2: Fresh Commitment (Insert)
+    const { data: inserted, error: insertError } = await client
+      .from('businesses')
+      .insert(currentPayload)
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("[Registry] Commitment Fault:", insertError);
+      
+      // Auto-pruning for missing columns
+      if (insertError.code === 'PGRST204') {
+        const match = insertError.message.match(/Could not find the ['"](.+)['"] column/i);
+        if (match && match[1]) {
+          console.warn(`[Registry] Pruning missing column and retrying: ${match[1]}`);
+          const businessCopy = { ...business };
+          delete (businessCopy as any)[match[1]];
+          return await saveBusinessToDB(businessCopy);
+        }
+      }
+
+      if (insertError.message.includes('row level security')) {
+        throw new Error("Security Breach: Unauthorized registration attempt. Please sign in.");
+      }
+      throw insertError;
+    }
+
+    console.log("[Registry] New Node Committed.");
+    triggerWebhook(WebhookEvent.NEW_REGISTRATION, inserted);
+    return inserted as Business;
+
+  } catch (err: any) {
+    console.error("[Registry] Critical Failure:", err);
+    throw new Error(`Registry Sync Error: ${err.message || "Operation failed"}`);
   }
-  
-  throw new Error("Registry Sync Failed: Too many missing columns in database schema.");
 };
 
 export const fetchFavorites = async (userId: string): Promise<string[]> => {

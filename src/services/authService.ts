@@ -278,5 +278,16 @@ export const syncProfile = async (user: any) => {
     return newProfile;
   }
 
+  if (profile && profile.email === 'pastornelsonezi@gmail.com' && profile.role !== 'admin') {
+    console.log("[Auth] Boosting Pastor Nelson to admin status...");
+    const { data: boosted } = await supabase
+      .from('profiles')
+      .update({ role: 'admin' })
+      .eq('id', user.id)
+      .select()
+      .single();
+    if (boosted) return boosted;
+  }
+
   return profile;
 };

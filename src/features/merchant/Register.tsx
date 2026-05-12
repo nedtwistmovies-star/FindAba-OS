@@ -172,22 +172,29 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess,
     setLoading(true);
     try {
       console.log("[Registry] Committing hub payload:", { ...business, meta: { auth: isAuth, uid: user_id } });
-      await saveBusinessToDB(business);
+      const savedBusiness = await saveBusinessToDB(business);
       
       // Notify Merchant via Email
       try {
-        await sendBusinessRegistrationEmail(business.email, business.name, business.subscription_tier || 'Free');
+        await sendBusinessRegistrationEmail(savedBusiness.email, savedBusiness.name, savedBusiness.subscription_tier || 'Free');
       } catch (e) {
         console.warn("[Registry] Email notification protocol failure:", e);
       }
 
-      setRegisteredBusiness(business);
+      setRegisteredBusiness(savedBusiness);
       setStep('success');
-      onRegister(business);
+      onRegister(savedBusiness);
       addToast("Business successfully registered!", "success");
     } catch (error: any) {
       console.error("Registration failed. Payload:", business, "Error:", error);
-      addToast(`Registration failed: ${error.message || "Unknown error"}`, "error");
+      const errorMessage = error.message || "Unknown error";
+      if (errorMessage.includes("This hub is owned by another entity")) {
+        addToast("Permission Denied: This email belongs to another hub. Please use a different email or request node reassignment.", "error");
+      } else if (errorMessage.includes("Security Protocol Error")) {
+        addToast("Registry Protocol Violation: Please sign out and sign back in to refresh your industrial keys.", "error");
+      } else {
+        addToast(`Registration failed: ${errorMessage}`, "error");
+      }
     } finally {
       setLoading(false);
     }

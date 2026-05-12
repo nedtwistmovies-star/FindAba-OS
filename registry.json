@@ -1,6 +1,6 @@
 {
   "version": "v6.0",
-  "lastUpdated": "2026-05-12T17:30:18.501Z",
+  "lastUpdated": "2026-05-12T18:12:04.075Z",
   "businesses": [
     {
       "name": "sandals royalle resources",
@@ -36,9 +36,9 @@
       "average_rating": 0,
       "profile_id": null,
       "location": null,
-      "user_id": null,
+      "user_id": "dcb290fc-e51c-4000-8675-fad90660b703",
       "id": "66ff051e-e9f1-4b1a-b824-5b5b3951a35d",
-      "updated_at": "2026-05-12T09:50:34.549253"
+      "updated_at": "2026-05-12T18:11:55.094267"
     },
     {
       "name": "AmyOils",
@@ -77,9 +77,9 @@
       "average_rating": 0,
       "profile_id": null,
       "location": null,
-      "user_id": null,
+      "user_id": "dcb290fc-e51c-4000-8675-fad90660b703",
       "id": "9cc51706-15ff-4e2b-a276-380cf7a9eb30",
-      "updated_at": "2026-05-12T09:50:35.161664"
+      "updated_at": "2026-05-12T18:11:57.420907"
     },
     {
       "name": "SANDALSROYALLE S&P SERVICES",
@@ -118,9 +118,9 @@
       "average_rating": 0,
       "profile_id": null,
       "location": null,
-      "user_id": null,
+      "user_id": "dcb290fc-e51c-4000-8675-fad90660b703",
       "id": "f9ff6756-d24f-4daf-b47a-993ef1534725",
-      "updated_at": "2026-05-12T09:50:35.652011"
+      "updated_at": "2026-05-12T18:11:59.549441"
     },
     {
       "name": "Rutch Afrique",
@@ -159,9 +159,9 @@
       "average_rating": 0,
       "profile_id": null,
       "location": null,
-      "user_id": null,
+      "user_id": "dcb290fc-e51c-4000-8675-fad90660b703",
       "id": "81ab35e3-1f49-4386-a539-4f7f2575ef34",
-      "updated_at": "2026-05-12T09:50:36.142622"
+      "updated_at": "2026-05-12T18:12:01.107027"
     },
     {
       "name": "FindAba Magazine ",
@@ -200,9 +200,9 @@
       "average_rating": 0,
       "profile_id": null,
       "location": null,
-      "user_id": null,
+      "user_id": "dcb290fc-e51c-4000-8675-fad90660b703",
       "id": "cf1d8d6a-f619-4cb6-8d33-7f2675aef57f",
-      "updated_at": "2026-05-12T09:50:36.831778"
+      "updated_at": "2026-05-12T18:12:02.968055"
     }
   ]
 }

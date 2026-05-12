@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
   business_type TEXT,
   is_verified BOOLEAN DEFAULT FALSE,
   subscription_tier TEXT DEFAULT 'Free',
+  hub_tier TEXT DEFAULT 'Starter',
   catalog_images TEXT[],
   videos JSONB DEFAULT '[]',
   bank_name TEXT,
