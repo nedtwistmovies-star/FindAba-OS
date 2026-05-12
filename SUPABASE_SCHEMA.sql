@@ -1220,6 +1220,14 @@ SELECT public.enable_realtime_for('vision_history');
 -- 14. THRIFT SAVINGS & GROUP THRIFT (ISUSU)
 -- ==========================================
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'thrift_contributions' AND column_name = 'thrift_id') THEN
+        ALTER TABLE public.thrift_contributions ADD COLUMN thrift_id TEXT REFERENCES public.thrift_accounts(user_email) ON DELETE CASCADE;
+        UPDATE public.thrift_contributions SET thrift_id = user_email;
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.thrift_accounts (
   user_email TEXT PRIMARY KEY,
   cycle TEXT DEFAULT 'monthly',
@@ -1331,7 +1339,15 @@ SELECT public.enable_realtime_for('thrift_group_contributions');
 SELECT public.enable_realtime_for('thrift_payouts');
 
 -- Performance Indices for Thrift
-CREATE INDEX IF NOT EXISTS idx_thrift_contrib_email ON public.thrift_contributions(user_email);
+CREATE INDEX IF NOT EXISTS idx_thrift_accounts_email ON public.thrift_accounts(user_email);
+CREATE INDEX IF NOT EXISTS idx_thrift_contributions_id ON public.thrift_contributions(thrift_id);
+CREATE INDEX IF NOT EXISTS idx_thrift_contributions_email ON public.thrift_contributions(user_email);
+CREATE INDEX IF NOT EXISTS idx_thrift_group_members_group ON public.thrift_group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_thrift_group_members_user ON public.thrift_group_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_thrift_group_contrib_group ON public.thrift_group_contributions(group_id);
+CREATE INDEX IF NOT EXISTS idx_thrift_group_contrib_user ON public.thrift_group_contributions(user_id);
+CREATE INDEX IF NOT EXISTS idx_thrift_payouts_group ON public.thrift_payouts(group_id);
+CREATE INDEX IF NOT EXISTS idx_thrift_payouts_user ON public.thrift_payouts(user_id);
 CREATE INDEX IF NOT EXISTS idx_thrift_groups_status ON public.thrift_groups(status);
 CREATE INDEX IF NOT EXISTS idx_thrift_members_group ON public.thrift_group_members(group_id);
 CREATE INDEX IF NOT EXISTS idx_thrift_members_user ON public.thrift_group_members(user_id);

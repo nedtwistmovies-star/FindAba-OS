@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageSquare, Send, ShoppingBag, MoreHorizontal, Star, Trash2, Loader2, SendHorizontal, Edit3, Flag, Share2, AlertCircle } from 'lucide-react';
+import { Heart, MessageSquare, Send, ShoppingBag, MoreHorizontal, Star, Trash2, Loader2, SendHorizontal, Edit3, Flag, Share2, AlertCircle, AudioLines, Volume2, Play } from 'lucide-react';
 import { Post, OrderStatus, Comment } from '../types';
 import { useAuth } from '../providers/AuthProvider';
 import { toggleLike, createOrderFromAction, fetchComments, addComment, deletePost } from '../services/facesService';
+import { generateHistoryAudio, decodeAudio } from '../services/geminiService';
 import { useToast } from '../providers/ToastProvider';
 
 interface FacesPostProps {
@@ -25,7 +26,42 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const commentInputRef = React.useRef<HTMLInputElement>(null);
+  const audioContextRef = React.useRef<AudioContext | null>(null);
+  const audioBufferSourceRef = React.useRef<AudioBufferSourceNode | null>(null);
+
+  const handleListenToHistory = async () => {
+    if (isPlayingAudio) {
+      audioBufferSourceRef.current?.stop();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    setIsPlayingAudio(true);
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      const audioData = await generateHistoryAudio(post.content, 'English', 'Kore');
+      if (audioData) {
+        const buffer = await decodeAudio(audioData, audioContextRef.current);
+        const source = audioContextRef.current.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContextRef.current.destination);
+        source.onended = () => setIsPlayingAudio(false);
+        audioBufferSourceRef.current = source;
+        source.start();
+        addToast("Narrating signal history...", "info");
+      } else {
+        throw new Error("Audio signal lost.");
+      }
+    } catch (e: any) {
+      addToast(e.message || "Failed to generate audio signal.", "error");
+      setIsPlayingAudio(false);
+    }
+  };
 
   // Initial like state check
   useEffect(() => {
@@ -345,6 +381,15 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
           >
             <Send size={18} className="sm:w-[20px] sm:h-[20px] group-hover:scale-110 transition-transform" />
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest">Share</span>
+          </button>
+
+          <button 
+            onClick={handleListenToHistory}
+            disabled={isPlayingAudio && false} // we toggle in handler
+            className={`flex items-center gap-2 transition-all group outline-none ${isPlayingAudio ? 'text-aba-gold animate-pulse' : 'text-white/40 hover:text-aba-gold'}`}
+          >
+            {isPlayingAudio ? <Volume2 size={18} className="sm:w-[20px] sm:h-[20px]" /> : <AudioLines size={18} className="sm:w-[20px] sm:h-[20px] group-hover:scale-110 transition-transform" />}
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest">{isPlayingAudio ? 'Listening...' : 'History'}</span>
           </button>
         </div>
 

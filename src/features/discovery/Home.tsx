@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane, Settings2, Rocket } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane, Settings2, Rocket, Layout } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader, ImageCarousel, GitHubSync, SupabaseSync, BusinessCard } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
@@ -226,6 +226,25 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               </div>
             </div>
           ))}
+        </div>
+
+        {/* 🔹 NEW: Intelligence Desk Promotion */}
+        <div className="mt-12 bg-gradient-to-br from-aba-gold/10 to-transparent p-12 rounded-[3.5rem] border border-aba-gold/20 flex flex-col md:flex-row items-center justify-between gap-12 group hover:bg-aba-gold/20 transition-all cursor-pointer shadow-3xl" onClick={() => setView('intelligence-desk')}>
+           <div className="space-y-6 max-w-xl">
+             <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-aba-gold rounded-2xl flex items-center justify-center">
+                  <Layout className="text-aba-deep" size={24} />
+                </div>
+                <span className="text-xs font-black uppercase tracking-[0.4em] text-aba-gold">Industrial OS Feature</span>
+             </div>
+             <h3 className="text-4xl md:text-5xl font-black uppercase tracking-tightest leading-none">FindAba Intelligence Desk</h3>
+             <p className="text-white/40 text-sm md:text-lg font-bold uppercase tracking-wider leading-relaxed">
+               Access real-time market data, trade protocols, and expert opportunity signals to scale your industry.
+             </p>
+           </div>
+           <button className="px-10 py-6 bg-aba-gold text-aba-deep rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-4 group-hover:bg-white group-hover:scale-105 transition-all active:scale-95 whitespace-nowrap">
+             Launch Intelligence Desk <ArrowRight size={20} />
+           </button>
         </div>
       </section>
 

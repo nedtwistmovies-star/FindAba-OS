@@ -160,7 +160,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
           // Automatically trigger success after a brief delay
           setTimeout(() => {
             console.log("[Sentinel] Automatic Sync Triggering...");
-            onSuccess({ reference, status: 'success', ai_verified: true, verdict });
+            onSuccess({ reference, status: 'success', ai_verified: true, verdict, amount });
           }, 4000);
         } else {
           console.warn("[Sentinel] Verification Reject:", verdict.reasoning);
@@ -373,7 +373,8 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                     reference, 
                     status: 'success', 
                     ai_verified: isAiVerifiedLocal, 
-                    verdict: aiVerdict 
+                    verdict: aiVerdict,
+                    amount
                  })} 
                  className="w-full bg-aba-dark text-white py-5 md:py-6 rounded-2xl md:rounded-[1.5rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.3em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                >

@@ -6,7 +6,8 @@ import {
   Home, Compass, UserCircle, Search, Menu, X, Globe, Building2, Zap, ShieldCheck,
   MessageCircle, BookOpen, Map as MapIcon, Layers, Sparkles, Radio, Info, Loader2, Cpu,
   Rss, Users, Lock, Unlock, Bell, Car, Key, Truck, Wallet, Plus, Landmark,
-  Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft, RefreshCw
+  Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft, RefreshCw,
+  Layout as LayoutIcon
 } from 'lucide-react';
 import Logo from './Logo';
 import { GitHubSync } from './GitHubSync';
@@ -269,6 +270,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
     { label: 'System Status', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
     { label: 'Aba History', icon: <BookOpen size={20} />, view: 'about-aba' as ViewState },
     { label: 'Directory', icon: <Layers size={20} />, view: 'explore' as ViewState },
+    { label: 'Intelligence Desk', icon: <LayoutIcon size={20} />, view: 'intelligence-desk' as ViewState },
     { label: 'AI Assistant', icon: <Cpu size={20} />, view: 'oracle' as ViewState },
     { label: 'Admin Panel', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
     { label: 'Support', icon: <LifeBuoy size={20} />, view: 'support' as ViewState },

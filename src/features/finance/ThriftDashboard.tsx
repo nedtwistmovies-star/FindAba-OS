@@ -56,7 +56,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
         const data = await fetchThriftAccount(userEmail);
         setAccount(data);
         if (data) {
-          const contribs = await fetchThriftContributions(data.id);
+          const contribs = await fetchThriftContributions(userEmail);
           setContributions(contribs);
         }
       } else {
@@ -112,7 +112,13 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
   };
 
   const handleWithdrawal = async () => {
-    if (!confirm("Confirm withdrawal? Cycle will be closed and 3.5% commission applied.")) return;
+    if (account?.status === 'withdrawn') {
+      return addToast("FUNDS ALREADY WITHDRAWN: Check your registered bank account.", "error");
+    }
+    
+    const confirmWithdraw = window.confirm(`Confirm withdrawal of ₦${(account?.total_saved || 0).toLocaleString()}? Cycle will be closed and 3.5% commission applied.`);
+    if (!confirmWithdraw) return;
+
     setActionLoading(true);
     try {
       const result = await withdrawThriftSavings(userEmail);
@@ -128,6 +134,10 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
   const handlePaymentSuccess = async (res: any) => {
     setIsUpdatingBalance(true);
     try {
+      if (!userId || !userEmail) {
+         throw new Error("AUTH_REQUIRED: Industrial signal lost. Please log in again.");
+      }
+
       // Robust amount detection: Prefer res.amount in kobo, or fall back to local input
       let actualAmountPaid = contributionAmount;
       if (res?.amount) {
@@ -143,24 +153,32 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
         }
       }
       
+      console.log(`[Thrift] Payment verified: ₦${actualAmountPaid}. Syncing to ledger...`);
+
       if (activeTab === 'individual') {
         const result = await saveThriftContribution(userEmail, actualAmountPaid);
         if (result) {
           addToast(`Contribution Locked: ₦${actualAmountPaid.toLocaleString()}`, "success");
-          await refreshData();
+          // Update state immediately for better UI response
+          setAccount(prev => prev ? { ...prev, total_saved: result.total_saved } : result);
+          // Also refresh in background
+          refreshData().catch(console.error);
         } else {
-          addToast("Contribution could not be saved. Check balance.", "error");
+          addToast("Contribution could not be saved. Check registry status.", "error");
         }
       } else if (selectedGroup) {
-        await saveGroupContribution(selectedGroup.group.id, selectedGroup.group.contribution_amount, 1, userId);
+        const contribAmount = selectedGroup.group.contribution_amount || actualAmountPaid;
+        await saveGroupContribution(selectedGroup.group.id, contribAmount, 1, userId || undefined);
         addToast("Group Isusu Contribution Recorded", "success");
         await openGroupDetails(selectedGroup.group.id);
       }
     } catch (e: any) {
+      console.error("[Thrift] Sync Fault:", e);
       addToast(`SYNC ERROR: ${e.message}`, "error");
     } finally {
       setShowCheckout(false);
-      setTimeout(() => setIsUpdatingBalance(false), 2000);
+      // Keep loading state briefly to ensure UI reflects database update
+      setTimeout(() => setIsUpdatingBalance(false), 3000);
     }
   };
 
@@ -215,21 +233,26 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
   /* INITIALIZATION SCREEN (Individual Cycle Choice) */
   if (activeTab === 'individual' && !account) {
     return (
-      <div className="relative min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 overflow-hidden">
+      <div className="relative min-h-screen bg-[#020617] flex flex-col items-center justify-center p-8 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden opacity-10 pointer-events-none">
+           <Database size={600} className="absolute -top-40 -left-40 text-blue-500" />
+           <ShieldCheck size={400} className="absolute -bottom-20 -right-20 text-blue-600" />
+        </div>
+
         <button 
           onClick={() => setView('home')} 
-          className="fixed top-8 left-8 z-[100] p-4 bg-white rounded-2xl border border-slate-200 shadow-xl active:scale-90 transition-all text-slate-900"
+          className="fixed top-8 left-8 z-[100] p-4 bg-white/5 rounded-2xl border border-white/10 shadow-xl active:scale-90 transition-all text-white"
         >
           <ArrowLeft size={24} />
         </button>
 
-        <div className="w-full max-w-2xl bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-2xl relative z-10 space-y-10">
+        <div className="w-full max-w-2xl bg-[#0f172a] p-12 rounded-[3.5rem] border border-white/5 shadow-2xl relative z-10 space-y-10">
            <div className="space-y-4 text-center">
               <div className="w-20 h-20 bg-blue-600 rounded-[2rem] mx-auto flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
                  <ShieldCheck size={40} />
               </div>
-              <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">Activate Savings Unit</h2>
-              <p className="text-sm font-medium text-slate-500 uppercase tracking-widest px-10">Select your savings protocol. Funds are locked securely until the cycle matures.</p>
+              <h2 className="text-4xl font-black uppercase tracking-tighter text-white">Activate Registry</h2>
+              <p className="text-sm font-medium text-white/40 uppercase tracking-widest px-10">Select your industrial savings protocol. All liquidity signals are locked until cycle maturity.</p>
            </div>
 
            <div className="grid grid-cols-2 gap-4">
@@ -242,40 +265,40 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                 <button 
                   key={c.id}
                   onClick={() => setSelectedCycle(c.id as any)}
-                  className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col gap-1 text-left ${selectedCycle === c.id ? 'border-blue-600 bg-blue-50/50' : 'border-slate-100 bg-slate-50 opacity-60'}`}
+                  className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col gap-1 text-left ${selectedCycle === c.id ? 'border-blue-600 bg-blue-600/10' : 'border-white/5 bg-white/5'}`}
                 >
-                  <span className={`text-sm font-black uppercase tracking-widest ${selectedCycle === c.id ? 'text-blue-600' : 'text-slate-400'}`}>{c.label}</span>
-                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-tight">{c.desc}</span>
+                  <span className={`text-sm font-black uppercase tracking-widest ${selectedCycle === c.id ? 'text-blue-400' : 'text-white/20'}`}>{c.label}</span>
+                  <span className="text-[10px] font-black text-white/30 uppercase tracking-tight">{c.desc}</span>
                 </button>
               ))}
            </div>
 
-           <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-3">
-              <div className="flex justify-between items-center">
-                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Protocol Arrangement</span>
-                 <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Type {selectedCycle}</span>
+           <div className="bg-black/40 p-6 rounded-3xl border border-white/5 space-y-3">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                 <span className="text-white/30">Protocol Arrangement</span>
+                 <span className="text-blue-400">Type {selectedCycle}</span>
               </div>
-              <div className="flex justify-between items-center">
-                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Service Fee</span>
-                 <span className="text-xs font-black text-orange-600 uppercase tracking-widest">3.5%</span>
+              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                 <span className="text-white/30">Registry Fee</span>
+                 <span className="text-orange-500/80">3.5% (Settlement)</span>
               </div>
-              <p className="text-[10px] text-slate-400 italic">This is a reflection-free locked savings protocol for industrial depth.</p>
+              <p className="text-[9px] text-white/20 italic font-medium uppercase tracking-wider text-center">Locked-integrity signal protocol for deep liquidity.</p>
            </div>
 
            <button 
              onClick={handleOpenAccount} 
              disabled={actionLoading}
-             className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[12px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-4 hover:bg-blue-600"
+             className="w-full py-6 bg-white text-aba-dark rounded-[2rem] font-black uppercase text-[12px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-4 hover:bg-blue-600 hover:text-white"
            >
-             {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={20} />} Activate Protocol
+             {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={20} />} Commit Registry
            </button>
 
            <div className="flex flex-col items-center">
              <button 
                onClick={() => setActiveTab('group')}
-               className="text-[10px] font-black uppercase text-blue-600 tracking-widest hover:underline"
+               className="text-[10px] font-black uppercase text-blue-400 tracking-widest hover:underline"
              >
-               Switch to Group Isusu
+               Switch to Isusu Network
              </button>
            </div>
         </div>
@@ -478,39 +501,62 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                  </div>
               </div>
 
-              {/* History */}
-              <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 space-y-8">
-                 <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-                       <History size={16} /> Registry Logs
-                    </h4>
-                    <div className="flex items-center gap-4">
+              {/* History (Ledger) */}
+              <div className="bg-[#0f172a] p-12 rounded-[3.5rem] border border-white/5 space-y-8 shadow-2xl">
+                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 flex items-center gap-2">
+                         <Database size={14} /> Thrift Ledger
+                      </h4>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-white/40 text-[10px] font-bold">REGISTRY:</span>
+                        <span className="text-white font-black text-xs uppercase tracking-widest">{account?.id?.slice(0, 12) || 'SYNCING...'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
                         <button 
                            onClick={refreshData}
-                           className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-all"
+                           className="flex items-center gap-2 text-[10px] font-black text-white bg-white/5 border border-white/10 uppercase tracking-widest hover:bg-white/10 px-5 py-3 rounded-xl transition-all active:scale-95"
                         >
-                           <RefreshCcw size={12} className={loading ? 'animate-spin' : ''} /> Re-sync Registry
+                           <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} /> Sync Registry
                         </button>
-                        <span className="text-[10px] font-black text-slate-400 uppercase">{contributions.length} SIGNALS</span>
+                        <button 
+                           onClick={() => addToast("History visualization coming soon.", "info")}
+                           className="flex items-center gap-2 text-[10px] font-black text-blue-400 bg-blue-400/5 border border-blue-400/10 uppercase tracking-widest hover:bg-blue-400/10 px-5 py-3 rounded-xl transition-all active:scale-95"
+                        >
+                           <History size={14} /> View Signals
+                        </button>
                     </div>
                  </div>
+
+                 <div className="h-px bg-white/5" />
+
                  <div className="space-y-4">
                    {contributions.map((c, i) => (
-                      <div key={i} className="flex items-center justify-between p-7 bg-slate-50 rounded-3xl border border-slate-100">
-                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
-                               <CheckCircle2 size={18} />
+                      <div key={i} className="flex items-center justify-between p-7 bg-white/[0.02] rounded-3xl border border-white/5 hover:bg-white/[0.04] transition-all group">
+                         <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-transform">
+                               <CheckCircle2 size={20} />
                             </div>
                             <div>
-                               <p className="text-sm font-black text-slate-900">₦{c.amount.toLocaleString()}</p>
-                               <p className="text-[9px] font-bold text-slate-400 uppercase">{new Date(c.created_at).toLocaleString()}</p>
+                               <div className="flex items-center gap-2">
+                                 <p className="text-lg font-black text-white tracking-tight">₦{c.amount.toLocaleString()}</p>
+                                 <span className="text-[7px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Signal Verified</span>
+                               </div>
+                               <p className="text-[9px] font-bold text-white/30 uppercase mt-1 tracking-wider">{new Date(c.created_at).toLocaleString()}</p>
                             </div>
                          </div>
-                         <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[8px] font-black text-blue-600 uppercase tracking-widest">Synchronized</span>
+                         <div className="text-right">
+                           <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">Batch ID</p>
+                           <p className="text-[10px] font-mono text-white/40">{c.id.slice(0, 8).toUpperCase()}</p>
+                         </div>
                       </div>
                    ))}
                    {contributions.length === 0 && (
-                      <div className="text-center py-12 opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">No signals recorded in the registry</div>
+                      <div className="text-center py-20 opacity-20 grayscale space-y-4">
+                        <Database size={48} className="mx-auto" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em]">No valid signals recorded in Ledger</p>
+                      </div>
                    )}
                  </div>
               </div>
@@ -765,9 +811,9 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
         {showCheckout && (
           <PaystackOverlay 
             isOpen={showCheckout}
-            amount={contributionAmount} 
+            amount={activeTab === 'group' && selectedGroup ? selectedGroup.group.contribution_amount : contributionAmount} 
             email={userEmail} 
-            label="Industrial Thrift Sync"
+            label={activeTab === 'group' ? `Group Isusu: ${selectedGroup?.group?.name}` : "Industrial Thrift Sync"}
             onSuccess={handlePaymentSuccess} 
             onCancel={() => setShowCheckout(false)} 
           />

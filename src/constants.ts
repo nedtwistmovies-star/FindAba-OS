@@ -26,7 +26,7 @@ export const OFFICIAL_BANK_DETAILS = {
   transferNote: "Include Partner-ID in Transfer Memo"
 };
 
-export const CATEGORIES = Object.values(Category);
+export const CATEGORIES = Object.values(Category).sort((a, b) => a.localeCompare(b));
 
 export const ABA_AREAS = [
   'Ariaria International',

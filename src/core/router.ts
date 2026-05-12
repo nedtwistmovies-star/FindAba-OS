@@ -46,6 +46,7 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'editorial-detail': lazyWithRetry(() => import('../features/discovery/AdvertorialDetail')),
   feed: lazyWithRetry(() => import('../features/faces/FacesFeed')),
   'merchant-portal': lazyWithRetry(() => import('../features/merchant/MerchantPortal')),
+  'intelligence-desk': lazyWithRetry(() => import('../features/intelligence/IntelligenceDesk')),
   register: lazyWithRetry(() => import('../features/merchant/Register')),
   pricing: lazyWithRetry(() => import('../features/merchant/Pricing')),
   'ad-checkout': lazyWithRetry(() => import('../features/discovery/AdCheckout')),

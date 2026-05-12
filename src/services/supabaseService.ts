@@ -725,10 +725,37 @@ export const saveBusinessToDB = async (business: Business) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
-  let currentPayload: any = { 
-    ...business,
-    email: business.email ? normalizeEmail(business.email) : undefined
+  // 🔹 INDUSTRIAL PAYLOAD CLEANING PROTOCOL
+  // Strictly filter to columns known to exist in the DB schema to prevent PGRST204
+  const VALID_CHASSIS_COLUMNS = [
+    'id', 'user_id', 'name', 'email', 'phone_whatsapp', 'category', 'area', 'address',
+    'primary_product_or_service', 'description', 'image_url', 'rating', 'review_count',
+    'status', 'verification_status', 'verification_level', 'integrity_grade',
+    'is_export_ready', 'capacity_indicator', 'premium_features_enabled',
+    'subscription_tier', 'active_features', 'products', 'created_at',
+    'latitude', 'longitude', 'video_caption', 'business_type', 'is_verified',
+    'catalog_images', 'videos', 'bank_name', 'account_number', 'account_name',
+    'skills', 'experience_years', 'portfolio_images'
+  ];
+
+  let currentPayload: any = {};
+  
+  // Auto-map legacy or misnamed fields
+  const mapper: Record<string, string> = {
+    'whatsapp': 'phone_whatsapp',
+    'primary_product': 'primary_product_or_service'
   };
+
+  Object.keys(business).forEach(key => {
+    const targetKey = mapper[key] || key;
+    if (VALID_CHASSIS_COLUMNS.includes(targetKey)) {
+      currentPayload[targetKey] = (business as any)[key];
+    }
+  });
+
+  // Normalize critical fields
+  if (currentPayload.email) currentPayload.email = normalizeEmail(currentPayload.email);
+  if (!currentPayload.id) currentPayload.id = `biz-${Math.random().toString(36).substr(2, 9)}`;
   let attempts = 0;
   const maxAttempts = 10; // Allow for multiple missing columns
 
@@ -765,14 +792,18 @@ export const saveBusinessToDB = async (business: Business) => {
       // Handle missing columns gracefully (PGRST204)
       // Handle missing columns gracefully (PGRST204)
       if (error.code === 'PGRST204') {
-        const match = error.message.match(/Could not find the '(.+)' column/);
+        const match = error.message.match(/Could not find the ['"](.+)['"] column/i);
         if (match && match[1]) {
-          const columnName = match[1];
-          console.warn(`[Registry] Column '${columnName}' missing in DB, retrying insert without it...`);
-          const { [columnName]: _, ...rest } = currentPayload;
-          currentPayload = rest;
-          attempts++;
-          continue;
+          const missingColumn = match[1];
+          // Case-insensitive lookup for pruning
+          const payloadKey = Object.keys(currentPayload).find(k => k.toLowerCase() === missingColumn.toLowerCase());
+          
+          if (payloadKey) {
+            console.warn(`[Registry] Auto-pruning incompatible column: ${payloadKey}`);
+            delete currentPayload[payloadKey];
+            attempts++;
+            continue;
+          }
         }
       }
       
@@ -870,9 +901,9 @@ export const activatePlanFeatures = async (businessId: string, planId: string) =
   await client.from('businesses').update({ subscription_tier: planId, premium_features_enabled: planId !== 'Free' }).eq('id', businessId);
 };
 
-export const fetchThriftAccount = async (email: string): Promise<ThriftAccount | null> => {
+export const fetchThriftAccount = async (email: string | null | undefined): Promise<ThriftAccount | null> => {
   const client = getSupabase();
-  if (!client) return null;
+  if (!client || !email) return null;
   const normalizedEmail = normalizeEmail(email);
   try {
     const { data, error } = await client.from('thrift_accounts').select('*').eq('user_email', normalizedEmail).maybeSingle();
@@ -931,50 +962,76 @@ export const fetchThriftContributions = async (thriftId: string): Promise<Thrift
   } catch (e) { return []; }
 };
 
-export const saveThriftContribution = async (email: string, amount: number) => {
+export const saveThriftContribution = async (email: string | null | undefined, amount: number) => {
   const client = getSupabase();
-  if (!client) throw new Error("Registry Offline");
+  if (!client) throw new Error("Registry Offline: Industrial signal not detected.");
   
+  if (!email) {
+    console.error("[Thrift] Sync failed: Missing user identifier.");
+    throw new Error("AUTH_REQUIRED: Please log in to your Aba industrial account.");
+  }
+
   const normalizedEmail = normalizeEmail(email);
+  const contributionAmount = Number(amount);
+  
+  if (isNaN(contributionAmount) || contributionAmount <= 0) {
+    throw new Error(`INVALID_AMOUNT: ₦${amount} is not a valid industrial liquidity signal.`);
+  }
+
   try {
+    console.log(`[Thrift] Syncing signal for ${normalizedEmail}: ₦${contributionAmount}`);
     const account = await fetchThriftAccount(normalizedEmail);
-    if (!account) throw new Error("No active thrift account found for this user.");
+    if (!account) {
+      console.error(`[Thrift] Account missing for ${normalizedEmail}`);
+      throw new Error(`ACCOUNT_NOT_FOUND: No active thrift account found for ${normalizedEmail}.`);
+    }
     
     // Safety check: Don't allow contribution after lock date
     if (account.locked_until && new Date(account.locked_until) <= new Date()) {
-      throw new Error("Savings cycle has ended. Cannot contribute.");
+      console.warn(`[Thrift] Cycle ended for ${normalizedEmail}. Lock date: ${account.locked_until}`);
+      throw new Error("SAVINGS_CYCLE_ENDED: Your current savings cycle has matured. Please withdraw or start a new cycle.");
     }
 
     const { data: contrib, error: contribError } = await client.from('thrift_contributions').insert({
-      thrift_id: account.id,
+      thrift_id: normalizedEmail,
       user_email: normalizedEmail,
-      amount: Number(amount)
+      amount: contributionAmount
     }).select().single();
     
-    if (contribError) throw contribError;
+    if (contribError) {
+      console.error("[Thrift] Signal insert failed:", contribError);
+      throw new Error(`LEDGER_INSERT_FAILED: ${contribError.message}`);
+    }
 
-    const newTotal = (Number(account.total_saved) || 0) + Number(amount);
+    const currentTotal = Number(account.total_saved) || 0;
+    const newTotal = currentTotal + contributionAmount;
+    console.log(`[Thrift] Updating ledger total: ₦${currentTotal} -> ₦${newTotal}`);
     
     const { error: updateError } = await client.from('thrift_accounts').update({ 
       total_saved: newTotal 
     })
-    .eq('id', account.id);
+    .eq('user_email', normalizedEmail);
     
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("[Thrift] Ledger update failed:", updateError);
+      throw new Error(`BALANCE_UPDATE_FAILED: ${updateError.message}`);
+    }
     
     // Log automation event
-    await triggerWebhook(WebhookEvent.THRIFT_CONTRIBUTION, { email: normalizedEmail, amount, new_total: newTotal });
+    await triggerWebhook(WebhookEvent.THRIFT_CONTRIBUTION, { email: normalizedEmail, amount: contributionAmount, new_total: newTotal });
     
     return { ...account, total_saved: newTotal };
   } catch (e: any) {
-    console.error("[Thrift] Sync fault:", e);
-    throw e;
+    console.error("[Thrift] Critical sync fault:", e);
+    throw new Error(e.message || "Industrial signal failure during registry sync.");
   }
 };
 
-export const withdrawThriftSavings = async (email: string) => {
+export const withdrawThriftSavings = async (email: string | null | undefined) => {
   const client = getSupabase();
-  if (!client) throw new Error("Registry Offline");
+  if (!client) throw new Error("Registry Offline: Industrial signal not detected.");
+  
+  if (!email) throw new Error("AUTH_REQUIRED: Missing user identifier.");
   const normalizedEmail = normalizeEmail(email);
 
   try {
@@ -997,7 +1054,7 @@ export const withdrawThriftSavings = async (email: string) => {
     const { error: updateError } = await client.from('thrift_accounts').update({ 
       status: 'withdrawn',
       total_saved: 0 // Reset balance after withdrawal
-    }).eq('id', account.id);
+    }).eq('user_email', normalizedEmail);
 
     if (updateError) throw updateError;
 
@@ -1069,7 +1126,7 @@ export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmai
 
 export const joinThriftGroup = async (groupId: string, explicitUserId?: string) => {
   const client = getSupabase();
-  if (!client) return;
+  if (!client) throw new Error("Industrial signal offline.");
   
   let userId = explicitUserId;
   if (!userId) {
@@ -1110,7 +1167,7 @@ export const fetchThriftGroupDetails = async (groupId: string) => {
 
 export const saveGroupContribution = async (groupId: string, amount: number, cycleNumber: number, explicitUserId?: string) => {
   const client = getSupabase();
-  if (!client) return;
+  if (!client) throw new Error("Industrial signal offline.");
   
   let userId = explicitUserId;
   if (!userId) {

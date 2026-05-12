@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle, Loader2, ShieldCheck, ArrowLeft, ArrowRight,
   Store, ChevronRight, Info, Shield, Landmark, 
@@ -21,9 +21,10 @@ interface RegisterProps {
   setView: (view: ViewState) => void;
   onRegister: (business: Business) => void;
   onAuthSuccess?: (user: any) => void;
+  myBusiness?: Business | null;
 }
 
-const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess }) => {
+const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess, myBusiness }) => {
   const { userIdentifier, user_id, isAuth } = useAuth();
   const { addToast } = useToast();
   const [step, setStep] = useState<'plan' | 'form' | 'success'>('plan');
@@ -62,40 +63,73 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
   const [showCheckout, setShowCheckout] = useState(false);
   const [registeredBusiness, setRegisteredBusiness] = useState<Business | null>(null);
 
+  // Check for pre-selected plan from Pricing page or Oracle
+  useEffect(() => {
+    const saved = localStorage.getItem('findaba_selected_plan') || localStorage.getItem('findaba_intended_plan');
+    if (saved) {
+      try {
+        const plan = saved.startsWith('{') ? JSON.parse(saved) : { id: saved };
+        if (plan && plan.id) {
+          setSelectedPlan(plan.id as SubscriptionTier);
+          // If we have a saved plan and it's not free, move to the form step automatically
+          if (plan.id !== SubscriptionTier.FREE) {
+            setStep('form');
+          }
+        }
+      } catch (e) {
+        console.warn("[Register] Failed to parse saved plan:", e);
+      }
+    }
+  }, []);
+
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    whatsapp: '',
-    category: Category.SHOEMAKING,
-    area: ABA_AREAS[0],
-    address: '',
-    primary_product: '',
-    description: '',
-    image_url: ''
+    name: myBusiness?.name || '',
+    email: myBusiness?.email || '',
+    phone: myBusiness?.phone || '',
+    whatsapp: myBusiness?.phone_whatsapp || '',
+    category: myBusiness?.category || Category.SHOEMAKING,
+    area: myBusiness?.area || ABA_AREAS[0],
+    address: myBusiness?.address || '',
+    primary_product: myBusiness?.primary_product_or_service || '',
+    description: myBusiness?.description || '',
+    image_url: myBusiness?.image_url || ''
   });
+
+  useEffect(() => {
+    if (isAuth && userIdentifier && !myBusiness) {
+      setFormData(prev => ({
+        ...prev,
+        email: userIdentifier
+      }));
+    }
+  }, [isAuth, userIdentifier, myBusiness]);
 
   const handlePlanSelect = (planId: SubscriptionTier) => {
     setSelectedPlan(planId);
-    if (planId === SubscriptionTier.FREE) {
-      setStep('form');
-    } else {
-      setShowCheckout(true);
+    // Also save to localStorage to maintain consistency with Pricing
+    const plan = BUSINESS_PLANS.find(p => p.id === planId);
+    if (plan) {
+      localStorage.setItem('findaba_selected_plan', JSON.stringify(plan));
     }
+    setStep('form');
   };
 
   const handlePaymentSuccess = () => {
     setShowCheckout(false);
-    setStep('form');
+    // After payment, proceed to submit form data
+    if (formToSubmit) {
+      commitRegistration(formToSubmit);
+    }
   };
+
+  const [formToSubmit, setFormToSubmit] = useState<Business | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     const newBusiness: Business = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
-      user_id: (user_id && user_id.length > 5) ? user_id : null as any,
+      id: myBusiness?.id || (crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`),
+      user_id: (user_id && user_id.length > 5) ? user_id : (myBusiness?.user_id || null as any),
       name: formData.name,
       email: formData.email.toLowerCase().trim(),
       phone: formData.phone,
@@ -106,41 +140,53 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
       primary_product_or_service: formData.primary_product,
       description: formData.description,
       image_url: formData.image_url || 'https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=800',
-      rating: 0,
-      review_count: 0,
-      status: 'pending',
-      verification_status: VerificationStatus.UNVERIFIED,
-      verification_level: VerificationLevel.NONE,
-      integrity_grade: IntegrityGrade.C,
-      hub_tier: HubTier.STARTER,
-      is_export_ready: false,
-      capacity_indicator: 'Standard',
+      rating: myBusiness?.rating || 0,
+      review_count: myBusiness?.review_count || 0,
+      status: myBusiness?.status || 'pending',
+      verification_status: myBusiness?.verification_status || VerificationStatus.UNVERIFIED,
+      verification_level: myBusiness?.verification_level || VerificationLevel.NONE,
+      integrity_grade: myBusiness?.integrity_grade || IntegrityGrade.C,
+      hub_tier: (BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name as any) || HubTier.STARTER,
+      is_export_ready: myBusiness?.is_export_ready || false,
+      capacity_indicator: myBusiness?.capacity_indicator || 'Standard',
       premium_features_enabled: selectedPlan !== SubscriptionTier.FREE,
       subscription_tier: selectedPlan,
       active_features: {
-        physical_verification_badge: selectedPlan !== SubscriptionTier.FREE
+        ...(myBusiness?.active_features || {}),
+        physical_verification_badge: selectedPlan !== SubscriptionTier.FREE || myBusiness?.active_features?.physical_verification_badge
       },
-      products: [],
-      created_at: new Date().toISOString()
+      products: myBusiness?.products || [],
+      created_at: myBusiness?.created_at || new Date().toISOString()
     };
 
+    setFormToSubmit(newBusiness);
+
+    if (selectedPlan !== SubscriptionTier.FREE) {
+      setShowCheckout(true);
+    } else {
+      commitRegistration(newBusiness);
+    }
+  };
+
+  const commitRegistration = async (business: Business) => {
+    setLoading(true);
     try {
-      console.log("[Registry] Committing hub payload:", { ...newBusiness, meta: { auth: isAuth, uid: user_id } });
-      await saveBusinessToDB(newBusiness);
+      console.log("[Registry] Committing hub payload:", { ...business, meta: { auth: isAuth, uid: user_id } });
+      await saveBusinessToDB(business);
       
       // Notify Merchant via Email
       try {
-        await sendBusinessRegistrationEmail(newBusiness.email, newBusiness.name, newBusiness.subscription_tier || 'Free');
+        await sendBusinessRegistrationEmail(business.email, business.name, business.subscription_tier || 'Free');
       } catch (e) {
         console.warn("[Registry] Email notification protocol failure:", e);
       }
 
-      setRegisteredBusiness(newBusiness);
+      setRegisteredBusiness(business);
       setStep('success');
-      onRegister(newBusiness);
+      onRegister(business);
       addToast("Business successfully registered!", "success");
     } catch (error: any) {
-      console.error("Registration failed. Payload:", newBusiness, "Error:", error);
+      console.error("Registration failed. Payload:", business, "Error:", error);
       addToast(`Registration failed: ${error.message || "Unknown error"}`, "error");
     } finally {
       setLoading(false);
@@ -152,8 +198,11 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
       <div className="p-4 md:p-8 pb-40 bg-aba-deep animate-fade-in font-sans flex flex-col flex-1">
         <PaystackOverlay 
           isOpen={showCheckout}
-          amount={BUSINESS_PLANS.find(p => p.id === selectedPlan)?.monthlyAmount || 0}
-          email={userIdentifier || 'billing@sandalsroyalle.com'}
+          amount={billingCycle === BillingCycle.MONTHLY 
+            ? (BUSINESS_PLANS.find(p => p.id === selectedPlan)?.monthlyAmount || 0)
+            : (BUSINESS_PLANS.find(p => p.id === selectedPlan)?.yearlyAmount || 0)
+          }
+          email={formData.email || userIdentifier || 'billing@findaba.com'}
           userId={user_id || undefined}
           label={`Business Registration: ${BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name}`}
           onSuccess={handlePaymentSuccess}
@@ -239,6 +288,19 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
   if (step === 'form') {
     return (
       <div className="p-4 md:p-8 pb-40 bg-aba-deep animate-fade-in font-sans flex flex-col flex-1">
+        <PaystackOverlay 
+          isOpen={showCheckout}
+          amount={billingCycle === BillingCycle.MONTHLY 
+            ? (BUSINESS_PLANS.find(p => p.id === selectedPlan)?.monthlyAmount || 0)
+            : (BUSINESS_PLANS.find(p => p.id === selectedPlan)?.yearlyAmount || 0)
+          }
+          email={formData.email || userIdentifier || 'billing@findaba.com'}
+          userId={user_id || undefined}
+          label={`Business Registration: ${BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name}`}
+          onSuccess={handlePaymentSuccess}
+          onCancel={() => setShowCheckout(false)}
+        />
+        
         <header className="max-w-5xl mx-auto flex items-center justify-between mb-10 md:mb-24">
           <button onClick={() => setStep('plan')} className="p-3 md:p-4 bg-white/5 rounded-xl md:rounded-2xl border border-white/10 text-white/40 active:scale-90 transition-standard">
             <ArrowLeft size={20} className="md:w-6 md:h-6" />

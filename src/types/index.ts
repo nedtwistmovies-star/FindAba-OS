@@ -1,7 +1,7 @@
 
 export type ViewState = 
   | 'discover' | 'home' | 'oracle' | 'lab' | 'cargo' | 'profile' | 'detail' 
-  | 'explore' | 'messages' | 'merchant-portal' 
+  | 'explore' | 'messages' | 'merchant-portal' | 'intelligence-desk'
   | 'register' | 'admin' | 'srts-dashboard' | 'editorial' | 'editorial-detail'
   | 'buyer-portal' | 'ad-manager' | 'feed' | 'registry-setup' | 'sandals-hotels' 
   | 'wallet' | 'contact' | 'audio-heritage' | 'srts-office' | 'booking-ledger' 

@@ -235,12 +235,12 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
 
   const handleInsertMarketQuery = () => {
     const queries = [
-      "What are the latest market prices and business news in Aba today?",
-      "Query current import costs and trade news in Ariaria and beyond.",
-      "Check the latest exchange rates impacting Aba businesses.",
-      "Are there any new government policies affecting Enyimba entrepreneurs this week?",
-      "Find the best schools and hospitals in Aba.",
-      "Recommend professional legal or accounting services in Aba."
+      "Generate a vision of the future Ariaria Industrial Hub.",
+      "Analyze current market prices in Aba today?",
+      "Query current import costs in Ariaria.",
+      "Recommend top verified artisans in Aba.",
+      "Check the latest exchange rates for Enyimba entrepreneurs.",
+      "Find the best schools and hospitals in Aba."
     ];
     const random = queries[Math.floor(Math.random() * queries.length)];
     setInput(random);
@@ -613,7 +613,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
               </div>
               <div className="flex flex-wrap justify-center gap-2 max-w-md pt-4">
                  {[
-                   "Market Prices?", "Ariaria Logistics?", "Verification?", "Trade Signals?"
+                   "Market Prices?", "Ariaria Logistics?", "Future Vision?", "Trade Signals?"
                  ].map(q => (
                    <button key={q} onClick={() => setInput(q)} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-aba-gold hover:text-aba-dark transition-all">
                      {q}
@@ -819,7 +819,14 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                 disabled={loading || isRefining}
               />
 
-              <div className="flex items-center gap-2 pr-2 pb-2">
+              <div className="flex items-center gap-1 pr-2 pb-2">
+                <button 
+                  onClick={() => handleSend("Generate a professional vision of the Industrial Future of Aba.")}
+                  className="p-3 text-aba-gold hover:text-white hover:bg-white/5 rounded-2xl transition-all active:scale-95"
+                  title="Generate Vision"
+                >
+                  <Sparkles size={20} />
+                </button>
                 <button 
                   onClick={toggleListening}
                   className={`p-3 rounded-2xl transition-all ${isListening ? 'bg-aba-red text-white animate-pulse' : 'text-white/40 hover:text-aba-gold hover:bg-white/5'}`}
