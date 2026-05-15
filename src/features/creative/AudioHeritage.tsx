@@ -19,15 +19,15 @@ const ARCHIVE_LANGUAGES = [
 ];
 
 const HERITAGE_TOPICS = [
-  { id: 'aba-origins', title: "The Roots of Ah-bah", desc: "The industrial philosophy of the red earth.", year: "Ancient", era: "The Origins" },
+  { id: 'aba-origins', title: "The Roots of Ah-bah", desc: "The enterprising philosophy of the red earth.", year: "Ancient", era: "The Origins" },
   { id: 'ngwa-builders', title: "N-ngwa Architects", desc: "The masters who forged a city from enterprise.", year: "Ancient", era: "The Origins" },
   { id: 'women-ogu', title: "O-goo Omu-n-ngwa", desc: "The 1929 fire of resilience.", year: "1929", era: "The Origins" },
-  { id: 'igba-boi-covenant', title: "Ee-gbah Boh-ee", desc: "The sacred covenant of industrial apprenticeship.", year: "Eternal", era: "Industrial Code" },
-  { id: 'ariaria-mud', title: "Ah-ree-ah-ree-ah Rising", desc: "Building a global titan from the thickness of the swamp.", year: "1970s", era: "Industrial Code" },
-  { id: 'industry-ashes', title: "Resilience Protocol", desc: "How the spirit of Aba rose from the ashes of 1970.", year: "1970", era: "Industrial Code" },
+  { id: 'igba-boi-covenant', title: "Ee-gbah Boh-ee", desc: "The sacred covenant of business apprenticeship.", year: "Eternal", era: "Mastery Code" },
+  { id: 'ariaria-mud', title: "Ah-ree-ah-ree-ah Rising", desc: "Building a global market from the thickness of the swamp.", year: "1970s", era: "Mastery Code" },
+  { id: 'industry-ashes', title: "Aba Resilience", desc: "How the spirit of Aba rose from the ashes of 1970.", year: "1970", era: "Mastery Code" },
   { id: 'leather-iron-lineage', title: "Tapestry of Craft", desc: "The genetic code of craftsmanship passed through time.", year: "Tradition", era: "Master Crafts" },
   { id: 'sacred-trust-ethics', title: "The Ethics of Trust", desc: "The unwritten laws of the marketplace compound.", year: "Timeless", era: "The Spirit" },
-  { id: 'digital-aba', title: "The Digital Hub", desc: "Synchronizing ancestral wisdom with the global grid.", year: "2025", era: "Wisdom" }
+  { id: 'digital-aba', title: "The Digital Hub", desc: "Synchronizing ancestral wisdom with the global community.", year: "2025", era: "Wisdom" }
 ];
 
 const AudioHeritage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
@@ -85,7 +85,7 @@ const AudioHeritage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         await audioContextRef.current.resume();
       }
 
-      // v11.0 Universal Ancestral Fidelity Engine
+      // v11.0 Universal Ancestral Heritage Engine
       const base64 = await generateHistoryAudio(
         topic.title, 
         selectedLanguage
@@ -152,7 +152,7 @@ const AudioHeritage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   return (
     <div className="min-h-full bg-[#00120b] text-white flex flex-col animate-fade-in scrollbar-hide pb-40 font-sans relative">
-      {/* PROTOCOL HEADER */}
+      {/* ARCHIVE HEADER */}
       <div className="p-5 bg-[#002113] border-b border-white/5 flex items-center justify-between sticky top-0 z-50 backdrop-blur-3xl bg-opacity-95">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2.5 bg-white/5 rounded-xl text-white hover:bg-aba-gold/10 hover:text-aba-gold transition-all border border-white/10 shadow-lg">
@@ -162,7 +162,7 @@ const AudioHeritage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             <h2 className="text-lg font-black uppercase tracking-tighter leading-none text-white">Oral Archive</h2>
             <div className="flex items-center gap-2 mt-1">
                <Fingerprint size={10} className="text-aba-green" />
-               <p className="text-[6px] font-black text-aba-gold uppercase tracking-[0.4em]">Universal Signal Hub • v11.0</p>
+               <p className="text-[6px] font-black text-aba-gold uppercase tracking-[0.4em]">Universal Archive Hub • v11.0</p>
             </div>
           </div>
         </div>
@@ -224,26 +224,26 @@ const AudioHeritage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </div>
         )}
 
-        {/* Protocol Meta */}
+        {/* Recording Details */}
         <div className="text-center space-y-4 px-6">
           <div className="inline-flex items-center gap-3 px-8 py-2.5 bg-aba-green/10 rounded-full border border-aba-green/20 mb-1">
             <Waves size={18} className="text-aba-green animate-pulse" />
             <span className="text-[10px] font-black uppercase text-aba-green tracking-[0.3em]">
-              Glottal Resonance Synchronization
+              Heritage Resonance Synchronization
             </span>
           </div>
           <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-white leading-tight min-h-[6rem] max-w-2xl mx-auto">
-            {loading ? `Recalling Oral Memory...` : (playing ? currentTopic.title : "Learned Heritage Engine")}
+            {loading ? `Recalling Oral Memory...` : (playing ? currentTopic.title : "FindAba Heritage Hub")}
           </h3>
           <p className="text-[11px] font-bold text-white/30 uppercase tracking-[0.4em] max-w-xl mx-auto text-center leading-relaxed italic">
-            {loading ? "FindAba AI is processing... Preparing a high-fidelity academic narrative of our lineage." : (playing ? `The Ogbuefi is narrating in ${selectedLanguage}. Hear the weight of the red earth.` : "Commence an oral session to hear the sophisticated wisdom of the Learned Ogbuefi.")}
+            {loading ? "FindAba is preparing a professional narrative of our lineage." : (playing ? `The Ogbuefi is narrating in ${selectedLanguage}. Hear the stories of our people.` : "Commence an oral session to hear the sophisticated wisdom of the Learned Ogbuefi.")}
           </p>
         </div>
       </div>
 
       {/* Heritage Pillar Matrix */}
       <div className="px-8 space-y-28 pb-40 max-w-7xl mx-auto w-full">
-        {['The Origins', 'Industrial Code', 'Master Crafts', 'The Spirit', 'Wisdom'].map(era => (
+        {['The Origins', 'Mastery Code', 'Master Crafts', 'The Spirit', 'Wisdom'].map(era => (
           <section key={era} className="space-y-16">
             <div className="flex items-center gap-12">
               <h4 className="text-[16px] font-black uppercase text-aba-gold tracking-[1em] whitespace-nowrap">{era}</h4>
@@ -285,15 +285,14 @@ const AudioHeritage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         ))}
       </div>
 
-      {/* Signature Footer */}
-      <div className="py-24 flex flex-col items-center gap-12 opacity-10 pointer-events-none select-none">
+      <footer className="py-24 flex flex-col items-center gap-12 opacity-10 pointer-events-none select-none">
          <div className="h-px w-96 bg-gradient-to-r from-transparent via-white/50 to-transparent" />
          <span className="text-[36px] font-black uppercase tracking-[2.5em] text-white">FindABA ARCHIVE</span>
          <div className="flex items-center gap-5">
             <ShieldCheck size={32} className="text-aba-gold" />
-            <p className="text-[14px] font-black uppercase tracking-[1.2em] text-aba-gold">SANDALSroyalle City OS • Tribal Heritage Unit</p>
+            <p className="text-[14px] font-black uppercase tracking-[1.2em] text-aba-gold">FindAba Platform • Heritage Unit</p>
          </div>
-      </div>
+      </footer>
     </div>
   );
 };

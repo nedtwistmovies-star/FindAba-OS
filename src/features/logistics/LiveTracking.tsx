@@ -14,7 +14,6 @@ import {
   Loader2
 } from 'lucide-react';
 import MapView from '../../components/MapView';
-import IndustrialButton from '../../components/IndustrialButton';
 import { useOracle } from '../../providers/OracleProvider';
 
 const LiveTracking: React.FC = () => {
@@ -147,8 +146,8 @@ const LiveTracking: React.FC = () => {
             />
           </div>
           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/20">
-            <span>Aba Hub</span>
-            <span>PH Central</span>
+            <span>Departure</span>
+            <span>Destination</span>
           </div>
         </div>
 

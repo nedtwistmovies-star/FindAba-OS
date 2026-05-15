@@ -85,7 +85,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
         localStorage.setItem('findaba_user_email', authEmail);
         addToast("Driver Handshake Verified.", "success");
       } else {
-        throw new Error("User is not registered as a driver node.");
+        throw new Error("User is not registered as a driver partner.");
       }
     } catch (e: any) {
       addToast(e.message || "Auth Signal Failed", "error");
@@ -143,7 +143,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
 
   const handlePanicSignal = () => {
     setPanicActive(true);
-    addToast("SILENT SOS BROADCASTED. Command center is monitoring your live GPS node. Protocol logged.", "error");
+    addToast("SILENT SOS BROADCASTED. Command center is monitoring your live location. Platform logged.", "error");
   };
 
   const handleReportIncident = () => {
@@ -474,7 +474,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                <div className="space-y-2">
                   <h4 className="text-sm font-black uppercase tracking-tight">Market Pulse Intel</h4>
                   <p className="text-[10px] font-medium text-white/40 leading-relaxed uppercase tracking-widest italic">
-                    High volume detected in Ariaria Sector. Priority dispatch protocols assigned to Level 2 elite nodes.
+                    High volume detected in Ariaria Sector. Priority dispatch assigned to active partners.
                   </p>
                </div>
             </div>

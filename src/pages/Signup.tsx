@@ -64,7 +64,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
       }
     } catch (err: any) {
       console.error("Signup error:", err.message);
-      setError(err.message || "Registry handshake failed.");
+      setError(err.message || "Account registration failed.");
     } finally {
       setLoading(false);
     }
@@ -85,10 +85,10 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
             <div className="text-center space-y-4">
                <h2 className="text-[54px] font-black uppercase tracking-tighter leading-[0.8] flex flex-col items-center">
                   <span>JOIN</span>
-                  <span className="text-aba-gold">NODE.</span>
+                  <span className="text-aba-gold">ABA.</span>
                </h2>
                <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] max-w-xs mx-auto leading-relaxed mt-4">
-                  INITIALIZE NEW INDUSTRIAL <br/> IDENTITY PROTOCOL.
+                  CREATE YOUR ACCOUNT FOR LOCAL COMMERCE.
                </p>
             </div>
 
@@ -113,7 +113,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                     <input 
                        required
                        type="text" 
-                       placeholder="INDUSTRIAL USERNAME" 
+                       placeholder="USERNAME" 
                        className="flex-1 bg-transparent py-4 pr-6 outline-none text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 text-white"
                        value={formData.username}
                        onChange={e => setFormData({...formData, username: e.target.value.toLowerCase().replace(/\s/g, '')})}
@@ -128,7 +128,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                     <input 
                        required
                        type="text" 
-                       placeholder="FULL LEGAL NAME" 
+                       placeholder="FULL NAME" 
                        className="flex-1 bg-transparent py-4 pr-6 outline-none text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
                        value={formData.name}
                        onChange={e => setFormData({...formData, name: e.target.value})}
@@ -142,7 +142,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                     <input 
                        required
                        type="email" 
-                       placeholder="REGISTRY EMAIL ADDRESS" 
+                       placeholder="EMAIL ADDRESS" 
                        className="flex-1 bg-transparent py-4 pr-6 outline-none text-[16px] font-bold tracking-wide placeholder:text-white/20 text-white"
                        value={formData.email}
                        onChange={e => setFormData({...formData, email: e.target.value})}
@@ -157,7 +157,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                     <input 
                        required
                        type={showPass ? 'text' : 'password'} 
-                       placeholder="SECURE PROTOCOL KEY" 
+                       placeholder="SECURE PASSWORD" 
                        className="flex-1 bg-transparent py-4 pr-6 outline-none text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
                        value={formData.password}
                        onChange={e => setFormData({...formData, password: e.target.value})}
@@ -191,7 +191,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                  className="w-full py-6 bg-aba-gold text-aba-dark rounded-full font-black uppercase text-[12px] tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4 group mt-10"
                >
                   {loading ? <Loader2 className="animate-spin" /> : <Zap size={22} className="text-aba-dark fill-current" />}
-                  INITIALIZE NODE
+                  CREATE ACCOUNT
                </button>
             </form>
 
@@ -200,15 +200,15 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                  onClick={() => setView('login')}
                  className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-aba-gold transition-colors border-b border-white/10 pb-1"
                >
-                  ALREADY HAVE A NODE? ENTRY PORTAL
+                  ALREADY HAVE AN ACCOUNT? LOG IN
                </button>
             </div>
          </div>
       </main>
 
       <footer className="p-12 text-center opacity-30 select-none grayscale shrink-0">
-         <span className="text-[16px] font-black uppercase tracking-[1em]">SANDALSroyalle</span>
-         <p className="text-[8px] font-black uppercase tracking-widest mt-4">FIDELITY GATEWAY HANDSHAKE V19.2</p>
+         <span className="text-[16px] font-black uppercase tracking-[1em]">FINDABA</span>
+         <p className="text-[8px] font-black uppercase tracking-widest mt-4">SECURE ENYIMBA GATEWAY V1.0</p>
       </footer>
     </div>
   );

@@ -112,7 +112,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
 
       if (response.data.success) {
         setStep('success');
-        addToast("Driver node activated! Signal clear.", "success");
+        addToast("Driver account activated! Connection clear.", "success");
       }
     } catch (e: any) {
       addToast(e.response?.data?.error || "Registry synchronization failure.", "error");
@@ -129,7 +129,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
         </div>
         <h2 className="text-4xl font-black text-white uppercase tracking-tighter text-balance">Registry Signal <br/><span className="text-aba-gold">Pending Audit.</span></h2>
         <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.5em] mt-6 leading-loose">
-           Your node artifacts have been committed. <br/>
+           Your account details have been saved. <br/>
            Sentinel Core is auditing your NIN & Vessel Fingerprint. <br/>
            Status: PENDING INDUSTRIAL CLEARANCE.
         </p>
@@ -159,7 +159,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
              <div className="space-y-4">
                 <h3 className="text-3xl font-black uppercase tracking-tighter text-aba-dark">Registry <br/><span className="text-aba-gold italic">Requirements.</span></h3>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                   To operate within the Purple Fleet, all nodes must undergo physical and digital verification.
+                   To operate within the Purple Fleet, all partners must undergo physical and digital verification.
                 </p>
              </div>
              
@@ -222,7 +222,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
           <div className="space-y-10 animate-slide-up">
              <div className="space-y-4">
                 <h3 className="text-2xl font-black uppercase tracking-tight">Vessel Data</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Provide technical specifications for the registry node.</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Provide business details for verification.</p>
              </div>
 
              <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl space-y-12">

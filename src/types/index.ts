@@ -391,6 +391,9 @@ export interface Business {
   business_type?: string;
   is_verified?: boolean;
   is_hidden_gem?: boolean;
+  location?: string;
+  city?: string;
+  services?: string[];
   transformation_story?: {
     before: string;
     after: string;

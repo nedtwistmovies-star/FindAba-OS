@@ -18,7 +18,7 @@ interface HomeProps {
   myBusiness?: any;
 }
 
-const CitySignals: React.FC = () => {
+const CityInsights: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [marketDay, setMarketDay] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
@@ -60,7 +60,7 @@ const CitySignals: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wider">
-            {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
+            {weather ? `${weather.temp} • ${weather.condition}` : 'Searching...'}
           </span>
           <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest leading-none">Aba Weather</span>
         </div>
@@ -74,9 +74,9 @@ const CitySignals: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white leading-none">
-            {registryStatus === 'online' ? 'System Online' : 'System Offline'}
+            {registryStatus === 'online' ? 'FindAba Online' : 'Service Offline'}
           </span>
-          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">System Status</span>
+          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">Platform Status</span>
         </div>
       </div>
     </div>
@@ -95,12 +95,12 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
   return (
     <div className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans">
-      {/* 🔹 CITY SIGNALS */}
+      {/* 🔹 CITY INSIGHTS */}
       <div className="sticky top-0 z-[100] w-full">
-        <CitySignals />
+        <CityInsights />
       </div>
 
-      {/* 1. HERO SECTION - Industrial Matrix First */}
+      {/* 1. HERO SECTION - Premium Market First */}
       <section className="relative min-h-[85vh] flex flex-col items-center justify-center px-6 md:px-12 py-16 overflow-hidden">
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
           <ImageCarousel 
@@ -123,13 +123,13 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             </motion.div>
 
             <h1 className="text-5xl sm:text-7xl md:text-9xl font-black text-white tracking-tighter leading-[0.85] uppercase italic text-center drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-              Aba's Digital <br/>
-              <span className="text-aba-gold">Heartbeat.</span>
+              The Hub for <br/>
+              <span className="text-aba-gold">Aba Trade.</span>
             </h1>
 
             <p className="text-white/60 text-xs sm:text-base md:text-xl font-bold max-w-2xl mx-auto uppercase tracking-[0.2em] leading-relaxed text-center px-4">
-              Find verified artisans, book industrial hubs, <br className="hidden md:block" />
-              and trade securely in the heart of Enyimba.
+              Find verified artisans, discover market hubs, <br className="hidden md:block" />
+              and trade securely across the city.
             </p>
           </div>
 
@@ -243,7 +243,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
              </p>
            </div>
            <button className="px-10 py-6 bg-aba-gold text-aba-deep rounded-2xl font-black uppercase text-xs tracking-widest flex items-center gap-4 group-hover:bg-white group-hover:scale-105 transition-all active:scale-95 whitespace-nowrap">
-             Launch Intelligence Desk <ArrowRight size={20} />
+             Launch Market Insights <ArrowRight size={20} />
            </button>
         </div>
       </section>
@@ -253,26 +253,26 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       <section className="px-6 md:px-12 py-12 border-y border-white/5 bg-white/[0.02]">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
           <div className="space-y-1 text-center md:text-left">
-            <p className="text-[10px] font-black uppercase text-aba-gold tracking-[0.3em]">Network Integrity</p>
-            <h3 className="text-xl font-black text-white uppercase tracking-tighter">Industrial Partners</h3>
+            <p className="text-[10px] font-black uppercase text-aba-gold tracking-[0.3em]">Network Trust</p>
+            <h3 className="text-xl font-black text-white uppercase tracking-tighter">Market Partners</h3>
           </div>
           
           <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-30 grayscale saturate-0 items-center">
              <div className="flex items-center gap-2">
                 <Box className="w-6 h-6" />
-                <span className="font-black text-xs uppercase tracking-widest">Ariaria Matrix</span>
+                <span className="font-black text-xs uppercase tracking-widest">Ariaria Hub</span>
              </div>
              <div className="flex items-center gap-2">
                 <ShieldCheck className="w-6 h-6" />
-                <span className="font-black text-xs uppercase tracking-widest">Aba Shoemakers</span>
+                <span className="font-black text-xs uppercase tracking-widest">Shoemakers Union</span>
              </div>
              <div className="flex items-center gap-2">
                 <Settings2 className="w-6 h-6" />
-                <span className="font-black text-xs uppercase tracking-widest">Logistics Union</span>
+                <span className="font-black text-xs uppercase tracking-widest">Logistics Hub</span>
              </div>
              <div className="flex items-center gap-2">
                 <Building2 className="w-6 h-6" />
-                <span className="font-black text-xs uppercase tracking-widest">Abia Trade Bureau</span>
+                <span className="font-black text-xs uppercase tracking-widest">Trade Bureau</span>
              </div>
           </div>
         </div>

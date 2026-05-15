@@ -28,7 +28,7 @@ class ErrorBoundary extends Component<Props, State> {
     // Auto-recovery for chunk loading errors (caused by new deployments)
     const errorMsg = error.message.toLowerCase();
     if (errorMsg.includes('failed to fetch') || errorMsg.includes('chunkloaderror') || errorMsg.includes('dynamic import')) {
-      console.warn('Chunk loading error detected. Auto-refreshing industrial nodes...');
+      console.warn('Chunk loading error detected. Refreshing page...');
       // Small delay to ensure the user doesn't get stuck in a loop if the internet is actually down
       setTimeout(() => {
         window.location.reload();
@@ -52,11 +52,11 @@ class ErrorBoundary extends Component<Props, State> {
             
             <div className="space-y-4">
               <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter">
-                System <span className="text-aba-red">Fault</span> Detected
+                Something <span className="text-aba-red">Went Wrong</span>
               </h1>
               <p className="text-white/40 text-sm md:text-base font-bold uppercase tracking-widest leading-relaxed">
-                The industrial node encountered an unexpected signal interruption. 
-                Consensus could not be reached on the current operation.
+                We encountered an unexpected error while processing your request. 
+                Please try refreshing the page.
               </p>
             </div>
 
@@ -77,7 +77,7 @@ class ErrorBoundary extends Component<Props, State> {
                 onClick={() => window.location.reload()}
                 fullWidth
               >
-                Retry Partner
+                Try Again
               </IndustrialButton>
               <IndustrialButton 
                 variant="primary" 
@@ -91,7 +91,7 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">
-              FindAba Industrial OS // Error Protocol 500
+              FindAba Support // System Error
             </p>
           </div>
         </div>

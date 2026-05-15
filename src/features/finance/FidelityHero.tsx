@@ -42,11 +42,11 @@ const FidelityHero: React.FC<FidelityHeroProps> = ({ onStart, onLearnMore }) => 
             {/* Headline */}
             <div className="space-y-6">
               <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[0.95]">
-                Sandals Royalle <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-blue-500">Fidelity.</span>
+                FindAba Trusted <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-blue-500">Savings.</span>
               </h1>
               <p className="text-lg md:text-xl text-slate-500 font-medium leading-relaxed max-w-xl">
-                A secure and flexible savings system for Aba businesses and global users powered by Paystack — save in ₦ or $, withdraw anytime.
+                A secure and flexible savings system for Aba businesses powered by Paystack — save in ₦ or $, withdraw anytime.
               </p>
             </div>
 
@@ -109,7 +109,7 @@ const FidelityHero: React.FC<FidelityHeroProps> = ({ onStart, onLearnMore }) => 
                       <Wallet size={20} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Fidelity Wallet</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Digital Wallet</p>
                       <h4 className="text-sm font-black uppercase tracking-tight">Active Portfolio</h4>
                     </div>
                   </div>
@@ -165,7 +165,7 @@ const FidelityHero: React.FC<FidelityHeroProps> = ({ onStart, onLearnMore }) => 
 
                 {/* Transactions */}
                 <div className="space-y-6">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Recent Handshakes</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Recent Transactions</p>
                   <div className="space-y-4">
                     {[
                       { type: 'Deposit', amount: '+ ₦50,000', color: 'text-green-600', icon: <PlusCircleIcon size={14} /> },

@@ -4,9 +4,9 @@ import { Business, Category, VerificationStatus, VerificationLevel, IntegrityGra
 export const SANDALS_BRAND = {
   name: "FindAba",
   brandOwner: "SANDALSroyalle",
-  fullName: "FindAba by SANDALSroyalle • Industrial Operating System",
+  fullName: "FindAba • Trusted Local Commerce & Services",
   logo: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800&auto=format&fit=crop",
-  category: "Business Service / Industrial Company",
+  category: "Local Commerce & Business Services",
   location: "Aba, Abia State, Nigeria",
   website: "https://findaba.app",
   twitter: "https://twitter.com/Find_Aba",
@@ -33,15 +33,15 @@ export const ABA_AREAS = [
   'Ngwa Road Hub',
   'Azikiwe Road Central',
   'Powerline Zone',
-  'Ogbor Hill Industrial',
+  'Ogbor Hill Hub',
   'Faulks Road Hub',
   'Umungasi Hub',
-  'Osisioma Industrial',
+  'Osisioma Hub',
   'Abayi Zone',
   'Over Rail Hub',
   'Cemetery Road Zone',
   'Port Harcourt Road Hub',
-  'Uratta Industrial',
+  'Uratta Hub',
   'Milverton Central',
   'Ama-Hausa Hub',
   'Tonimas Zone',
@@ -55,7 +55,7 @@ export const MOCK_EDITORIAL_STORIES: EditorialStory[] = [
     title: "The Master of Precision Stitch",
     hero_image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200",
     body_text: "In the heart of Ariaria, perfection isn't an option—it's the only currency that matters. This is the chronicle of the leather masters who have built an empire on the strength of a single thread.",
-    why_selected: "Recognized for maintaining industrial footwear standards for over three decades.",
+    why_selected: "Recognized for maintaining premium footwear standards for over three decades.",
     specialization: "Export-Grade Leather Footwear",
     trust_signals: "Registry Partner, Integrity Grade A+.",
     best_time_to_engage: "Direct consultation: 09:00 - 12:00 daily.",
@@ -73,10 +73,10 @@ export const ARTISANS: Business[] = [
     name: 'Master-Link Leather Hub',
     email: 'masterlink@findaba.com',
     category: Category.SHOEMAKING,
-    primary_product_or_service: 'Industrial Safety Boots',
+    primary_product_or_service: 'Premium Safety Boots',
     active_features: { verified_exporter_badge: true, physical_verification_badge: true },
     area: 'Ariaria International',
-    description: 'Precision manufacturing partner for leather goods and industrial footwear exports.',
+    description: 'Precision manufacturing partner for leather goods and professional footwear exports.',
     address: 'Block 4, Ariaria Market, Aba',
     phone_whatsapp: '+2348011111111',
     image_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=800',
@@ -95,7 +95,7 @@ export const ARTISANS: Business[] = [
     is_hidden_gem: false,
     transformation_story: {
       before: "Started with a single manual sewing machine in a small stall.",
-      after: "Now operates a 12-unit industrial manufacturing hub with export-grade machinery.",
+      after: "Now operates a 12-unit professional manufacturing hub with export-grade machinery.",
       image_before: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?q=80&w=400",
       image_after: "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=400"
     },
@@ -132,13 +132,13 @@ export const ARTISANS: Business[] = [
   },
   {
     id: 'biz-repair-01',
-    name: 'Signal Fix Terminal',
+    name: 'Signal Fix Central',
     email: 'signalfix@findaba.com',
     category: Category.TECH_GADGETS,
-    primary_product_or_service: 'Advanced Logic Board Repair',
+    primary_product_or_service: 'Expert Logic Board Repair',
     active_features: { physical_verification_badge: true },
     area: 'Azikiwe Road Central',
-    description: 'The most trusted partner for complex mobile and laptop repairs. If it has a signal, we can fix it.',
+    description: 'The most trusted partner for complex mobile and laptop repairs. If it’s digital, we can fix it.',
     address: '45 Azikiwe Road, Aba',
     phone_whatsapp: '+2348099999999',
     image_url: 'https://images.unsplash.com/photo-1581092921461-eab62e92c73e?q=80&w=800',
@@ -283,7 +283,7 @@ export const BUSINESS_PLANS: BusinessPlan[] = [
     monthlyAmount: 0,
     yearlyAmount: 0,
     slots: 1,
-    features: ['Basic Directory Entry', 'Standard Contact Protocol', 'Community Access']
+    features: ['Basic Directory Entry', 'Standard Contact Search', 'Community Access']
   },
   {
     id: SubscriptionTier.VERIFIED,
@@ -291,7 +291,7 @@ export const BUSINESS_PLANS: BusinessPlan[] = [
     monthlyAmount: 2500,
     yearlyAmount: 2500, // 45 Day Cycle
     slots: 15,
-    features: ['Trusted Partner Badge', 'Verified Hub Profile', 'Local Signal Priority']
+    features: ['Trusted Partner Badge', 'Verified Hub Profile', 'Discovery Priority']
   },
   {
     id: SubscriptionTier.GROWTH,
@@ -320,7 +320,7 @@ export const LEGAL_POLICIES: Record<LegalDocType, { title: string; updated: stri
   privacy: {
     title: "Privacy Policy",
     updated: "January 1, 2025",
-    content: "We respect your industrial data. Your information is used strictly for trade connection and platform security."
+    content: "We respect your digital privacy. Your information is used strictly for trade connection and platform security."
   },
   refund: {
     title: "Refund Policy",
@@ -330,7 +330,7 @@ export const LEGAL_POLICIES: Record<LegalDocType, { title: string; updated: stri
   vendor: {
     title: "Vendor Agreement",
     updated: "January 1, 2025",
-    content: "Vendors must maintain industrial integrity and provide accurate specifications for all listed assets."
+    content: "Vendors must maintain high integrity and provide accurate specifications for all listed items."
   },
   ads: {
     title: "Advertising Policy",
@@ -376,15 +376,15 @@ export const SANDALS_CORPORATE_BRANCHES = [
     id: 'hotels',
     name: 'SANDALSroyalle Hotels',
     tagline: 'Premium Executive Stays',
-    description: 'Providing world-class hospitality for visiting trade partners and industrial masters.',
+    description: 'Providing world-class hospitality for visiting trade partners and business owners.',
     image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1200',
-    offerings: ['Executive Suites', 'Industrial Lounges', 'Concierge Service']
+    offerings: ['Executive Suites', 'Premium Lounges', 'Concierge Service']
   },
   {
     id: 'logistics',
     name: 'Carry-Go Logistics',
-    tagline: 'Precision Freight Protocol',
-    description: 'The industrial backbone of Enyimba, moving goods with speed and integrity.',
+    tagline: 'Precision Freight Delivery',
+    description: 'The logistical backbone of Enyimba, moving goods with speed and integrity.',
     image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200',
     offerings: ['Hub-to-Hub Delivery', 'Secure Warehousing', 'Global Waybills']
   }

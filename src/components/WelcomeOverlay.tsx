@@ -44,18 +44,18 @@ const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ userName, onClose }) =>
                 <span className="text-aba-green">{userName}</span>
               </h2>
               <p className="text-slate-400 text-xs md:text-sm font-bold uppercase tracking-widest leading-relaxed">
-                Your industrial node is now active. You are officially part of the global FindAba registry.
+                Your account is now active. You are now part of the FindAba business community.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
                 <ShieldCheck size={20} className="text-aba-green" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Registry Partner</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Verified Member</span>
               </div>
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
                 <Zap size={20} className="text-aba-gold" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Instant Sync</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Live Updates</span>
               </div>
             </div>
 
@@ -63,7 +63,7 @@ const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ userName, onClose }) =>
               onClick={() => setPhase('minimized')}
               className="w-full py-6 bg-aba-dark text-white rounded-full font-black uppercase text-[10px] tracking-[0.4em] shadow-2xl hover:bg-aba-gold hover:text-aba-dark transition-all active:scale-95 flex items-center justify-center gap-3"
             >
-              Initialize Dashboard <ArrowRight size={18} />
+              Go to Dashboard <ArrowRight size={18} />
             </button>
           </div>
         </motion.div>
@@ -79,8 +79,8 @@ const WelcomeOverlay: React.FC<WelcomeOverlayProps> = ({ userName, onClose }) =>
                 <Sparkles size={20} />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Partner Active: {userName}</p>
-                <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Registry Signal Synchronized</p>
+                <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Member Active: {userName}</p>
+                <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Account Connected</p>
               </div>
             </div>
             <button 

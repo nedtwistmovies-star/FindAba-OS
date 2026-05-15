@@ -110,8 +110,8 @@ const MerchantPortal: React.FC<{
           </h2>
           <p className="text-white/40 text-xs font-bold uppercase tracking-widest max-w-xs leading-relaxed">
             {isRegistryLoading 
-              ? "Connecting to the Business Registry. Please wait while we load your dashboard."
-              : "We couldn't find a business associated with your account in the registry."}
+              ? "Connecting to the directory. Please wait while we load your dashboard."
+              : "We couldn't find a business associated with your account."}
           </p>
           {showRetry && isRegistryLoading && (
             <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl mt-4">
@@ -277,7 +277,7 @@ const MerchantPortal: React.FC<{
                     <img src="/manifest.json" className="w-full h-full object-contain" alt="FindAba" onError={(e) => { (e.target as any).src = 'https://picsum.photos/seed/aba/100/100'; }} />
                  </div>
                  <div className="space-y-0 md:space-y-1">
-                    <h2 className="text-base md:text-3xl font-bold uppercase tracking-tighter text-white leading-none italic">FindAba</h2>
+                    <h2 className="text-base md:text-3xl font-bold uppercase tracking-tighter text-white leading-none italic">Aba Partners</h2>
                     <p className="text-aba-gold text-[7px] md:text-xs font-black uppercase tracking-[0.2em] leading-none truncate max-w-[150px] sm:max-w-none">{business.name}</p>
                  </div>
               </div>
@@ -685,7 +685,7 @@ const MerchantPortal: React.FC<{
                       </div>
                       <div className="space-y-2">
                         <h4 className="text-white font-black uppercase tracking-tight text-xl md:text-2xl">Account Standing: Excellent</h4>
-                        <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto uppercase tracking-widest">No disputes found. Your account is in good standing across the network.</p>
+                        <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto uppercase tracking-widest">No orders found. Your account is in good standing across the network.</p>
                       </div>
                     </div>
                   )}
@@ -781,7 +781,7 @@ const MerchantPortal: React.FC<{
           <div className="bg-white dark:bg-[#1e293b] rounded-3xl md:rounded-[4rem] shadow-xl border border-slate-100 dark:border-white/5 p-6 md:p-12 space-y-8 md:space-y-10 animate-slide-up">
              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-2">
                 <h3 className="text-lg md:text-xl font-black uppercase tracking-tight flex items-center gap-3 md:gap-4"><ShoppingBag size={20} className="text-aba-gold md:w-6 md:h-6"/> Order Registry</h3>
-                <span className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 px-3 md:px-4 py-1 md:py-1.5 bg-slate-50 dark:bg-black/20 rounded-full border dark:border-white/5">{orders.length} Signals Captured</span>
+                <span className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 px-3 md:px-4 py-1 md:py-1.5 bg-slate-50 dark:bg-black/20 rounded-full border dark:border-white/5">{orders.length} Orders Found</span>
              </div>
              
              <div className="space-y-4 md:space-y-6">
@@ -794,37 +794,37 @@ const MerchantPortal: React.FC<{
                          <div>
                             <div className="flex items-center gap-2 md:gap-3 mb-1">
                                <h4 className="text-sm md:text-base font-black uppercase tracking-tight">#{o.id.slice(-8)}</h4>
-                               <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(o.status)} bg-white dark:bg-black/20 border shadow-sm ${o.status === OrderStatus.DISPUTED ? 'animate-pulse-red' : ''}`}>
-                                 <div className="flex items-center gap-1.5">
-                                   {o.status === OrderStatus.COMPLETED && <CheckCircle2 size={10} className="text-aba-green animate-check-reveal" />}
-                                   {o.status}
-                                 </div>
-                               </span>
-                            </div>
-                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{o.buyer_id}</p>
-                         </div>
-                      </div>
-                      
-                      <div className="flex flex-col md:items-end">
-                         <p className="text-xl md:text-2xl font-black text-aba-dark dark:text-white tracking-tighter">₦{o.merchant_payout.toLocaleString()}</p>
-                         <p className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-slate-300 mt-1">Deduction: ₦{o.commission_deducted.toLocaleString()}</p>
-                      </div>
-                      
-                      <div className="w-full md:w-auto">
-                         <button 
-                           onClick={() => setSelectedOrder(o)}
-                           className="w-full px-8 md:px-10 py-4 md:py-5 bg-white dark:bg-slate-700 border dark:border-white/10 rounded-xl md:rounded-2xl text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-aba-dark hover:text-white transition-all shadow-sm"
-                         >
-                           Manage Signal
-                         </button>
-                      </div>
+                             <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(o.status)} bg-white dark:bg-black/20 border shadow-sm ${o.status === OrderStatus.DISPUTED ? 'animate-pulse-red' : ''}`}>
+                               <div className="flex items-center gap-1.5">
+                                 {o.status === OrderStatus.COMPLETED && <CheckCircle2 size={10} className="text-aba-green animate-check-reveal" />}
+                                 {o.status}
+                               </div>
+                             </span>
+                          </div>
+                          <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Buyer ID: {o.buyer_id}</p>
+                       </div>
+                    </div>
+                    
+                    <div className="flex flex-col md:items-end">
+                       <p className="text-xl md:text-2xl font-black text-aba-dark dark:text-white tracking-tighter">₦{o.merchant_payout.toLocaleString()}</p>
+                       <p className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-slate-300 mt-1">Platform Fee: ₦{o.commission_deducted.toLocaleString()}</p>
+                    </div>
+                    
+                    <div className="w-full md:w-auto">
+                       <button 
+                         onClick={() => setSelectedOrder(o)}
+                         className="w-full px-8 md:px-10 py-4 md:py-5 bg-white dark:bg-slate-700 border dark:border-white/10 rounded-xl md:rounded-2xl text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-aba-dark hover:text-white transition-all shadow-sm"
+                       >
+                         Manage Order
+                       </button>
+                    </div>
                    </div>
                 ))}
                 
                 {orders.length === 0 && !loading && (
                    <div className="py-24 md:py-32 text-center opacity-30 italic flex flex-col items-center">
                       <ShoppingBag size={48} className="md:w-16 md:h-16 mb-4 md:mb-6" />
-                      <p className="text-xs md:text-sm font-medium uppercase tracking-widest text-aba-dark dark:text-white px-4">No commercial signals detected on this node.</p>
+                      <p className="text-xs md:text-sm font-medium uppercase tracking-widest text-aba-dark dark:text-white px-4">No trade activity detected for this business.</p>
                    </div>
                 )}
              </div>
@@ -916,7 +916,7 @@ const MerchantPortal: React.FC<{
                          <div className="space-y-1.5">
                             <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Gateway Provider</label>
                             <div className="w-full bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 p-4 rounded-xl text-[11px] font-bold flex items-center justify-between">
-                               <span>Paystack (Industrial Standard)</span>
+                               <span>Paystack (Verified Provider)</span>
                                <div className="px-2 py-0.5 bg-aba-green/20 text-aba-green rounded-full text-[7px] font-black uppercase tracking-widest">Connected</div>
                             </div>
                          </div>
@@ -930,7 +930,7 @@ const MerchantPortal: React.FC<{
                             >
                                <option value="daily">Daily (Standard)</option>
                                <option value="weekly">Weekly (Consolidated)</option>
-                               <option value="monthly">Monthly (Industrial)</option>
+                               <option value="monthly">Monthly</option>
                             </select>
                          </div>
 
@@ -946,9 +946,9 @@ const MerchantPortal: React.FC<{
                    <div className="bg-aba-dark p-8 md:p-10 rounded-2xl md:rounded-[3rem] text-white space-y-6 md:space-y-8 relative overflow-hidden">
                       <div className="absolute top-0 right-0 p-6 md:p-8 opacity-5"><ShieldCheck size={100} className="md:w-[120px] md:h-[120px]" /></div>
                       <div className="relative z-10 space-y-5 md:space-y-6">
-                         <h5 className="text-base md:text-lg font-black uppercase tracking-tight">Fidelity Protocol</h5>
+                         <h5 className="text-base md:text-lg font-black uppercase tracking-tight">Trust Verification</h5>
                          <p className="text-[9px] md:text-[10px] font-medium text-white/40 leading-relaxed uppercase tracking-widest">
-                            Your settlement node is used by the FindAba mesh to automatically route payouts from successful trade signals. 
+                            Your settlement profile is used by the FindAba network to automatically route payouts from successful business connections. 
                             Ensure your details match your Paystack-registered business name for seamless synchronization.
                          </p>
                          <div className="pt-2 md:pt-4 space-y-3 md:space-y-4">
@@ -1068,7 +1068,7 @@ const MerchantPortal: React.FC<{
             <div className="bg-white dark:bg-[#1e293b] p-6 md:p-12 rounded-3xl md:rounded-[4rem] shadow-xl border border-slate-100 dark:border-white/5 space-y-8">
                <div className="flex justify-between items-center px-2">
                   <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Referral History</h4>
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-black/20 px-3 py-1 rounded-full border dark:border-white/5">{referrals.length} Nodes Linked</span>
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-black/20 px-3 py-1 rounded-full border dark:border-white/5">{referrals.length} Partners Connected</span>
                </div>
                
                <div className="space-y-4">
@@ -1169,7 +1169,7 @@ const MerchantPortal: React.FC<{
                 {[
                   { grade: 'A+', label: 'Elite Partner', desc: 'Highest trust level. Physically verified with perfect trade history.' },
                   { grade: 'A', label: 'Verified Hub', desc: 'Verified identity and operations. High reliability signal.' },
-                  { grade: 'B', label: 'Trusted Node', desc: 'Active partner with positive trade signals and verified identity.' },
+                  { grade: 'B', label: 'Trusted Partner', desc: 'Active partner with positive business history and verified identity.' },
                   { grade: 'C', label: 'Unverified', desc: 'Default registration grade. Awaiting institutional audit.' },
                   { grade: 'D', label: 'Restricted', desc: 'Under review due to disputes or incomplete documentation.' }
                 ].map((item, i) => (
@@ -1229,7 +1229,7 @@ const MerchantPortal: React.FC<{
                       <CheckCircle2 size={24} className="text-aba-green md:w-8 md:h-8" />
                     </div>
                     <h4 className="text-white font-black uppercase tracking-tight text-sm md:text-base">Clean Ledger Signal</h4>
-                    <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto">Your industrial hub is operating within optimal parameters. No trade disputes detected in the current cycle.</p>
+                    <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto">Your business hub is operating normally. No disputes detected in the current cycle.</p>
                   </div>
                 )}
               </div>
@@ -1245,7 +1245,7 @@ const MerchantPortal: React.FC<{
               
               <div className="flex justify-between items-start relative z-10">
                  <div className="space-y-1">
-                    <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Trade Signal Details</p>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Order Details</p>
                     <h3 className="text-xl md:text-2xl font-black text-aba-dark uppercase tracking-tighter">Order #{selectedOrder.id.slice(-8)}</h3>
                     <span className={`px-2.5 py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(selectedOrder.status)} bg-slate-50 border shadow-inner mt-2 inline-block`}>
                        {selectedOrder.status}
@@ -1293,7 +1293,7 @@ const MerchantPortal: React.FC<{
               </div>
 
               <p className="text-center text-[7px] md:text-[8px] font-bold text-slate-300 uppercase tracking-widest relative z-10 leading-relaxed px-4">
-                 Updating status triggers a real-time signal to buyer node.
+                 Updating status triggers a real-time message to buyer.
               </p>
            </div>
         </div>

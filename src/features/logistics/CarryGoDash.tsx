@@ -84,7 +84,7 @@ const CarryGoDash: React.FC = () => {
                   </div>
                   <div className="text-left">
                     <h2 className="text-xl font-black uppercase tracking-tighter">Purple Fleet</h2>
-                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Secure Taxi & Keke Hailing Node</p>
+                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Secure Taxi & Keke Hailing Hub</p>
                   </div>
                 </div>
                 <ArrowRight className="text-white/20 group-hover:text-purple-500 transition-colors" />
@@ -188,7 +188,7 @@ const CarryGoDash: React.FC = () => {
       <footer className="fixed bottom-0 inset-x-0 p-6 pointer-events-none">
         <div className="flex items-center gap-2 justify-center">
             <div className="w-1.5 h-1.5 bg-aba-green rounded-full animate-pulse shadow-[0_0_10px_rgba(0,255,0,0.5)]" />
-            <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/20">Aba Logistics Node Active</span>
+            <span className="text-[7px] font-black uppercase tracking-[0.4em] text-white/20">Aba Logistics Active</span>
         </div>
       </footer>
     </div>

@@ -67,7 +67,7 @@ const SettingsView: React.FC = () => {
         <div className="w-16 h-16 bg-aba-gold/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-aba-gold/20">
           <Smartphone size={24} className="text-aba-gold" />
         </div>
-        <h2 className="text-2xl font-black uppercase tracking-tighter">System Node Config</h2>
+        <h2 className="text-2xl font-black uppercase tracking-tighter">Regional Configuration</h2>
         <p className="text-[10px] font-black uppercase tracking-widest text-white/40 italic">Global Preferences</p>
       </div>
 
@@ -124,7 +124,7 @@ const SettingsView: React.FC = () => {
           disabled={saving}
           className="w-full py-5 bg-aba-gold text-black rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform"
         >
-          {saving ? <RefreshCcw size={16} className="animate-spin" /> : <><Save size={16} /> Update Local Node</>}
+          {saving ? <RefreshCcw size={16} className="animate-spin" /> : <><Save size={16} /> Update Partner Profile</>}
         </button>
       </div>
 

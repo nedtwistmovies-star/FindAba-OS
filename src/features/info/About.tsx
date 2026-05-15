@@ -12,38 +12,38 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
   const isSubView = ['about-who', 'about-vision', 'about-mission'].includes(currentView);
   
   const protocols = [
-    { 
+      { 
       id: 'discovery', 
-      title: 'Discovery Mesh', 
-      desc: 'High-fidelity indexing of verified master artisans and industrial nodes across Enyimba City.',
+      title: 'Business Directory', 
+      desc: 'Connect with verified master artisans and trusted businesses across Enyimba City.',
       icon: <Globe size={24} />,
       color: 'text-blue-500'
     },
     { 
       id: 'logistics', 
-      title: 'Carry-Go Protocol', 
-      desc: 'Seamless hub-to-hub logistics intermediation for high-value industrial cargo and waybills.',
+      title: 'Move & Delivery', 
+      desc: 'Seamless door-to-door delivery and logistics support for your goods and commerce.',
       icon: <Factory size={24} />,
       color: 'text-aba-green'
     },
     { 
       id: 'intelligence', 
-      title: 'Oracle Wisdom', 
-      desc: 'Advanced trade intelligence and market signals powered by the FindAba AI core.',
+      title: 'Kalu Assistant', 
+      desc: 'Get expert guidance and local market insights powered by the FindAba community assistant.',
       icon: <Cpu size={24} />,
       color: 'text-aba-gold'
     },
     { 
       id: 'settlement', 
-      title: 'Fidelity Mesh', 
-      desc: 'Encrypted financial settlements and merchant thrift protocols settled via Paystack.',
+      title: 'Secure Payments', 
+      desc: 'Safe and transparent financial transactions and business savings powered by Paystack.',
       icon: <Landmark size={24} />,
       color: 'text-blue-600'
     },
     { 
       id: 'scale', 
-      title: 'Scale Protocol', 
-      desc: 'Automatic consensus verifies your signal and grants global visibility within seconds of transfer commitment.',
+      title: 'Market Growth', 
+      desc: 'Get your business verified and seen by thousands of customers across the city and beyond.',
       icon: <ShieldCheck size={24} />,
       color: 'text-aba-gold'
     }
@@ -55,7 +55,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
       {/* EXECUTIVE HERO */}
       {!isSubView && (
         <section className="relative h-[60dvh] flex flex-col justify-end p-8 md:p-24 overflow-hidden bg-aba-dark">
-           <div className="absolute inset-0 opacity-10 industrial-grid" />
+           <div className="absolute inset-0 opacity-10 commerce-grid" />
            <div className="absolute top-12 left-8 md:left-24 z-30">
               <button 
                 onClick={() => setView('profile')} 
@@ -69,11 +69,11 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
               <div className="flex items-center gap-5">
                  <Logo size={60} className="shadow-2xl border-2 border-aba-gold/30" />
                  <div className="h-px w-20 bg-aba-gold/30" />
-                 <span className="text-[10px] font-black uppercase text-aba-gold tracking-[0.6em]">System Origin v15.0</span>
+                 <span className="text-[10px] font-black uppercase text-aba-gold tracking-[0.6em]">Verified Platform 2024</span>
               </div>
               <h1 className="text-6xl md:text-8xl uppercase tracking-tighter text-white leading-[0.85]">
                 <span className="font-black text-white">Find</span><span className="font-light opacity-30">ABA</span> <br/>
-                <span className="text-white/20 font-black">Operating System.</span>
+                <span className="text-white/20 font-black italic">Community Platform.</span>
               </h1>
            </div>
         </section>
@@ -102,7 +102,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
                  </div>
                  <div>
                     <h3 className="text-xl font-black uppercase tracking-tight text-aba-dark dark:text-white">Who We Are</h3>
-                    <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.3em] mt-1">Industrial Identity Protocol</p>
+                    <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.3em] mt-1">Our Identity and Values</p>
                  </div>
               </div>
 
@@ -111,9 +111,9 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
                  <div className="relative z-10 space-y-10">
                     <div className="space-y-6">
                       <p className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-aba-dark dark:text-white leading-tight">
-                        FindAba by <span className="text-aba-gold italic">SANDALSroyalle</span> is a structured digital city infrastructure platform built to organize, formalize, and secure economic and service activities within Aba.
+                        FindAba by <span className="text-aba-gold italic">SandalsRoyalle</span> is a community-first digital platform built to organize and support business and service activities within Aba.
                       </p>
-                      <p className="text-lg font-bold text-aba-green uppercase tracking-widest">We are building the digital operating system of the city.</p>
+                      <p className="text-lg font-bold text-aba-green uppercase tracking-widest">We are building the digital home for the city's commerce.</p>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -122,9 +122,9 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
                           FindAba is designed to transform how residents, visitors, businesses, and institutions connect, transact, and move. It integrates commerce, services, mobility, payments, and verification into one intelligent ecosystem.
                         </p>
                         <div className="space-y-4">
-                          <p className="text-[10px] font-black text-aba-gold uppercase tracking-widest">Operational Standards:</p>
+                          <p className="text-[10px] font-black text-aba-gold uppercase tracking-widest">Our Approach:</p>
                           <ul className="space-y-2">
-                            {['Verified onboarding standards', 'Compliance-based participation', 'Structured digital identity systems', 'Automated financial processing', 'Security-aware operational design'].map((item, i) => (
+                            {['Verified business standards', 'Community-based participation', 'Secure digital membership', 'Safe financial processing', 'Professional support and growth'].map((item, i) => (
                               <li key={i} className="flex items-center gap-3 text-[11px] font-bold text-aba-dark dark:text-white/60 uppercase tracking-widest">
                                 <div className="w-1.5 h-1.5 bg-aba-gold rounded-full" /> {item}
                               </li>
@@ -134,11 +134,11 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
                       </div>
                       <div className="space-y-6">
                         <p className="text-sm font-medium text-slate-500 dark:text-white/40 leading-relaxed uppercase tracking-widest">
-                          Backed by the strategic discipline and operational philosophy of <span className="text-aba-gold font-black">SANDALSroyalle</span>, FindAba introduces structure where there was fragmentation, visibility where there was obscurity, and accountability where there was informality.
+                          Backed by the enterprising spirit and local understanding of <span className="text-aba-gold font-black italic">SandalsRoyalle</span>, FindAba introduces visibility to the unseen and opens doors for every hardworking artisan.
                         </p>
                         <div className="pt-6 border-t border-slate-200 dark:border-white/10">
-                          <p className="text-xl font-black text-aba-dark dark:text-white uppercase tracking-tighter">This is not just technology.</p>
-                          <p className="text-xl font-black text-aba-gold uppercase tracking-tighter">It is urban digital reform.</p>
+                          <p className="text-xl font-black text-aba-dark dark:text-white uppercase tracking-tighter">This is more than tech.</p>
+                          <p className="text-xl font-black text-aba-gold uppercase tracking-tighter">It is a boost for local business.</p>
                         </div>
                       </div>
                     </div>
@@ -285,7 +285,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
          <div className="h-px w-48 bg-slate-200 dark:bg-white/20" />
          <div className="flex flex-col items-center">
             <span className="text-[16px] md:text-2xl font-black uppercase tracking-[1.5em] text-aba-dark dark:text-white">SANDALSroyalle</span>
-            <span className="text-[8px] font-black uppercase tracking-[0.8em] text-aba-gold mt-4">Corporate Operating System</span>
+            <span className="text-[8px] font-black uppercase tracking-[0.8em] text-aba-gold mt-4">Corporate Platform</span>
          </div>
       </footer>
     </div>

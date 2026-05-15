@@ -74,7 +74,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
     }
   };
 
-  const historyText = `Abia State, popularly known as "God's Own State," is a vibrant commercial, administrative, and cultural powerhouse in southeastern Nigeria. Formed in 1991, it is a land of immense human and natural resources. From the industrial heartbeat of Aba (the "Japan of Africa") to the administrative excellence of Umuahia, and the rich agricultural and cultural heritage of Bende, Ohafia, and Arochukwu, Abia represents the pinnacle of Igbo ingenuity. The state's history is marked by a relentless spirit of enterprise, from the 1929 Women's War to its current status as a global hub for manufacturing, trade, and professional services. Today, the FindAba State OS connects every corner of the state—from the bustling markets of Ariaria to the serene hills of Ohafia—into one unified digital ecosystem.`;
+  const historyText = `Abia State, popularly known as "God's Own State," is a vibrant commercial, administrative, and cultural powerhouse in southeastern Nigeria. Formed in 1991, it is a land of immense human and natural resources. From the enterprising heartbeat of Aba (the "Japan of Africa") to the administrative excellence of Umuahia, and the rich agricultural and cultural heritage of Bende, Ohafia, and Arochukwu, Abia represents the pinnacle of Igbo ingenuity. The state's history is marked by a relentless spirit of enterprise, from the 1929 Women's War to its current status as a global hub for manufacturing, trade, and professional services. Today, the FindAba community platform connects every corner of the state—from the bustling markets of Ariaria to the serene hills of Ohafia—into one unified digital ecosystem.`;
 
   return (
     <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40">
@@ -106,7 +106,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
                  <span className="text-aba-gold italic">ENTERPRISE.</span>
               </h1>
               <p className="text-lg md:text-xl text-white/50 font-medium max-w-2xl leading-relaxed">
-                 Uncovering the industrial soul and historical resilience of Aba, Nigeria.
+                 Uncovering the enterprising soul and historical resilience of Aba, Nigeria.
               </p>
            </div>
         </div>
@@ -176,7 +176,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
                   {[
                     { label: 'Integrity', desc: 'Quality above all' },
                     { label: 'Resilience', desc: 'Innovation through hardship' },
-                    { label: 'Community', desc: 'Shared industrial growth' },
+                    { label: 'Community', desc: 'Shared enterprise growth' },
                   ].map((val, i) => (
                     <div key={i} className="p-6 bg-white/5 rounded-2xl border border-white/5 text-center space-y-2">
                        <h5 className="text-sm font-black text-white uppercase tracking-tight">{val.label}</h5>
@@ -235,8 +235,8 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
                <Zap size={32} fill="currentColor" />
             </div>
             <div className="space-y-3">
-               <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Experience the <span className="text-aba-gold italic">State Registry.</span></h3>
-               <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Connect with the nodes of Abia State today</p>
+               <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Experience the <span className="text-aba-gold italic">Business Directory.</span></h3>
+               <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Connect with the communities of Abia State today</p>
             </div>
             <IndustrialButton
                variant="primary"
@@ -245,7 +245,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
                onClick={() => setView('explore')}
                className="bg-white text-aba-deep hover:bg-aba-gold"
             >
-               Explore Industrial Hubs
+               Explore Local Hubs
             </IndustrialButton>
          </div>
       </main>

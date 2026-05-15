@@ -150,7 +150,7 @@ const BuyerOrdersView: React.FC<Props> = ({ setView }) => {
                       </button>
                    )}
                    <button 
-                     onClick={() => addToast("Registry Message Node Initializing...", "info")}
+                     onClick={() => addToast("Initializing secure messages...", "info")}
                      className="p-4 bg-slate-50 dark:bg-white/5 border dark:border-white/10 rounded-2xl text-slate-400 hover:text-aba-gold transition-all"
                    >
                       <MessageSquare size={18} />

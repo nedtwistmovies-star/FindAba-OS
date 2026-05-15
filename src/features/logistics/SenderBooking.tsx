@@ -292,7 +292,7 @@ const SenderBooking: React.FC = () => {
                 <div className="space-y-4">
                     <h2 className="text-3xl font-black uppercase tracking-tighter">Shipment Active!</h2>
                     <p className="text-white/60 text-sm font-medium max-w-xs mx-auto">
-                        Your payment is secured. A rider from the nearest node will contact you via WhatsApp shortly.
+                        Your payment is secured. A rider from the nearest logistics hub will contact you via WhatsApp shortly.
                     </p>
                 </div>
 

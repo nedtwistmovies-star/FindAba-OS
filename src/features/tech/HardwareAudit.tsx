@@ -141,7 +141,7 @@ const HardwareAudit: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                    </div>
 
                    <button 
-                     onClick={() => addToast("Broadcasting intelligence signal to registry nodes...", "info")}
+                     onClick={() => addToast("Connecting to business directory...", "info")}
                      className="w-full py-8 bg-white text-aba-deep rounded-[2rem] font-black uppercase text-xs tracking-[0.5em] flex items-center justify-center gap-4 shadow-2xl active:scale-95 transition-all"
                    >
                       Share Intelligence <History size={20} />

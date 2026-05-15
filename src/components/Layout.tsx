@@ -177,18 +177,18 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
       const { error } = await sendSupportMessage({
         email: footerEmail,
         message: footerMessage,
-        subject: "Footer Contact Signal",
+        subject: "Support Message",
         name: userName || "Visitor",
         status: 'unread'
       });
       
       if (error) throw error;
       
-      addToast("Signal Transmitted. Enyimba Hub has received your message.", "success");
+      addToast("Message Sent. FindAba has received your request.", "success");
       setFooterMessage('');
     } catch (err) {
       console.error("[Footer] Submit error:", err);
-      addToast("Failed to transmit signal. Connection error.", "error");
+      addToast("Failed to send message. Connection error.", "error");
     } finally {
       setIsFooterSending(false);
     }
@@ -197,7 +197,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const [activeLogo, setActiveLogo] = useState<string>(appLogo || SANDALS_BRAND.logo);
   
   const [notifications, setNotifications] = useState<AppNotification[]>([
-    { id: '1', title: 'System Connected', message: 'FindAba v6.0 is ready.', type: 'info', read: false, timestamp: new Date().toISOString() },
+    { id: '1', title: 'Platform Connected', message: 'FindAba is ready for use.', type: 'info', read: false, timestamp: new Date().toISOString() },
     { id: '2', title: 'Payment Secure', message: 'Payment confirmed via Paystack.', type: 'success', read: false, timestamp: new Date().toISOString() }
   ]);
 
@@ -259,24 +259,24 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   }, [currentView]);
 
   const menuItems = [
-    { label: 'City Faces', icon: <Users size={20} />, view: 'feed' as ViewState },
+    { label: 'Faces of Aba', icon: <Users size={20} />, view: 'feed' as ViewState },
     { label: 'Wallet', icon: <Landmark size={20} />, view: 'wallet' as ViewState },
-    { label: 'Taxis', icon: <Car size={20} />, view: 'purple-fleet' as ViewState },
-    { label: 'Hotels & Suites', icon: <Building2 size={20} />, view: 'sandals-hotels' as ViewState },
-    { label: 'Logistics', icon: <Truck size={20} />, view: 'cargo' as ViewState },
-    { label: 'Thrift Savings', icon: <Wallet size={20} />, view: 'srts-dashboard' as ViewState },
-    { label: 'Audio Archives', icon: <Radio size={20} />, view: 'audio-heritage' as ViewState },
-    { label: 'Creative Lab', icon: <Sparkles size={20} />, view: 'lab' as ViewState },
-    { label: 'System Status', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
-    { label: 'Aba History', icon: <BookOpen size={20} />, view: 'about-aba' as ViewState },
+    { label: 'Logistics', icon: <Truck size={20} />, view: 'purple-fleet' as ViewState },
+    { label: 'Hotels', icon: <Building2 size={20} />, view: 'sandals-hotels' as ViewState },
+    { label: 'Delivery', icon: <Truck size={20} />, view: 'cargo' as ViewState },
+    { label: 'Savings', icon: <Wallet size={20} />, view: 'srts-dashboard' as ViewState },
+    { label: 'Aba Heritage', icon: <BookOpen size={20} />, view: 'audio-heritage' as ViewState },
+    { label: 'Innovations', icon: <Sparkles size={20} />, view: 'lab' as ViewState },
+    { label: 'Privacy & Safety', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
+    { label: 'About Aba', icon: <Info size={20} />, view: 'about-aba' as ViewState },
     { label: 'Directory', icon: <Layers size={20} />, view: 'explore' as ViewState },
-    { label: 'Intelligence Desk', icon: <LayoutIcon size={20} />, view: 'intelligence-desk' as ViewState },
-    { label: 'AI Assistant', icon: <Cpu size={20} />, view: 'oracle' as ViewState },
-    { label: 'Admin Panel', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
+    { label: 'Market Insights', icon: <LayoutIcon size={20} />, view: 'intelligence-desk' as ViewState },
+    { label: 'Kalu Assistant', icon: <MessageCircle size={20} />, view: 'oracle' as ViewState },
+    { label: 'Management', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
     { label: 'Support', icon: <LifeBuoy size={20} />, view: 'support' as ViewState },
-    { label: 'Discover', icon: <Sparkles size={20} />, view: 'discover' as ViewState },
-    { label: 'Stories', icon: <BookOpen size={20} />, view: 'editorial' as ViewState },
-    { label: 'Executive HQ', icon: <ShieldCheck size={20} />, view: 'srts-office' as ViewState },
+    { label: 'Discover', icon: <Compass size={20} />, view: 'discover' as ViewState },
+    { label: 'Stories', icon: <Rss size={20} />, view: 'editorial' as ViewState },
+    { label: 'Leadership HQ', icon: <ShieldCheck size={20} />, view: 'srts-office' as ViewState },
   ];
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -542,32 +542,32 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             <div className="px-6 md:px-8 py-16 md:py-24 space-y-16 max-w-5xl mx-auto w-full">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-12">
               <div className="space-y-6">
-                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Registry</h4>
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Discovery</h4>
                 <div className="space-y-3">
                   <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Verified Businesses</button>
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Business Partners</button>
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Export Status</button>
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Business Insights</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Market Partners</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Trade Status</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Business Directory</button>
                 </div>
               </div>
 
               <div className="space-y-6">
-                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Ecosystem</h4>
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Services</h4>
                 <div className="space-y-3">
-                  <button onClick={() => setView('purple-fleet')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Purple Fleet</button>
-                  <button onClick={() => setView('sandals-hotels')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Sandals Hotels</button>
-                  <button onClick={() => setView('cargo')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Carry-Go Cargo</button>
-                  <button onClick={() => setView('srts-dashboard')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Fidelity Thrift</button>
+                  <button onClick={() => setView('purple-fleet')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">City Logistics</button>
+                  <button onClick={() => setView('sandals-hotels')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Premium Hotels</button>
+                  <button onClick={() => setView('cargo')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Express Delivery</button>
+                  <button onClick={() => setView('srts-dashboard')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Trade Savings</button>
                 </div>
               </div>
 
               <div className="space-y-6">
                 <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Support</h4>
                 <div className="space-y-3">
-                  <button onClick={() => setView('oracle')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Oracle AI</button>
-                  <button onClick={() => setView('legal')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Safety Protocols</button>
+                  <button onClick={() => setView('oracle')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Kalu Assistant</button>
+                  <button onClick={() => setView('legal')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Safety & Privacy</button>
                   <button onClick={() => setView('contact')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Help Center</button>
-                  <button onClick={() => setView('editorial')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">News</button>
+                  <button onClick={() => setView('editorial')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Local News</button>
                 </div>
               </div>
 
@@ -627,7 +627,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                     <textarea 
                       value={footerMessage}
                       onChange={(e) => setFooterMessage(e.target.value)}
-                      placeholder="How can the Hub assist you today?" 
+                      placeholder="How can we assist you today?" 
                       rows={3}
                       className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm outline-none focus:border-aba-gold transition-standard resize-none"
                     />
@@ -647,7 +647,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
           <div className={`w-full py-12 px-8 text-center space-y-2 border-t ${isDarkThemeActive ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
             <p className="text-[10px] font-medium opacity-40 uppercase tracking-widest">
-              © 2026 FindAba Industrial Hub
+              © 2026 FindAba Commerce Platform
             </p>
             <p className="text-[10px] font-medium opacity-40 uppercase tracking-widest">
               Built by <a href="#" className="underline hover:text-aba-gold transition-standard">SANDALSroyalle S&P</a>
@@ -665,8 +665,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
         {[
           { id: 'home', icon: <Home size={18} />, label: 'HOME' },
           { id: 'feed', icon: <Users size={18} />, label: 'FACES' },
-          { id: 'oracle', icon: <Cpu size={18} />, label: 'AI' },
-          { id: 'wallet', icon: <Landmark size={18} />, label: 'WALLET' },
+          { id: 'oracle', icon: <MessageCircle size={18} />, label: 'ASSISTANT' },
+          { id: 'wallet', icon: <Wallet size={18} />, label: 'WALLET' },
           { id: 'profile', icon: <UserCircle size={18} />, label: 'PROFILE' }
         ].map((btn, i) => (
           <button 
@@ -727,7 +727,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                   <span className="text-[10px] font-black text-aba-gold uppercase tracking-[0.2em]">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </span>
-                  <span className="text-[10px] font-black text-aba-white/60 uppercase tracking-widest">SANDALSroyalle Industrial HQ</span>
+                  <span className="text-[10px] font-black text-aba-white/60 uppercase tracking-widest">SandalsRoyalle Hub</span>
                </div>
             </div>
          </div>

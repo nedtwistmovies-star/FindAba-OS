@@ -189,9 +189,9 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess,
       console.error("Registration failed. Payload:", business, "Error:", error);
       const errorMessage = error.message || "Unknown error";
       if (errorMessage.includes("This hub is owned by another entity")) {
-        addToast("Permission Denied: This email belongs to another hub. Please use a different email or request node reassignment.", "error");
-      } else if (errorMessage.includes("Security Protocol Error")) {
-        addToast("Registry Protocol Violation: Please sign out and sign back in to refresh your industrial keys.", "error");
+        addToast("Permission Denied: This email belongs to another hub. Please use a different email or request account transfer.", "error");
+      } else if (errorMessage.includes("Security Error")) {
+        addToast("Security Verification Failed: Please sign out and sign back in to refresh your access.", "error");
       } else {
         addToast(`Registration failed: ${errorMessage}`, "error");
       }

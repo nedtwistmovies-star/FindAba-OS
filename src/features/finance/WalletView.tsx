@@ -87,7 +87,7 @@ const WalletView: React.FC = () => {
              </div>
              <div>
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Fidelity <span className="text-aba-gold">Wallet</span></h2>
-                <p className="text-[8px] sm:text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-0.5 sm:mt-1">Authorized Financial Node</p>
+                <p className="text-[8px] sm:text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-0.5 sm:mt-1">Verified Financial Profile</p>
              </div>
           </div>
           <button className="p-2.5 sm:p-3 bg-white/5 rounded-xl sm:rounded-2xl text-white/40 hover:text-aba-gold transition-standard border border-white/5">
@@ -126,7 +126,7 @@ const WalletView: React.FC = () => {
 
             <div className="flex justify-between items-end pt-6 border-t border-white/10">
                <div className="flex flex-col">
-                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Registry Node ID</span>
+                  <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Verified ID</span>
                   <span className="text-[10px] sm:text-sm font-bold font-mono text-white/80 uppercase tracking-widest leading-none mt-1">
                     {wallet?.id?.slice(0, 12).toUpperCase() || 'INITIALIZING...'}
                   </span>

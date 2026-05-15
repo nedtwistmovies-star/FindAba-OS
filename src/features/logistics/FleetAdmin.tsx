@@ -169,7 +169,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
                           </div>
                        </div>
                        <p className="text-[10px] font-bold text-white/40 leading-relaxed uppercase tracking-widest">
-                          Monitoring all active vessel nodes. Geofencing active for Level 3 Shield escorts. No deviations detected.
+                          Monitoring all active vessel partners. Geofencing active for secure escorts. No deviations detected.
                        </p>
                        <div className="pt-4 border-t border-white/5 flex items-center gap-3">
                           <div className="w-2 h-2 rounded-full bg-aba-green animate-pulse" />
@@ -304,7 +304,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
                        </div>
                     ))}
                     {filteredDrivers.length === 0 && (
-                      <div className="col-span-full py-20 text-center opacity-20 italic">No nodes found matching your search parameters.</div>
+                      <div className="col-span-full py-20 text-center opacity-20 italic">No partners found matching your search parameters.</div>
                     )}
                  </div>
               </div>

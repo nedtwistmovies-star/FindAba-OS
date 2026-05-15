@@ -130,7 +130,7 @@ const AppContent: React.FC = () => {
 
   // REMOVED: Blocks access if database takes too long to sync
   // if (loading && businesses.length === 0) {
-  //   return <LoadingScreen message="Initializing Industrial Matrix..." />;
+  //   return <LoadingScreen message="Welcoming you to Aba..." />;
   // }
 
   return (

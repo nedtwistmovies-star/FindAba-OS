@@ -721,121 +721,92 @@ export const updateBusinessInDB = async (id: string, updates: Partial<Business>)
   }
 };
 
-export const saveBusinessToDB = async (business: Business): Promise<Business> => {
-  const client = getSupabase();
-  if (!client) throw new Error("Registry Offline");
-  
-  // 🔹 INDUSTRIAL PAYLOAD CLEANING PROTOCOL
-  const VALID_CHASSIS_COLUMNS = [
-    'id', 'user_id', 'name', 'email', 'phone_whatsapp', 'category', 'area', 'address',
-    'primary_product_or_service', 'description', 'image_url', 'rating', 'review_count',
-    'status', 'verification_status', 'verification_level', 'integrity_grade',
-    'is_export_ready', 'capacity_indicator', 'premium_features_enabled',
-    'subscription_tier', 'hub_tier', 'active_features', 'products', 'created_at',
-    'latitude', 'longitude', 'video_caption', 'business_type', 'is_verified',
-    'catalog_images', 'videos', 'bank_name', 'account_number', 'account_name',
-    'skills', 'experience_years', 'portfolio_images'
-  ];
+export async function saveBusinessToDB(businessData: Partial<Business>): Promise<Business> {
+  const supabase = getSupabase()!;
+  // 1. Verify the user is logged in
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  let currentPayload: any = {};
-  const mapper: Record<string, string> = {
-    'whatsapp': 'phone_whatsapp',
-    'primary_product': 'primary_product_or_service'
+  if (authError || !user) {
+    throw new Error('You must be logged in to register a business.');
+  }
+
+  // 2. Build payload — only real columns from your live schema
+  //    Do NOT include 'id' — Supabase generates UUID automatically on insert
+  const payload: Record<string, unknown> = {
+    name:                         businessData.name ?? '',
+    email:                        businessData.email ?? user.email ?? '',
+    category:                     businessData.category ?? 'General',
+    primary_product_or_service:   businessData.primary_product_or_service ?? null,
+    area:                         businessData.area ?? null,
+    address:                      businessData.address ?? null,
+    phone_whatsapp:               businessData.phone_whatsapp ?? null,
+    phone:                        businessData.phone ?? null,
+    image_url:                    businessData.image_url ?? null,
+    description:                  businessData.description ?? null,
+    location:                     businessData.location ?? null,
+    city:                         businessData.city ?? 'Aba',
+    services:                     businessData.services ?? null,
+    status:                       businessData.status ?? 'pending',
+    is_verified:                  false,
+    hub_tier:                     businessData.hub_tier ?? 'Starter',
+    subscription_tier:            businessData.subscription_tier ?? 'Free',
+    latitude:                     businessData.latitude ?? null,
+    longitude:                    businessData.longitude ?? null,
+    integrity_grade:              'C',
+    verification_status:          'Unverified',
+    verification_level:           'Listed',
+    is_export_ready:              false,
+    premium_features_enabled:     false,
+    active_features:              {},
+    products:                     [],
+    // CRITICAL: user_id links this business to the logged-in user
+    // RLS policy checks auth.uid() = user_id — must match exactly
+    user_id:                      user.id,
   };
 
-  Object.keys(business).forEach(key => {
-    const targetKey = mapper[key] || key;
-    if (VALID_CHASSIS_COLUMNS.includes(targetKey)) {
-      currentPayload[targetKey] = (business as any)[key];
-    }
-  });
+  // 3. Check if this user already has a business registered
+  const { data: existing, error: fetchError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle();
 
-  if (currentPayload.email) currentPayload.email = normalizeEmail(currentPayload.email);
-  
-  // We use stable ID if provided, otherwise generate one
-  if (!currentPayload.id) currentPayload.id = business.id || `biz-${Math.random().toString(36).substr(2, 9)}`;
+  if (fetchError) {
+    throw new Error(`Could not check existing registration: ${fetchError.message}`);
+  }
 
-  console.log(`[Registry] Synchronizing Hub: ${currentPayload.email} (Input ID: ${currentPayload.id})`);
+  let result: Business;
 
-  try {
-    const { data: { session } } = await client.auth.getSession();
-    if (session && !currentPayload.user_id) {
-       currentPayload.user_id = session.user.id;
-    }
-
-    // 🔹 Phase 1: Identity Resolution (Email-based)
-    // We check by email to prevent duplicate registrations and allow claiming
-    const { data: existing } = await client
+  if (existing?.id) {
+    // 4a. UPDATE existing business — use the real database id
+    const { data, error } = await supabase
       .from('businesses')
-      .select('*')
-      .eq('email', currentPayload.email)
-      .maybeSingle();
-
-    if (existing) {
-      console.log(`[Registry] Identity Match Found (Current ID: ${existing.id}). Performing Targeted Sync...`);
-      
-      // CRITICAL: When updating, we MUST preserve the existing ID to avoid FK violations
-      const updatePayload = { ...currentPayload };
-      delete updatePayload.id; // Removing ID from SET clause
-      delete updatePayload.created_at; // Preserve creation timestamp
-      
-      const { data: updated, error: updateError } = await client
-        .from('businesses')
-        .update(updatePayload)
-        .eq('id', existing.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error("[Registry] Sync Fault:", updateError);
-        // Handle RLS
-        if (updateError.message.includes('row level security')) {
-           throw new Error(`Access Denied: You do not have authority to modify this hub (${existing.id}).`);
-        }
-        throw updateError;
-      }
-      
-      console.log("[Registry] Sync Complete.");
-      triggerWebhook(WebhookEvent.NEW_REGISTRATION, updated);
-      return updated as Business;
-    }
-
-    // 🔹 Phase 2: Fresh Commitment (Insert)
-    const { data: inserted, error: insertError } = await client
-      .from('businesses')
-      .insert(currentPayload)
+      .update(payload)
+      .eq('id', existing.id)
       .select()
       .single();
 
-    if (insertError) {
-      console.error("[Registry] Commitment Fault:", insertError);
-      
-      // Auto-pruning for missing columns
-      if (insertError.code === 'PGRST204') {
-        const match = insertError.message.match(/Could not find the ['"](.+)['"] column/i);
-        if (match && match[1]) {
-          console.warn(`[Registry] Pruning missing column and retrying: ${match[1]}`);
-          const businessCopy = { ...business };
-          delete (businessCopy as any)[match[1]];
-          return await saveBusinessToDB(businessCopy);
-        }
-      }
-
-      if (insertError.message.includes('row level security')) {
-        throw new Error("Security Breach: Unauthorized registration attempt. Please sign in.");
-      }
-      throw insertError;
+    if (error) {
+      throw new Error(`Failed to update business: ${error.message}`);
     }
+    result = data as Business;
 
-    console.log("[Registry] New Node Committed.");
-    triggerWebhook(WebhookEvent.NEW_REGISTRATION, inserted);
-    return inserted as Business;
+  } else {
+    // 4b. INSERT new business — let Supabase generate the UUID
+    const { data, error } = await supabase
+      .from('businesses')
+      .insert(payload)
+      .select()
+      .single();
 
-  } catch (err: any) {
-    console.error("[Registry] Critical Failure:", err);
-    throw new Error(`Registry Sync Error: ${err.message || "Operation failed"}`);
+    if (error) {
+      throw new Error(`Failed to register business: ${error.message}`);
+    }
+    result = data as Business;
   }
-};
+
+  return result;
+}
 
 export const fetchFavorites = async (userId: string): Promise<string[]> => {
   const client = getSupabase();
