@@ -723,10 +723,10 @@ export const updateBusinessInDB = async (id: string, updates: Partial<Business>)
 
 export async function saveBusinessToDB(businessData: Partial<Business>): Promise<Business> {
   const supabase = getSupabase()!;
-  // 1. Verify the user is logged in
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
 
-  if (authError || !user) {
+  if (!user) {
     throw new Error('You must be logged in to register a business.');
   }
 

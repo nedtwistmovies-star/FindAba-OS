@@ -23,25 +23,25 @@ const STEPS: OnboardingStep[] = [
     title: "Welcome to FindAba",
     description: "Discover trusted businesses, artisans, logistics, markets, and services across Aba.",
     icon: <Globe size={32} />,
-    image: "https://images.unsplash.com/photo-1531058020387-3be344556be6?auto=format&fit=crop&q=80&w=1200"
+    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80"
   },
   {
     title: "Trusted Local Businesses",
     description: "Find verified shops, schools, artisans, and vendors with confidence. Every partner is audited for quality.",
     icon: <ShieldCheck size={32} />,
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200"
+    image: "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&q=80"
   },
   {
     title: "Ask Anything About Aba",
     description: "Get instant answers about market prices, specific products, locations, and local trade secrets.",
     icon: <Search size={32} />,
-    image: "https://images.unsplash.com/photo-1555126634-323283e090fa?auto=format&fit=crop&q=80&w=1200"
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80"
   },
   {
     title: "Reliable Delivery & Movement",
     description: "Move goods and connect with trusted delivery partners safely across the city.",
     icon: <Truck size={32} />,
-    image: "https://images.unsplash.com/photo-1519003722824-192d992a602d?auto=format&fit=crop&q=80&w=1200"
+    image: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&q=80"
   }
 ];
 
@@ -208,7 +208,8 @@ const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="absolute inset-0"
           >
-            <img src={step.image} className="w-full h-full object-cover brightness-75" alt="Onboarding" />
+            <img src={step.image} className="w-full h-full object-cover" alt="Onboarding" />
+            <div className="absolute inset-0 bg-[#021E16]/60" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#021E16] via-[#021E16]/40 to-transparent hidden md:block" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#021E16] to-transparent md:hidden" />
           </motion.div>
