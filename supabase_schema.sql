@@ -20,10 +20,6 @@ create table if not exists public.profiles (
   referred_by uuid references public.profiles(id),
   referral_count integer default 0,
   referral_earnings numeric default 0,
-  is_verified boolean default false,
-  verified_at timestamptz,
-  verification_status text default 'unverified',
-  identity_docs jsonb default '{}',
   preferred_language text default 'en',
   notification_settings jsonb default '{"email": true, "sms": false, "push": true}',
   dark_mode boolean default false,
@@ -120,11 +116,6 @@ create table if not exists public.platform_config (
   instagram_url text,
   twitter_url text,
   tiktok_url text,
-  make_webhook_url text,
-  meta_config jsonb default '{}',
-  facebook_app_id text,
-  meta_business_id text,
-  domain_activated boolean default false,
   updated_at timestamptz default now()
 );
 
@@ -244,70 +235,14 @@ create table if not exists public.ads (
 -- Thrift Accounts
 create table if not exists public.thrift_accounts (
   user_email text primary key,
-  cycle text default 'monthly',
+  cycle text default 'daily',
   total_saved numeric default 0,
-  locked_until timestamptz,
-  service_fee_rate numeric default 0.035,
   status text default 'active',
   start_date timestamptz default now(),
   bank_name text,
   account_number text,
   account_name text,
   swift_code text
-);
-
--- Thrift Contributions (Individual)
-create table if not exists public.thrift_contributions (
-  id uuid primary key default uuid_generate_v4(),
-  thrift_id text references public.thrift_accounts(user_email) on delete cascade,
-  user_email text not null,
-  amount numeric not null,
-  created_at timestamptz default now()
-);
-
--- Isusu Groups (Rotating Savings)
-create table if not exists public.thrift_groups (
-  id uuid primary key default uuid_generate_v4(),
-  name text not null,
-  creator_id uuid references public.profiles(id),
-  contribution_amount numeric not null,
-  cycle_length integer not null,
-  payout_frequency text not null, -- daily, weekly, monthly
-  start_date timestamptz,
-  status text default 'forming', -- forming, active, completed
-  created_at timestamptz default now()
-);
-
--- Isusu Group Members
-create table if not exists public.thrift_group_members (
-  id uuid primary key default uuid_generate_v4(),
-  group_id uuid references public.thrift_groups(id) on delete cascade,
-  user_id uuid references public.profiles(id),
-  payout_position integer,
-  has_received boolean default false,
-  joined_at timestamptz default now(),
-  unique(group_id, user_id)
-);
-
--- Isusu Group Contributions
-create table if not exists public.thrift_group_contributions (
-  id uuid primary key default uuid_generate_v4(),
-  group_id uuid references public.thrift_groups(id) on delete cascade,
-  user_id uuid references public.profiles(id),
-  amount numeric not null,
-  cycle_number integer not null,
-  created_at timestamptz default now()
-);
-
--- Isusu Payouts
-create table if not exists public.thrift_payouts (
-  id uuid primary key default uuid_generate_v4(),
-  group_id uuid references public.thrift_groups(id),
-  user_id uuid references public.profiles(id),
-  cycle_number integer,
-  amount numeric,
-  status text default 'pending', -- pending, paid
-  paid_at timestamptz
 );
 
 -- Hotels
@@ -538,76 +473,17 @@ end;
 $$;
 
 -- Automatically create a profile on signup
--- 🛡️ HARDENED PROFILE TRIGGER
 create or replace function public.handle_new_user()
 returns trigger as $$
-declare
-  v_username text;
-  v_full_name text;
-  v_referral_code text;
-  v_referred_by uuid;
 begin
-  -- Extract Metadata with Fallbacks
-  v_username := coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1));
-  v_full_name := coalesce(new.raw_user_meta_data->>'full_name', v_username);
-  
-  -- Referral Logic
-  v_referral_code := coalesce(
-    new.raw_user_meta_data->>'referral_code', 
-    'ABA' || upper(substring(md5(random()::text), 1, 6))
+  insert into public.profiles (id, email, full_name, referral_code, referred_by)
+  values (
+    new.id, 
+    new.email, 
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'referral_code',
+    (select id from public.profiles where referral_code = new.raw_user_meta_data->>'referred_by_code' limit 1)
   );
-
-  -- Handle referred_by if code exists
-  if new.raw_user_meta_data->>'referred_by_code' is not null then
-    select id into v_referred_by from public.profiles 
-    where referral_code = new.raw_user_meta_data->>'referred_by_code' 
-    limit 1;
-  end if;
-
-  -- Insert into Profiles
-  insert into public.profiles (
-    id, 
-    email, 
-    full_name, 
-    username, 
-    role, 
-    referral_code, 
-    referred_by,
-    created_at,
-    updated_at
-  )
-  values (
-    new.id, 
-    new.email, 
-    v_full_name,
-    v_username,
-    case 
-      WHEN new.email = 'pastornelsonezi@gmail.com' THEN 'admin'
-      ELSE coalesce(new.raw_user_meta_data->>'role', 'registered')
-    end,
-    v_referral_code,
-    v_referred_by,
-    now(),
-    now()
-  )
-  on conflict (id) do update set
-    email = excluded.email,
-    full_name = coalesce(public.profiles.full_name, excluded.full_name),
-    username = coalesce(public.profiles.username, excluded.username),
-    referral_code = coalesce(public.profiles.referral_code, excluded.referral_code),
-    updated_at = now();
-
-  return new;
-exception when others then
-  -- Last ditch effort to ensure the user is saved even if metadata processing fails
-  insert into public.profiles (id, email, role, referral_code)
-  values (
-    new.id, 
-    new.email, 
-    'registered', 
-    'ABA' || upper(substring(md5(new.id::text), 1, 6))
-  )
-  on conflict (id) do nothing;
   return new;
 end;
 $$ language plpgsql security definer;
@@ -621,51 +497,19 @@ create trigger on_auth_user_created
 alter table public.profiles enable row level security;
 alter table public.businesses enable row level security;
 alter table public.orders enable row level security;
-alter table public.thrift_accounts enable row level security;
-alter table public.thrift_contributions enable row level security;
-alter table public.thrift_groups enable row level security;
-alter table public.thrift_group_members enable row level security;
-alter table public.thrift_group_contributions enable row level security;
-alter table public.thrift_payouts enable row level security;
 
 -- Profiles: Users can view all profiles, but only edit their own
 create policy "Public profiles are viewable by everyone" on public.profiles for select using (true);
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
 
 -- Businesses: Viewable by all, but only owners or admins can edit
-drop policy if exists "Businesses are viewable by everyone" on public.businesses;
 create policy "Businesses are viewable by everyone" on public.businesses for select using (true);
-drop policy if exists "Authenticated users can create businesses" on public.businesses;
-create policy "Authenticated users can create businesses" on public.businesses for insert with check (auth.uid() is not null);
-drop policy if exists "Business owners can update their nodes" on public.businesses;
-create policy "Business owners can update their nodes" on public.businesses for update using (auth.uid() = user_id or (select role from public.profiles where id = auth.uid()) = 'admin');
-drop policy if exists "Business owners can delete their nodes" on public.businesses;
-create policy "Business owners can delete their nodes" on public.businesses for delete using (auth.uid() = user_id or (select role from public.profiles where id = auth.uid()) = 'admin');
+create policy "Business owners can update their nodes" on public.businesses for update using (auth.uid() = user_id);
 
 -- Orders: Only buyers or sellers can view their orders
 create policy "Users can view their own orders" on public.orders for select 
 using (auth.uid() = buyer_id or exists (
   select 1 from public.businesses b where b.id = public.orders.merchant_id and b.user_id = auth.uid()
 ));
-
--- Thrift Policies
-create policy "Users can view their own thrift account" on public.thrift_accounts for select using (auth.jwt()->>'email' = user_email);
-create policy "Users can create their own thrift account" on public.thrift_accounts for insert with check (auth.jwt()->>'email' = user_email);
-create policy "Users can update their own thrift account" on public.thrift_accounts for update using (auth.jwt()->>'email' = user_email);
-
-create policy "Users can view their own contributions" on public.thrift_contributions for select using (auth.jwt()->>'email' = user_email);
-create policy "Users can insert their own contributions" on public.thrift_contributions for insert with check (auth.jwt()->>'email' = user_email);
-
--- Group Thrift Policies
-create policy "Anyone can view forming groups" on public.thrift_groups for select using (status = 'forming' or creator_id = auth.uid() or id in (select group_id from public.thrift_group_members where user_id = auth.uid()));
-create policy "Users can create groups" on public.thrift_groups for insert with check (auth.uid() is not null);
-
-create policy "Users can view group members" on public.thrift_group_members for select using (auth.uid() is not null);
-create policy "Users can join groups" on public.thrift_group_members for insert with check (auth.uid() is not null);
-
-create policy "Members can view contributions" on public.thrift_group_contributions for select using (group_id in (select group_id from public.thrift_group_members where user_id = auth.uid()));
-create policy "Members can contribute" on public.thrift_group_contributions for insert with check (user_id = auth.uid());
-
-create policy "Users can view payouts" on public.thrift_payouts for select using (user_id = auth.uid() or group_id in (select group_id from public.thrift_group_members where user_id = auth.uid()));
 
 -- (Add more policies as needed for other tables)

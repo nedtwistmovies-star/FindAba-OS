@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getSupabase, fetchOrdersForBuyer, updateOrderStatus } from "../services/supabaseService";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { User, Shield, CreditCard, ShoppingBag, Clock, MapPin, Package, CheckCircle2, ChevronRight, X, AlertCircle } from "lucide-react";
 import SectionHeader from "../components/SectionHeader";
 import { Order, OrderStatus } from "../types";
@@ -60,13 +60,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-12 pb-48 animate-fade-in relative">
       <SectionHeader 
-        title="Member Dashboard" 
-        subtitle="Your City Overview" 
+        title="Industrial Hub" 
+        subtitle="Your City Dashboard" 
         icon={Shield} 
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 md:px-12">
-        {/* Profile Overview */}
+        {/* Profile Node */}
         <motion.div 
            whileHover={{ y: -5 }}
            className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-6"
@@ -76,24 +76,24 @@ export default function Dashboard() {
               <User size={32} />
             </div>
             <div>
-              <h3 className="text-xl font-black uppercase text-white">{profile?.full_name || 'Verified Member'}</h3>
-              <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.2em]">{profile?.role || 'Member'}</p>
+              <h3 className="text-xl font-black uppercase text-white">{profile?.full_name || 'Verified Citizen'}</h3>
+              <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.2em]">{profile?.role || 'Registered'}</p>
             </div>
           </div>
 
           <div className="space-y-4 pt-4">
              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-white/40">
-                <span>Account ID</span>
+                <span>Core ID</span>
                 <span className="text-white font-mono">{user?.id?.substring(0, 12)}...</span>
              </div>
              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-white/40">
-                <span>Phone Number</span>
+                <span>Signal (Phone)</span>
                 <span className="text-white">{user?.phone || 'Not Linked'}</span>
              </div>
           </div>
         </motion.div>
 
-        {/* Financial Overview */}
+        {/* Financial Ledger */}
         <motion.div 
            whileHover={{ y: -5 }}
            className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-6"
@@ -103,7 +103,7 @@ export default function Dashboard() {
               <div className="w-12 h-12 rounded-2xl bg-aba-green/10 border border-aba-green/30 flex items-center justify-center text-aba-green">
                 <CreditCard size={20} />
               </div>
-              <h4 className="text-xs font-black uppercase tracking-widest text-white">My Wallet</h4>
+              <h4 className="text-xs font-black uppercase tracking-widest text-white">Registry Wallet</h4>
             </div>
             <span className="text-[10px] font-bold text-aba-green uppercase tracking-widest">Active</span>
           </div>
@@ -114,7 +114,7 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* Action Node */}
         <motion.div 
           whileHover={{ y: -5 }}
           className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-6"
@@ -127,7 +127,7 @@ export default function Dashboard() {
           </div>
           <div className="pt-2">
              <h2 className="text-4xl font-black text-white">{orders.filter(o => o.status !== OrderStatus.CANCELLED && o.status !== OrderStatus.RELEASED).length}</h2>
-             <p className="text-[10px] font-black uppercase text-white/40 tracking-widest mt-2">Active Deliveries</p>
+             <p className="text-[10px] font-black uppercase text-white/40 tracking-widest mt-2">Industrial Signals In Transit</p>
           </div>
         </motion.div>
       </div>
@@ -142,7 +142,7 @@ export default function Dashboard() {
                </div>
                <div>
                   <h3 className="text-2xl font-black text-white uppercase tracking-tight">Order History</h3>
-                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Transaction Log</p>
+                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Registry Transaction Log</p>
                </div>
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function Dashboard() {
             ) : (
               <div className="py-24 text-center space-y-6 opacity-20 bg-white/5 rounded-[3rem] border border-dashed border-white/10">
                 <ShoppingBag size={48} className="mx-auto" />
-                <p className="text-xs font-black uppercase tracking-[0.4em]">No orders yet</p>
+                <p className="text-xs font-black uppercase tracking-[0.4em]">No industrial signals recorded</p>
               </div>
             )}
           </div>
@@ -224,14 +224,14 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Merchant Partner</p>
-                    <p className="text-lg font-bold text-white uppercase tracking-tight">{(selectedOrder as any).merchant?.name || 'Aba Merchant Hub'}</p>
+                    <p className="text-lg font-bold text-white uppercase tracking-tight">{(selectedOrder as any).merchant?.name || 'Aba Industrial Node'}</p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Total Amount</p>
+                    <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Total Committed</p>
                     <p className="text-lg font-bold text-aba-green uppercase tracking-tight">₦{selectedOrder.amount.toLocaleString()}</p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Trust Badge</p>
+                    <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Fidelity Status</p>
                     <div className="pt-1">
                       <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-xl ${getStatusColor(selectedOrder.status)}`}>
                         {selectedOrder.status}
@@ -239,7 +239,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Order Date</p>
+                    <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Signal Timestamp</p>
                     <p className="text-lg font-bold text-white uppercase tracking-tight">{new Date(selectedOrder.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
@@ -248,24 +248,24 @@ export default function Dashboard() {
                   <div className="bg-aba-green/10 border border-aba-green/20 p-8 rounded-[2.5rem] space-y-6">
                      <div className="flex items-center gap-4 text-aba-green">
                         <Shield size={24} />
-                        <h4 className="text-sm font-black uppercase tracking-widest">Release Payment</h4>
+                        <h4 className="text-sm font-black uppercase tracking-widest">Release Escrow Signal</h4>
                      </div>
                      <p className="text-xs font-medium text-white/60 leading-relaxed uppercase tracking-wider">
-                        The merchant has confirmed delivery. By releasing funds, you authorize the transfer of the payment from escrow to the partner's wallet.
+                        The merchant has confirmed delivery. By releasing funds, you authorize the transfer of the industrial commitment from escrow to the partner's wallet.
                      </p>
                      <button 
                        onClick={async () => {
-                          addToast("Processing payment...", "info");
+                          addToast("Transmitting Release Signal...", "info");
                           try {
                             const { releaseEscrow } = await import('../services/facesService');
                             const success = await releaseEscrow(selectedOrder.id);
                             if (success) {
                               setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, status: OrderStatus.RELEASED } : o));
                               setSelectedOrder({ ...selectedOrder, status: OrderStatus.RELEASED });
-                              addToast("Payment released successfully.", "success");
+                              addToast("Fidelity Link Established. Funds Released.", "success");
                             }
                           } catch (e) {
-                            addToast("Connection error. Please try again.", "error");
+                            addToast("Signal Interrupted. Retry Release.", "error");
                           }
                        }}
                        className="w-full py-6 bg-aba-green text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl hover:bg-aba-green/90 transition-all active:scale-95"

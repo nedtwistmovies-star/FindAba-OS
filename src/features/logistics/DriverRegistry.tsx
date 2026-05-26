@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import axios from 'axios';
 import { 
   ArrowLeft, Car, ShieldCheck, User, 
   Smartphone, Loader2, CheckCircle2, Landmark, 
@@ -14,40 +13,9 @@ import PaystackOverlay from '../../components/PaystackOverlay';
 
 const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
   const { addToast } = useToast();
-  const [step, setStep] = useState<'requirements' | 'form' | 'docs' | 'revenue' | 'otp' | 'tier' | 'success'>('requirements');
+  const [step, setStep] = useState<'requirements' | 'form' | 'docs' | 'revenue' | 'tier' | 'success'>('requirements');
   const [loading, setLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-
-  const sendOtp = async () => {
-    setLoading(true);
-    try {
-      const email = localStorage.getItem('findaba_user_email');
-      const phone = formData.driver_phone || localStorage.getItem('findaba_user_phone');
-      await axios.post('/api/drivers/request-otp', { email, phone });
-      setStep('otp');
-      addToast("Verification code sent to WhatsApp.", "success");
-    } catch (e) {
-      addToast("Failed to send verification code.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyOtp = async () => {
-    setLoading(true);
-    try {
-      const email = localStorage.getItem('findaba_user_email');
-      const response = await axios.post('/api/drivers/verify-otp', { email, code: otpCode });
-      if (response.data.success) {
-        handleOnboarding();
-      }
-    } catch (e: any) {
-      addToast(e.response?.data?.error || "Invalid verification code.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const [formData, setFormData] = useState({
     driver_name: '',
@@ -87,40 +55,6 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
     }
   };
 
-  const handleOnboarding = async () => {
-    setLoading(true);
-    const userId = localStorage.getItem('findaba_user_id');
-    const userPhone = localStorage.getItem('findaba_user_phone');
-    
-    // Bank mapping for MVP
-    const bankCodes: Record<string, string> = {
-      'Access': '044', 'GTB': '058', 'FirstBank': '011', 'UBA': '033', 'Zenith': '057', 'Paystack': '000'
-    };
-
-    try {
-      const response = await axios.post('/api/onboard-driver', {
-        user_id: userId,
-        phone: userPhone,
-        full_name: formData.driver_name,
-        bvn: formData.driver_nin, // Reusing NIN for BVN simulation or adding field
-        nin: formData.driver_nin,
-        vehicle_type: formData.category === VehicleCategory.STANDARD ? 'keke' : 'taxi',
-        plate_number: formData.plate_number,
-        bank_code: bankCodes[formData.bank_name] || '044',
-        account_number: formData.account_number
-      });
-
-      if (response.data.success) {
-        setStep('success');
-        addToast("Driver account activated! Connection clear.", "success");
-      }
-    } catch (e: any) {
-      addToast(e.response?.data?.error || "Registry synchronization failure.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (step === 'success') {
     return (
       <div className="fixed inset-0 z-[6000] bg-[#002113] flex flex-col items-center justify-center p-8 text-center animate-fade-in font-sans">
@@ -129,7 +63,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
         </div>
         <h2 className="text-4xl font-black text-white uppercase tracking-tighter text-balance">Registry Signal <br/><span className="text-aba-gold">Pending Audit.</span></h2>
         <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.5em] mt-6 leading-loose">
-           Your account details have been saved. <br/>
+           Your node artifacts have been committed. <br/>
            Sentinel Core is auditing your NIN & Vessel Fingerprint. <br/>
            Status: PENDING INDUSTRIAL CLEARANCE.
         </p>
@@ -140,7 +74,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-aba-dark animate-fade-in pb-40">
-      <PaystackOverlay isOpen={showCheckout} amount={15000} email={localStorage.getItem('findaba_user_email') || ''} label="Fleet Enrollment" onSuccess={sendOtp} onCancel={() => setShowCheckout(false)} />
+      <PaystackOverlay isOpen={showCheckout} amount={15000} email={localStorage.getItem('findaba_user_email') || ''} label="Fleet Enrollment" onSuccess={() => setStep('success')} onCancel={() => setShowCheckout(false)} />
 
       <header className="bg-white p-8 flex items-center justify-between border-b border-slate-100 sticky top-0 z-[500]">
         <div className="flex items-center gap-6">
@@ -159,7 +93,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
              <div className="space-y-4">
                 <h3 className="text-3xl font-black uppercase tracking-tighter text-aba-dark">Registry <br/><span className="text-aba-gold italic">Requirements.</span></h3>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                   To operate within the Purple Fleet, all partners must undergo physical and digital verification.
+                   To operate within the Purple Fleet, all nodes must undergo physical and digital verification.
                 </p>
              </div>
              
@@ -222,7 +156,7 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
           <div className="space-y-10 animate-slide-up">
              <div className="space-y-4">
                 <h3 className="text-2xl font-black uppercase tracking-tight">Vessel Data</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Provide business details for verification.</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Provide technical specifications for the registry node.</p>
              </div>
 
              <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl space-y-12">
@@ -329,45 +263,6 @@ const DriverRegistry: React.FC<{ setView: (v: ViewState) => void }> = ({ setView
                    Commit Handshake <ShieldCheck size={20} />
                 </button>
              </div>
-          </div>
-        )}
-        {step === 'otp' && (
-          <div className="space-y-12 animate-slide-up">
-            <div className="space-y-4">
-              <h3 className="text-3xl font-black uppercase tracking-tighter text-aba-dark">Identity <br/><span className="text-aba-gold italic">Handshake.</span></h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                Enter the 6-digit verification code sent to your WhatsApp number ({formData.driver_phone || localStorage.getItem('findaba_user_phone')}).
-              </p>
-            </div>
-
-            <div className="bg-white p-10 rounded-[4rem] border border-slate-200 shadow-xl space-y-8">
-              <div className="space-y-6">
-                <input 
-                  type="text" 
-                  placeholder="000000" 
-                  className="w-full p-8 bg-slate-50 border-2 border-slate-100 rounded-[2rem] text-4xl font-black text-center tracking-[0.5em] outline-none focus:border-aba-gold shadow-inner" 
-                  value={otpCode} 
-                  onChange={e => setOtpCode(e.target.value)} 
-                  maxLength={6} 
-                />
-              </div>
-
-              <button 
-                onClick={verifyOtp} 
-                className="w-full py-8 bg-aba-dark text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-xl flex items-center justify-center gap-4 hover:bg-aba-gold hover:text-aba-dark transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading || otpCode.length < 6}
-              >
-                {loading ? <Loader2 className="animate-spin" /> : "Verify Identity"} <ShieldCheck size={20} />
-              </button>
-
-              <button 
-                onClick={sendOtp} 
-                className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-aba-gold transition-colors"
-                disabled={loading}
-              >
-                Resend Code
-              </button>
-            </div>
           </div>
         )}
       </main>

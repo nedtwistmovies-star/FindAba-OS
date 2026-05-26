@@ -1,6 +1,6 @@
 
 import React, { Suspense, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
 import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast } from '../components';
 import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } from '../providers';
@@ -58,7 +58,7 @@ const AppContent: React.FC = () => {
   const GUEST_ALLOWED_VIEWS: ViewState[] = [
     'home', 'discover', 'explore', 'detail', 'editorial', 'editorial-detail', 
     'about', 'about-aba', 'legal', 'support', 'pricing', 'hotel-detail', 
-    'sandals-hotels', 'audio-heritage', 'lab', 'onboarding'
+    'sandals-hotels', 'audio-heritage', 'lab'
   ];
 
   const RouteComponent = (!isAuth && !GUEST_ALLOWED_VIEWS.includes(view as ViewState) && view !== 'signup' && view !== 'login') 
@@ -130,7 +130,7 @@ const AppContent: React.FC = () => {
 
   // REMOVED: Blocks access if database takes too long to sync
   // if (loading && businesses.length === 0) {
-  //   return <LoadingScreen message="Welcoming you to Aba..." />;
+  //   return <LoadingScreen message="Initializing Industrial Matrix..." />;
   // }
 
   return (
@@ -180,7 +180,6 @@ const AppContent: React.FC = () => {
           advertorial={selectedAdvertorial}
           myBusiness={myBusiness}
           favorites={favorites}
-          isFavorite={selectedBusiness ? favorites.includes(selectedBusiness.id) : false}
           onToggleFavorite={toggleFavorite}
           onBusinessClick={handleBusinessClick}
           onStoryClick={handleStoryClick}
@@ -188,7 +187,6 @@ const AppContent: React.FC = () => {
           onRefresh={refreshData}
           onAuthSuccess={handleAuthSuccess}
           userEmail={userIdentifier}
-          userId={user_id}
           userRole={userRole}
           isRegistryLoading={businessLoading}
         />

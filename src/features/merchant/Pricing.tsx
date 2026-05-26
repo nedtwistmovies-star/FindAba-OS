@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ViewState, Business } from '../../types';
+import { ViewState } from '../../types';
 import { 
   ArrowLeft, CheckCircle2, Loader2, Sparkles, Zap, 
   ShieldCheck, ChevronRight, LayoutGrid, Info, Clock, Star, ArrowRight,
@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { BUSINESS_PLANS } from '../../constants';
 
-const Pricing: React.FC<{ setView: (v: ViewState) => void; myBusiness?: Business | null }> = ({ setView, myBusiness }) => {
+const Pricing: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,9 +24,7 @@ const Pricing: React.FC<{ setView: (v: ViewState) => void; myBusiness?: Business
       duration_days: 45
     };
     localStorage.setItem('findaba_selected_plan', JSON.stringify(cyclePlan));
-    
-    // Always go to register form first to ensure business identity is captured/updated
-    setView('register');
+    setView('ad-checkout');
   };
 
   if (loading) return (

@@ -40,9 +40,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
   const handleGitHubLogin = async () => {
     setIsLoggingIn(true);
     try {
-      const response = await fetch(window.location.origin + '/api/auth/github/url', {
-        credentials: 'include'
-      });
+      const response = await fetch(`/api/auth/github/url?origin=${encodeURIComponent(window.location.origin)}`);
       const { url } = await response.json();
       if (url) {
         const popup = window.open(url, 'github_oauth', 'width=600,height=700');

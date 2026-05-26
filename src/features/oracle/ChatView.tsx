@@ -119,7 +119,7 @@ const ChatView: React.FC<ChatViewProps> = ({ currentUserEmail, targetBusiness, o
           </div>
         </div>
         <button 
-          onClick={() => setSettlementAmount(1000)} // Open payment window
+          onClick={() => setSettlementAmount(1000)} // Open mini settlement node
           className="p-3 bg-aba-gold text-aba-dark rounded-xl shadow-lg active:scale-90 transition-all hover:bg-white"
         >
           <Landmark size={20} />

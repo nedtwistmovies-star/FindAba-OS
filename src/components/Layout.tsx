@@ -1,24 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
-import { ViewState, AppNotification, SupportMessage } from '../types';
+import { ViewState, AppNotification } from '../types';
 import { useToast } from '../providers/ToastProvider';
 import { 
   Home, Compass, UserCircle, Search, Menu, X, Globe, Building2, Zap, ShieldCheck,
   MessageCircle, BookOpen, Map as MapIcon, Layers, Sparkles, Radio, Info, Loader2, Cpu,
   Rss, Users, Lock, Unlock, Bell, Car, Key, Truck, Wallet, Plus, Landmark,
-  Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft, RefreshCw,
-  Layout as LayoutIcon
+  Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft, RefreshCw
 } from 'lucide-react';
 import Logo from './Logo';
 import { GitHubSync } from './GitHubSync';
 import { SupabaseSync } from './SupabaseSync';
 import { generateWelcomeMessage } from '../services/geminiService';
-import { 
-  getSupabase, 
-  fetchNotifications, 
-  markNotificationAsRead,
-  sendSupportMessage
-} from '../services/supabaseService';
+import { getSupabase, fetchNotifications, markNotificationAsRead } from '../services/supabaseService';
 import { useAuth } from '../providers/AuthProvider';
 import { useBusiness } from '../providers/BusinessProvider';
 import { SANDALS_BRAND } from '../constants';
@@ -71,7 +65,7 @@ export const BrandSignature: React.FC<{ light?: boolean; className?: string }> =
     <div className={`flex items-center gap-4 opacity-20 ${light ? 'text-white' : 'text-aba-deep'}`}>
       <div className="h-px w-8 bg-current" />
       <span className="text-[10px] font-bold uppercase tracking-[0.3em]">
-        FindAba v6.0
+        FindAba OS v6.0
       </span>
       <div className="h-px w-8 bg-current" />
     </div>
@@ -85,7 +79,7 @@ export const BrandSignature: React.FC<{ light?: boolean; className?: string }> =
     <div className={`px-4 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${
       light ? 'bg-white/5 border-white/10 text-white/40' : 'bg-aba-green/5 border-aba-green/10 text-aba-green/60'
     }`}>
-      Official Business Hub
+      Official Industrial Signal
     </div>
   </div>
 );
@@ -124,7 +118,7 @@ const AIWelcomeSection: React.FC<{ light?: boolean }> = ({ light }) => {
       </p>
       <div className="flex items-center justify-center gap-2 opacity-30">
         <ShieldCheck size={12} className="text-aba-green" />
-        <span className="text-[9px] font-bold uppercase tracking-widest">Secure Connection</span>
+        <span className="text-[9px] font-bold uppercase tracking-widest">Handshake Verified</span>
       </div>
     </div>
   );
@@ -156,49 +150,11 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
-  const [footerEmail, setFooterEmail] = useState('');
-  const [footerMessage, setFooterMessage] = useState('');
-  const [isFooterSending, setIsFooterSending] = useState(false);
-
-  useEffect(() => {
-    if (userIdentifier) {
-      setFooterEmail(userIdentifier);
-    }
-  }, [userIdentifier]);
-
-  const handleFooterSubmit = async () => {
-    if (!footerEmail.trim() || !footerMessage.trim()) {
-      addToast("Please provide both email and message.", "info");
-      return;
-    }
-    
-    setIsFooterSending(true);
-    try {
-      const { error } = await sendSupportMessage({
-        email: footerEmail,
-        message: footerMessage,
-        subject: "Support Message",
-        name: userName || "Visitor",
-        status: 'unread'
-      });
-      
-      if (error) throw error;
-      
-      addToast("Message Sent. FindAba has received your request.", "success");
-      setFooterMessage('');
-    } catch (err) {
-      console.error("[Footer] Submit error:", err);
-      addToast("Failed to send message. Connection error.", "error");
-    } finally {
-      setIsFooterSending(false);
-    }
-  };
-  
   const [activeLogo, setActiveLogo] = useState<string>(appLogo || SANDALS_BRAND.logo);
   
   const [notifications, setNotifications] = useState<AppNotification[]>([
-    { id: '1', title: 'Platform Connected', message: 'FindAba is ready for use.', type: 'info', read: false, timestamp: new Date().toISOString() },
-    { id: '2', title: 'Payment Secure', message: 'Payment confirmed via Paystack.', type: 'success', read: false, timestamp: new Date().toISOString() }
+    { id: '1', title: 'Registry Synchronized', message: 'Industrial Partner v6.0 mesh established.', type: 'info', read: false, timestamp: new Date().toISOString() },
+    { id: '2', title: 'Security Protocol', message: 'Fidelity Handshake verified via Paystack.', type: 'success', read: false, timestamp: new Date().toISOString() }
   ]);
 
   useEffect(() => {
@@ -259,24 +215,23 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   }, [currentView]);
 
   const menuItems = [
-    { label: 'Faces of Aba', icon: <Users size={20} />, view: 'feed' as ViewState },
-    { label: 'Wallet', icon: <Landmark size={20} />, view: 'wallet' as ViewState },
-    { label: 'Logistics', icon: <Truck size={20} />, view: 'purple-fleet' as ViewState },
-    { label: 'Hotels', icon: <Building2 size={20} />, view: 'sandals-hotels' as ViewState },
-    { label: 'Delivery', icon: <Truck size={20} />, view: 'cargo' as ViewState },
-    { label: 'Savings', icon: <Wallet size={20} />, view: 'srts-dashboard' as ViewState },
-    { label: 'Aba Heritage', icon: <BookOpen size={20} />, view: 'audio-heritage' as ViewState },
-    { label: 'Innovations', icon: <Sparkles size={20} />, view: 'lab' as ViewState },
-    { label: 'Privacy & Safety', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
-    { label: 'About Aba', icon: <Info size={20} />, view: 'about-aba' as ViewState },
-    { label: 'Directory', icon: <Layers size={20} />, view: 'explore' as ViewState },
-    { label: 'Market Insights', icon: <LayoutIcon size={20} />, view: 'intelligence-desk' as ViewState },
-    { label: 'Kalu Assistant', icon: <MessageCircle size={20} />, view: 'oracle' as ViewState },
-    { label: 'Management', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
-    { label: 'Support', icon: <LifeBuoy size={20} />, view: 'support' as ViewState },
-    { label: 'Discover', icon: <Compass size={20} />, view: 'discover' as ViewState },
-    { label: 'Stories', icon: <Rss size={20} />, view: 'editorial' as ViewState },
-    { label: 'Leadership HQ', icon: <ShieldCheck size={20} />, view: 'srts-office' as ViewState },
+    { label: 'City Faces', icon: <Users size={20} />, view: 'feed' as ViewState },
+    { label: 'Fidelity Wallet', icon: <Landmark size={20} />, view: 'wallet' as ViewState },
+    { label: 'Purple Fleet', icon: <Car size={20} />, view: 'purple-fleet' as ViewState },
+    { label: 'SANDALSroyalle Hotels & Suites', icon: <Building2 size={20} />, view: 'sandals-hotels' as ViewState },
+    { label: 'Carry-Go Cargo', icon: <Truck size={20} />, view: 'cargo' as ViewState },
+    { label: 'Thrift Savings', icon: <Wallet size={20} />, view: 'srts-dashboard' as ViewState },
+    { label: 'Audio Archive', icon: <Radio size={20} />, view: 'audio-heritage' as ViewState },
+    { label: 'Creative Lab', icon: <Sparkles size={20} />, view: 'lab' as ViewState },
+    { label: 'Hardware Audit', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
+    { label: 'Aba History', icon: <BookOpen size={20} />, view: 'about-aba' as ViewState },
+    { label: 'City Registry', icon: <Layers size={20} />, view: 'explore' as ViewState },
+    { label: 'Oracle Hub', icon: <Cpu size={20} />, view: 'oracle' as ViewState },
+    { label: 'System Console', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
+    { label: 'System Support', icon: <LifeBuoy size={20} />, view: 'support' as ViewState },
+    { label: 'Discover', icon: <Sparkles size={20} />, view: 'discover' as ViewState },
+    { label: 'Stories', icon: <BookOpen size={20} />, view: 'editorial' as ViewState },
+    { label: 'Executive HQ', icon: <ShieldCheck size={20} />, view: 'srts-office' as ViewState },
   ];
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -367,7 +322,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for businesses..." 
+                  placeholder="Universal Industrial Search..." 
                   className="w-full pl-12 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-aba-gold/50 transition-all font-bold tracking-tight"
                 />
                 
@@ -377,7 +332,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                     {isSearching ? (
                       <div className="p-8 flex flex-col items-center justify-center gap-4">
                         <Loader2 className="animate-spin text-aba-gold" size={24} />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Searching...</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Syncing Registry...</span>
                       </div>
                     ) : searchResults.length > 0 ? (
                       <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-hide">
@@ -412,18 +367,18 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                         </div>
                         <div className="space-y-2">
                           <h6 className="text-sm font-black uppercase tracking-widest">No Matches Found</h6>
-                          <p className="text-[10px] font-medium text-white/40">No businesses found matching "{searchQuery}".</p>
+                          <p className="text-[10px] font-medium text-white/40">The industrial signal for "{searchQuery}" is not present in the verified mesh.</p>
                         </div>
                       </div>
                     )}
                     
                     <div className="p-4 bg-white/5 border-t border-white/5 flex justify-between items-center">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">FindAba Search</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/20">FindAba OS Search Engine</span>
                       <button 
                         onClick={() => setSearchQuery('')}
                         className="text-[9px] font-black uppercase tracking-widest text-aba-gold hover:underline"
                       >
-                        Clear
+                        Clear Signal
                       </button>
                     </div>
                   </div>
@@ -542,32 +497,32 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             <div className="px-6 md:px-8 py-16 md:py-24 space-y-16 max-w-5xl mx-auto w-full">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-12">
               <div className="space-y-6">
-                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Discovery</h4>
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Registry</h4>
                 <div className="space-y-3">
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Verified Businesses</button>
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Market Partners</button>
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Trade Status</button>
-                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Business Directory</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Verified Hubs</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Industrial Partners</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Export Readiness</button>
+                  <button onClick={() => setView('explore')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Trade Analytics</button>
                 </div>
               </div>
 
               <div className="space-y-6">
-                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Services</h4>
+                <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Ecosystem</h4>
                 <div className="space-y-3">
-                  <button onClick={() => setView('purple-fleet')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">City Logistics</button>
-                  <button onClick={() => setView('sandals-hotels')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Premium Hotels</button>
-                  <button onClick={() => setView('cargo')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Express Delivery</button>
-                  <button onClick={() => setView('srts-dashboard')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Trade Savings</button>
+                  <button onClick={() => setView('purple-fleet')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Purple Fleet</button>
+                  <button onClick={() => setView('sandals-hotels')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Sandals Hotels</button>
+                  <button onClick={() => setView('cargo')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Carry-Go Cargo</button>
+                  <button onClick={() => setView('srts-dashboard')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Fidelity Thrift</button>
                 </div>
               </div>
 
               <div className="space-y-6">
                 <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Support</h4>
                 <div className="space-y-3">
-                  <button onClick={() => setView('oracle')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Kalu Assistant</button>
-                  <button onClick={() => setView('legal')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Safety & Privacy</button>
+                  <button onClick={() => setView('oracle')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Oracle AI</button>
+                  <button onClick={() => setView('legal')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Safety Protocols</button>
                   <button onClick={() => setView('contact')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Help Center</button>
-                  <button onClick={() => setView('editorial')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Local News</button>
+                  <button onClick={() => setView('editorial')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">News</button>
                 </div>
               </div>
 
@@ -615,30 +570,15 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={16} />
                     <input 
                       type="email" 
-                      value={footerEmail}
-                      onChange={(e) => setFooterEmail(e.target.value)}
                       placeholder="Enter your email" 
-                      autoCapitalize="none"
                       className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm outline-none focus:border-aba-gold transition-standard"
                     />
                   </div>
-                  <div className="relative">
-                    <MessageCircle className="absolute left-4 top-4 text-white/20" size={16} />
-                    <textarea 
-                      value={footerMessage}
-                      onChange={(e) => setFooterMessage(e.target.value)}
-                      placeholder="How can we assist you today?" 
-                      rows={3}
-                      className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-sm outline-none focus:border-aba-gold transition-standard resize-none"
-                    />
-                  </div>
                   <button 
-                    disabled={isFooterSending}
-                    onClick={handleFooterSubmit}
-                    className="w-full py-3 bg-aba-gold text-aba-deep rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm active:scale-[0.98] transition-standard flex items-center justify-center gap-2 disabled:opacity-50"
+                    onClick={() => addToast("Signal Transmitted. We will contact you.", "success")}
+                    className="w-full py-3 bg-aba-gold text-aba-deep rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm active:scale-[0.98] transition-standard flex items-center justify-center gap-2"
                   >
-                    {isFooterSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} 
-                    {isFooterSending ? "Sending..." : "Send Message"}
+                    <Send size={14} /> Send Signal
                   </button>
                 </div>
               </div>
@@ -647,7 +587,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
 
           <div className={`w-full py-12 px-8 text-center space-y-2 border-t ${isDarkThemeActive ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
             <p className="text-[10px] font-medium opacity-40 uppercase tracking-widest">
-              © 2026 FindAba Commerce Platform
+              © 2026 FindAba Industrial Hub
             </p>
             <p className="text-[10px] font-medium opacity-40 uppercase tracking-widest">
               Built by <a href="#" className="underline hover:text-aba-gold transition-standard">SANDALSroyalle S&P</a>
@@ -665,8 +605,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
         {[
           { id: 'home', icon: <Home size={18} />, label: 'HOME' },
           { id: 'feed', icon: <Users size={18} />, label: 'FACES' },
-          { id: 'oracle', icon: <MessageCircle size={18} />, label: 'ASSISTANT' },
-          { id: 'wallet', icon: <Wallet size={18} />, label: 'WALLET' },
+          { id: 'oracle', icon: <Cpu size={18} />, label: 'ORACLE' },
+          { id: 'wallet', icon: <Landmark size={18} />, label: 'Fidelity' },
           { id: 'profile', icon: <UserCircle size={18} />, label: 'PROFILE' }
         ].map((btn, i) => (
           <button 
@@ -727,7 +667,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                   <span className="text-[10px] font-black text-aba-gold uppercase tracking-[0.2em]">
                     {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </span>
-                  <span className="text-[10px] font-black text-aba-white/60 uppercase tracking-widest">SandalsRoyalle Hub</span>
+                  <span className="text-[10px] font-black text-aba-white/60 uppercase tracking-widest">SANDALSroyalle Industrial HQ</span>
                </div>
             </div>
          </div>

@@ -5,7 +5,7 @@ import {
   User, Globe, ShieldCheck, Sparkles, ArrowLeft,
   LifeBuoy, BookOpen, Clock, HelpCircle, Loader2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { ViewState } from '../../types';
 import { getSupportResponse } from '../../services/geminiService';
 
@@ -165,10 +165,14 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-[6000] bg-aba-dark/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-8 animate-fade-in font-sans">
+    <div 
+      className="fixed inset-0 z-[6000] bg-aba-dark/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-8 animate-fade-in font-sans"
+      onClick={() => { if(onBack) onBack(); else setView('home'); }}
+    >
       <motion.div 
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
+        onClick={e => e.stopPropagation()}
         className="w-full max-w-lg bg-white dark:bg-[#020617] sm:rounded-[3rem] rounded-t-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Header Section */}
@@ -192,7 +196,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
                   <span className="text-[8px] font-black uppercase text-white tracking-widest">We're Online</span>
                 </div>
               </div>
-              <button onClick={() => { if(onBack) onBack(); else setView('home'); }} className="p-3 bg-white/5 rounded-xl text-white/40 hover:text-white transition-colors">
+              <button onClick={() => { if(onBack) onBack(); else setView('home'); }} className="p-3 bg-white/20 rounded-xl text-white hover:bg-white/30 transition-all active:scale-90">
                 <X size={20} />
               </button>
             </div>

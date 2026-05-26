@@ -6,7 +6,7 @@ import {
   LogisticsOrder, ChatMessage, Advertorial, AdPlan, 
   PaymentLog, ThriftAccount, ThriftContribution, ThriftGroup, ThriftGroupMember, ThriftGroupContribution, ThriftPayout, Order, OrderStatus, Dispute, PlatformConfig,
   QualityAudit, SubscriptionTier, RoomType, BuyerSignal, SignalInterest, AdCampaign, HospitalityConfig,
-  AppNotification, HubTier, Task, SupportMessage
+  AppNotification, HubTier, Task
 } from '../types';
 import { triggerWebhook, WebhookEvent } from './webhookService';
 import { 
@@ -38,7 +38,7 @@ export const getSupabase = (): SupabaseClient | null => {
   const meta: any = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
 
   const hardcodedUrl = 'https://pqzjkvqmherngispxlzy.supabase.co';
-  const hardcodedKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
+  const hardcodedKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6InFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
 
   const url = manualUrl || meta.VITE_SUPABASE_URL || env.SUPABASE_URL || hardcodedUrl;
   const key = manualKey || meta.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || hardcodedKey;
@@ -54,8 +54,7 @@ export const getSupabase = (): SupabaseClient | null => {
   }
 
   // Prevent using the app's own URL as Supabase URL (common misconfiguration)
-  // Only check in browser context
-  if (typeof window !== 'undefined' && url.includes(window.location.hostname) && !url.includes('supabase.co')) {
+  if (url.includes(window.location.hostname) && !url.includes('supabase.co')) {
     console.error("[Registry] Loopback detected: Supabase URL points to the application itself. This will cause SYNC ERROR (HTML response). URL:", url);
     return null;
   }
@@ -458,7 +457,6 @@ export const fetchPlatformConfig = async (): Promise<PlatformConfig | null> => {
     instagram_url: 'https://instagram.com/find_aba',
     twitter_url: 'https://twitter.com/findaba',
     tiktok_url: '',
-    domain_activated: false,
     updated_at: new Date().toISOString()
   };
 
@@ -721,92 +719,72 @@ export const updateBusinessInDB = async (id: string, updates: Partial<Business>)
   }
 };
 
-export async function saveBusinessToDB(businessData: Partial<Business>): Promise<Business> {
-  const supabase = getSupabase()!;
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
-
-  if (!user) {
-    throw new Error('You must be logged in to register a business.');
-  }
-
-  // 2. Build payload — only real columns from your live schema
-  //    Do NOT include 'id' — Supabase generates UUID automatically on insert
-  const payload: Record<string, unknown> = {
-    name:                         businessData.name ?? '',
-    email:                        businessData.email ?? user.email ?? '',
-    category:                     businessData.category ?? 'General',
-    primary_product_or_service:   businessData.primary_product_or_service ?? null,
-    area:                         businessData.area ?? null,
-    address:                      businessData.address ?? null,
-    phone_whatsapp:               businessData.phone_whatsapp ?? null,
-    phone:                        businessData.phone ?? null,
-    image_url:                    businessData.image_url ?? null,
-    description:                  businessData.description ?? null,
-    location:                     businessData.location ?? null,
-    city:                         businessData.city ?? 'Aba',
-    services:                     businessData.services ?? null,
-    status:                       businessData.status ?? 'pending',
-    is_verified:                  false,
-    hub_tier:                     businessData.hub_tier ?? 'Starter',
-    subscription_tier:            businessData.subscription_tier ?? 'Free',
-    latitude:                     businessData.latitude ?? null,
-    longitude:                    businessData.longitude ?? null,
-    integrity_grade:              'C',
-    verification_status:          'Unverified',
-    verification_level:           'Listed',
-    is_export_ready:              false,
-    premium_features_enabled:     false,
-    active_features:              {},
-    products:                     [],
-    // CRITICAL: user_id links this business to the logged-in user
-    // RLS policy checks auth.uid() = user_id — must match exactly
-    user_id:                      user.id,
+export const saveBusinessToDB = async (business: Business) => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry Offline");
+  
+  let currentPayload: any = { 
+    ...business,
+    email: business.email ? normalizeEmail(business.email) : undefined
   };
+  let attempts = 0;
+  const maxAttempts = 10; // Allow for multiple missing columns
 
-  // 3. Check if this user already has a business registered
-  const { data: existing, error: fetchError } = await supabase
-    .from('businesses')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  console.log(`[Registry] Attempting to commit hub: ${currentPayload.email} (ID: ${currentPayload.id})`);
 
-  if (fetchError) {
-    throw new Error(`Could not check existing registration: ${fetchError.message}`);
-  }
-
-  let result: Business;
-
-  if (existing?.id) {
-    // 4a. UPDATE existing business — use the real database id
-    const { data, error } = await supabase
+  while (attempts < maxAttempts) {
+    // Use upsert to handle existing emails/IDs permanently
+    const { data, error } = await client
       .from('businesses')
-      .update(payload)
-      .eq('id', existing.id)
-      .select()
-      .single();
-
+      .upsert(currentPayload, { onConflict: 'email' })
+      .select();
+    
     if (error) {
-      throw new Error(`Failed to update business: ${error.message}`);
-    }
-    result = data as Business;
+      console.error(`[Registry] Save attempt ${attempts + 1} failed:`, error);
 
-  } else {
-    // 4b. INSERT new business — let Supabase generate the UUID
-    const { data, error } = await supabase
-      .from('businesses')
-      .insert(payload)
-      .select()
-      .single();
+      // Handle duplicate key explicitly if upsert didn't catch it
+      if (error.code === '23505') {
+        console.warn("[Registry] Duplicate key detected despite upsert. Attempting targeted update...");
+        const { email, ...updateData } = currentPayload;
+        const { error: updateError } = await client
+          .from('businesses')
+          .update(updateData)
+          .eq('email', email);
+        
+        if (!updateError) {
+          console.log("[Registry] Targeted update successful.");
+          triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);
+          return;
+        }
+        console.error("[Registry] Targeted update failed:", updateError);
+        throw new Error(`Registry Sync Error: Duplicate Email detected and update failed. (${updateError.message})`);
+      }
 
-    if (error) {
-      throw new Error(`Failed to register business: ${error.message}`);
+      // Handle missing columns gracefully (PGRST204)
+      // Handle missing columns gracefully (PGRST204)
+      if (error.code === 'PGRST204') {
+        const match = error.message.match(/Could not find the '(.+)' column/);
+        if (match && match[1]) {
+          const columnName = match[1];
+          console.warn(`[Registry] Column '${columnName}' missing in DB, retrying insert without it...`);
+          const { [columnName]: _, ...rest } = currentPayload;
+          currentPayload = rest;
+          attempts++;
+          continue;
+        }
+      }
+      
+      console.error("[Registry] Save Failure:", error);
+      throw new Error(`Registry Sync Error: ${error.message} (${error.code})`);
     }
-    result = data as Business;
+    
+    // Success
+    triggerWebhook(WebhookEvent.NEW_REGISTRATION, business);
+    return;
   }
-
-  return result;
-}
+  
+  throw new Error("Registry Sync Failed: Too many missing columns in database schema.");
+};
 
 export const fetchFavorites = async (userId: string): Promise<string[]> => {
   const client = getSupabase();
@@ -882,9 +860,9 @@ export const activatePlanFeatures = async (businessId: string, planId: string) =
   await client.from('businesses').update({ subscription_tier: planId, premium_features_enabled: planId !== 'Free' }).eq('id', businessId);
 };
 
-export const fetchThriftAccount = async (email: string | null | undefined): Promise<ThriftAccount | null> => {
+export const fetchThriftAccount = async (email: string): Promise<ThriftAccount | null> => {
   const client = getSupabase();
-  if (!client || !email) return null;
+  if (!client) return null;
   const normalizedEmail = normalizeEmail(email);
   try {
     const { data, error } = await client.from('thrift_accounts').select('*').eq('user_email', normalizedEmail).maybeSingle();
@@ -943,76 +921,50 @@ export const fetchThriftContributions = async (thriftId: string): Promise<Thrift
   } catch (e) { return []; }
 };
 
-export const saveThriftContribution = async (email: string | null | undefined, amount: number) => {
+export const saveThriftContribution = async (email: string, amount: number) => {
   const client = getSupabase();
-  if (!client) throw new Error("Registry Offline: Industrial signal not detected.");
+  if (!client) throw new Error("Registry Offline");
   
-  if (!email) {
-    console.error("[Thrift] Sync failed: Missing user identifier.");
-    throw new Error("AUTH_REQUIRED: Please log in to your Aba industrial account.");
-  }
-
   const normalizedEmail = normalizeEmail(email);
-  const contributionAmount = Number(amount);
-  
-  if (isNaN(contributionAmount) || contributionAmount <= 0) {
-    throw new Error(`INVALID_AMOUNT: ₦${amount} is not a valid industrial liquidity signal.`);
-  }
-
   try {
-    console.log(`[Thrift] Syncing signal for ${normalizedEmail}: ₦${contributionAmount}`);
     const account = await fetchThriftAccount(normalizedEmail);
-    if (!account) {
-      console.error(`[Thrift] Account missing for ${normalizedEmail}`);
-      throw new Error(`ACCOUNT_NOT_FOUND: No active thrift account found for ${normalizedEmail}.`);
-    }
+    if (!account) throw new Error("No active thrift account found for this user.");
     
     // Safety check: Don't allow contribution after lock date
     if (account.locked_until && new Date(account.locked_until) <= new Date()) {
-      console.warn(`[Thrift] Cycle ended for ${normalizedEmail}. Lock date: ${account.locked_until}`);
-      throw new Error("SAVINGS_CYCLE_ENDED: Your current savings cycle has matured. Please withdraw or start a new cycle.");
+      throw new Error("Savings cycle has ended. Cannot contribute.");
     }
 
     const { data: contrib, error: contribError } = await client.from('thrift_contributions').insert({
-      thrift_id: normalizedEmail,
+      thrift_id: account.id,
       user_email: normalizedEmail,
-      amount: contributionAmount
+      amount: Number(amount)
     }).select().single();
     
-    if (contribError) {
-      console.error("[Thrift] Signal insert failed:", contribError);
-      throw new Error(`LEDGER_INSERT_FAILED: ${contribError.message}`);
-    }
+    if (contribError) throw contribError;
 
-    const currentTotal = Number(account.total_saved) || 0;
-    const newTotal = currentTotal + contributionAmount;
-    console.log(`[Thrift] Updating ledger total: ₦${currentTotal} -> ₦${newTotal}`);
+    const newTotal = (Number(account.total_saved) || 0) + Number(amount);
     
     const { error: updateError } = await client.from('thrift_accounts').update({ 
       total_saved: newTotal 
     })
-    .eq('user_email', normalizedEmail);
+    .eq('id', account.id);
     
-    if (updateError) {
-      console.error("[Thrift] Ledger update failed:", updateError);
-      throw new Error(`BALANCE_UPDATE_FAILED: ${updateError.message}`);
-    }
+    if (updateError) throw updateError;
     
     // Log automation event
-    await triggerWebhook(WebhookEvent.THRIFT_CONTRIBUTION, { email: normalizedEmail, amount: contributionAmount, new_total: newTotal });
+    await triggerWebhook(WebhookEvent.THRIFT_CONTRIBUTION, { email: normalizedEmail, amount, new_total: newTotal });
     
     return { ...account, total_saved: newTotal };
   } catch (e: any) {
-    console.error("[Thrift] Critical sync fault:", e);
-    throw new Error(e.message || "Industrial signal failure during registry sync.");
+    console.error("[Thrift] Sync fault:", e);
+    throw e;
   }
 };
 
-export const withdrawThriftSavings = async (email: string | null | undefined) => {
+export const withdrawThriftSavings = async (email: string) => {
   const client = getSupabase();
-  if (!client) throw new Error("Registry Offline: Industrial signal not detected.");
-  
-  if (!email) throw new Error("AUTH_REQUIRED: Missing user identifier.");
+  if (!client) throw new Error("Registry Offline");
   const normalizedEmail = normalizeEmail(email);
 
   try {
@@ -1035,7 +987,7 @@ export const withdrawThriftSavings = async (email: string | null | undefined) =>
     const { error: updateError } = await client.from('thrift_accounts').update({ 
       status: 'withdrawn',
       total_saved: 0 // Reset balance after withdrawal
-    }).eq('user_email', normalizedEmail);
+    }).eq('id', account.id);
 
     if (updateError) throw updateError;
 
@@ -1065,29 +1017,17 @@ export const fetchThriftGroups = async (): Promise<ThriftGroup[]> => {
   return data || [];
 };
 
-export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmail: string, explicitUserId?: string) => {
+export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmail: string) => {
   const client = getSupabase();
   if (!client) return;
-  
-  let userId = explicitUserId;
-  if (!userId) {
-    const { data: user } = await client.auth.getUser();
-    userId = user.user?.id;
-  }
-
-  // Final fallback: try to find user by email in profiles
-  if (!userId && creatorEmail) {
-    const { data: profile } = await client.from('profiles').select('id').eq('email', normalizeEmail(creatorEmail)).maybeSingle();
-    userId = profile?.id;
-  }
-
-  if (!userId) throw new Error("AUTH REQUIRED: Please log in to your Aba industrial account.");
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Auth Required");
 
   const { data, error } = await client
     .from('thrift_groups')
     .insert({
       ...group,
-      creator_id: userId,
+      creator_id: user.user.id,
       status: 'forming'
     })
     .select()
@@ -1098,24 +1038,18 @@ export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmai
   // Add creator as first member
   await client.from('thrift_group_members').insert({
     group_id: data.id,
-    user_id: userId,
+    user_id: user.user.id,
     payout_position: 1
   });
 
   return data;
 };
 
-export const joinThriftGroup = async (groupId: string, explicitUserId?: string) => {
+export const joinThriftGroup = async (groupId: string) => {
   const client = getSupabase();
-  if (!client) throw new Error("Industrial signal offline.");
-  
-  let userId = explicitUserId;
-  if (!userId) {
-    const { data: user } = await client.auth.getUser();
-    userId = user.user?.id;
-  }
-
-  if (!userId) throw new Error("AUTH REQUIRED: Please log in to join this unit.");
+  if (!client) return;
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Auth Required");
 
   // Get current members count
   const { data: members } = await client
@@ -1127,7 +1061,7 @@ export const joinThriftGroup = async (groupId: string, explicitUserId?: string) 
 
   const { error } = await client.from('thrift_group_members').insert({
     group_id: groupId,
-    user_id: userId,
+    user_id: user.user.id,
     payout_position: nextPosition
   });
 
@@ -1146,21 +1080,15 @@ export const fetchThriftGroupDetails = async (groupId: string) => {
   return { group, members, contributions, payouts };
 };
 
-export const saveGroupContribution = async (groupId: string, amount: number, cycleNumber: number, explicitUserId?: string) => {
+export const saveGroupContribution = async (groupId: string, amount: number, cycleNumber: number) => {
   const client = getSupabase();
-  if (!client) throw new Error("Industrial signal offline.");
-  
-  let userId = explicitUserId;
-  if (!userId) {
-    const { data: user } = await client.auth.getUser();
-    userId = user.user?.id;
-  }
-  
-  if (!userId) throw new Error("AUTH REQUIRED: Contribution failed.");
+  if (!client) return;
+  const { data: user } = await client.auth.getUser();
+  if (!user.user) throw new Error("Auth Required");
 
   const { error } = await client.from('thrift_group_contributions').insert({
     group_id: groupId,
-    user_id: userId,
+    user_id: user.user.id,
     amount,
     cycle_number: cycleNumber
   });
@@ -1542,7 +1470,7 @@ export const updateVehicleLocation = async (vehicleId: string, lat: number, lng:
 export const createRideBooking = async (booking: any) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
-  const { data, error } = await client.from('rides').insert(booking).select().single();
+  const { data, error } = await client.from('ride_bookings').insert(booking).select().single();
   if (error) throw error;
   
   // Trigger Automation Webhook
@@ -1554,14 +1482,14 @@ export const createRideBooking = async (booking: any) => {
 export const fetchRideBookingsForDriver = async (driverId: string) => {
   const client = getSupabase();
   if (!client) return [];
-  const { data } = await client.from('rides').select('*').eq('driver_id', driverId).order('created_at', { ascending: false });
+  const { data } = await client.from('ride_bookings').select('*').eq('driver_id', driverId).order('created_at', { ascending: false });
   return data || [];
 };
 
 export const updateRideBookingStatus = async (id: string, status: string) => {
   const client = getSupabase();
   if (!client) return;
-  await client.from('rides').update({ status }).eq('id', id);
+  await client.from('ride_bookings').update({ status }).eq('id', id);
 };
 
 export const fetchAllVehicles = async () => {
@@ -1585,7 +1513,7 @@ export const subscribeToRideRequests = (driverId: string, callback: (payload: an
     .on('postgres_changes', { 
       event: 'INSERT', 
       schema: 'public', 
-      table: 'rides',
+      table: 'ride_bookings',
       filter: `driver_id=eq.${driverId}`
     }, callback)
     .subscribe();
@@ -1925,41 +1853,4 @@ export const verifyBusinessClaim = async (businessId: string, otp: string): Prom
   if (verifyError) throw verifyError;
 
   return true;
-};
-
-export const sendSupportMessage = async (msg: SupportMessage) => {
-  const sb = getSupabase();
-  if (!sb) return { error: "Offline" };
-  
-  return await sb
-    .from('support_messages')
-    .insert([msg])
-    .select()
-    .single();
-};
-
-export const fetchSupportMessages = async () => {
-  const sb = getSupabase();
-  if (!sb) return [];
-  
-  const { data, error } = await sb
-    .from('support_messages')
-    .select('*')
-    .order('created_at', { ascending: false });
-    
-  if (error) {
-    console.error("[Registry] Failed to fetch support signals:", error);
-    return [];
-  }
-  return data;
-};
-
-export const updateSupportMessageStatus = async (id: string, status: 'read' | 'archived') => {
-  const sb = getSupabase();
-  if (!sb) return { error: "Offline" };
-  
-  return await sb
-    .from('support_messages')
-    .update({ status })
-    .eq('id', id);
 };

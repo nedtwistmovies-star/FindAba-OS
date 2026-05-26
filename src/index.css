@@ -1,9 +1,6 @@
-@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* LEAFLET MAP ASSETS */
 
 /* PERMANENTLY HIDE VERCEL TOOLBAR / OVERLAYS */
 vercel-live-feedback,
@@ -26,12 +23,12 @@ vercel-live-feedback,
 }
 
 :root {
-  --aba-green: #021E16;
-  --aba-gold: #FFD500;
-  --aba-deep: #01140F;
+  --aba-green: #008c52;
+  --aba-gold: #FFD700;
+  --aba-deep: #0a0a0a;
   --aba-red: #ef4444;
-  --aba-white: #F5F5F5;
-  --aba-gray: #71807B;
+  --aba-white: #f8fafc;
+  --aba-gray: #64748b;
   
   /* Fluid Typography Bases */
   --font-size-base: clamp(14px, 1.2vw, 16px);
@@ -90,13 +87,6 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: clamp(1rem, 2vw, 2rem);
-}
-
-/* Fix mobile input zoom and responsiveness */
-@media (max-width: 768px) {
-  input, select, textarea {
-    font-size: 16px !important;
-  }
 }
 
 /* Touch Targets */
@@ -222,10 +212,10 @@ button, a, input, select {
   padding-bottom: 0.5rem;
 }
 
-/* Commerce Atmosphere */
+/* Atmosphere System */
 .atmosphere {
-  background: radial-gradient(circle at center, rgba(2, 30, 22, 0.4) 0%, transparent 70%),
-              radial-gradient(circle at bottom right, rgba(255, 213, 0, 0.05) 0%, transparent 50%);
+  background: radial-gradient(circle at center, rgba(0, 140, 82, 0.15) 0%, transparent 70%),
+              radial-gradient(circle at bottom right, rgba(255, 215, 0, 0.1) 0%, transparent 50%);
   filter: blur(100px);
   z-index: 0;
 }

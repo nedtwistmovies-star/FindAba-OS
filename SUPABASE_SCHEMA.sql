@@ -24,9 +24,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   preferred_language TEXT DEFAULT 'en',
   notification_settings JSONB DEFAULT '{"email": true, "sms": false, "push": true}',
   dark_mode BOOLEAN DEFAULT FALSE,
-  streak INTEGER DEFAULT 0,
-  metrics JSONB DEFAULT '{}',
-  phone_status TEXT DEFAULT 'pending',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -90,7 +87,6 @@ CREATE TABLE IF NOT EXISTS public.businesses (
   business_type TEXT,
   is_verified BOOLEAN DEFAULT FALSE,
   subscription_tier TEXT DEFAULT 'Free',
-  hub_tier TEXT DEFAULT 'Starter',
   catalog_images TEXT[],
   videos JSONB DEFAULT '[]',
   bank_name TEXT,
@@ -104,42 +100,30 @@ CREATE TABLE IF NOT EXISTS public.businesses (
 
 ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 
--- Industrial Partners Policies (Unified & Hardened)
+-- Business Policies
 DROP POLICY IF EXISTS "Public read businesses" ON public.businesses;
-DROP POLICY IF EXISTS "businesses_read_all" ON public.businesses;
-DROP POLICY IF EXISTS "businesses_select_public" ON public.businesses;
-CREATE POLICY "businesses_select_public" ON public.businesses FOR SELECT USING (true);
+CREATE POLICY "Public read businesses" ON public.businesses FOR SELECT USING (true);
 
+-- 🛡️ INDUSTRIAL REGISTRY PROTECTION
+DROP POLICY IF EXISTS "businesses_owner_all" ON public.businesses;
 DROP POLICY IF EXISTS "businesses_insert_authenticated" ON public.businesses;
-CREATE POLICY "businesses_insert_authenticated" ON public.businesses 
-  FOR INSERT TO authenticated 
-  WITH CHECK (true);
+DROP POLICY IF EXISTS "Registry access policy" ON public.businesses;
+DROP POLICY IF EXISTS "Authenticated can insert business" ON public.businesses;
+DROP POLICY IF EXISTS "Businesses ownership policy" ON public.businesses;
+DROP POLICY IF EXISTS "Businesses creation policy" ON public.businesses;
 
-DROP POLICY IF EXISTS "businesses_manage_authenticated" ON public.businesses;
-DROP POLICY IF EXISTS "businesses_update_self_or_unowned" ON public.businesses;
-CREATE POLICY "businesses_update_self_or_unowned" ON public.businesses 
-  FOR UPDATE TO authenticated 
-  USING (
-    (user_id IS NULL) OR 
-    (user_id::text = auth.uid()::text) OR 
-    public.check_is_admin()
-  )
-  WITH CHECK (
-    (user_id IS NULL) OR 
-    (user_id::text = auth.uid()::text) OR 
-    public.check_is_admin()
-  );
+-- 1. Anyone authenticated can insert a business
+CREATE POLICY "businesses_insert_authenticated" ON public.businesses
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
-DROP POLICY IF EXISTS "businesses_delete_self" ON public.businesses;
-CREATE POLICY "businesses_delete_self" ON public.businesses 
-  FOR DELETE TO authenticated 
-  USING (
-    (user_id::text = auth.uid()::text) OR 
-    public.check_is_admin()
-  );
+-- 2. Owners or people claiming unowned businesses can update
+CREATE POLICY "businesses_update_owner" ON public.businesses
+  FOR UPDATE USING (auth.uid() = user_id OR user_id IS NULL OR public.check_is_admin())
+  WITH CHECK (auth.uid() = user_id OR user_id IS NULL OR public.check_is_admin());
 
--- Default owner to committed user
-ALTER TABLE public.businesses ALTER COLUMN user_id SET DEFAULT auth.uid();
+-- 3. Admins have full control
+CREATE POLICY "businesses_admin_all" ON public.businesses
+  FOR ALL USING (public.check_is_admin());
 
 -- ==========================================
 -- 3. SOCIAL COMMERCE (FACES)
@@ -203,27 +187,6 @@ DROP POLICY IF EXISTS "Social Insert Access" ON public.posts;
 CREATE POLICY "Social Insert Access" ON public.posts FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 DROP POLICY IF EXISTS "Social Update Access" ON public.posts;
 CREATE POLICY "Social Update Access" ON public.posts FOR UPDATE USING (auth.uid()::text = user_id::text OR public.check_is_admin());
-DROP POLICY IF EXISTS "Social Delete Access" ON public.posts;
-CREATE POLICY "Social Delete Access" ON public.posts FOR DELETE USING (auth.uid()::text = user_id::text OR public.check_is_admin());
-
--- ==========================================
--- 3.1. CONTENT MODERATION (REPORTS)
--- ==========================================
-CREATE TABLE IF NOT EXISTS public.reports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  reporter_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  target_id UUID NOT NULL, -- post_id, business_id, etc.
-  target_type TEXT NOT NULL, -- 'post', 'business', 'comment'
-  reason TEXT NOT NULL,
-  status TEXT DEFAULT 'pending', -- 'pending', 'reviewed', 'action_taken'
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Reports Insert Policy" ON public.reports;
-CREATE POLICY "Reports Insert Policy" ON public.reports FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-DROP POLICY IF EXISTS "Reports Admin View" ON public.reports;
-CREATE POLICY "Reports Admin View" ON public.reports FOR SELECT USING (public.check_is_admin());
 
 DROP POLICY IF EXISTS "Comments Read Access" ON public.comments;
 CREATE POLICY "Comments Read Access" ON public.comments FOR SELECT USING (true);
@@ -375,80 +338,28 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- 8. TRIGGERS & REALTIME
 -- ==========================================
 
--- 🛡️ HARDENED PROFILE TRIGGER
+-- Trigger: New Profile on Signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
-DECLARE
-  v_username TEXT;
-  v_full_name TEXT;
-  v_referral_code TEXT;
-  v_referred_by UUID;
 BEGIN
-  -- Extract Metadata with Fallbacks
-  v_username := COALESCE(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1));
-  v_full_name := COALESCE(new.raw_user_meta_data->>'full_name', v_username);
-  
-  -- Referral Logic
-  v_referral_code := COALESCE(
-    new.raw_user_meta_data->>'referral_code', 
-    'ABA' || upper(substring(md5(random()::text), 1, 6))
-  );
-
-  -- Handle referred_by if code exists
-  IF new.raw_user_meta_data->>'referred_by_code' IS NOT NULL THEN
-    SELECT id INTO v_referred_by FROM public.profiles 
-    WHERE referral_code = new.raw_user_meta_data->>'referred_by_code' 
-    LIMIT 1;
-  END IF;
-
-  -- Insert into Profiles
-  INSERT INTO public.profiles (
-    id, 
-    email, 
-    phone, 
-    full_name, 
-    username, 
-    role, 
-    referral_code, 
-    referred_by,
-    created_at,
-    updated_at
-  )
+  INSERT INTO public.profiles (id, email, phone, full_name, role)
   VALUES (
     new.id, 
     new.email, 
     new.phone,
-    v_full_name,
-    v_username,
+    new.raw_user_meta_data->>'full_name', 
     CASE 
       WHEN new.email = 'pastornelsonezi@gmail.com' THEN 'admin'
       ELSE COALESCE(new.raw_user_meta_data->>'role', 'registered')
-    END,
-    v_referral_code,
-    v_referred_by,
-    now(),
-    now()
+    END
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     phone = EXCLUDED.phone,
-    full_name = COALESCE(public.profiles.full_name, EXCLUDED.full_name),
-    username = COALESCE(public.profiles.username, EXCLUDED.username),
-    role = CASE WHEN public.profiles.email = 'pastornelsonezi@gmail.com' THEN 'admin' ELSE public.profiles.role END,
-    referral_code = COALESCE(public.profiles.referral_code, EXCLUDED.referral_code),
-    updated_at = now();
-
-  RETURN new;
-EXCEPTION WHEN OTHERS THEN
-  -- Last ditch effort to ensure the user is saved even if metadata processing fails
-  INSERT INTO public.profiles (id, email, role, referral_code)
-  VALUES (
-    new.id, 
-    new.email, 
-    'registered', 
-    'ABA' || upper(substring(md5(new.id::text), 1, 6))
-  )
-  ON CONFLICT (id) DO NOTHING;
+    role = CASE 
+      WHEN EXCLUDED.email = 'pastornelsonezi@gmail.com' THEN 'admin'
+      ELSE public.profiles.role
+    END;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -485,84 +396,6 @@ SELECT public.enable_realtime_for('transactions');
 -- 9. ADDITIONAL SYSTEM TABLES
 -- ==========================================
 
-CREATE TABLE IF NOT EXISTS public.platform_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_type TEXT NOT NULL,
-  severity TEXT DEFAULT 'info',
-  payload JSONB DEFAULT '{}',
-  user_id UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE public.platform_logs ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Admins only logs" ON public.platform_logs;
-CREATE POLICY "Admins only logs" ON public.platform_logs 
-  FOR ALL TO authenticated
-  USING (public.check_is_admin())
-  WITH CHECK (public.check_is_admin());
-
-CREATE TABLE IF NOT EXISTS public.disputes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
-  merchant_id TEXT NOT NULL,
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  reason TEXT NOT NULL,
-  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'resolving', 'resolved', 'cancelled')),
-  evidence_urls TEXT[],
-  resolution TEXT,
-  resolved_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Involved parties view disputes" ON public.disputes;
-CREATE POLICY "Involved parties view disputes" ON public.disputes 
-  FOR SELECT USING (
-    auth.uid() = user_id 
-    OR auth.uid() IN (SELECT buyer_id FROM public.orders WHERE id = order_id)
-    OR auth.uid() IN (SELECT seller_id FROM public.orders WHERE id = order_id)
-    OR public.check_is_admin()
-  );
-
-CREATE TABLE IF NOT EXISTS public.business_claims (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id TEXT NOT NULL,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'verified', 'rejected')),
-  otp_hash TEXT,
-  otp_attempts INTEGER DEFAULT 0,
-  locked_until TIMESTAMPTZ,
-  expires_at TIMESTAMPTZ NOT NULL,
-  last_otp_sent_at TIMESTAMPTZ DEFAULT NOW(),
-  verified_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE public.business_claims ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users view own claims" ON public.business_claims;
-DROP POLICY IF EXISTS "Users can view own claims" ON public.business_claims;
-CREATE POLICY "Users can view own claims" ON public.business_claims
-  FOR SELECT USING (auth.uid()::text = user_id::text OR public.check_is_admin());
-
-CREATE TABLE IF NOT EXISTS public.tasks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  description TEXT,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
-  due_date TIMESTAMPTZ,
-  priority INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Admins manage tasks" ON public.tasks;
-CREATE POLICY "Admins manage tasks" ON public.tasks FOR ALL
-  TO authenticated
-  USING (public.check_is_admin())
-  WITH CHECK (public.check_is_admin());
-
 CREATE TABLE IF NOT EXISTS public.platform_config (
   id INTEGER PRIMARY KEY DEFAULT 1,
   app_logo TEXT,
@@ -573,19 +406,8 @@ CREATE TABLE IF NOT EXISTS public.platform_config (
   instagram_url TEXT,
   twitter_url TEXT,
   tiktok_url TEXT,
-  make_webhook_url TEXT,
-  meta_config JSONB DEFAULT '{}',
-  domain_activated BOOLEAN DEFAULT FALSE,
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT single_row CHECK (id = 1)
-);
-
-CREATE TABLE IF NOT EXISTS public.otp_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone TEXT NOT NULL,
-  code TEXT NOT NULL,
-  expires_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.hospitality_config (
@@ -883,182 +705,6 @@ SELECT public.enable_realtime_for('advertorials');
 SELECT public.enable_realtime_for('notifications');
 SELECT public.enable_realtime_for('quality_audits');
 SELECT public.enable_realtime_for('hospitality_config');
-SELECT public.enable_realtime_for('reports');
-
--- ==========================================
--- 11. ADVANCED LOGIC & RPCs
--- ==========================================
-
--- RPC: Unified Release Escrow with Dispute Guard
-CREATE OR REPLACE FUNCTION public.release_escrow(p_order_id UUID, p_admin_id UUID DEFAULT NULL)
-RETURNS BOOLEAN AS $$
-DECLARE
-  v_order RECORD;
-  v_wallet_id UUID;
-  v_has_dispute BOOLEAN;
-BEGIN
-  -- 1. Lock order row for update
-  SELECT * INTO v_order 
-  FROM public.orders 
-  WHERE id = p_order_id 
-  FOR UPDATE;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Order not found: %', p_order_id;
-  END IF;
-
-  -- 2. Prevent double payout
-  IF v_order.status = 'completed' THEN
-    RAISE EXCEPTION 'Escrow already released for order: %', p_order_id;
-  END IF;
-
-  -- 3. Check for active disputes
-  SELECT EXISTS (
-    SELECT 1 FROM public.disputes 
-    WHERE order_id = p_order_id AND status != 'resolved'
-  ) INTO v_has_dispute;
-
-  -- Block payout if active dispute exists (except admin override)
-  IF v_has_dispute AND p_admin_id IS NULL THEN
-    RAISE EXCEPTION 'Escrow locked: Active dispute exists for order: %', p_order_id;
-  END IF;
-
-  -- 4. Only allow statuses 'paid' or 'delivered'
-  IF v_order.status NOT IN ('paid', 'delivered') THEN
-    RAISE EXCEPTION 'Order status % is not eligible for escrow release.', v_order.status;
-  END IF;
-
-  -- 5. Credit seller wallet safely
-  INSERT INTO public.wallets (user_id) 
-  VALUES (v_order.seller_id)
-  ON CONFLICT (user_id) DO NOTHING;
-  
-  SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = v_order.seller_id;
-  
-  -- Transfer funds
-  UPDATE public.wallets 
-  SET balance = balance + v_order.merchant_payout, updated_at = NOW()
-  WHERE id = v_wallet_id;
-  
-  -- Record Transaction
-  INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
-  VALUES (v_wallet_id, v_order.merchant_payout, 'credit', 'success', 'Order Payout: ' || p_order_id, 'REL-' || p_order_id);
-  
-  -- 6. Update order status
-  UPDATE public.orders 
-  SET 
-    status = 'completed', 
-    escrow_release_at = NOW() 
-  WHERE id = p_order_id;
-  
-  -- 7. Log the event
-  INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
-  VALUES ('escrow_release', 'success', jsonb_build_object('order_id', p_order_id, 'amount', v_order.merchant_payout, 'admin_id', p_admin_id), v_order.seller_id);
-  
-  RETURN TRUE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
--- RPC: Refund Order
-CREATE OR REPLACE FUNCTION public.refund_order(p_order_id UUID, p_reason TEXT)
-RETURNS BOOLEAN AS $$
-DECLARE
-  v_order RECORD;
-BEGIN
-  -- Lock the order row
-  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id::uuid FOR UPDATE;
-  
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Order not found: %', p_order_id;
-  END IF;
-
-  -- Logic: Only paid orders can be refunded
-  IF v_order.status = 'paid' THEN
-    -- Ensure buyers wallet exists
-    INSERT INTO public.wallets (user_id) VALUES (v_order.buyer_id)
-    ON CONFLICT (user_id) DO NOTHING;
-
-    -- Refund funds to buyer wallet
-    UPDATE public.wallets 
-    SET balance = balance + v_order.amount, updated_at = NOW()
-    WHERE user_id = v_order.buyer_id::uuid;
-
-    -- Record Transaction
-    INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
-    VALUES (
-      (SELECT id FROM public.wallets WHERE user_id = v_order.buyer_id::uuid),
-      v_order.amount, 'credit', 'success', 'Order Refund: ' || p_order_id, 'REF-' || p_order_id
-    );
-    
-    -- Update order status
-    UPDATE public.orders SET status = 'reversed' WHERE id = p_order_id::uuid;
-    
-    -- Log the event
-    INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
-    VALUES ('order_refund', 'warning', jsonb_build_object('order_id', p_order_id, 'reason', p_reason), v_order.buyer_id::uuid);
-    
-    RETURN TRUE;
-  END IF;
-  
-  RETURN FALSE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
--- Trigger: Auto-assign owner and verified status to business
-CREATE OR REPLACE FUNCTION public.handle_verified_claim()
-RETURNS trigger AS $$
-BEGIN
-  IF NEW.status = 'verified' AND OLD.status = 'pending' THEN
-    UPDATE public.businesses
-    SET 
-      user_id = NEW.user_id,
-      is_verified = TRUE,
-      verification_status = 'Verified',
-      verification_level = 'Claimed'
-    WHERE id = NEW.business_id;
-    
-    NEW.verified_at = NOW();
-    
-    PERFORM public.log_system_event('business_claimed', 'info', jsonb_build_object('business_id', NEW.business_id, 'claim_id', NEW.id));
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
-DROP TRIGGER IF EXISTS on_claim_verified ON public.business_claims;
-CREATE TRIGGER on_claim_verified
-  BEFORE UPDATE ON public.business_claims
-  FOR EACH ROW
-  WHEN (NEW.status = 'verified' AND OLD.status = 'pending')
-  EXECUTE FUNCTION public.handle_verified_claim();
-
--- Trigger: Prevent claiming already owned business or multiple pending claims
-CREATE OR REPLACE FUNCTION public.validate_business_claim()
-RETURNS trigger AS $$
-BEGIN
-  -- 1. Check if business is already owned
-  IF EXISTS (SELECT 1 FROM public.businesses WHERE id = NEW.business_id AND user_id IS NOT NULL) THEN
-    RAISE EXCEPTION 'This business is already claimed and verified.';
-  END IF;
-  
-  -- 2. Check for active rate limits (Max 3 OTPs per 10 minutes)
-  IF (
-    SELECT COUNT(*) 
-    FROM public.business_claims 
-    WHERE user_id = NEW.user_id 
-    AND last_otp_sent_at > NOW() - INTERVAL '10 minutes'
-  ) >= 3 THEN
-    RAISE EXCEPTION 'Rate limit exceeded. Please wait 10 minutes before requesting a new code.';
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
-DROP TRIGGER IF EXISTS on_claim_created ON public.business_claims;
-CREATE TRIGGER on_claim_created
-  BEFORE INSERT ON public.business_claims
-  FOR EACH ROW EXECUTE FUNCTION public.validate_business_claim();
 
 -- ==========================================
 -- 10. DRIVERS & FLEET (PURPLE FLEET)
@@ -1067,7 +713,6 @@ CREATE TABLE IF NOT EXISTS public.drivers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_email TEXT UNIQUE NOT NULL,
   full_name TEXT NOT NULL,
-  phone TEXT,
   nin_verified BOOLEAN DEFAULT FALSE,
   bvn_verified BOOLEAN DEFAULT FALSE,
   license_verified BOOLEAN DEFAULT FALSE,
@@ -1077,14 +722,6 @@ CREATE TABLE IF NOT EXISTS public.drivers (
   status TEXT DEFAULT 'offline',
   current_vehicle_id UUID,
   total_earnings INTEGER DEFAULT 0,
-  otp_code TEXT,
-  otp_expires_at TIMESTAMPTZ,
-  otp_verified BOOLEAN DEFAULT FALSE,
-  bank_name TEXT,
-  account_number TEXT,
-  account_name TEXT,
-  bank_code TEXT,
-  paystack_recipient_code TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -1185,11 +822,6 @@ CREATE TABLE IF NOT EXISTS public.vision_history (
 
 -- Final RLS & Realtime Enabling
 ALTER TABLE public.drivers ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Public View Drivers" ON public.drivers;
-CREATE POLICY "Public View Drivers" ON public.drivers FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Drivers Manage Own" ON public.drivers;
-CREATE POLICY "Drivers Manage Own" ON public.drivers FOR ALL USING (auth.jwt()->>'email' = user_email OR public.check_is_admin());
-
 ALTER TABLE public.vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ride_bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.driver_signals ENABLE ROW LEVEL SECURITY;
@@ -1216,141 +848,3 @@ SELECT public.enable_realtime_for('bookings');
 SELECT public.enable_realtime_for('buyer_signals');
 SELECT public.enable_realtime_for('signal_interests');
 SELECT public.enable_realtime_for('vision_history');
-
--- ==========================================
--- 14. THRIFT SAVINGS & GROUP THRIFT (ISUSU)
--- ==========================================
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'thrift_contributions' AND column_name = 'thrift_id') THEN
-        ALTER TABLE public.thrift_contributions ADD COLUMN thrift_id TEXT REFERENCES public.thrift_accounts(user_email) ON DELETE CASCADE;
-        UPDATE public.thrift_contributions SET thrift_id = user_email;
-    END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS public.thrift_accounts (
-  user_email TEXT PRIMARY KEY,
-  cycle TEXT DEFAULT 'monthly',
-  total_saved NUMERIC DEFAULT 0,
-  locked_until TIMESTAMPTZ,
-  service_fee_rate NUMERIC DEFAULT 0.035,
-  status TEXT DEFAULT 'active',
-  start_date TIMESTAMPTZ DEFAULT NOW(),
-  bank_name TEXT,
-  account_number TEXT,
-  account_name TEXT,
-  swift_code TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.thrift_contributions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  thrift_id TEXT REFERENCES public.thrift_accounts(user_email) ON DELETE CASCADE,
-  user_email TEXT NOT NULL,
-  amount NUMERIC NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.thrift_groups (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  creator_id UUID REFERENCES public.profiles(id),
-  contribution_amount NUMERIC NOT NULL,
-  cycle_length INTEGER NOT NULL,
-  payout_frequency TEXT NOT NULL,
-  start_date TIMESTAMPTZ,
-  status TEXT DEFAULT 'forming',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.thrift_group_members (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id UUID REFERENCES public.thrift_groups(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id),
-  payout_position INTEGER,
-  has_received BOOLEAN DEFAULT FALSE,
-  joined_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(group_id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS public.thrift_group_contributions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id UUID REFERENCES public.thrift_groups(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id),
-  amount NUMERIC NOT NULL,
-  cycle_number INTEGER NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.thrift_payouts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id UUID REFERENCES public.thrift_groups(id),
-  user_id UUID REFERENCES public.profiles(id),
-  cycle_number INTEGER,
-  amount NUMERIC,
-  status TEXT DEFAULT 'pending',
-  paid_at TIMESTAMPTZ
-);
-
-ALTER TABLE public.thrift_accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_contributions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_groups ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_group_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_group_contributions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_payouts ENABLE ROW LEVEL SECURITY;
-
--- Thrift Policies
-DROP POLICY IF EXISTS "thrift_accounts_select_own" ON public.thrift_accounts;
-CREATE POLICY "thrift_accounts_select_own" ON public.thrift_accounts FOR SELECT USING (auth.jwt()->>'email' = user_email OR public.check_is_admin());
-DROP POLICY IF EXISTS "thrift_accounts_insert_own" ON public.thrift_accounts;
-CREATE POLICY "thrift_accounts_insert_own" ON public.thrift_accounts FOR INSERT WITH CHECK (auth.jwt()->>'email' = user_email);
-DROP POLICY IF EXISTS "thrift_accounts_update_own" ON public.thrift_accounts;
-CREATE POLICY "thrift_accounts_update_own" ON public.thrift_accounts FOR UPDATE USING (auth.jwt()->>'email' = user_email OR public.check_is_admin());
-
-DROP POLICY IF EXISTS "thrift_contrib_select_own" ON public.thrift_contributions;
-CREATE POLICY "thrift_contrib_select_own" ON public.thrift_contributions FOR SELECT USING (auth.jwt()->>'email' = user_email OR public.check_is_admin());
-DROP POLICY IF EXISTS "thrift_contrib_insert_own" ON public.thrift_contributions;
-CREATE POLICY "thrift_contrib_insert_own" ON public.thrift_contributions FOR INSERT WITH CHECK (auth.jwt()->>'email' = user_email);
-
--- Group Thrift Policies
-DROP POLICY IF EXISTS "thrift_groups_select" ON public.thrift_groups;
-CREATE POLICY "thrift_groups_select" ON public.thrift_groups FOR SELECT USING (status = 'forming' OR creator_id = auth.uid() OR id IN (SELECT group_id FROM public.thrift_group_members WHERE user_id = auth.uid()) OR public.check_is_admin());
-DROP POLICY IF EXISTS "thrift_groups_insert" ON public.thrift_groups;
-CREATE POLICY "thrift_groups_insert" ON public.thrift_groups FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-
-DROP POLICY IF EXISTS "thrift_members_select" ON public.thrift_group_members;
-CREATE POLICY "thrift_members_select" ON public.thrift_group_members FOR SELECT USING (auth.uid() IS NOT NULL);
-DROP POLICY IF EXISTS "thrift_members_insert" ON public.thrift_group_members;
-CREATE POLICY "thrift_members_insert" ON public.thrift_group_members FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-
-DROP POLICY IF EXISTS "thrift_group_contrib_select" ON public.thrift_group_contributions;
-CREATE POLICY "thrift_group_contrib_select" ON public.thrift_group_contributions FOR SELECT USING (group_id IN (SELECT group_id FROM public.thrift_group_members WHERE user_id = auth.uid()) OR public.check_is_admin());
-DROP POLICY IF EXISTS "thrift_group_contrib_insert" ON public.thrift_group_contributions;
-CREATE POLICY "thrift_group_contrib_insert" ON public.thrift_group_contributions FOR INSERT WITH CHECK (user_id = auth.uid());
-
-DROP POLICY IF EXISTS "thrift_payouts_select" ON public.thrift_payouts;
-CREATE POLICY "thrift_payouts_select" ON public.thrift_payouts FOR SELECT USING (user_id = auth.uid() OR group_id IN (SELECT group_id FROM public.thrift_group_members WHERE user_id = auth.uid()) OR public.check_is_admin());
-
--- Realtime for Thrift
-SELECT public.enable_realtime_for('thrift_accounts');
-SELECT public.enable_realtime_for('thrift_contributions');
-SELECT public.enable_realtime_for('thrift_groups');
-SELECT public.enable_realtime_for('thrift_group_members');
-SELECT public.enable_realtime_for('thrift_group_contributions');
-SELECT public.enable_realtime_for('thrift_payouts');
-
--- Performance Indices for Thrift
-CREATE INDEX IF NOT EXISTS idx_thrift_accounts_email ON public.thrift_accounts(user_email);
-CREATE INDEX IF NOT EXISTS idx_thrift_contributions_id ON public.thrift_contributions(thrift_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_contributions_email ON public.thrift_contributions(user_email);
-CREATE INDEX IF NOT EXISTS idx_thrift_group_members_group ON public.thrift_group_members(group_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_group_members_user ON public.thrift_group_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_group_contrib_group ON public.thrift_group_contributions(group_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_group_contrib_user ON public.thrift_group_contributions(user_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_payouts_group ON public.thrift_payouts(group_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_payouts_user ON public.thrift_payouts(user_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_groups_status ON public.thrift_groups(status);
-CREATE INDEX IF NOT EXISTS idx_thrift_members_group ON public.thrift_group_members(group_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_members_user ON public.thrift_group_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_group_contrib_group ON public.thrift_group_contributions(group_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_payouts_user ON public.thrift_payouts(user_id);

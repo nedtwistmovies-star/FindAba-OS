@@ -269,27 +269,6 @@ BEGIN
   END IF;
 END $$;
 
--- Fix Business RLS for Registration & Ownership
-DROP POLICY IF EXISTS "Businesses creation policy" ON public.businesses;
-DROP POLICY IF EXISTS "Businesses ownership policy" ON public.businesses;
-DROP POLICY IF EXISTS "businesses_insert_authenticated" ON public.businesses;
-CREATE POLICY "businesses_insert_authenticated" ON public.businesses 
-  FOR INSERT TO authenticated 
-  WITH CHECK (true);
-
-DROP POLICY IF EXISTS "businesses_manage_authenticated" ON public.businesses;
-CREATE POLICY "businesses_manage_authenticated" ON public.businesses 
-  FOR ALL TO authenticated
-  USING (
-    (user_id IS NULL) OR 
-    (user_id::text = auth.uid()::text) OR 
-    public.check_is_admin()
-  )
-  WITH CHECK (
-    (user_id::text = auth.uid()::text) OR 
-    public.check_is_admin()
-  );
-
 -- ==========================================
 -- 6. BUSINESS CLAIMING SYSTEM
 -- ==========================================

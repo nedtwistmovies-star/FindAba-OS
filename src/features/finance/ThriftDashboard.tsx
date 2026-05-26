@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, History, Plus, 
   ShieldCheck, Calendar, Info,
@@ -23,10 +22,9 @@ import FidelityHero from './FidelityHero';
 interface ThriftDashboardProps {
   setView: (v: ViewState) => void;
   userEmail: string;
-  userId?: string;
 }
 
-const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, userId }) => {
+const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail }) => {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<'individual' | 'group'>('individual');
   const [account, setAccount] = useState<ThriftAccount | null>(null);
@@ -56,7 +54,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
         const data = await fetchThriftAccount(userEmail);
         setAccount(data);
         if (data) {
-          const contribs = await fetchThriftContributions(userEmail);
+          const contribs = await fetchThriftContributions(data.id);
           setContributions(contribs);
         }
       } else {
@@ -105,20 +103,14 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
       await refreshData();
       addToast(`Individual Savings Unit (${selectedCycle.toUpperCase()}) Activated.`, "success");
     } catch (err: any) {
-      addToast(`ERROR: ${err.message}`, "error");
+      addToast(`SIGNAL FAILURE: ${err.message}`, "error");
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleWithdrawal = async () => {
-    if (account?.status === 'withdrawn') {
-      return addToast("FUNDS ALREADY WITHDRAWN: Check your registered bank account.", "error");
-    }
-    
-    const confirmWithdraw = window.confirm(`Confirm withdrawal of ₦${(account?.total_saved || 0).toLocaleString()}? Cycle will be closed and 3.5% commission applied.`);
-    if (!confirmWithdraw) return;
-
+    if (!confirm("Confirm withdrawal? Cycle will be closed and 3.5% commission applied.")) return;
     setActionLoading(true);
     try {
       const result = await withdrawThriftSavings(userEmail);
@@ -134,51 +126,22 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
   const handlePaymentSuccess = async (res: any) => {
     setIsUpdatingBalance(true);
     try {
-      if (!userId || !userEmail) {
-         throw new Error("AUTH_REQUIRED: Connection lost. Please log in again.");
-      }
-
-      // Robust amount detection: Prefer res.amount in kobo, or fall back to local input
-      let actualAmountPaid = contributionAmount;
-      if (res?.amount) {
-        // Paystack usually returns amount in kobo (e.g. 20000 for 200 NGN)
-        const amountFromRes = Number(res.amount);
-        if (!isNaN(amountFromRes)) {
-           // If it's a huge number compared to what we expected, it's likely kobo
-           if (amountFromRes > contributionAmount * 50) {
-             actualAmountPaid = amountFromRes / 100;
-           } else {
-             actualAmountPaid = amountFromRes;
-           }
-        }
-      }
-      
-      console.log(`[Thrift] Payment verified: ₦${actualAmountPaid}. Syncing to ledger...`);
-
       if (activeTab === 'individual') {
-        const result = await saveThriftContribution(userEmail, actualAmountPaid);
-        if (result) {
-          addToast(`Contribution Locked: ₦${actualAmountPaid.toLocaleString()}`, "success");
-          // Update state immediately for better UI response
-          setAccount(prev => prev ? { ...prev, total_saved: result.total_saved } : result);
-          // Also refresh in background
-          refreshData().catch(console.error);
-        } else {
-          addToast("Contribution could not be saved. Check registry status.", "error");
-        }
+        const amountToSave = contributionAmount;
+        await saveThriftContribution(userEmail, amountToSave);
+        addToast(`Contribution Locked: ₦${amountToSave.toLocaleString()}`, "success");
+        await refreshData();
       } else if (selectedGroup) {
-        const contribAmount = selectedGroup.group.contribution_amount || actualAmountPaid;
-        await saveGroupContribution(selectedGroup.group.id, contribAmount, 1, userId || undefined);
+        // Handle group contribution
+        await saveGroupContribution(selectedGroup.group.id, selectedGroup.group.contribution_amount, 1); // Cycle 1 for now
         addToast("Group Isusu Contribution Recorded", "success");
         await openGroupDetails(selectedGroup.group.id);
       }
     } catch (e: any) {
-      console.error("[Thrift] Sync Fault:", e);
       addToast(`SYNC ERROR: ${e.message}`, "error");
     } finally {
       setShowCheckout(false);
-      // Keep loading state briefly to ensure UI reflects database update
-      setTimeout(() => setIsUpdatingBalance(false), 3000);
+      setTimeout(() => setIsUpdatingBalance(false), 2000);
     }
   };
 
@@ -187,7 +150,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
     if (!newGroup.name) return addToast("Group name required", "error");
     setActionLoading(true);
     try {
-      await createThriftGroup(newGroup as any, userEmail, userId);
+      await createThriftGroup(newGroup as any, userEmail);
       addToast("Isusu Group Forming!", "success");
       setShowCreateGroup(false);
       await refreshData();
@@ -201,7 +164,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
   const handleJoinGroup = async (groupId: string) => {
     setActionLoading(true);
     try {
-      await joinThriftGroup(groupId, userId);
+      await joinThriftGroup(groupId);
       addToast("Joined Isusu Group Successfully", "success");
       await refreshData();
     } catch (e: any) {
@@ -226,33 +189,28 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
   if (loading) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center space-y-4">
       <Loader2 className="animate-spin text-blue-600" size={48} />
-      <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">Synchronizing Savings Unit</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">Synchronizing Financial Unit</p>
     </div>
   );
 
   /* INITIALIZATION SCREEN (Individual Cycle Choice) */
   if (activeTab === 'individual' && !account) {
     return (
-      <div className="relative min-h-screen bg-[#020617] flex flex-col items-center justify-center p-8 overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden opacity-10 pointer-events-none">
-           <Database size={600} className="absolute -top-40 -left-40 text-blue-500" />
-           <ShieldCheck size={400} className="absolute -bottom-20 -right-20 text-blue-600" />
-        </div>
-
+      <div className="relative min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 overflow-hidden">
         <button 
           onClick={() => setView('home')} 
-          className="fixed top-8 left-8 z-[100] p-4 bg-white/5 rounded-2xl border border-white/10 shadow-xl active:scale-90 transition-all text-white"
+          className="fixed top-8 left-8 z-[100] p-4 bg-white rounded-2xl border border-slate-200 shadow-xl active:scale-90 transition-all text-slate-900"
         >
           <ArrowLeft size={24} />
         </button>
 
-        <div className="w-full max-w-2xl bg-[#0f172a] p-12 rounded-[3.5rem] border border-white/5 shadow-2xl relative z-10 space-y-10">
+        <div className="w-full max-w-2xl bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-2xl relative z-10 space-y-10">
            <div className="space-y-4 text-center">
               <div className="w-20 h-20 bg-blue-600 rounded-[2rem] mx-auto flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
                  <ShieldCheck size={40} />
               </div>
-              <h2 className="text-4xl font-black uppercase tracking-tighter text-white">Activate Registry</h2>
-              <p className="text-sm font-medium text-white/40 uppercase tracking-widest px-10">Select your savings plan. All funds are locked until cycle maturity.</p>
+              <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">Activate Savings Unit</h2>
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-widest px-10">Select your savings protocol. Funds are locked securely until the cycle matures.</p>
            </div>
 
            <div className="grid grid-cols-2 gap-4">
@@ -260,45 +218,45 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                 { id: 'daily', label: 'Daily', desc: 'Fast rotation' },
                 { id: 'weekly', label: 'Weekly', desc: 'Standard business' },
                 { id: 'monthly', label: 'Monthly', desc: 'Growth focus' },
-                { id: 'quarterly', label: 'Quarterly', desc: 'Business bulk' }
+                { id: 'quarterly', label: 'Quarterly', desc: 'Industrial bulk' }
               ].map(c => (
                 <button 
                   key={c.id}
                   onClick={() => setSelectedCycle(c.id as any)}
-                  className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col gap-1 text-left ${selectedCycle === c.id ? 'border-blue-600 bg-blue-600/10' : 'border-white/5 bg-white/5'}`}
+                  className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col gap-1 text-left ${selectedCycle === c.id ? 'border-blue-600 bg-blue-50/50' : 'border-slate-100 bg-slate-50 opacity-60'}`}
                 >
-                  <span className={`text-sm font-black uppercase tracking-widest ${selectedCycle === c.id ? 'text-blue-400' : 'text-white/20'}`}>{c.label}</span>
-                  <span className="text-[10px] font-black text-white/30 uppercase tracking-tight">{c.desc}</span>
+                  <span className={`text-sm font-black uppercase tracking-widest ${selectedCycle === c.id ? 'text-blue-600' : 'text-slate-400'}`}>{c.label}</span>
+                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-tight">{c.desc}</span>
                 </button>
               ))}
            </div>
 
-           <div className="bg-black/40 p-6 rounded-3xl border border-white/5 space-y-3">
-              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                 <span className="text-white/30">Registry Access</span>
-                 <span className="text-blue-400">Type {selectedCycle}</span>
+           <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-3">
+              <div className="flex justify-between items-center">
+                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Protocol Arrangement</span>
+                 <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Type {selectedCycle}</span>
               </div>
-              <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                 <span className="text-white/30">Registry Fee</span>
-                 <span className="text-orange-500/80">3.5% (Settlement)</span>
+              <div className="flex justify-between items-center">
+                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Service Fee</span>
+                 <span className="text-xs font-black text-orange-600 uppercase tracking-widest">3.5%</span>
               </div>
-              <p className="text-[9px] text-white/20 italic font-medium uppercase tracking-wider text-center">Secure savings plan for long-term growth.</p>
+              <p className="text-[10px] text-slate-400 italic">This is a zero-yield locked savings system for capital protection.</p>
            </div>
 
            <button 
              onClick={handleOpenAccount} 
              disabled={actionLoading}
-             className="w-full py-6 bg-white text-aba-dark rounded-[2rem] font-black uppercase text-[12px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-4 hover:bg-blue-600 hover:text-white"
+             className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[12px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-4 hover:bg-blue-600"
            >
-             {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={20} />} Commit Registry
+             {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={20} />} Activate Protocol
            </button>
 
            <div className="flex flex-col items-center">
              <button 
                onClick={() => setActiveTab('group')}
-               className="text-[10px] font-black uppercase text-blue-400 tracking-widest hover:underline"
+               className="text-[10px] font-black uppercase text-blue-600 tracking-widest hover:underline"
              >
-               Switch to Isusu Network
+               Switch to Group Isusu
              </button>
            </div>
         </div>
@@ -340,28 +298,6 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
         <div className="max-w-4xl mx-auto p-8 space-y-12">
           {activeTab === 'individual' ? (
             <>
-              {/* 🔹 SAVINGS PLAN DETAILS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-8 bg-blue-50 rounded-[2.5rem] border border-blue-100 flex items-center gap-6 group hover:bg-blue-100 transition-all">
-                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-200">
-                        <Wallet size={24} />
-                    </div>
-                    <div>
-                        <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-widest">Digital Wallet</h4>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight leading-tight mt-1">Daily Operational Funds. Liquid for immediate use.</p>
-                    </div>
-                </div>
-                <div className="p-8 bg-orange-50 rounded-[2.5rem] border border-orange-100 flex items-center gap-6 border-dashed border-2">
-                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-orange-600 shadow-sm border border-orange-200">
-                        <ShieldCheck size={24} />
-                    </div>
-                    <div>
-                        <h4 className="text-[10px] font-black uppercase text-orange-600 tracking-widest">Thrift (Active)</h4>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tight leading-tight mt-1">Locked Savings Vault. Reserved for growth.</p>
-                    </div>
-                </div>
-              </div>
-
               {/* Dashboard Content */}
               <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden text-white">
                 <div className="relative z-10 space-y-6">
@@ -370,47 +306,27 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                         <ShieldCheck size={16} className="text-blue-400" />
                         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Savings Total</p>
                       </div>
-                      <div className="bg-blue-600/20 px-4 py-2 rounded-xl border border-blue-400/20 text-[10px] font-black uppercase text-blue-400 tracking-widest flex items-center gap-2">
-                        <Calendar size={12} /> {timeLeft}
+                      <div className="bg-blue-600/20 px-4 py-2 rounded-xl border border-blue-400/20 text-[10px] font-black uppercase text-blue-400 tracking-widest">
+                        {timeLeft}
                       </div>
                     </div>
                     <div className={`space-y-4 transition-all ${isUpdatingBalance ? 'scale-105' : ''}`}>
                       <h3 className="text-7xl font-black tracking-tighter">
                         ₦{account?.total_saved?.toLocaleString() || '0'}
                       </h3>
-                      <div className="flex items-center gap-3">
-                         <p className="text-sm font-medium text-white/30 uppercase tracking-[0.2em]">≈ ${( (account?.total_saved || 0) / 1500 ).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</p>
-                         <div className="h-1 w-1 rounded-full bg-white/20" />
-                         <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{account?.cycle} Commitment</p>
-                      </div>
+                      <p className="text-sm font-medium text-white/30 uppercase tracking-[0.2em]">≈ ${( (account?.total_saved || 0) / 1500 ).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD</p>
                     </div>
-                    <div className="pt-8 space-y-4">
-                       <p className="text-[10px] font-black uppercase text-white/20 tracking-widest ml-2">Savings Frequency</p>
-                       <div className="flex flex-wrap gap-3">
-                        {['daily', 'weekly', 'monthly', 'quarterly'].map((c) => (
-                          <button 
-                            key={c}
-                            disabled={account?.status === 'active'} // Can't change active plan
-                            onClick={() => {
-                              if (account?.status !== 'active') {
-                                setSelectedCycle(c as any);
-                              } else {
-                                addToast("Savings plan locked for active cycle.", "info");
-                              }
-                            }}
-                            className={`px-6 py-3 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${account?.cycle === c ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20' : 'bg-white/5 text-white/30 border-white/5 disabled:opacity-40'}`}
-                          >
-                            {c}
-                          </button>
-                        ))}
+                    <div className="pt-8 flex flex-wrap gap-4">
+                      <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 flex flex-col">
+                          <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Protocol</span>
+                          <span className="text-xs font-black text-white uppercase tracking-widest">{account?.cycle}</span>
                       </div>
-                    </div>
-                    
-                    <div className="pt-4 p-6 bg-white/5 border border-white/5 rounded-3xl flex items-start gap-4 mx-2">
-                       <Zap size={18} className="text-blue-400 shrink-0 mt-1" />
-                       <p className="text-[10px] text-white/40 leading-relaxed uppercase font-bold tracking-tighter">
-                          Individual thrift operates on <span className="text-blue-400 font-black">Daily</span>, <span className="text-blue-400 font-black">Weekly</span>, or <span className="text-blue-400 font-black">Monthly</span> frequency options. Once a cycle is initialized, it is locked for security until maturity.
-                       </p>
+                      <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 flex flex-col">
+                          <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Maturity Date</span>
+                          <span className="text-xs font-black text-blue-400 uppercase tracking-widest">
+                            {account?.locked_until ? new Date(account.locked_until).toLocaleDateString() : 'Active'}
+                          </span>
+                      </div>
                     </div>
                 </div>
 
@@ -442,7 +358,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                    </div>
                    <div>
                       <h4 className="text-xl font-black uppercase tracking-tight text-slate-900">Synchronize Savings</h4>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Add funds to your individual registry</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Add liquidity to your individual registry</p>
                    </div>
                 </div>
 
@@ -458,12 +374,12 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                       <span className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-300 font-black text-4xl">₦</span>
                    </div>
 
-                   <div className="grid grid-cols-5 gap-3">
-                      {[200, 1000, 5000, 10000, 50000].map(amt => (
+                   <div className="grid grid-cols-4 gap-4">
+                      {[1000, 5000, 10000, 50000].map(amt => (
                         <button 
                           key={amt}
                           onClick={() => setContributionAmount(amt)}
-                          className={`py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${contributionAmount === amt ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-600/20' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}
+                          className={`py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${contributionAmount === amt ? 'bg-orange-600 text-white border-orange-600' : 'bg-slate-50 text-slate-400 border-slate-100'}`}
                         >
                           ₦{amt >= 1000 ? `${amt/1000}k` : amt}
                         </button>
@@ -480,7 +396,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                 </div>
               </div>
 
-              {/* Projections (Disciplined Growth) */}
+              {/* Projections (Static, no yield) */}
               <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
                  <div className="flex items-center gap-4">
                     <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-blue-600/20">
@@ -501,62 +417,31 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                  </div>
               </div>
 
-              {/* History (Ledger) */}
-              <div className="bg-[#0f172a] p-12 rounded-[3.5rem] border border-white/5 space-y-8 shadow-2xl">
-                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-1">
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 flex items-center gap-2">
-                         <Database size={14} /> Thrift Ledger
-                      </h4>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-white/40 text-[10px] font-bold">REGISTRY:</span>
-                        <span className="text-white font-black text-xs uppercase tracking-widest">{account?.id?.slice(0, 12) || 'SYNCING...'}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button 
-                           onClick={refreshData}
-                           className="flex items-center gap-2 text-[10px] font-black text-white bg-white/5 border border-white/10 uppercase tracking-widest hover:bg-white/10 px-5 py-3 rounded-xl transition-all active:scale-95"
-                        >
-                           <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} /> Sync Registry
-                        </button>
-                        <button 
-                           onClick={() => addToast("History visualization coming soon.", "info")}
-                           className="flex items-center gap-2 text-[10px] font-black text-blue-400 bg-blue-400/5 border border-blue-400/10 uppercase tracking-widest hover:bg-blue-400/10 px-5 py-3 rounded-xl transition-all active:scale-95"
-                        >
-                           <History size={14} /> View History
-                        </button>
-                    </div>
+              {/* History */}
+              <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 space-y-8">
+                 <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                       <History size={16} /> Registry Logs
+                    </h4>
+                    <span className="text-[10px] font-black text-slate-400 uppercase">{contributions.length} SIGNALS</span>
                  </div>
-
-                 <div className="h-px bg-white/5" />
-
                  <div className="space-y-4">
                    {contributions.map((c, i) => (
-                      <div key={i} className="flex items-center justify-between p-7 bg-white/[0.02] rounded-3xl border border-white/5 hover:bg-white/[0.04] transition-all group">
-                         <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-transform">
-                               <CheckCircle2 size={20} />
+                      <div key={i} className="flex items-center justify-between p-7 bg-slate-50 rounded-3xl border border-slate-100">
+                         <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
+                               <CheckCircle2 size={18} />
                             </div>
                             <div>
-                               <div className="flex items-center gap-2">
-                                 <p className="text-lg font-black text-white tracking-tight">₦{c.amount.toLocaleString()}</p>
-                                 <span className="text-[7px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Payment Verified</span>
-                               </div>
-                               <p className="text-[9px] font-bold text-white/30 uppercase mt-1 tracking-wider">{new Date(c.created_at).toLocaleString()}</p>
+                               <p className="text-sm font-black text-slate-900">₦{c.amount.toLocaleString()}</p>
+                               <p className="text-[9px] font-bold text-slate-400 uppercase">{new Date(c.created_at).toLocaleString()}</p>
                             </div>
                          </div>
-                         <div className="text-right">
-                           <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">Batch ID</p>
-                           <p className="text-[10px] font-mono text-white/40">{c.id.slice(0, 8).toUpperCase()}</p>
-                         </div>
+                         <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[8px] font-black text-blue-600 uppercase tracking-widest">Synchronized</span>
                       </div>
                    ))}
                    {contributions.length === 0 && (
-                      <div className="text-center py-20 opacity-20 grayscale space-y-4">
-                        <Database size={48} className="mx-auto" />
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em]">No valid contributions recorded in Ledger</p>
-                      </div>
+                      <div className="text-center py-12 opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">No signals recorded in the registry</div>
                    )}
                  </div>
               </div>
@@ -572,7 +457,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                         <Users size={48} className="text-blue-200" />
                         <div className="space-y-2">
                           <h2 className="text-4xl font-black uppercase tracking-tighter">Isusu Network</h2>
-                          <p className="text-sm font-medium text-white/70 uppercase tracking-widest">Rotating community savings with bank-grade precision.</p>
+                          <p className="text-sm font-medium text-white/70 uppercase tracking-widest">Rotating community savings with industrial precision.</p>
                         </div>
                         <button 
                           onClick={() => setShowCreateGroup(true)}
@@ -619,7 +504,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                         {groups.length === 0 && (
                            <div className="col-span-full py-20 text-center opacity-30 grayscale space-y-4">
                               <Globe size={48} className="mx-auto" />
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em]">No community groups forming in this region</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em]">No industrial groups forming in this region</p>
                            </div>
                         )}
                       </div>
@@ -641,7 +526,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                            <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">{selectedGroup.group.name}</h2>
                            <div className="flex items-center gap-4">
                               <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-black uppercase tracking-widest">₦{selectedGroup.group.contribution_amount.toLocaleString()} Cycles</span>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedGroup.group.payout_frequency} Plan</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedGroup.group.payout_frequency} Protocol</span>
                            </div>
                         </div>
                         <div className="text-right">
@@ -676,7 +561,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                                       {idx + 1}
                                    </div>
                                    <div className="font-black text-sm text-slate-900 uppercase tracking-tight">
-                                      {m.user_id === userEmail ? 'YOU' : `MEMBER ${idx + 1}`}
+                                      {m.user_id === userEmail ? 'YOU (PASTOR)' : `REGISTRY USER ${idx + 1}`}
                                    </div>
                                 </div>
                                 {m.has_received ? (
@@ -707,11 +592,11 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-slate-900 p-12 rounded-[3.5rem] text-white space-y-6 relative overflow-hidden">
                  <div className="relative z-10 space-y-4">
-                   <h4 className="text-blue-400 text-xs font-black uppercase tracking-[0.4em]">Financial Security</h4>
-                   <h3 className="text-2xl font-black uppercase tracking-tight leading-tight">Wealth Stability</h3>
+                   <h4 className="text-blue-400 text-xs font-black uppercase tracking-[0.4em]">Industrial Logic</h4>
+                   <h3 className="text-2xl font-black uppercase tracking-tight leading-tight">No-Yield Discipline</h3>
                    <p className="text-slate-400 text-sm leading-relaxed">
                      FindAba Savings operates on the principle of <span className="text-white">Capital Protection</span>. 
-                     By removing speculative volatility, we ensure your business funds are 100% backed and physically secure.
+                     By removing speculative yields, we ensure your industrial liquidity is 100% backed and physically secure from regional volatility.
                    </p>
                  </div>
                  <Globe size={240} className="absolute -right-20 -bottom-20 opacity-10 pointer-events-none" />
@@ -719,11 +604,11 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
 
               <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 space-y-6">
                  <h4 className="text-slate-400 text-xs font-black uppercase tracking-[0.4em]">Transparency</h4>
-                 <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Pure Capital Settlement</h3>
+                 <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 leading-tight">Zero-Ambiguity Payouts</h3>
                  <p className="text-slate-500 text-sm leading-relaxed">
                    Your final withdrawal is strictly: <br/> 
-                   <span className="text-slate-900 font-black">Total Contributed - 3.5% Platform Fee</span>. <br/>
-                   No hidden charges, no market exposure. Pure financial clarity for Aba's hub entrepreneurs.
+                   <span className="text-slate-900 font-black">Total Saved - 3.5% Platform Fee</span>. <br/>
+                   No hidden charges, no market exposure. Pure financial clarity for Aba's entrepreneurs.
                  </p>
               </div>
           </div>
@@ -731,64 +616,60 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
 
         {/* Create Group Modal */}
         {showCreateGroup && (
-           <div className="fixed inset-0 z-[1000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="bg-white w-full max-w-xl rounded-[2.5rem] p-6 sm:p-12 space-y-6 sm:space-y-8 relative my-auto shadow-2xl border border-white/20"
-              >
+           <div className="fixed inset-0 z-[1000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6">
+              <div className="bg-white w-full max-w-xl rounded-[3.5rem] p-12 space-y-10 relative animate-slide-up">
                  <button 
                     onClick={() => setShowCreateGroup(false)} 
-                    className="absolute top-6 right-6 p-2 text-slate-300 hover:text-slate-900 transition-colors bg-slate-50 rounded-full"
+                    className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-colors"
                  >
-                    <X size={20} />
+                    <X />
                  </button>
                  
                  <div className="space-y-2">
-                    <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-slate-900 leading-tight">Form Isusu Group</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Initialize a collective rotating savings unit with high-visibility tracking.</p>
+                    <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Form Isusu Group</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Initialize a collective rotating savings unit.</p>
                  </div>
 
-                 <div className="space-y-5 sm:space-y-6">
+                 <div className="space-y-6">
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-500">Unit Name</label>
+                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Unit Name</label>
                        <input 
                          type="text" 
                          placeholder="e.g. Ariaria Shoe Guild Alpha"
-                         className="w-full bg-white p-5 sm:p-6 rounded-2xl border border-slate-300 font-black outline-none focus:ring-4 focus:ring-blue-600/10 transition-all text-sm text-slate-900 placeholder:text-slate-400"
+                         className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 font-bold outline-none"
                          onChange={e => setNewGroup({...newGroup, name: e.target.value})}
                        />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-500">Contribution (₦)</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Contribution (₦)</label>
                           <input 
                             type="number" 
                             value={newGroup.contribution_amount}
-                            className="w-full bg-slate-50 p-5 sm:p-6 rounded-2xl border border-slate-200 font-bold outline-none focus:ring-4 focus:ring-blue-600/10 transition-all text-sm text-slate-900"
+                            className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 font-bold outline-none"
                             onChange={e => setNewGroup({...newGroup, contribution_amount: Number(e.target.value)})}
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-500">Total Members</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Total Members</label>
                           <input 
                             type="number" 
                             value={newGroup.cycle_length}
-                            className="w-full bg-slate-50 p-5 sm:p-6 rounded-2xl border border-slate-200 font-bold outline-none focus:ring-4 focus:ring-blue-600/10 transition-all text-sm text-slate-900"
+                            className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 font-bold outline-none"
                             onChange={e => setNewGroup({...newGroup, cycle_length: Number(e.target.value)})}
                           />
                         </div>
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-500">Savings Frequency</label>
-                       <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Frequency</label>
+                       <div className="flex gap-2">
                           {['daily', 'weekly', 'monthly'].map(f => (
                              <button 
                                 key={f}
                                 onClick={() => setNewGroup({...newGroup, payout_frequency: f})}
-                                className={`py-4 sm:py-5 rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest border transition-all ${newGroup.payout_frequency === f ? 'bg-blue-600 text-white border-blue-600 shadow-xl shadow-blue-600/20 active:scale-95' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}`}
+                                className={`flex-1 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${newGroup.payout_frequency === f ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-400 border-slate-100'}`}
                              >
-                                {f}
+                               {f}
                              </button>
                           ))}
                        </div>
@@ -798,22 +679,21 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail, u
                  <button 
                     onClick={handleCreateGroup}
                     disabled={actionLoading}
-                    className="w-full py-6 sm:py-7 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[10px] sm:text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 hover:bg-blue-600"
+                    className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
                  >
                     {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={18} />} Form Isusu Unit
                  </button>
-              </motion.div>
+              </div>
            </div>
         )}
-
 
         {/* PAYSTACK OVERLAY */}
         {showCheckout && (
           <PaystackOverlay 
             isOpen={showCheckout}
-            amount={activeTab === 'group' && selectedGroup ? selectedGroup.group.contribution_amount : contributionAmount} 
+            amount={contributionAmount} 
             email={userEmail} 
-            label={activeTab === 'group' ? `Group Isusu: ${selectedGroup?.group?.name}` : "Thrift Savings Update"}
+            label="Industrial Thrift Sync"
             onSuccess={handlePaymentSuccess} 
             onCancel={() => setShowCheckout(false)} 
           />

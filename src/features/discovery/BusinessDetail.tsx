@@ -5,7 +5,7 @@ import {
   Star, MessageCircle, ShoppingBag, Share2, 
   Heart, ExternalLink, Award, Package, Clock,
   ChevronRight, Zap, CheckCircle2, Info, Loader2,
-  Lock, Edit, Save, X, MessageSquare
+  Lock
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -13,8 +13,6 @@ import 'leaflet/dist/leaflet.css';
 import { Business, Product, ViewState, IntegrityGrade, VerificationLevel } from '../../types';
 import { ImageCarousel, PaystackOverlay, IndustrialButton, SectionHeader } from '../../components';
 import { useAuth } from '../../providers/AuthProvider';
-import { useToast } from '../../providers/ToastProvider';
-import { updateBusinessInDB } from '../../services/supabaseService';
 import { BusinessClaimFlow } from '../merchant/BusinessClaimFlow';
 
 // Fix for Leaflet marker icons
@@ -35,18 +33,11 @@ interface BusinessDetailProps {
 }
 
 const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onToggleFavorite, isFavorite, setView }) => {
-  const { userIdentifier, user_id, userRole } = useAuth();
-  const { addToast } = useToast();
+  const { userIdentifier, user_id } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [showClaimFlow, setShowClaimFlow] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'location' | 'reviews'>('overview');
-
-  // Edit States
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(business.name);
-  const [editService, setEditService] = useState(business.primary_product_or_service);
-  const [isSaving, setIsSaving] = useState(false);
 
   const getGradeColor = (grade: IntegrityGrade) => {
     switch(grade) {
@@ -65,51 +56,28 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
         <div className="w-20 h-20 bg-aba-gold/10 rounded-3xl flex items-center justify-center text-aba-gold animate-pulse mb-6">
           <Loader2 size={40} className="animate-spin" />
         </div>
-        <h2 className="text-2xl font-bold text-white uppercase tracking-tight mb-4">Loading Business...</h2>
+        <h2 className="text-2xl font-bold text-white uppercase tracking-tight mb-4">Syncing Partner...</h2>
         <button 
           onClick={() => setView('home')}
           className="px-8 py-4 bg-white/5 text-white/40 rounded-xl font-bold uppercase text-[10px] tracking-widest border border-white/10 hover:text-white transition-standard"
         >
-          Return to Discovery
+          Return to Registry
         </button>
       </div>
     );
   }
 
   const isVerified = business.integrity_grade === IntegrityGrade.A || business.integrity_grade === IntegrityGrade.A_PLUS;
-  const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
-  const isOwner = (business.user_id && user_id && business.user_id === user_id) || isAdmin;
+  const isOwner = business.user_id && user_id && business.user_id === user_id;
   const isClaimable = !business.user_id;
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setEditName(business.name);
-    setEditService(business.primary_product_or_service);
-  }, [business]);
+  }, []);
 
   const handlePurchase = (product: Product) => {
     setSelectedProduct(product);
     setShowPayment(true);
-  };
-
-  const handleSave = async () => {
-    if (!isOwner) return;
-    setIsSaving(true);
-    try {
-      await updateBusinessInDB(business.id, {
-        name: editName,
-        primary_product_or_service: editService
-      });
-      addToast("Business Profile Updated Successfully", "success");
-      setIsEditing(false);
-      // Update local object ref if possible or rely on provider refresh
-      business.name = editName;
-      business.primary_product_or_service = editService;
-    } catch (e) {
-      addToast("Profile Update Failed", "error");
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleClaimSuccess = () => {
@@ -136,22 +104,10 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
            </button>
            <div className="flex gap-2 sm:gap-3">
               {isOwner && (
-                <button 
-                  onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                  disabled={isSaving}
-                  className="hidden sm:flex bg-aba-green/20 backdrop-blur-xl border border-aba-green/30 rounded-xl px-4 items-center gap-3 text-aba-green text-[10px] font-black uppercase tracking-widest hover:bg-aba-green/30 transition-standard"
-                >
-                   {isSaving ? <Loader2 size={14} className="animate-spin" /> : (isEditing ? <Save size={14} /> : <Edit size={14} />)}
-                   {isEditing ? 'Save Changes' : 'Edit Information'}
-                </button>
-              )}
-              {isEditing && (
-                <button 
-                  onClick={() => setIsEditing(false)}
-                  className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center text-white hover:bg-aba-red hover:text-white transition-standard"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="hidden sm:flex bg-aba-green/20 backdrop-blur-xl border border-aba-green/30 rounded-xl px-4 items-center gap-3 text-aba-green text-[10px] font-black uppercase tracking-widest">
+                   <div className="w-2 h-2 bg-aba-green rounded-full animate-pulse" />
+                   Owner Account
+                </div>
               )}
               <button 
                 onClick={() => onToggleFavorite(business.id)}
@@ -175,39 +131,16 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                     </div>
                     {isVerified && (
                       <div className="bg-aba-gold text-aba-deep text-[9px] sm:text-[10px] font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-2">
-                         <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Verified Business
+                         <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Verified Hub
                       </div>
                     )}
                     <div className="bg-white/10 backdrop-blur-xl text-white text-[9px] sm:text-[10px] font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg uppercase tracking-widest border border-white/10">
                        {business.category}
                     </div>
                  </div>
-                 {isEditing ? (
-                    <div className="space-y-4">
-                      <input 
-                        className="text-3xl sm:text-4xl md:text-6xl font-bold bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white uppercase tracking-tight leading-none w-full outline-aba-gold"
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        placeholder="Business Name"
-                      />
-                      <input 
-                        className="text-lg sm:text-xl font-bold bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-aba-gold uppercase tracking-widest w-full outline-aba-gold"
-                        value={editService}
-                        onChange={e => setEditService(e.target.value)}
-                        placeholder="Primary Product/Service"
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white uppercase tracking-tight leading-none">
-                        {business.name}
-                      </h1>
-                      <div className="flex items-center gap-4 text-aba-gold text-[10px] font-bold uppercase tracking-[0.2em]">
-                        <Package size={14} />
-                        {business.primary_product_or_service}
-                      </div>
-                    </>
-                  )}
+                 <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white uppercase tracking-tight leading-none">
+                    {business.name}
+                 </h1>
                  <div className="flex items-center gap-4 sm:gap-6">
                     <div className="flex items-center gap-2">
                        <Star className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${business.review_count > 0 ? "text-aba-gold" : "text-white/20"}`} fill={business.review_count > 0 ? "#FFD700" : "none"} />
@@ -281,13 +214,13 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
             {activeTab === 'overview' && (
               <div className="space-y-12 animate-fade-in">
                  <div className="space-y-6">
-                    <SectionHeader title="About this Business" icon={Info} />
+                    <SectionHeader title="About this Hub" icon={Info} />
                     <p className="text-base text-white/60 leading-relaxed font-medium">
                        {business.description}
                     </p>
                  </div>
 
-                 {/* Artisan Credentials & Capacity */}
+                 {/* Artisan Credentials */}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/5 space-y-6">
                        <div className="w-10 h-10 bg-aba-gold/20 text-aba-gold rounded-xl flex items-center justify-center">
@@ -323,51 +256,13 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                        </div>
                     </div>
                  </div>
-
-                 {/* Location Preview Card */}
-                 <div className="bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/5 space-y-12">
-                    <div className="flex items-center justify-between">
-                       <div className="space-y-2">
-                          <h4 className="text-sm font-bold text-white uppercase tracking-tight">Location Intelligence</h4>
-                          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-relaxed">
-                            {business.area} Sector • {business.address}
-                          </p>
-                       </div>
-                       <div className="w-10 h-10 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center">
-                          <MapPin size={20} />
-                       </div>
-                    </div>
-                    <div className="h-64 rounded-2xl overflow-hidden border border-white/5 relative group/map cursor-pointer" onClick={() => setActiveTab('location')}>
-                       <MapContainer 
-                         center={[business.latitude || 5.1065, business.longitude || 7.3675]} 
-                         zoom={14} 
-                         zoomControl={false}
-                         dragging={false}
-                         touchZoom={false}
-                         scrollWheelZoom={false}
-                         className="h-full w-full contrast-125 opacity-80 group-hover/map:opacity-100 transition-standard duration-700"
-                       >
-                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                         <Marker position={[business.latitude || 5.1065, business.longitude || 7.3675]} />
-                       </MapContainer>
-                       <div className="absolute inset-0 bg-gradient-to-t from-aba-deep via-transparent to-transparent opacity-60" />
-                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                          <div className="w-12 h-12 bg-aba-gold text-aba-deep rounded-full flex items-center justify-center shadow-glow-gold animate-bounce">
-                             <MapPin size={20} />
-                          </div>
-                          <div className="bg-white/5 backdrop-blur-md border border-white/10 px-4 py-2 rounded-lg text-[10px] font-bold text-aba-gold uppercase tracking-widest opacity-0 group-hover/map:opacity-100 transition-standard translate-y-2 group-hover/map:translate-y-0">
-                             Open Full Map
-                          </div>
-                       </div>
-                    </div>
-                 </div>
               </div>
             )}
 
             {/* Inventory Section */}
             {activeTab === 'products' && (
               <div className="space-y-12 animate-fade-in">
-                 <SectionHeader title="Product Catalog" icon={Package} />
+                 <SectionHeader title="Industrial Inventory" icon={Package} />
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {business.products?.map(product => (
                       <div key={product.id} className="bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden border border-white/5 group hover:border-aba-gold/30 transition-standard shadow-sm">
@@ -393,7 +288,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                                onClick={() => handlePurchase(product)}
                                className="w-full"
                             >
-                               Purchase Now
+                               Acquire Item
                             </IndustrialButton>
                          </div>
                       </div>
@@ -405,7 +300,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
             {/* Location Section */}
             {activeTab === 'location' && (
               <div className="space-y-12 animate-fade-in">
-                 <SectionHeader title="Business Location" icon={MapPin} />
+                 <SectionHeader title="Hub Coordinates" icon={MapPin} />
                  <div className="h-[400px] rounded-3xl overflow-hidden border border-white/5 shadow-sm relative z-10">
                     <MapContainer 
                       center={[business.latitude || 5.1065, business.longitude || 7.3675]} 
@@ -451,21 +346,21 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
             {/* Contact Card */}
             <div className="bg-white/5 backdrop-blur-xl p-10 rounded-3xl border border-white/10 shadow-sm space-y-10">
                <div className="space-y-4">
-                  <h4 className="text-xl font-bold text-white uppercase tracking-tight">Contact Information</h4>
-                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Official Contact Channels</p>
+                  <h4 className="text-xl font-bold text-white uppercase tracking-tight">Partner Connectivity</h4>
+                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Official Registry Channels</p>
                </div>
 
                <div className="space-y-6">
                   <button 
-                    onClick={() => window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}`, '_blank')}
-                    className="w-full flex items-center gap-5 p-5 bg-aba-green/5 rounded-2xl border border-aba-green/10 hover:border-aba-green/30 hover:bg-aba-green/10 transition-standard group"
+                    onClick={() => window.location.href = `tel:${business.phone_whatsapp}`}
+                    className="w-full flex items-center gap-5 p-5 bg-white/5 rounded-2xl border border-white/5 hover:border-aba-gold/30 hover:bg-white/10 transition-standard group"
                   >
-                     <div className="w-10 h-10 bg-aba-green text-white rounded-xl flex items-center justify-center group-hover:scale-110 transition-standard shadow-glow-green">
-                        <MessageSquare size={18} />
+                     <div className="w-10 h-10 bg-aba-green/20 text-aba-green rounded-xl flex items-center justify-center group-hover:scale-110 transition-standard">
+                        <Phone size={18} />
                      </div>
                      <div className="text-left">
-                        <p className="text-[8px] font-bold text-aba-green uppercase tracking-widest">WhatsApp Direct</p>
-                        <p className="text-sm font-bold text-white uppercase tracking-tight">Chat with Owner</p>
+                        <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Voice Signal</p>
+                        <p className="text-sm font-bold text-white uppercase tracking-tight">{business.phone_whatsapp}</p>
                      </div>
                   </button>
                   {business.primary_product_or_service && (
@@ -488,18 +383,18 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                   <div className="flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <Clock size={16} className="text-aba-gold" />
-                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Availability Status</span>
+                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Registry Status</span>
                      </div>
                      <span className="text-[10px] font-bold text-aba-green uppercase tracking-widest">Active Now</span>
                   </div>
                   <IndustrialButton
                      variant="primary"
                      size="lg"
-                     icon={MessageSquare}
+                     icon={Zap}
                      onClick={() => window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}`, '_blank')}
                      className="w-full"
                   >
-                     Contact on WhatsApp
+                     Fast Connect
                   </IndustrialButton>
                </div>
             </div>
@@ -511,12 +406,12 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                </div>
                <div className="space-y-1">
                   <h5 className="text-sm font-bold text-white uppercase tracking-tight">
-                    {isVerified ? 'Verified Business' : 'Community Member'}
+                    {isVerified ? 'Verified Hub' : 'Integrity Partner'}
                   </h5>
                   <p className="text-[9px] font-medium text-white/40 uppercase tracking-widest leading-relaxed">
-                      {isVerified 
-                        ? 'This business has passed the physical integrity inspection and document verification.' 
-                        : 'This member is currently undergoing the verification process.'}
+                     {isVerified 
+                       ? 'This hub has passed the physical integrity inspection and document verification.' 
+                       : 'This partner is currently undergoing the integrity verification protocol.'}
                   </p>
                </div>
             </div>

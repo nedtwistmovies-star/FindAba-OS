@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { Plus, Trash2, Check, X, GripVertical, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface TodoItem {

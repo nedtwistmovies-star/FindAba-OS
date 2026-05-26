@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { 
   ShoppingBag, Package, Truck, CheckCircle2, Clock, 
   AlertCircle, ArrowRight, ShieldCheck, Landmark, MessageSquare, Loader2
@@ -150,7 +150,7 @@ const BuyerOrdersView: React.FC<Props> = ({ setView }) => {
                       </button>
                    )}
                    <button 
-                     onClick={() => addToast("Initializing secure messages...", "info")}
+                     onClick={() => addToast("Registry Message Node Initializing...", "info")}
                      className="p-4 bg-slate-50 dark:bg-white/5 border dark:border-white/10 rounded-2xl text-slate-400 hover:text-aba-gold transition-all"
                    >
                       <MessageSquare size={18} />

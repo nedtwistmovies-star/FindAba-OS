@@ -37,63 +37,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
-      try {
-        const sb = getSupabase();
-        if (!sb) return;
+      const sb = getSupabase();
+      if (!sb) return;
 
-        const { data: { session }, error: sessionError } = await sb.auth.getSession();
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.user) {
+        const user = session.user;
         
-        if (sessionError) {
-           console.warn("[Auth] Session fetch error:", sessionError.message);
-           return;
-        }
-
-        if (session?.user) {
-          const user = session.user;
-          
-          // Sync Profile from DB
-          try {
-            let prof = await syncProfile(user);
-            
-            // Check for pending onboarding data
-            const pendingName = localStorage.getItem('findaba_pending_name');
-            const pendingRole = localStorage.getItem('findaba_pending_role');
-            
-            if ((pendingName || pendingRole) && prof) {
-              console.log("[Auth] Syncing pending onboarding data for:", user.email);
-              const updates: any = {};
-              if (pendingName) updates.full_name = pendingName;
-              if (pendingRole) updates.role = pendingRole === 'business' ? 'merchant' : 'registered';
-              
-              const { data: updatedProf, error: updateError } = await sb
-                .from('profiles')
-                .update(updates)
-                .eq('id', user.id)
-                .select()
-                .single();
-                
-              if (!updateError) {
-                prof = updatedProf;
-                localStorage.removeItem('findaba_pending_name');
-                localStorage.removeItem('findaba_pending_role');
-                localStorage.setItem('findaba_onboarded', 'true');
-              }
-            }
-            
-            setProfile(prof);
-            
-            const identifier = user.email || user.phone || '';
-            const name = prof?.full_name || user.user_metadata.full_name || 'Verified Citizen';
-            const role = prof?.role || 'registered';
-            const uuid = user.id;
-            
-            handleAuthSuccess(identifier, name, role, uuid);
-          } catch (profileErr) {
-            console.error("[Auth] Profile sync error:", profileErr);
-          }
-        }
-      } catch (e) {
-        console.warn("[Auth] Initialization fault (likely network):", e);
+        // Sync Profile from DB
+        const prof = await syncProfile(user);
+        setProfile(prof);
+        
+        const identifier = user.email || user.phone || '';
+        const name = prof?.full_name || user.user_metadata.full_name || 'Verified Citizen';
+        const role = prof?.role || 'registered';
+        const uuid = user.id;
+        
+        handleAuthSuccess(identifier, name, role, uuid);
       }
     };
 

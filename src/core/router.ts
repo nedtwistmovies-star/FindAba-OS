@@ -1,5 +1,5 @@
 
-import { lazy, ComponentType } from 'react';
+import { lazy } from 'react';
 import { ViewState } from '../types';
 
 /**
@@ -7,34 +7,28 @@ import { ViewState } from '../types';
  * This prevents the "Failed to fetch dynamically imported module" error 
  * when a new version of the app is deployed.
  */
-const lazyWithRetry = (componentImport: () => Promise<{ default: ComponentType<any> }>) => {
-  return lazy(() => 
-    componentImport()
-      .then(component => {
-        // Successful load, reset the refresh flag
-        window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
-        return component;
-      })
-      .catch(error => {
-        const pageHasBeenForceRefreshed = JSON.parse(
-          window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
-        );
+const lazyWithRetry = (componentImport: () => Promise<any>) => {
+  return lazy(async () => {
+    const pageHasBeenForceRefreshed = JSON.parse(
+      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
+    );
 
-        if (!pageHasBeenForceRefreshed) {
-          // Logging the fault to the console
-          console.warn('Industrial Module Fault detected. Attempting synchronization...');
-          window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
-          window.location.reload();
-          
-          // Return a promise that never resolves to avoid React trying to process undefined 
-          // while the page reloads. This prevents "Cannot use 'in' operator to search for 'default' in undefined"
-          return new Promise<{ default: ComponentType<any> }>(() => {});
-        }
+    try {
+      const component = await componentImport();
+      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
+      return component;
+    } catch (error) {
+      if (!pageHasBeenForceRefreshed) {
+        // Logging the fault to the console
+        console.warn('Industrial Module Fault detected. Attempting synchronization...');
+        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
+        return window.location.reload();
+      }
 
-        // If we already refreshed and it still fails, let the error boundary handle it
-        throw error;
-      })
-  );
+      // If we already refreshed and it still fails, let the error boundary handle it
+      throw error;
+    }
+  });
 };
 
 export const ROUTE_MAP: Record<ViewState, any> = {
@@ -46,7 +40,6 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'editorial-detail': lazyWithRetry(() => import('../features/discovery/AdvertorialDetail')),
   feed: lazyWithRetry(() => import('../features/faces/FacesFeed')),
   'merchant-portal': lazyWithRetry(() => import('../features/merchant/MerchantPortal')),
-  'intelligence-desk': lazyWithRetry(() => import('../features/intelligence/IntelligenceDesk')),
   register: lazyWithRetry(() => import('../features/merchant/Register')),
   pricing: lazyWithRetry(() => import('../features/merchant/Pricing')),
   'ad-checkout': lazyWithRetry(() => import('../features/discovery/AdCheckout')),
@@ -89,6 +82,5 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'fleet-admin': lazyWithRetry(() => import('../features/logistics/FleetAdmin')),
   'hardware-audit': lazyWithRetry(() => import('../features/tech/HardwareAudit')),
   'carry-go-dash': lazyWithRetry(() => import('../features/logistics/CarryGoDash')),
-  onboarding: lazyWithRetry(() => import('../features/auth/Onboarding')),
-  tracking: lazyWithRetry(() => import('../features/logistics/LiveTracking'))
+  onboarding: lazyWithRetry(() => import('../features/auth/Onboarding'))
 };

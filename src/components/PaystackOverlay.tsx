@@ -38,29 +38,10 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
   const [selectedChannel, setSelectedChannel] = useState<string[] | null>(null);
   const [reference, setReference] = useState('');
   const [copied, setCopied] = useState(false);
-  const [authStatus, setAuthStatus] = useState<string>('Initializing Secure Payment...');
+  const [authStatus, setAuthStatus] = useState<string>('Initializing AI Sentinel...');
   const [isAiVerifiedLocal, setIsAiVerifiedLocal] = useState(false);
   const [aiVerdict, setAiVerdict] = useState<any>(null);
   const isPaystackActive = paymentService.hasKey();
-  const [bankDetails, setBankDetails] = useState(OFFICIAL_BANK_DETAILS);
-
-  useEffect(() => {
-    // Try to load dynamic bank details from platform config
-    const configStr = localStorage.getItem('findaba_platform_config');
-    if (configStr) {
-      try {
-        const config = JSON.parse(configStr);
-        if (config.settings?.bank_details) {
-          setBankDetails({
-            ...OFFICIAL_BANK_DETAILS,
-            ...config.settings.bank_details
-          });
-        }
-      } catch (e) {
-        console.warn("[Overlay] Config parse failed, using hardcoded defaults.");
-      }
-    }
-  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -101,7 +82,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
           setReference(response.reference);
           setIsAiVerifiedLocal(false);
           setStep('success');
-          addToast("Payment Confirmed via Paystack.", "success");
+          addToast("Registry Settlement Confirmed via Paystack.", "success");
         }
       });
       handler.openIframe();
@@ -120,7 +101,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
     if (!file) return;
 
     setStep('auth_scan');
-    setAuthStatus('Verifying Receipt...');
+    setAuthStatus('Capturing Visual Signal...');
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -131,24 +112,24 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
     reader.onload = async () => {
       try {
         const base64 = reader.result as string;
-        setAuthStatus('Verifying Receipt Details...');
+        setAuthStatus('AI Sentinel Auditing Ledger...');
         console.log("[Sentinel] Verifying Receipt for ₦" + amount);
         
-        const verdict = await verifyReceiptSignal(base64, amount, bankDetails.accountNumber);
+        const verdict = await verifyReceiptSignal(base64, amount, OFFICIAL_BANK_DETAILS.accountNumber);
         console.log("[Sentinel] Verdict:", verdict);
         
         if (!verdict) {
-          throw new Error("Verification failed. Please try again.");
+          throw new Error("Sentinel signal lost. Verification could not be completed.");
         }
         
         // Handle both decimal (0.95) and percentage (95) scales for confidence_score
         const score = verdict.confidence_score <= 1 ? (verdict.confidence_score * 100) : (verdict.confidence_score || 0);
         
         if (verdict.is_valid && score >= 70) {
-          setAuthStatus('Receipt verified successfully.');
+          setAuthStatus('Consensus Reached. Signal Authentic.');
           localStorage.setItem(`ai_verified_${reference}`, JSON.stringify({ ...verdict, timestamp: new Date().toISOString() }));
           
-          addToast("Verification Successful: Receipt matches payment details.", "success");
+          addToast("AI Verification Successful: Signal matches expected ledger parity.", "success");
           console.log("[Sentinel] Success Handshake. Dispatching to Registry...");
           
           setIsAiVerifiedLocal(true);
@@ -160,16 +141,16 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
           // Automatically trigger success after a brief delay
           setTimeout(() => {
             console.log("[Sentinel] Automatic Sync Triggering...");
-            onSuccess({ reference, status: 'success', ai_verified: true, verdict, amount });
+            onSuccess({ reference, status: 'success', ai_verified: true, verdict });
           }, 4000);
         } else {
           console.warn("[Sentinel] Verification Reject:", verdict.reasoning);
-          addToast(`Verification Error: ${verdict.reasoning || 'Image does not match required standards.'}`, "error");
+          addToast(`Sentinel Rejection: ${verdict.reasoning || 'Image does not match industrial standards.'}`, "error");
           setStep('manual');
         }
       } catch (err: any) {
         console.error("[Sentinel] Critical Failure:", err);
-        addToast("Verification system error: " + (err.message || "Unknown Error"), "error");
+        addToast("Sentinel System Fault: " + (err.message || "Unknown Error"), "error");
         setStep('manual');
       }
     };
@@ -195,10 +176,10 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
              {step === 'auth_scan' && <div className="absolute inset-0 rounded-[1.5rem] md:rounded-3xl border-4 border-aba-gold border-t-transparent animate-spin" />}
           </div>
           <h2 className="text-white text-lg md:text-xl font-black uppercase tracking-[0.3em]">
-            {isPaystackActive ? 'Paystack' : 'FindAba Payment'}
+            {isPaystackActive ? 'Paystack' : 'FindAba Auth'}
           </h2>
           <p className="text-white/60 text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] mt-1 md:mt-2">
-            {step === 'auth_scan' ? 'Secure Transfer Verification' : 'Payment Secure Gateway'}
+            {step === 'auth_scan' ? 'AI Sentinel Active' : 'Registry Settlement Gateway'}
           </p>
         </div>
 
@@ -217,7 +198,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                   {isPaystackActive ? <ShieldCheck size={20} /> : <Zap size={20} />}
                   {isPaystackActive ? 'Select Payment Method' : 'Open Transfer Gateway'}
                 </button>
-                <button onClick={onCancel} className="w-full py-2 md:py-4 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors">Cancel Payment</button>
+                <button onClick={onCancel} className="w-full py-2 md:py-4 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors">Cancel Protocol</button>
               </div>
             </div>
           )}
@@ -226,7 +207,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
             <div className="space-y-6 md:space-y-8 animate-slide-up pb-4">
               <div className="text-center space-y-1 md:space-y-2">
                 <h3 className="text-base md:text-lg font-black uppercase tracking-tight">Select Channel</h3>
-                <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest">Payment Options</p>
+                <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest">Registry Settlement Options</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 md:gap-4">
@@ -279,8 +260,8 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                       <Cpu size={18} />
                     </div>
                     <div className="text-left">
-                      <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">Verified Transfer</p>
-                      <p className="text-[6px] md:text-[7px] font-bold text-blue-400 uppercase tracking-widest">Manual Verification</p>
+                      <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">AI Verified Transfer</p>
+                      <p className="text-[6px] md:text-[7px] font-bold text-blue-400 uppercase tracking-widest">Manual Hub Activation</p>
                     </div>
                   </div>
                   <ChevronRight size={14} className="text-blue-300 group-hover:translate-x-1 transition-transform" />
@@ -298,20 +279,16 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                <div className="bg-slate-50 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 space-y-6 md:space-y-8 relative overflow-hidden select-none">
                   <div className="absolute top-0 right-0 p-4 md:p-8 opacity-[0.03] -rotate-12"><Landmark size={100} /></div>
                   <div className="space-y-4 md:space-y-6 relative z-10 text-left">
-                    <div className="flex justify-between items-end group cursor-pointer" onClick={() => handleCopy(bankDetails.accountNumber)}>
+                    <div className="flex justify-between items-end group cursor-pointer" onClick={() => handleCopy(OFFICIAL_BANK_DETAILS.accountNumber)}>
                       <div className="space-y-1">
                         <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Account</p>
-                        <p className="text-2xl md:text-3xl font-black font-mono tracking-tighter">{bankDetails.accountNumber}</p>
+                        <p className="text-2xl md:text-3xl font-black font-mono tracking-tighter">{OFFICIAL_BANK_DETAILS.accountNumber}</p>
                       </div>
                       <div className="p-3 md:p-4 bg-white rounded-xl md:rounded-2xl border shadow-sm group-hover:border-aba-gold transition-all">{copied ? <Check size={18} className="text-aba-green"/> : <Copy size={18} className="text-slate-300"/>}</div>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Bank</p>
-                      <p className="text-base md:text-lg font-black uppercase tracking-tight">{bankDetails.bankName}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Name</p>
-                      <p className="text-[10px] md:text-xs font-black uppercase tracking-wider text-aba-deep/70">{bankDetails.accountName}</p>
+                      <p className="text-base md:text-lg font-black uppercase tracking-tight">{OFFICIAL_BANK_DETAILS.bankName}</p>
                     </div>
                   </div>
                </div>
@@ -319,7 +296,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                <div className="space-y-4 md:space-y-6 text-left">
                   <div className="p-4 md:p-6 bg-blue-50 border border-blue-100 rounded-[1.5rem] md:rounded-[2rem] flex gap-3 md:gap-4 items-center">
                     <Activity size={20} className="text-blue-600 shrink-0" />
-                    <p className="text-[8px] md:text-[9px] font-bold text-blue-800 uppercase leading-relaxed tracking-widest">Automatic Activation: Upload your transfer receipt below for instant verification.</p>
+                    <p className="text-[8px] md:text-[9px] font-bold text-blue-800 uppercase leading-relaxed tracking-widest">Automatic Activation: Upload your transfer receipt below for instant AI verification.</p>
                   </div>
 
                   <div className="relative group">
@@ -347,7 +324,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                </div>
                <div className="space-y-2">
                  <p className="text-[9px] md:text-[10px] font-black text-aba-dark uppercase tracking-[0.4em] animate-pulse">{authStatus}</p>
-                 <p className="text-[6px] md:text-[7px] font-bold text-slate-300 uppercase tracking-widest">FindAba Secure Payment v1.0</p>
+                 <p className="text-[6px] md:text-[7px] font-bold text-slate-300 uppercase tracking-widest">Industrial Trinity Protocol v20.0</p>
                </div>
             </div>
           )}
@@ -355,7 +332,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
           {step === 'processing' && (
             <div className="py-16 md:py-20 flex flex-col items-center justify-center text-center space-y-6 md:space-y-8">
                <Loader2 className="w-12 h-12 md:w-16 md:h-16 text-aba-gold animate-spin" />
-               <p className="text-[8px] md:text-[9px] font-bold text-slate-300 uppercase animate-pulse">Processing your payment...</p>
+               <p className="text-[8px] md:text-[9px] font-bold text-slate-300 uppercase animate-pulse">Synchronizing Partner Registry...</p>
             </div>
           )}
 
@@ -365,20 +342,19 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                  <CheckCircle2 size={50} className="animate-bounce" />
                </div>
                <div className="space-y-1 md:space-y-2">
-                 <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Payment Confirmed</h4>
-                 <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Finalizing Transaction (Auto)...</p>
+                 <h4 className="text-xl md:text-2xl font-black uppercase tracking-tighter">Auth Confirmed</h4>
+                 <p className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Finalizing Settlement Signal (Auto)...</p>
                </div>
                <button 
                  onClick={() => onSuccess({ 
                     reference, 
                     status: 'success', 
                     ai_verified: isAiVerifiedLocal, 
-                    verdict: aiVerdict,
-                    amount
+                    verdict: aiVerdict 
                  })} 
                  className="w-full bg-aba-dark text-white py-5 md:py-6 rounded-2xl md:rounded-[1.5rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.3em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                >
-                 Continue <ArrowRight size={16} />
+                 Enter Registry <ArrowRight size={16} />
                </button>
             </div>
           )}

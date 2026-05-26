@@ -5,9 +5,9 @@ import {
   Shield, Zap, Star, LayoutGrid, CheckCircle2, 
   Lock, ArrowRight, Loader2, Sparkles, Trophy,
   TrendingUp, Globe, ShieldCheck, ArrowLeft,
-  Check, AlertCircle, X
+  Check, AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { ViewState, HubTier, SubscriptionTier, Business } from '../../types';
 import { BUSINESS_PLANS } from '../../constants';
 import PaystackOverlay from '../../components/PaystackOverlay';
@@ -26,7 +26,6 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [selectedTier, setSelectedTier] = useState<HubTier | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [upgradeSuccess, setUpgradeSuccess] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -78,7 +77,7 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       color: 'text-white/40',
       bgColor: 'bg-white/5',
       borderColor: 'border-white/10',
-      description: 'Basic listing in our business directory.',
+      description: 'Entry-level presence in the Enyimba registry.',
       amount: 0,
       features: ['Basic Directory Entry', 'Standard Contact', 'Community Access']
     },
@@ -89,9 +88,9 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       color: 'text-aba-green',
       bgColor: 'bg-aba-green/10',
       borderColor: 'border-aba-green/20',
-      description: 'Get a verified badge and more visibility.',
+      description: 'Verified status for trusted local artisans.',
       amount: 2500,
-      features: ['Trusted Member Badge', 'Verified Profile', 'Priority in Local Searches']
+      features: ['Trusted Partner Badge', 'Verified Hub Profile', 'Local Signal Priority']
     },
     {
       id: HubTier.GROWTH_ENGINE,
@@ -100,9 +99,9 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       color: 'text-aba-gold',
       bgColor: 'bg-aba-gold/10',
       borderColor: 'border-aba-gold/20',
-      description: 'Boost your business with priority search.',
+      description: 'High-velocity scaling for master workshops.',
       amount: 5000,
-      features: ['Search Priority', 'Advanced Tools', 'Business Insights']
+      features: ['Search Priority Partner', 'Creative Lab Access', 'City Pulse Insights']
     },
     {
       id: HubTier.EXPORT_READY,
@@ -111,24 +110,18 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
       borderColor: 'border-blue-500/20',
-      description: 'Reach global buyers and get top ranking.',
+      description: 'Global trade connectivity for industrial leaders.',
       amount: 10000,
-      features: ['Verified Exporter Status', 'Unlimited Ranking', 'Global Buyer Leads']
+      features: ['Verified Exporter Partner', 'Unlimited Ranking', 'Global Buyer Signals']
     }
   ];
 
-  const currentTierIndex = tiers.findIndex(t => 
-    t.id === business.hub_tier || 
-    t.subTier === business.subscription_tier ||
-    t.id === (BUSINESS_PLANS.find(p => p.id === business.subscription_tier)?.name as any)
-  );
-  
-  const safeCurrentTierIndex = currentTierIndex === -1 ? 0 : currentTierIndex;
+  const currentTierIndex = tiers.findIndex(t => t.id === business.hub_tier) || 0;
 
   const handleUpgrade = (tier: any) => {
     if (tier.amount === 0) return;
     setSelectedTier(tier.id);
-    setShowConfirmModal(true);
+    setShowPayment(true);
   };
 
   const onPaymentSuccess = async (res?: any) => {
@@ -158,10 +151,10 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
       }, 2000);
 
     } catch (err) {
-      console.error('[Enrollment] Update failed:', err);
+      console.error('[Enrollment] Registry update failed:', err);
       setVerifying(false);
       // Fallback to inform the user
-      alert("Something went wrong with your update. Please refresh and try again.");
+      alert("Registry Sync Failed: Your signal was received but could not be committed to the master ledger. Please refresh and try again.");
     }
   };
 
@@ -205,12 +198,12 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
             transition={{ delay: 0.5 }}
             className="mt-16 space-y-6"
           >
-            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em]">Plan Updated Successfully</p>
+            <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em]">Registry Updated Successfully</p>
             <button 
               onClick={() => setView('merchant-portal')}
               className="group relative px-16 py-6 bg-white text-aba-dark rounded-2xl font-black uppercase text-xs tracking-[0.4em] overflow-hidden transition-all hover:pr-20 active:scale-95"
             >
-              <span className="relative z-10">Go to Dashboard</span>
+              <span className="relative z-10">Return to Command</span>
               <ArrowRight className="absolute right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all" size={20} />
             </button>
           </motion.div>
@@ -231,73 +224,6 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
         onCancel={() => setShowPayment(false)}
       />
 
-      {/* Confirmation Modal */}
-      <AnimatePresence>
-        {showConfirmModal && selectedTier && (
-          <div className="fixed inset-0 z-[6500] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-lg bg-[#002113] rounded-[3rem] border border-white/10 p-10 space-y-8 shadow-2xl"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
-                   <ShieldCheck className="text-aba-gold" size={32} />
-                   Confirm Enrollment
-                </h3>
-                <button onClick={() => setShowConfirmModal(false)} className="p-2 text-white/40 hover:text-white transition-all">
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                 <div className="p-8 bg-white/5 rounded-[2rem] border border-white/10 space-y-2">
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Selected Tier</p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-3xl font-black text-aba-gold tracking-tighter uppercase">{selectedTier}</p>
-                      <p className="text-xl font-black text-white tracking-tighter">₦{tiers.find(t => t.id === selectedTier)?.amount.toLocaleString()}</p>
-                    </div>
-                 </div>
-
-                 <div className="space-y-4">
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-2">Terms of Enrollment</p>
-                    <div className="space-y-3">
-                       {[
-                         "Verified badge awarded upon sync",
-                         "Search priority active for 30 cycles",
-                         "Industrial signals synchronized globally"
-                       ].map((t, idx) => (
-                         <div key={idx} className="flex items-center gap-3 text-[11px] font-bold text-white/80 uppercase tracking-widest leading-none">
-                            <Check size={14} className="text-aba-green shrink-0" /> {t}
-                         </div>
-                       ))}
-                    </div>
-                 </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                 <button 
-                   onClick={() => {
-                     setShowConfirmModal(false);
-                     setShowPayment(true);
-                   }}
-                   className="w-full py-6 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-xs tracking-[0.4em] shadow-xl active:scale-95 transition-all hover:bg-white"
-                 >
-                   Proceed to Settlement
-                 </button>
-                 <button 
-                   onClick={() => setShowConfirmModal(false)}
-                   className="w-full py-4 bg-white/5 text-white/40 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all"
-                 >
-                   Cancel Enrollment
-                 </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       <AnimatePresence>
         {verifying && (
           <motion.div 
@@ -314,11 +240,11 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
               <Loader2 size={48} className="animate-spin" />
               <div className="absolute inset-0 border-4 border-aba-gold/20 rounded-[2rem] animate-pulse" />
             </motion.div>
-            <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-2">Verifying Payment</h3>
-            <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em] animate-pulse">Waiting for Confirmation...</p>
+            <h3 className="text-2xl font-black uppercase tracking-tighter text-white mb-2">Verifying Settlement</h3>
+            <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em] animate-pulse">Waiting for Registry Confirmation...</p>
             <div className="mt-12 max-w-xs p-6 bg-white/5 rounded-2xl border border-white/10">
               <p className="text-[9px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
-                Our system is checking your payment. Your plan will update automatically once confirmed.
+                Our AI Sentinel is auditing the ledger. Your tier will upgrade automatically once the signal is confirmed.
               </p>
             </div>
           </motion.div>
@@ -332,8 +258,8 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
              <ArrowLeft size={20} />
           </button>
           <div>
-            <h2 className="text-xl font-black uppercase tracking-tighter leading-none">Choose <span className="text-aba-gold">Your Plan</span></h2>
-            <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em] mt-2">Upgrade Your Business</p>
+            <h2 className="text-xl font-black uppercase tracking-tighter leading-none">Hub <span className="text-aba-gold">Enrollment</span></h2>
+            <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em] mt-2">Tier Progression Protocol</p>
           </div>
         </div>
       </header>
@@ -342,16 +268,16 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
         {/* PROGRESS STACK */}
         <div className="space-y-4">
            <div className="flex justify-between items-end mb-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/40">Available Plans</h3>
-              <span className="text-[10px] font-black text-aba-gold uppercase tracking-widest">Level {safeCurrentTierIndex + 1} / 4</span>
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/40">Progression Stack</h3>
+              <span className="text-[10px] font-black text-aba-gold uppercase tracking-widest">Level {currentTierIndex + 1} / 4</span>
            </div>
            
            <div className="space-y-3">
               {tiers.map((tier, idx) => {
-                const isActive = idx === safeCurrentTierIndex;
-                const isCompleted = idx < safeCurrentTierIndex;
-                const isLocked = idx > safeCurrentTierIndex + 1;
-                const isAvailable = idx === safeCurrentTierIndex + 1;
+                const isActive = business.hub_tier === tier.id;
+                const isCompleted = idx < currentTierIndex;
+                const isLocked = idx > currentTierIndex + 1;
+                const isAvailable = idx === currentTierIndex + 1;
 
                 return (
                   <motion.div 
@@ -371,7 +297,7 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
                   >
                     {isActive && (
                       <div className="absolute top-0 right-0 px-6 py-2 bg-aba-gold text-aba-dark text-[8px] font-black uppercase tracking-widest rounded-bl-2xl">
-                        Current Plan
+                        Current Tier
                       </div>
                     )}
 
@@ -446,12 +372,12 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
         {/* SMART CTA */}
         <div className="fixed bottom-0 left-0 right-0 p-6 sm:p-10 bg-gradient-to-t from-[#002113] via-[#002113] to-transparent z-40">
            <div className="max-w-3xl mx-auto w-full">
-              {safeCurrentTierIndex < tiers.length - 1 ? (
+              {currentTierIndex < tiers.length - 1 ? (
                 <button 
-                  onClick={() => handleUpgrade(tiers[safeCurrentTierIndex + 1])}
+                  onClick={() => handleUpgrade(tiers[currentTierIndex + 1])}
                   className="w-full py-6 bg-aba-gold text-aba-dark rounded-[2rem] font-black uppercase text-xs tracking-[0.4em] shadow-[0_20px_50px_rgba(255,215,0,0.2)] hover:bg-white transition-all active:scale-95 flex items-center justify-center gap-4"
                 >
-                  Upgrade to {tiers[safeCurrentTierIndex + 1].id} (₦{tiers[safeCurrentTierIndex + 1].amount.toLocaleString()})
+                  Upgrade to {tiers[currentTierIndex + 1].id} (₦{tiers[currentTierIndex + 1].amount.toLocaleString()})
                   <ArrowRight size={20} />
                 </button>
               ) : (
@@ -460,7 +386,7 @@ const HubEnrollment: React.FC<HubEnrollmentProps> = ({ business, setView, onUpda
                   You're at the highest tier
                 </div>
               )}
-              <p className="text-[7px] text-center font-black uppercase text-white/20 tracking-[0.5em] mt-6">Version 2.0</p>
+              <p className="text-[7px] text-center font-black uppercase text-white/20 tracking-[0.5em] mt-6">Industrial Settlement Protocol v2.0</p>
            </div>
         </div>
       </main>

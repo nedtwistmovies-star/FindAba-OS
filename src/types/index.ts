@@ -1,7 +1,7 @@
 
 export type ViewState = 
   | 'discover' | 'home' | 'oracle' | 'lab' | 'cargo' | 'profile' | 'detail' 
-  | 'explore' | 'messages' | 'merchant-portal' | 'intelligence-desk'
+  | 'explore' | 'messages' | 'merchant-portal' 
   | 'register' | 'admin' | 'srts-dashboard' | 'editorial' | 'editorial-detail'
   | 'buyer-portal' | 'ad-manager' | 'feed' | 'registry-setup' | 'sandals-hotels' 
   | 'wallet' | 'contact' | 'audio-heritage' | 'srts-office' | 'booking-ledger' 
@@ -9,7 +9,7 @@ export type ViewState =
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
   | 'orders' | 'dispute-center' | 'login' | 'signup' | 'carry-me' | 'driver-registry'
   | 'purple-fleet' | 'driver-console' | 'fleet-admin' | 'legal' | 'hardware-audit' | 'business-verification'
-  | 'carry-go-dash' | 'onboarding' | 'support' | 'tracking';
+  | 'carry-go-dash' | 'onboarding' | 'support';
 
 export type Language = 'en' | 'ig' | 'pcm' | 'ha' | 'yo' | 'fr' | 'zh';
 export type UserRole = 'visitor' | 'registered' | 'business_owner' | 'verified_business' | 'buyer' | 'editor' | 'admin' | 'driver' | 'fleet_commander';
@@ -79,8 +79,7 @@ export interface RideBooking {
   amount: number;
   driver_share: number;
   platform_share: number;
-  status: 'requested' | 'accepted' | 'in_progress' | 'navigating_to_pickup' | 'arrived_at_pickup' | 'navigating_to_destination' | 'completed' | 'cancelled' | 'emergency' | 'sos_active';
-  otp?: string;
+  status: 'requested' | 'accepted' | 'navigating_to_pickup' | 'arrived_at_pickup' | 'navigating_to_destination' | 'completed' | 'cancelled' | 'emergency';
   tracking_session_id: string;
   created_at: string;
 }
@@ -231,83 +230,91 @@ export enum Category {
   TRAVEL = 'Travel & Tourism Agencies',
   CONSULTANCY = 'Business Consultancy & R&D',
   PUBLIC_SERVICES = 'Public Services & Utilities',
-  MANUFACTURE_GENERAL = 'General Manufacturing',
-  AGRO_MACHINERY = 'Agro-Machinery & Tools',
-  LIVESTOCK_FEED = 'Livestock & Feed Mills',
-  FISHERIES = 'Fisheries & Aquatic Life',
-  POULTRY_FARMS = 'Poultry & Hatcheries',
-  COLD_STORAGE = 'Cold Storage & Ice Plants',
-  METAL_FABRICATION = 'Metal & Steel Fabrication',
-  ALUMINUM_WORKS = 'Aluminum Fitting & Design',
-  ELECTRICAL_ENGINEERING = 'Electrical Engineering',
-  INTERIOR_DECORATION = 'Interior & Exterior Decor',
-  LANDSCAPING_GARDENING = 'Landscaping & Gardening',
-  PLUMBING_WATER_WORKS = 'Plumbing & Water Engineering',
-  BOREHOLE_DRILLING = 'Borehole & Irrigation',
-  GENERATOR_SERVICES = 'Generator Repair & Sales',
-  COMPUTER_IT_SERVICES = 'IT Support & Software Hub',
-  CYBER_CAFES_GAMING = 'Cyber Cafes & Gaming',
-  ADVERTISING_SIGNAGE = 'Advertising & Signage',
-  LOGISTICS_HAULAGE = 'Trucking & Haulage',
-  COURIER_SERVICES = 'Courier & Rapid Delivery',
-  WAREHOUSING_STOCKAGE = 'Warehousing & Storage',
-  FREIGHT_FORWARDING = 'Freight & Customs Clearing',
-  CAR_RENTAL_FLEET = 'Car Rental & Fleet Services',
-  CHAUFFEUR_DRIVING = 'Driving Schools & Hire',
-  AUTO_MECHANICAL_FIX = 'Auto Repair & Mechanical',
-  AUTO_ELECTRICAL_FIX = 'Auto-Electrical & Scanning',
-  PANEL_BEATING_PAINT = 'Panel Beating & Spray Work',
-  VULCANIZING_WHEEL = 'Vulcanizing & Alignment',
-  CAR_WASH_DETAILING = 'Car Wash & Detailing',
-  PETROLEUM_GAS_STATION = 'Petroleum, Gas & Lube',
-  ACCOUNTING_AUDIT_TAX = 'Accounting & Tax Audit',
-  VOCATIONAL_ACADEMY = 'Vocational & Skills Academy',
-  PRIVATE_TUTORIALS = 'Tutorials & Exam Prep',
-  MEDICAL_LABORATORIES = 'Medical Labs & Diagnostics',
-  BARBERING_STUDIO = 'Barbers & Hair Grooming',
-  SALON_HAIR_DRESSING = 'Salons & Hair Styling',
-  GYM_FITNESS_COACHING = 'Gym & Fitness Centers',
-  LOCAL_BUKKA_DELIGHTS = 'Local Bukka & Kitchens',
-  CATERING_OUTDOOR_FOOD = 'Catering & Event Food',
-  LOUNGES_BARS_NIGHTLIFE = 'Lounges, Bars & Nightlife',
-  CINEMA_THEATER_FILM = 'Cinema & Movie Theaters',
-  MUSIC_PRODUCTION = 'Music & Sound Studios',
-  PHOTOGRAPHY_STUDIO = 'Photo & Video Studios',
-  RELIGIOUS_STORES = 'Religious Books & Items',
-  NGO_FOUNDATIONS = 'NGOs & Charity Foundations',
-  INSURANCE_RISK_SHIELD = 'Insurance & Risk MGT',
-  COOPERATIVE_SOCIETY = 'Cooperative Societies',
-  MICROFINANCE_CREDIT = 'Microfinance & Credit Hub',
-  BUREAU_DE_CHANGE = 'Bureau De Change (FX)',
-  POS_AGENT_NETWORKS = 'POS & Agency Banking',
-  JEWELRY_WATCH_REPAIR = 'Jewelry & Watch Repair',
-  SUPERMARKETS_MARTS = 'Supermarkets & Marts',
-  LAUNDRY_DRY_CLEANING = 'Laundry & Dry Cleaning',
-  FUMIGATION_CONTROL = 'Fumigation & Pest Control',
-  ART_GALLERIES_CRAFTS = 'Art, Sculptures & Portraits',
-  LOCAL_GIN_DISTILLERY = 'Local Gin & Distillery',
-  TAILORING_MATERIALS = 'Tailoring Tools & Fabrics',
-  CHILDCARE_DAYCARE = 'Childcare & Daycare Hub',
-  BRIDAL_WEDDINGS = 'Bridal & Wedding Services',
-  FUNERAL_MORTUARY = 'Funeral & Mortuary Services',
-  SPARE_PARTS_JAPANESE = 'Japanese Auto Spare Parts',
-  SPARE_PARTS_EUROPEAN = 'European Auto Spare Parts',
-  SCRAP_METAL_RECOVERY = 'Scrap Metal & Recovery',
-  STREET_FOOD_KITCHEN = 'Street Food, Suya & Akara',
-  KEKE_OKADA_REPAIR = 'Keke & Okada Maintenance',
-  POLITICAL_CONSULTANCY = 'Political & Strategic MGT',
-  REAL_ESTATE_RENTALS = 'Property Rentals & Agency',
-  HOUSE_HELP_AGENCY = 'House Help & Domestic Staff',
-  SECURITY_GUARD_FIRM = 'Private Security & Guards',
-  SOLAR_INSTALLATION = 'Solar Panel Installation',
-  WEIGHT_LOSS_HERBAL = 'Weight Loss & Herbal Hub',
-  DENTAL_CLINIC = 'Dental Clinics & Orthodontics',
-  PETS_VETERINARY = 'Pets & Veterinary Care',
-  LIBRARIES_KNOWLEDGE = 'Libraries & Archives',
-  LEGAL_ADVOCACY = 'Legal Aid & Advocacy',
-  FASHION_MODELING = 'Modeling & Talent Agencies',
-  EVENT_PLANNING = 'Event Planning & Decoration',
-  GARDENING_LANDSCAPE = 'Gardening & Landscaping'
+  // Expanded Categories (Comprehensive Industry Sectors)
+  ACCOUNTING_BOOKKEEPING = 'Accounting & Bookkeeping',
+  ADVERTISING_MARKETING = 'Advertising & Marketing',
+  AEROSPACE_AVIATION = 'Aerospace & Aviation Hub',
+  ANIMAL_HEALTH_CARE = 'Animal Health & Veterinary',
+  ARCHITECTURE_INTERIOR = 'Architecture & Interior Design',
+  ARTS_CRAFTS_GALLERY = 'Arts, Crafts & Galleries',
+  BANKING_INVESTMENT = 'Banking & Investment Services',
+  BIOTECH_PHARMA = 'Biotechnology & Pharmaceuticals',
+  BROADCASTING_MEDIA = 'Broadcasting & Media Production',
+  BUILDING_INFRASTRUCTURE = 'Building & Infrastructure',
+  CHEMICALS_PLASTICS = 'Chemicals, Plastics & Synthetics',
+  CIVIL_CONSTRUCTION = 'Civil & Heavy Construction',
+  CLEANING_MAINTENANCE = 'Cleaning & Facility Maintenance',
+  COMMUNITY_NONPROFIT = 'Community & Non-Profit Org',
+  COMPUTER_IT_SERVICES = 'Computer & IT Services',
+  CONSULTING_STRATEGY = 'Consulting & Business Strategy',
+  COSMETICS_WELLNESS = 'Cosmetics, Beauty & Wellness',
+  COURIER_POSTAL = 'Courier & Postal Services',
+  CREATIVE_DESIGN = 'Creative Arts & Graphic Design',
+  CUSTOMER_RELATIONS = 'Customer Relations & Support',
+  CYBERSECURITY_DATA = 'Cybersecurity & Data Privacy',
+  DATA_SCIENCE_ANALYTICS = 'Data Science & Analytics',
+  DIGITAL_PUBLISHING = 'Digital Publishing & E-books',
+  E_COMMERCE_RETAIL = 'E-commerce & Digital Retail',
+  EDUCATION_LEARNING = 'Education & E-learning Hub',
+  ELECTRICAL_POWER = 'Electrical, Power & Energy',
+  ELECTRONICS_ASSEMBLY = 'Electronics & Circuit Assembly',
+  ENVIRONMENT_RECYCLING = 'Environment, Waste & Recycling',
+  EVENT_MANAGEMENT = 'Event Management & Planning',
+  FASHION_APPAREL_RETAIL = 'Fashion & Apparel Retail',
+  FILM_ANIMATION = 'Film, Animation & VFX',
+  FINANCIAL_PLANNING = 'Financial Planning & Tax',
+  FISHERIES_MARICULTURE = 'Fisheries & Mariculture',
+  FITNESS_SPORTS_COACH = 'Fitness, Sports & Coaching',
+  FLORISTRY_LANDSCAPING = 'Floristry & Landscaping',
+  FOOD_BEVERAGE_PROD = 'Food & Beverage Production',
+  FORESTRY_TIMBER = 'Forestry & Timber Production',
+  GAMING_SOFTWARE = 'Gaming & Interactive Software',
+  GOVERNMENT_BODIES = 'Government & Regulatory Bodies',
+  HEALTHCARE_DIAGNOSTICS = 'Healthcare & Diagnostics',
+  HUMAN_RESOURCES_HR = 'Human Resources & Recruitment',
+  IMPORT_EXPORT_TRADE = 'Import, Export & Global Trade',
+  INDUSTRIAL_EQUIPMENT = 'Industrial Tools & Equipment',
+  INSURANCE_BROKERAGE = 'Insurance & Brokerage Services',
+  INTERNATIONAL_AFFAIRS = 'International Affairs & NGOs',
+  JEWELRY_WATCHMAKING = 'Jewelry & Watchmaking',
+  LAND_SURVEYING = 'Land Surveying & Geomatics',
+  LEGAL_JUSTICE_LAW = 'Legal, Law & Justice Services',
+  LIVESTOCK_FARMING = 'Livestock & Poultry Farming',
+  LOGISTICS_WAREHOUSING = 'Logistics & Warehousing Hub',
+  MANUFACTURING_HEAVY = 'Heavy Industrial Manufacturing',
+  MANUFACTURING_LIGHT = 'Light Consumer Manufacturing',
+  MARINE_SHIPPING = 'Marine, Shipping & Ports',
+  MINING_EXPLORATION = 'Mining & Mineral Exploration',
+  MUSIC_SOUND_ENGINEER = 'Music Production & Sound Eng',
+  OIL_GAS_PETROLEUM = 'Oil, Gas & Petroleum Services',
+  PERSONAL_CARE_SERVICES = 'Personal & Household Services',
+  PHOTOGRAPHY_VIDEOGRAPHY = 'Photography & Videography',
+  PLUMBING_HEATING_ACS = 'Plumbing, Heating & Cooling',
+  PRINTING_PACKAGING = 'Printing & Industrial Packaging',
+  PROJECT_MANAGEMENT = 'Project & Program Management',
+  PROPERTY_REAL_ESTATE = 'Property & Real Estate Mgmt',
+  PUBLIC_RELATIONS_COMM = 'Public Relations & Comms',
+  RELIGIOUS_SERVICES = 'Religious & Spiritual Services',
+  RENEWABLE_ENERGY_SOLAR = 'Renewable & Solar Energy',
+  RESEARCH_DEVELOPMENT = 'Research & Development (R&D)',
+  RESTAURANT_CATERING = 'Restaurants & Industrial Catering',
+  SAFETY_SECURITY_SYSTEMS = 'Safety & Security Systems',
+  SALES_MARKETING_DEV = 'Sales, Marketing & Growth',
+  SOCIAL_SERVICES_AID = 'Social Services & Humanitarian',
+  SOFTWARE_ENGINEERING = 'Software Engineering & SaaS',
+  SPORTS_RECREATION_FAC = 'Sports & Recreation Facilities',
+  TELECOMMUNICATIONS_NET = 'Telecommunications & Networks',
+  TEXTILE_GARMENT_MANUF = 'Textile & Garment Industry',
+  TOURISM_TRAVEL_AGENCY = 'Tourism & Travel Agencies',
+  TRANSLATION_SERVICES = 'Translation & Interpretation',
+  TRANSPORTATION_PASSENGER = 'Transportation (Passenger)',
+  UPHOLSTERY_INTERIOR = 'Upholstery & Interior Decor',
+  URBAN_PLANNING_DEV = 'Urban Planning & Development',
+  VETERINARY_ACTIVITIES = 'Veterinary & Animal Health',
+  VOCATIONAL_REHAB = 'Vocational Training & Rehab',
+  WHOLESALE_DISTRIBUTION = 'Wholesale & Distribution',
+  WOOD_TIMBER_WORKS = 'Wood, Timber & Joinery Works',
+  WRITING_EDITING_PUB = 'Writing, Editing & Publishing'
 }
 
 export enum VerificationStatus {
@@ -391,9 +398,6 @@ export interface Business {
   business_type?: string;
   is_verified?: boolean;
   is_hidden_gem?: boolean;
-  location?: string;
-  city?: string;
-  services?: string[];
   transformation_story?: {
     before: string;
     after: string;
@@ -576,8 +580,6 @@ export interface PlatformConfig {
   instagram_url?: string;
   twitter_url?: string;
   tiktok_url?: string;
-  domain_activated?: boolean;
-  make_webhook_url?: string;
   updated_at: string;
 }
 
@@ -707,16 +709,6 @@ export interface AppNotification {
   timestamp: string;
 }
 
-export interface SupportMessage {
-  id?: string;
-  name?: string;
-  email: string;
-  subject?: string;
-  message: string;
-  status?: 'unread' | 'read' | 'archived';
-  created_at?: string;
-}
-
 export interface Profile {
   id: string;
   auth_id?: string;
@@ -738,10 +730,6 @@ export interface Profile {
     push: boolean;
   };
   dark_mode?: boolean;
-  is_verified?: boolean;
-  verified_at?: string;
-  verification_status?: string;
-  identity_docs?: any;
   created_at: string;
 }
 

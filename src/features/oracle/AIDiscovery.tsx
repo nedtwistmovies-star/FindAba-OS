@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Business, ViewState } from '../../types';
 import { findArtisansAI } from '../../services/geminiService';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface AIDiscoveryProps {
   businesses: Business[];
@@ -29,7 +29,7 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
       const data = await findArtisansAI(query, businesses);
       setResults(data);
     } catch (err) {
-      setError("The assistant is having trouble connecting. Please try again.");
+      setError("The Oracle's signal is weak. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -40,7 +40,7 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
     if (!isListening) {
       setTimeout(() => {
         setIsListening(false);
-        alert("Voice captured. Processing your request...");
+        alert("Voice Signal Captured. Processing industrial frequency...");
       }, 3000);
     }
   };
@@ -56,9 +56,9 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
         </button>
         <div className="flex flex-col items-center">
           <h1 className="text-xl font-black uppercase tracking-widest flex items-center gap-3">
-            <Sparkles className="text-aba-gold" size={20} /> Business Discovery
+            <Sparkles className="text-aba-gold" size={20} /> AI Discovery
           </h1>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">Search Intelligence v1.0</p>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">Industrial Intelligence v6.0</p>
         </div>
         <div className="w-12" />
       </header>
@@ -76,7 +76,7 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Ask Kalu... (e.g. Master shoemaker)"
+              placeholder="Consult the Oracle... (e.g. Master shoemaker)"
               className="flex-1 bg-transparent border-none outline-none px-6 py-4 text-lg font-medium placeholder:text-white/20"
             />
             <button 
@@ -108,7 +108,7 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
                 <div className="w-24 h-24 rounded-full border-4 border-aba-gold/20 border-t-aba-gold animate-spin"></div>
                 <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-aba-gold animate-pulse" size={32} />
               </div>
-              <p className="text-sm font-black uppercase tracking-[0.3em] text-aba-gold animate-pulse">Kalu is scanning businesses...</p>
+              <p className="text-sm font-black uppercase tracking-[0.3em] text-aba-gold animate-pulse">Kalu is consulting the registry...</p>
             </motion.div>
           ) : results ? (
             <motion.div 
@@ -125,8 +125,8 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
                       <Sparkles size={28} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black uppercase tracking-tight text-white">Assistant Insights</h3>
-                      <p className="text-[10px] font-bold text-aba-gold uppercase tracking-[0.2em]">Local Business Insight</p>
+                      <h3 className="text-xl font-black uppercase tracking-tight text-white">Kalu's Wisdom</h3>
+                      <p className="text-[10px] font-bold text-aba-gold uppercase tracking-[0.2em]">Kalu's Industrial Insight</p>
                     </div>
                   </div>
                   <p className="text-xl md:text-2xl font-medium leading-relaxed italic text-white/90">
@@ -135,7 +135,7 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
                   <div className="flex gap-3">
                     <div className="px-4 py-2 bg-white/5 rounded-full border border-white/10 flex items-center gap-2">
                       <Cpu size={12} className="text-aba-gold" />
-                      <span className="text-[8px] font-black uppercase tracking-widest text-white/60">Search Active</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-white/60">Neural Mesh Active</span>
                     </div>
                     <div className="px-4 py-2 bg-white/5 rounded-full border border-white/10 flex items-center gap-2">
                       <Network size={12} className="text-aba-green" />
@@ -214,13 +214,13 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
               <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 space-y-4">
                 <div className="flex items-center gap-3">
                   <Database size={16} className="text-aba-gold" />
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-white/40">Market Awareness</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-white/40">Industrial Grounding Data</h4>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {[
                     { label: "Market Volatility", value: "Low", color: "text-aba-green" },
-                    { label: "Directory Health", value: "Optimal", color: "text-aba-green" },
-                    { label: "Search Speed", value: "12ms", color: "text-aba-gold" }
+                    { label: "Registry Health", value: "Optimal", color: "text-aba-green" },
+                    { label: "Mesh Latency", value: "12ms", color: "text-aba-gold" }
                   ].map((item, i) => (
                     <div key={i} className="p-4 bg-black/20 rounded-xl border border-white/5">
                       <p className="text-[7px] font-black text-white/20 uppercase tracking-widest">{item.label}</p>
@@ -240,9 +240,9 @@ const AIDiscovery: React.FC<AIDiscoveryProps> = ({ businesses, onBack, onBusines
                 <Sparkles size={40} className="text-white/20" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-black uppercase tracking-tight">Ask Kalu</h3>
+                <h3 className="text-xl font-black uppercase tracking-tight">Ask the Oracle</h3>
                 <p className="text-white/40 text-sm max-w-md mx-auto leading-relaxed">
-                  Describe what you need, and Kalu will search the business directory to find the perfect master artisan for you.
+                  Describe what you need, and Kalu will search the industrial registry to find the perfect master artisan for you.
                 </p>
               </div>
               

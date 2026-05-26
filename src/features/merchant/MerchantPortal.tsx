@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Business, ViewState, Product, Order, OrderStatus, IntegrityGrade } from '../../types';
 import { useToast } from '../../providers/ToastProvider';
 import { 
@@ -106,17 +106,17 @@ const MerchantPortal: React.FC<{
         </div>
         <div className="space-y-4">
           <h2 className="text-3xl font-black text-white uppercase tracking-tighter">
-            {isRegistryLoading ? "Connecting Business..." : "Business Not Found"}
+            {isRegistryLoading ? "Syncing Partner..." : "Partner Not Found"}
           </h2>
           <p className="text-white/40 text-xs font-bold uppercase tracking-widest max-w-xs leading-relaxed">
             {isRegistryLoading 
-              ? "Connecting to the directory. Please wait while we load your dashboard."
-              : "We couldn't find a business associated with your account."}
+              ? "Establishing secure handshake with the Enyimba Registry. Please wait while we activate your industrial hub."
+              : "We couldn't find a business associated with your account in the industrial registry."}
           </p>
           {showRetry && isRegistryLoading && (
             <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl mt-4">
               <p className="text-red-400 text-[10px] font-black uppercase tracking-widest">
-                Registry Connection Timeout. Please check your network.
+                Registry Handshake Timeout. Signal is weak or partner is unregistered.
               </p>
             </div>
           )}
@@ -277,7 +277,7 @@ const MerchantPortal: React.FC<{
                     <img src="/manifest.json" className="w-full h-full object-contain" alt="FindAba" onError={(e) => { (e.target as any).src = 'https://picsum.photos/seed/aba/100/100'; }} />
                  </div>
                  <div className="space-y-0 md:space-y-1">
-                    <h2 className="text-base md:text-3xl font-bold uppercase tracking-tighter text-white leading-none italic">Aba Partners</h2>
+                    <h2 className="text-base md:text-3xl font-bold uppercase tracking-tighter text-white leading-none italic">FindAba</h2>
                     <p className="text-aba-gold text-[7px] md:text-xs font-black uppercase tracking-[0.2em] leading-none truncate max-w-[150px] sm:max-w-none">{business.name}</p>
                  </div>
               </div>
@@ -302,15 +302,15 @@ const MerchantPortal: React.FC<{
         {/* Navigation Grid */}
         <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl p-1 rounded-xl md:rounded-[3rem] shadow-2xl flex border border-slate-100 dark:border-white/10 overflow-x-auto scrollbar-hide mb-6 md:mb-16 touch-pan-x whitespace-nowrap">
           {[
-            { id: 'identity', label: 'Info', icon: <User size={14}/> },
-            { id: 'showroom', label: 'Products', icon: <Package size={14}/> },
+            { id: 'identity', label: 'Identity', icon: <User size={14}/> },
+            { id: 'showroom', label: 'Showroom', icon: <Package size={14}/> },
             { id: 'orders', label: 'Orders', icon: <ShoppingBag size={14}/> },
-            { id: 'disputes', label: 'Conflicts', icon: <Gavel size={14}/> },
-            { id: 'media', label: 'Photos & Videos', icon: <ImageIcon size={14}/> },
-            { id: 'finance', label: 'Earnings', icon: <Landmark size={14}/> },
-            { id: 'referrals', label: 'Invite Links', icon: <Zap size={14}/> },
-            { id: 'subscription', label: 'My Plan', icon: <Sparkles size={14}/> },
-            { id: 'trust', label: 'Trust Score', icon: <ShieldCheck size={14}/> }
+            { id: 'disputes', label: 'Disputes', icon: <Gavel size={14}/> },
+            { id: 'media', label: 'Media Hub', icon: <ImageIcon size={14}/> },
+            { id: 'finance', label: 'Finance', icon: <Landmark size={14}/> },
+            { id: 'referrals', label: 'Referrals', icon: <Zap size={14}/> },
+            { id: 'subscription', label: 'Subscription', icon: <Sparkles size={14}/> },
+            { id: 'trust', label: 'Trust Center', icon: <ShieldCheck size={14}/> }
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 min-w-[90px] md:min-w-[160px] px-3 py-3 md:py-5 rounded-lg md:rounded-[2.5rem] text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-standard flex items-center justify-center gap-1.5 md:gap-3 ${activeTab === tab.id ? 'bg-aba-deep text-white shadow-xl translate-y-[-1px]' : 'text-slate-400 dark:text-white/40 hover:text-aba-deep dark:hover:text-white'}`}>
               <span className={activeTab === tab.id ? 'text-aba-gold' : ''}>{tab.icon}</span>
@@ -348,8 +348,8 @@ const MerchantPortal: React.FC<{
                   <ImageIcon size={24} className="md:w-8 md:h-8" />
                 </div>
                 <div>
-                  <h4 className="text-xl md:text-3xl font-bold uppercase tracking-tight">Business Gallery</h4>
-                  <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-white/20 uppercase tracking-widest mt-1">Photos & Banner Preview</p>
+                  <h4 className="text-xl md:text-3xl font-bold uppercase tracking-tight">Identity Showreel</h4>
+                  <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-white/20 uppercase tracking-widest mt-1">Branding & Catalog Preview</p>
                 </div>
               </div>
               
@@ -358,7 +358,7 @@ const MerchantPortal: React.FC<{
                   <img src={business.image_url} className="w-full h-full object-cover transition-standard group-hover:scale-110" alt="Primary" referrerPolicy="no-referrer" />
                   <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/80 via-transparent to-transparent opacity-60" />
                   <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                    <span className="text-[9px] md:text-[10px] font-bold uppercase text-aba-gold tracking-[0.3em]">Business Banner</span>
+                    <span className="text-[9px] md:text-[10px] font-bold uppercase text-aba-gold tracking-[0.3em]">Primary Identity</span>
                   </div>
                 </div>
                 {(business.catalog_images || []).map((img, i) => (
@@ -366,7 +366,7 @@ const MerchantPortal: React.FC<{
                     <img src={img} className="w-full h-full object-cover transition-standard group-hover:scale-110" alt={`Catalog ${i}`} referrerPolicy="no-referrer" />
                     <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/80 via-transparent to-transparent opacity-60" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                      <span className="text-[9px] md:text-[10px] font-bold uppercase text-white/40 tracking-[0.3em]">Gallery Photo {i + 1}</span>
+                      <span className="text-[9px] md:text-[10px] font-bold uppercase text-white/40 tracking-[0.3em]">Catalog Asset {i + 1}</span>
                     </div>
                   </div>
                 ))}
@@ -381,16 +381,16 @@ const MerchantPortal: React.FC<{
                     <User size={24} className="md:w-8 md:h-8" />
                   </div>
                   <div>
-                    <h4 className="text-xl md:text-3xl font-bold uppercase tracking-tight">Business Info</h4>
-                    <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-white/20 uppercase tracking-widest mt-1">Name & Location Settings</p>
+                    <h4 className="text-xl md:text-3xl font-bold uppercase tracking-tight">Core Identity</h4>
+                    <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-white/20 uppercase tracking-widest mt-1">Registry Branding & Location</p>
                   </div>
                 </div>
 
                 <div className="space-y-8 md:space-y-10">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest ml-4">Business Hero Image</label>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest ml-4">Primary Identity Image</label>
                     <ImageUpload 
-                      label="Hero Image"
+                      label="Primary Identity Image"
                       currentImage={business.image_url} 
                       onUpload={(url) => handleUpdateMedia({ image_url: url })} 
                     />
@@ -434,8 +434,8 @@ const MerchantPortal: React.FC<{
                     <Award size={24} className="md:w-8 md:h-8" />
                   </div>
                   <div>
-                    <h4 className="text-xl md:text-3xl font-bold uppercase tracking-tight">Skills & Experience</h4>
-                    <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-white/20 uppercase tracking-widest mt-1">My Expertise & Portfolio</p>
+                    <h4 className="text-xl md:text-3xl font-bold uppercase tracking-tight">Artisan Credentials</h4>
+                    <p className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-white/20 uppercase tracking-widest mt-1">Skills & Experience Matrix</p>
                   </div>
                 </div>
 
@@ -487,7 +487,7 @@ const MerchantPortal: React.FC<{
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest ml-4">My Portfolio</label>
+                    <label className="text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest ml-4">Portfolio Gallery</label>
                     <MultiImageUpload 
                       urls={business.portfolio_images || []}
                       onAdd={(url: string) => setBusiness({ ...business, portfolio_images: [...(business.portfolio_images || []), url] })}
@@ -507,7 +507,7 @@ const MerchantPortal: React.FC<{
                     disabled={syncing}
                     className="w-full py-5 md:py-8 bg-aba-deep dark:bg-aba-gold text-white dark:text-aba-deep rounded-2xl md:rounded-[2.5rem] font-black uppercase text-[9px] md:text-xs tracking-[0.2em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-standard disabled:opacity-30"
                   >
-                     {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Save My Profile
+                     {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Identity Partner
                   </button>
               </div>
             </div>
@@ -523,8 +523,8 @@ const MerchantPortal: React.FC<{
                         <Package size={20} className="md:w-6 md:h-6" />
                       </div>
                       <div>
-                        <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Product Catalog</h4>
-                        <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Manage Your Digital Storefront</p>
+                        <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Digital Showroom</h4>
+                        <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Manage Your Product Catalog</p>
                       </div>
                    </div>
                    <button 
@@ -624,7 +624,7 @@ const MerchantPortal: React.FC<{
                   disabled={syncing}
                   className="w-full py-5 md:py-8 bg-aba-dark text-white rounded-2xl md:rounded-[2.5rem] font-black uppercase text-[9px] md:text-xs tracking-[0.2em] md:tracking-[0.5em] shadow-2xl flex items-center justify-center gap-3 md:gap-4 active:scale-95 transition-all"
                 >
-                   {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Save Product Changes
+                   {syncing ? <Loader2 className="animate-spin" /> : <Save size={18} className="md:w-5 md:h-5" />} Commit Showroom Updates
                 </button>
              </div>
           </div>
@@ -641,8 +641,8 @@ const MerchantPortal: React.FC<{
                       <ShieldAlert size={28} className="md:w-10 md:h-10" />
                     </div>
                     <div>
-                      <h3 className="text-xl md:text-3xl font-black text-white uppercase tracking-tight">Dispute Center</h3>
-                      <p className="text-[10px] md:text-xs font-bold text-red-500 uppercase tracking-[0.3em]">{disputes.length} Active Conflict Reports</p>
+                      <h3 className="text-xl md:text-3xl font-black text-white uppercase tracking-tight">Dispute Resolution Center</h3>
+                      <p className="text-[10px] md:text-xs font-bold text-red-500 uppercase tracking-[0.3em]">{disputes.length} Active Conflict Signals</p>
                     </div>
                   </div>
                 </div>
@@ -663,16 +663,16 @@ const MerchantPortal: React.FC<{
                       </div>
                       <div className="flex w-full md:w-auto gap-3">
                          <button 
-                           onClick={() => addToast("Evidence archive syncing...", "info")}
+                           onClick={() => addToast("Vault Signal initialized. Evidence archive syncing...", "info")}
                            className="flex-1 md:flex-none px-6 py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10"
                          >
-                           View Evidence
+                           Vault Access
                          </button>
                          <button 
-                           onClick={() => addToast("Dispute resolution protocol initiated. Please wait for official response.", "info")}
+                           onClick={() => addToast("Arbiter Protocol initiated. Please wait for institutional signal.", "info")}
                            className="flex-1 md:flex-none px-8 py-4 bg-aba-gold text-aba-dark rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
                          >
-                           Resolve Dispute
+                           Resolve Hub
                          </button>
                       </div>
                     </div>
@@ -684,8 +684,8 @@ const MerchantPortal: React.FC<{
                         <CheckCircle2 size={40} className="text-aba-green" />
                       </div>
                       <div className="space-y-2">
-                        <h4 className="text-white font-black uppercase tracking-tight text-xl md:text-2xl">Account Standing: Excellent</h4>
-                        <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto uppercase tracking-widest">No orders found. Your account is in good standing across the network.</p>
+                        <h4 className="text-white font-black uppercase tracking-tight text-xl md:text-2xl">Integrity Mesh: Optimal</h4>
+                        <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto uppercase tracking-widest">Zero trade conflicts detected. Your node is operating with high fidelity across the Enyimba network.</p>
                       </div>
                     </div>
                   )}
@@ -694,13 +694,13 @@ const MerchantPortal: React.FC<{
             </div>
 
             <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-8 md:p-12 rounded-[3rem] border border-slate-100 dark:border-white/10 space-y-6">
-              <h3 className="text-sm font-black uppercase tracking-[0.4em] text-slate-400 dark:text-white/20 px-4">Dispute Resolution Rules</h3>
+              <h3 className="text-sm font-black uppercase tracking-[0.4em] text-slate-400 dark:text-white/20 px-4">Conflict Resolution Protocols</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
-                  { title: '48-Hour Response', desc: 'Sellers have 48 hours to respond to a dispute before external review begins.' },
-                  { title: 'Evidence Upload', desc: 'Securely upload waybills, photos, and delivery proof to support your case.' },
-                  { title: 'Artisan Review', desc: 'Verified master artisans may be asked to provide expert opinions on quality disputes.' },
-                  { title: 'Trust Impact', desc: 'Unresolved disputes will affect your trust rating and business visibility.' }
+                  { title: 'The 48-Hour Handshake', desc: 'Merchants have 48 hours to respond to a trade signal conflict before institutional arbitration begins.' },
+                  { title: 'Evidence Vaulting', desc: 'Securely upload waybills, production footage, and delivery proof to the FindAba encrypted vault.' },
+                  { title: 'Civic Arbitration', desc: 'Verified master artisans may be summoned to provide expert opinions on technical craft disputes.' },
+                  { title: 'Fidelity Penalties', desc: 'Unresolved disputes significantly impact your Integrity Grade and market discoverability.' }
                 ].map((rule, i) => (
                   <div key={i} className="p-8 bg-slate-50 dark:bg-black/20 rounded-[2rem] border border-slate-100 dark:border-white/5 space-y-3">
                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">{rule.title}</p>
@@ -720,8 +720,8 @@ const MerchantPortal: React.FC<{
                     <ImageIcon size={20} className="md:w-6 md:h-6" />
                   </div>
                   <div>
-                    <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Business Photos</h4>
-                    <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Photos for your profile</p>
+                    <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Identity & Branding Stills</h4>
+                    <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Registry Discoverability Assets</p>
                   </div>
                 </div>
                 <MultiImageUpload 
@@ -744,8 +744,8 @@ const MerchantPortal: React.FC<{
                     <Video size={20} className="md:w-6 md:h-6" />
                   </div>
                   <div>
-                    <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Business Videos</h4>
-                    <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Video showcase for customers</p>
+                    <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Drive Fleet Media</h4>
+                    <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Cinematic Workshop Narratives</p>
                   </div>
                 </div>
                 <MultiVideoUpload 
@@ -781,7 +781,7 @@ const MerchantPortal: React.FC<{
           <div className="bg-white dark:bg-[#1e293b] rounded-3xl md:rounded-[4rem] shadow-xl border border-slate-100 dark:border-white/5 p-6 md:p-12 space-y-8 md:space-y-10 animate-slide-up">
              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-2">
                 <h3 className="text-lg md:text-xl font-black uppercase tracking-tight flex items-center gap-3 md:gap-4"><ShoppingBag size={20} className="text-aba-gold md:w-6 md:h-6"/> Order Registry</h3>
-                <span className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 px-3 md:px-4 py-1 md:py-1.5 bg-slate-50 dark:bg-black/20 rounded-full border dark:border-white/5">{orders.length} Orders Found</span>
+                <span className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 px-3 md:px-4 py-1 md:py-1.5 bg-slate-50 dark:bg-black/20 rounded-full border dark:border-white/5">{orders.length} Signals Captured</span>
              </div>
              
              <div className="space-y-4 md:space-y-6">
@@ -794,37 +794,37 @@ const MerchantPortal: React.FC<{
                          <div>
                             <div className="flex items-center gap-2 md:gap-3 mb-1">
                                <h4 className="text-sm md:text-base font-black uppercase tracking-tight">#{o.id.slice(-8)}</h4>
-                             <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(o.status)} bg-white dark:bg-black/20 border shadow-sm ${o.status === OrderStatus.DISPUTED ? 'animate-pulse-red' : ''}`}>
-                               <div className="flex items-center gap-1.5">
-                                 {o.status === OrderStatus.COMPLETED && <CheckCircle2 size={10} className="text-aba-green animate-check-reveal" />}
-                                 {o.status}
-                               </div>
-                             </span>
-                          </div>
-                          <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Buyer ID: {o.buyer_id}</p>
-                       </div>
-                    </div>
-                    
-                    <div className="flex flex-col md:items-end">
-                       <p className="text-xl md:text-2xl font-black text-aba-dark dark:text-white tracking-tighter">₦{o.merchant_payout.toLocaleString()}</p>
-                       <p className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-slate-300 mt-1">Platform Fee: ₦{o.commission_deducted.toLocaleString()}</p>
-                    </div>
-                    
-                    <div className="w-full md:w-auto">
-                       <button 
-                         onClick={() => setSelectedOrder(o)}
-                         className="w-full px-8 md:px-10 py-4 md:py-5 bg-white dark:bg-slate-700 border dark:border-white/10 rounded-xl md:rounded-2xl text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-aba-dark hover:text-white transition-all shadow-sm"
-                       >
-                         Manage Order
-                       </button>
-                    </div>
+                               <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(o.status)} bg-white dark:bg-black/20 border shadow-sm ${o.status === OrderStatus.DISPUTED ? 'animate-pulse-red' : ''}`}>
+                                 <div className="flex items-center gap-1.5">
+                                   {o.status === OrderStatus.COMPLETED && <CheckCircle2 size={10} className="text-aba-green animate-check-reveal" />}
+                                   {o.status}
+                                 </div>
+                               </span>
+                            </div>
+                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{o.buyer_id}</p>
+                         </div>
+                      </div>
+                      
+                      <div className="flex flex-col md:items-end">
+                         <p className="text-xl md:text-2xl font-black text-aba-dark dark:text-white tracking-tighter">₦{o.merchant_payout.toLocaleString()}</p>
+                         <p className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-slate-300 mt-1">Deduction: ₦{o.commission_deducted.toLocaleString()}</p>
+                      </div>
+                      
+                      <div className="w-full md:w-auto">
+                         <button 
+                           onClick={() => setSelectedOrder(o)}
+                           className="w-full px-8 md:px-10 py-4 md:py-5 bg-white dark:bg-slate-700 border dark:border-white/10 rounded-xl md:rounded-2xl text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-aba-dark hover:text-white transition-all shadow-sm"
+                         >
+                           Manage Signal
+                         </button>
+                      </div>
                    </div>
                 ))}
                 
                 {orders.length === 0 && !loading && (
                    <div className="py-24 md:py-32 text-center opacity-30 italic flex flex-col items-center">
                       <ShoppingBag size={48} className="md:w-16 md:h-16 mb-4 md:mb-6" />
-                      <p className="text-xs md:text-sm font-medium uppercase tracking-widest text-aba-dark dark:text-white px-4">No trade activity detected for this business.</p>
+                      <p className="text-xs md:text-sm font-medium uppercase tracking-widest text-aba-dark dark:text-white px-4">No commercial signals detected on this node.</p>
                    </div>
                 )}
              </div>
@@ -916,7 +916,7 @@ const MerchantPortal: React.FC<{
                          <div className="space-y-1.5">
                             <label className="text-[8px] font-black uppercase text-slate-400 tracking-widest ml-2">Gateway Provider</label>
                             <div className="w-full bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 p-4 rounded-xl text-[11px] font-bold flex items-center justify-between">
-                               <span>Paystack (Verified Provider)</span>
+                               <span>Paystack (Industrial Standard)</span>
                                <div className="px-2 py-0.5 bg-aba-green/20 text-aba-green rounded-full text-[7px] font-black uppercase tracking-widest">Connected</div>
                             </div>
                          </div>
@@ -930,7 +930,7 @@ const MerchantPortal: React.FC<{
                             >
                                <option value="daily">Daily (Standard)</option>
                                <option value="weekly">Weekly (Consolidated)</option>
-                               <option value="monthly">Monthly</option>
+                               <option value="monthly">Monthly (Industrial)</option>
                             </select>
                          </div>
 
@@ -946,9 +946,9 @@ const MerchantPortal: React.FC<{
                    <div className="bg-aba-dark p-8 md:p-10 rounded-2xl md:rounded-[3rem] text-white space-y-6 md:space-y-8 relative overflow-hidden">
                       <div className="absolute top-0 right-0 p-6 md:p-8 opacity-5"><ShieldCheck size={100} className="md:w-[120px] md:h-[120px]" /></div>
                       <div className="relative z-10 space-y-5 md:space-y-6">
-                         <h5 className="text-base md:text-lg font-black uppercase tracking-tight">Trust Verification</h5>
+                         <h5 className="text-base md:text-lg font-black uppercase tracking-tight">Fidelity Protocol</h5>
                          <p className="text-[9px] md:text-[10px] font-medium text-white/40 leading-relaxed uppercase tracking-widest">
-                            Your settlement profile is used by the FindAba network to automatically route payouts from successful business connections. 
+                            Your settlement node is used by the FindAba mesh to automatically route payouts from successful trade signals. 
                             Ensure your details match your Paystack-registered business name for seamless synchronization.
                          </p>
                          <div className="pt-2 md:pt-4 space-y-3 md:space-y-4">
@@ -1068,7 +1068,7 @@ const MerchantPortal: React.FC<{
             <div className="bg-white dark:bg-[#1e293b] p-6 md:p-12 rounded-3xl md:rounded-[4rem] shadow-xl border border-slate-100 dark:border-white/5 space-y-8">
                <div className="flex justify-between items-center px-2">
                   <h4 className="text-lg md:text-xl font-black uppercase tracking-tight">Referral History</h4>
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-black/20 px-3 py-1 rounded-full border dark:border-white/5">{referrals.length} Partners Connected</span>
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 dark:bg-black/20 px-3 py-1 rounded-full border dark:border-white/5">{referrals.length} Nodes Linked</span>
                </div>
                
                <div className="space-y-4">
@@ -1169,7 +1169,7 @@ const MerchantPortal: React.FC<{
                 {[
                   { grade: 'A+', label: 'Elite Partner', desc: 'Highest trust level. Physically verified with perfect trade history.' },
                   { grade: 'A', label: 'Verified Hub', desc: 'Verified identity and operations. High reliability signal.' },
-                  { grade: 'B', label: 'Trusted Partner', desc: 'Active partner with positive business history and verified identity.' },
+                  { grade: 'B', label: 'Trusted Node', desc: 'Active partner with positive trade signals and verified identity.' },
                   { grade: 'C', label: 'Unverified', desc: 'Default registration grade. Awaiting institutional audit.' },
                   { grade: 'D', label: 'Restricted', desc: 'Under review due to disputes or incomplete documentation.' }
                 ].map((item, i) => (
@@ -1229,7 +1229,7 @@ const MerchantPortal: React.FC<{
                       <CheckCircle2 size={24} className="text-aba-green md:w-8 md:h-8" />
                     </div>
                     <h4 className="text-white font-black uppercase tracking-tight text-sm md:text-base">Clean Ledger Signal</h4>
-                    <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto">Your business hub is operating normally. No disputes detected in the current cycle.</p>
+                    <p className="text-white/40 text-[10px] md:text-xs leading-relaxed max-w-sm mx-auto">Your industrial hub is operating within optimal parameters. No trade disputes detected in the current cycle.</p>
                   </div>
                 )}
               </div>
@@ -1245,7 +1245,7 @@ const MerchantPortal: React.FC<{
               
               <div className="flex justify-between items-start relative z-10">
                  <div className="space-y-1">
-                    <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Order Details</p>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-widest">Trade Signal Details</p>
                     <h3 className="text-xl md:text-2xl font-black text-aba-dark uppercase tracking-tighter">Order #{selectedOrder.id.slice(-8)}</h3>
                     <span className={`px-2.5 py-1 rounded-full text-[7px] md:text-[8px] font-black uppercase tracking-widest ${getStatusColor(selectedOrder.status)} bg-slate-50 border shadow-inner mt-2 inline-block`}>
                        {selectedOrder.status}
@@ -1293,7 +1293,7 @@ const MerchantPortal: React.FC<{
               </div>
 
               <p className="text-center text-[7px] md:text-[8px] font-bold text-slate-300 uppercase tracking-widest relative z-10 leading-relaxed px-4">
-                 Updating status triggers a real-time message to buyer.
+                 Updating status triggers a real-time signal to buyer node.
               </p>
            </div>
         </div>

@@ -103,7 +103,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
             <div className="space-y-4">
               <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">The Institutional <br/>Handshake.</h2>
               <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                Verification is not just a badge for visibility. It is a thorough check that signals your business readiness to global partners.
+                Verification is not a badge for visibility. It is a technical audit that signals operational readiness to global procurement nodes.
               </p>
             </div>
 
@@ -172,7 +172,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
               <div className="p-5 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3">
                 <Info size={16} className="text-blue-600 shrink-0" />
                 <p className="text-[9px] font-bold text-blue-800 leading-relaxed uppercase tracking-tight">
-                  Your documents are processed through our secure gateway. Only verified auditors see this data.
+                  Your documents are processed through our secure encryption node. Only Registry Auditors see this data.
                 </p>
               </div>
             </div>
@@ -244,7 +244,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
                  <p className="text-[10px] font-black uppercase tracking-widest">Status: Under Review</p>
                </div>
                <p className="text-[11px] text-slate-500 leading-relaxed font-medium uppercase tracking-tight">
-                 Review typically completes within <span className="text-aba-dark font-bold">48 working hours</span>. A verification officer may contact you via your registered WhatsApp for a physical business visit.
+                 Institutional review typically completes within <span className="text-aba-dark font-bold">48 working hours</span>. A Registry Auditor may contact you via your registered WhatsApp for a physical node inspection.
                </p>
             </div>
 

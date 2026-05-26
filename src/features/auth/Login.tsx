@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, ShieldCheck, ChevronRight, ArrowLeft, Loader2, Sparkles, Globe, User, Fingerprint, Zap, Wand2 } from 'lucide-react';
 import { useAuth, useOracle } from '../../providers';
 import { sendOTP, verifyOTP, loginWithEmail, loginWithGoogle, sendMagicLink, loginWithUsername, signUpWithUsername } from '../../services/authService';
@@ -51,7 +51,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     try {
       const { resetPasswordForEmail } = await import('../../services/authService');
       await resetPasswordForEmail(identifier);
-      addToast("Reset link sent. Check your inbox.", "success");
+      addToast("Reset signal dispatched. Check your inbox.", "success");
       setStep('request'); // Back to login
     } catch (err: any) {
       addToast(err.message || "Failed to send reset link", "error");
@@ -63,14 +63,14 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
-      addToast("Password must be at least 6 characters", "error");
+      addToast("Protocol key must be at least 6 characters", "error");
       return;
     }
     setLoading(true);
     try {
       const { updatePassword } = await import('../../services/authService');
       await updatePassword(newPassword);
-      addToast("Password updated successfully", "success");
+      addToast("Industrial key updated successfully", "success");
       setStep('request'); // Back to login
       // Clear URL params
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -86,16 +86,16 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     setLoading(true);
     try {
       if (useMagicLink) {
-        await sendMagicLink(identifier.toLowerCase().trim());
-        addToast("Login link sent. Check your inbox.", "success");
+        await sendMagicLink(identifier);
+        addToast("Magic signal dispatched. Check your inbox.", "success");
       } else {
-        const session = await loginWithUsername(identifier.toLowerCase().trim(), password, keepSignedIn);
+        const session = await loginWithUsername(identifier.trim(), password, keepSignedIn);
         if (session?.user) {
           const user = session.user;
           const role = localStorage.getItem('findaba_user_role') || 'registered';
-          handleAuthSuccess(user.email || user.user_metadata.username || '', user.user_metadata.full_name || 'Member', role, user.id);
-          addToast("Secure connection established.", "success");
-          onAuthSuccess(user.email || user.user_metadata.username || '', user.user_metadata.full_name || 'Member', role, user.id);
+          handleAuthSuccess(user.email || user.user_metadata.username || '', user.user_metadata.full_name || 'Citizen', role, user.id);
+          addToast("Neural link established.", "success");
+          onAuthSuccess(user.email || user.user_metadata.username || '', user.user_metadata.full_name || 'Citizen', role, user.id);
           
           setView('home');
         }
@@ -124,17 +124,17 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     setLoading(true);
     try {
-      const user = await signUpWithUsername(username.toLowerCase().trim(), identifier.trim(), password, fullName.trim());
+      const user = await signUpWithUsername(username.toLowerCase().trim(), identifier.trim(), password);
       if (user) {
         // Send Welcome Email
         try {
           const referralLink = `${window.location.origin}?ref=${username}`;
           await sendWelcomeEmail(identifier.trim(), username, referralLink);
         } catch (e) {
-          console.warn("[Auth] Welcome email error:", e);
+          console.warn("[Auth] Welcome email protocol fault:", e);
         }
 
-        addToast("Account created successfully. Please login.", "success");
+        addToast("Industrial ID generated. Please login.", "success");
         setStep('request'); // Switch to login after signup
       }
     } catch (err: any) {
@@ -149,7 +149,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
       setLoading(true);
       await loginWithGoogle();
     } catch (err: any) {
-      addToast("Authentication Error.", "error");
+      addToast("OAuth Protocol Failure.", "error");
       setLoading(false);
     }
   };
@@ -181,11 +181,11 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
            >
               <ShieldCheck size={32} />
            </motion.div>
-            <h2 className="text-3xl font-black tracking-tighter text-white mb-2 uppercase tracking-wide">
-             SECURE <span className="text-aba-gold">ACCESS.</span>
+           <h2 className="text-3xl font-black tracking-tighter text-white mb-2 uppercase tracking-wide">
+             NODE <span className="text-aba-gold">ACCESS.</span>
            </h2>
            <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.4em] leading-relaxed">
-             FindAba Commerce Platform
+             FindAba Industrial Operating System
            </p>
         </div>
 
@@ -201,7 +201,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                   className="space-y-6"
                 >
                    <div className="text-center mb-4">
-                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Create Your Account</p>
+                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Generate Industrial ID</p>
                    </div>
                    
                    <div className="space-y-4">
@@ -210,26 +210,10 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                          <div className="p-4"><User className="text-white/20" size={18} /></div>
                          <input 
                            type="text" 
-                           placeholder="FULL NAME" 
-                           value={fullName}
-                           onChange={e => setFullName(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
-                           autoComplete="name"
-                           required
-                         />
-                       </div>
-                     </div>
-
-                     <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
-                       <div className="flex items-center">
-                         <div className="p-4"><Fingerprint className="text-white/20" size={18} /></div>
-                         <input 
-                           type="text" 
                            placeholder="UNIQUE USERNAME" 
                            value={username}
                            onChange={e => setUsername(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
-                           autoComplete="username"
+                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                            required
                          />
                        </div>
@@ -243,9 +227,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                            placeholder="EMAIL ADDRESS" 
                            value={identifier}
                            onChange={e => setIdentifier(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-[16px] font-bold tracking-wide placeholder:text-white/20 outline-none"
-                           autoComplete="email"
-                           autoCapitalize="none"
+                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                            required
                          />
                        </div>
@@ -260,8 +242,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                               placeholder="KEY" 
                               value={password}
                               onChange={e => setPassword(e.target.value)}
-                              className="flex-1 bg-transparent py-4 text-sm font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
-                              autoComplete="new-password"
+                              className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                               required
                             />
                           </div>
@@ -274,8 +255,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                               placeholder="CONFIRM" 
                               value={confirmPassword}
                               onChange={e => setConfirmPassword(e.target.value)}
-                              className="flex-1 bg-transparent py-4 text-sm font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
-                            autoComplete="current-password"
+                              className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                               required
                             />
                           </div>
@@ -289,7 +269,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                      className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
                    >
                       {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>CREATE ACCOUNT</>
+                        <>COMMIT NEW IDENTITY</>
                       )}
                    </button>
 
@@ -298,11 +278,11 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                      onClick={() => { setStep('request'); setView('login'); }}
                      className="w-full text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors py-2"
                    >
-                     Already have an account? Login
+                     Already have a node? Login
                    </button>
                 </motion.form>
               ) : step === 'forgot' ? (
-                 <motion.form 
+                <motion.form 
                   key="forgot-form"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -311,7 +291,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                   className="space-y-6"
                 >
                    <div className="text-center mb-4">
-                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Password Recovery</p>
+                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Protocol Recovery</p>
                    </div>
                    <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
                      <div className="flex items-center">
@@ -321,9 +301,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                          placeholder="RECOVERY EMAIL" 
                          value={identifier}
                          onChange={e => setIdentifier(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-[16px] font-bold tracking-wide placeholder:text-white/20 outline-none"
-                         autoComplete="email"
-                         autoCapitalize="none"
+                         className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                          required
                        />
                      </div>
@@ -335,7 +313,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                      className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
                    >
                       {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>SEND RECOVERY LINK</>
+                        <>RESET PROTOCOL KEY</>
                       )}
                    </button>
 
@@ -348,7 +326,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                    </button>
                 </motion.form>
               ) : step === 'reset' ? (
-                 <motion.form 
+                <motion.form 
                   key="reset-form"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -357,18 +335,17 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                   className="space-y-6"
                 >
                    <div className="text-center mb-4">
-                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Create New Password</p>
+                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Establish New Protocol Key</p>
                    </div>
                    <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
                      <div className="flex items-center">
                        <div className="p-4"><Lock className="text-aba-gold" size={18} /></div>
                        <input 
                          type="password" 
-                         placeholder="NEW PASSWORD" 
+                         placeholder="NEW PROTOCOL KEY" 
                          value={newPassword}
                          onChange={e => setNewPassword(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
-                         autoComplete="new-password"
+                         className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                          required
                        />
                      </div>
@@ -380,7 +357,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                      className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
                    >
                       {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>UPDATE PASSWORD</>
+                        <>UPDATE INDUSTRIAL KEY</>
                       )}
                    </button>
 
@@ -409,9 +386,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                          placeholder="USERNAME OR EMAIL" 
                          value={identifier}
                          onChange={e => setIdentifier(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-[16px] font-black placeholder:text-white/20 outline-none"
-                         autoComplete="username"
-                         autoCapitalize="none"
+                         className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                          required
                        />
                      </div>
@@ -427,11 +402,10 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                          <div className="p-4"><Lock className="text-aba-gold" size={18} /></div>
                          <input 
                            type="password" 
-                           placeholder="PASSWORD" 
+                           placeholder="PROTOCOL KEY" 
                            value={password}
                            onChange={e => setPassword(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-[16px] font-bold uppercase tracking-wide placeholder:text-white/20 outline-none"
-                           autoComplete="current-password"
+                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
                            required={!useMagicLink}
                          />
                        </div>
@@ -458,7 +432,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                          onClick={() => setStep('forgot')}
                          className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors"
                        >
-                         Forgot Password?
+                         Forgot Key?
                        </button>
                        <button 
                          type="button"
@@ -477,7 +451,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                      className="w-full py-6 bg-white text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl hover:bg-aba-gold transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
                    >
                       {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>{useMagicLink ? "Send Login Link" : "Login"}</>
+                        <>{useMagicLink ? "Dispatch Magic Node" : "Initialize Link"}</>
                       )}
                    </button>
                 </motion.form>
@@ -489,7 +463,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                  <div className="w-full border-t border-white/5" />
               </div>
               <div className="relative flex justify-center text-[8px] font-black uppercase tracking-[0.4em] text-slate-500">
-                 <span className="bg-[#0b100e] px-4">Social Login</span>
+                 <span className="bg-[#0b100e] px-4">Social Mesh Gateway</span>
               </div>
            </div>
 
@@ -499,7 +473,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
              className="w-full py-5 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center gap-3 hover:bg-white/10 transition-standard group disabled:opacity-50"
            >
               <Globe size={20} className="text-white/40 group-hover:text-white transition-standard" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white">Continue with Google</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white">Google Hub Login</span>
            </button>
         </div>
 
@@ -509,22 +483,22 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                onClick={() => { setStep('request'); setView('login'); }}
                className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-aba-gold transition-colors"
              >
-                Already have an account? <span className="text-white">Login Now</span>
+                Already have a node? <span className="text-white">Login Now</span>
              </button>
            ) : (
              <button 
                onClick={() => { setStep('signup'); setView('signup'); }}
                className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-aba-gold transition-colors"
              >
-                Don't have an account? <span className="text-white">Create Account</span>
+                Don't have a node? <span className="text-white">Create Account</span>
              </button>
            )}
         </div>
       </motion.div>
       
       <footer className="p-12 text-center opacity-30 select-none grayscale blur-[0.5px]">
-         <span className="text-[16px] font-black uppercase tracking-[1em]">FindAba</span>
-         <p className="text-[8px] font-black uppercase tracking-widest mt-4">Premium Trade Platform v2026</p>
+         <span className="text-[16px] font-black uppercase tracking-[1em]">SANDALSroyalle</span>
+         <p className="text-[8px] font-black uppercase tracking-widest mt-4">Fidelity Mesh v19.2</p>
       </footer>
     </div>
   );

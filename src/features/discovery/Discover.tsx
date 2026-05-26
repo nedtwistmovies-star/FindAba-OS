@@ -4,28 +4,18 @@ import {
   ChevronRight, Star, Sparkles, Search, Gem, Users, Radio
 } from 'lucide-react';
 import { ViewState, Business, EditorialStory } from '../../types';
-import { IndustrialButton, SectionHeader, BusinessCard } from '../../components';
+import { IndustrialButton, SectionHeader } from '../../components';
 
 interface DiscoverProps {
   setView: (v: ViewState) => void;
   onStoryClick: (s: EditorialStory) => void;
   onBusinessClick: (b: Business) => void;
   onCategoryClick: (c: string) => void;
-  businesses: Business[];
-  favorites: string[];
-  onToggleFavorite: (id: string) => void;
   heroImages?: string[];
   heroVideos?: any[];
 }
 
-const Discover: React.FC<DiscoverProps> = ({ 
-  setView, 
-  onBusinessClick, 
-  businesses, 
-  favorites, 
-  onToggleFavorite,
-  onStoryClick 
-}) => {
+const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
   const discoverCategories = [
     {
       title: "About Aba",
@@ -49,13 +39,12 @@ const Discover: React.FC<DiscoverProps> = ({
     }
   ];
 
-  // Get Top 4 businesses based on rating or just first 4 verified ones
-  const featured = businesses
-    .filter(b => b.verification_status === 'Verified' || b.integrity_grade === 'A' || b.integrity_grade === 'A+')
-    .slice(0, 4);
-
-  // Fallback if no verified ones yet
-  const displayBusinesses = featured.length > 0 ? featured : businesses.slice(0, 4);
+  const featuredBusinesses = [
+    { id: '1', name: 'Andress Shoes Ltd.', rating: 5, review_count: 85, category: 'Footwear', image_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=600', area: 'Ariaria', integrity_grade: 'A+' },
+    { id: '2', name: 'Chimex Textiles', rating: 5, review_count: 79, category: 'Textiles', image_url: 'https://images.unsplash.com/photo-1524292332623-3a5a730cc0df?q=80&w=600', area: 'Ngwa Road', integrity_grade: 'A' },
+    { id: '3', name: 'Royale Furniture Co.', rating: 5, review_count: 64, category: 'Furniture', image_url: 'https://images.unsplash.com/photo-1538688543467-f9697d36ca3b?q=80&w=600', area: 'Osisioma', integrity_grade: 'A' },
+    { id: '4', name: 'Bay Energy Solutions', rating: 5, review_count: 74, category: 'Renewable Energy', image_url: 'https://images.unsplash.com/photo-1509391366360-fe5bb58583bb?q=80&w=600', area: 'Umuahia Road', integrity_grade: 'A+' },
+  ];
 
   return (
     <div className="flex-1 flex flex-col bg-aba-deep pb-40 animate-fade-in font-sans text-white">
@@ -169,20 +158,32 @@ const Discover: React.FC<DiscoverProps> = ({
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {displayBusinesses.map((biz) => (
-            <BusinessCard 
-              key={biz.id} 
-              business={biz} 
-              onClick={onBusinessClick}
-              isFavorite={favorites.includes(biz.id)}
-              onToggleFavorite={onToggleFavorite}
-            />
-          ))}
-          {displayBusinesses.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-white/5 rounded-3xl border border-white/5">
-              <p className="text-white/40 font-bold uppercase tracking-widest">Scanning for active partner signals...</p>
+          {featuredBusinesses.map((biz) => (
+            <div key={biz.id} onClick={() => onBusinessClick(biz as any)} className="group cursor-pointer bg-white/5 backdrop-blur-2xl rounded-3xl overflow-hidden border border-white/5 hover:border-aba-gold/30 transition-standard active:scale-95 shadow-sm">
+              <div className="h-56 relative overflow-hidden">
+                <img src={biz.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-standard duration-1000" alt={biz.name} />
+                <div className="absolute inset-0 bg-gradient-to-t from-aba-deep/90 to-transparent" />
+                <div className="absolute top-4 left-4">
+                  <div className="bg-aba-gold text-aba-deep text-[8px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-widest shadow-sm border border-white/10">
+                    Grade {biz.integrity_grade}
+                  </div>
+                </div>
+              </div>
+              <div className="p-8 space-y-4">
+                <div className="space-y-1">
+                  <h4 className="text-lg font-bold text-white uppercase tracking-tight group-hover:text-aba-gold transition-colors line-clamp-1">{biz.name}</h4>
+                  <p className="text-[10px] font-bold text-aba-gold/60 uppercase tracking-widest">{biz.category}</p>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-1">
+                    <Star size={12} fill="#FFD700" className="text-aba-gold" />
+                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{biz.rating.toFixed(1)}</span>
+                  </div>
+                  <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{biz.area}</div>
+                </div>
+              </div>
             </div>
-          )}
+          ))}
         </div>
       </section>
     </div>

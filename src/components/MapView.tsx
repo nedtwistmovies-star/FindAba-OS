@@ -20,36 +20,21 @@ const MapView: React.FC<MapViewProps> = ({ businesses, onBusinessClick, userLoca
 
   // Initialize Map
   useEffect(() => {
-    if (!mapContainerRef.current) return;
-    
-    // Check if L is available, if not, wait a bit
-    const initMap = () => {
-      const leaflet = (window as any).L;
-      if (!leaflet || mapRef.current) return;
+    if (!mapContainerRef.current || !L) return;
 
-      mapRef.current = leaflet.map(mapContainerRef.current, {
+    if (!mapRef.current) {
+      mapRef.current = L.map(mapContainerRef.current, {
         zoomControl: false,
         attributionControl: false,
         fadeAnimation: true,
         markerZoomAnimation: true
       }).setView([5.1065, 7.3633], 14);
 
-      leaflet.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
       }).addTo(mapRef.current);
-    };
-
-    initMap();
-    const interval = setInterval(() => {
-      if ((window as any).L) {
-        initMap();
-        clearInterval(interval);
-      }
-    }, 500);
-
-    return () => clearInterval(interval);
-  }, []);
+    }
+  }, [L]);
 
   // Update Route
   useEffect(() => {
@@ -253,7 +238,7 @@ const MapView: React.FC<MapViewProps> = ({ businesses, onBusinessClick, userLoca
         .marker-pulse { animation: marker-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
         @keyframes marker-ping { 75%, 100% { transform: scale(1.5); opacity: 0; } }
       `}</style>
-      <div ref={mapContainerRef} className="w-full h-full brightness-[1.1] contrast-[1.1]" />
+      <div ref={mapContainerRef} className="w-full h-full grayscale-[0.2] brightness-[0.8]" />
       
       {/* Map Controls */}
       <div className="absolute top-6 right-6 z-[400] flex flex-col gap-3">

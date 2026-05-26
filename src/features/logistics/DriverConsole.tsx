@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { 
   Shield, User, Smartphone, MapPin, Power, 
   Activity, ArrowLeft, Loader2, ChevronRight, 
@@ -85,7 +84,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
         localStorage.setItem('findaba_user_email', authEmail);
         addToast("Driver Handshake Verified.", "success");
       } else {
-        throw new Error("User is not registered as a driver partner.");
+        throw new Error("User is not registered as a driver node.");
       }
     } catch (e: any) {
       addToast(e.message || "Auth Signal Failed", "error");
@@ -143,7 +142,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
 
   const handlePanicSignal = () => {
     setPanicActive(true);
-    addToast("SILENT SOS BROADCASTED. Command center is monitoring your live location. Platform logged.", "error");
+    addToast("SILENT SOS BROADCASTED. Command center is monitoring your live GPS node. Protocol logged.", "error");
   };
 
   const handleReportIncident = () => {
@@ -169,22 +168,12 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
 
   const completeRide = async () => {
     if (!currentRide) return;
-    setLoading(true);
     try {
-      // Trigger Payout via Server
-      const response = await axios.post('/api/ride/complete', {
-        ride_id: currentRide.id
-      });
-      
-      if (response.data.success) {
-        addToast("Ride Completed. Funds dispatched to your account.", "success");
-        if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
-        setShowRatingModal(true);
-      }
-    } catch (e: any) {
-      addToast(e.response?.data?.error || "Settlement error.", "error");
-    } finally {
-      setLoading(false);
+      await updateRideBookingStatus(currentRide.id, 'completed');
+      if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
+      setShowRatingModal(true);
+    } catch (e) {
+      addToast("Settlement error.", "error");
     }
   };
 
@@ -235,7 +224,6 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
           <input 
             type="email" 
             placeholder="Registered Email" 
-            autoCapitalize="none"
             className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold outline-none focus:border-aba-gold transition-all"
             value={authEmail}
             onChange={e => setAuthEmail(e.target.value)}
@@ -474,7 +462,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                <div className="space-y-2">
                   <h4 className="text-sm font-black uppercase tracking-tight">Market Pulse Intel</h4>
                   <p className="text-[10px] font-medium text-white/40 leading-relaxed uppercase tracking-widest italic">
-                    High volume detected in Ariaria Sector. Priority dispatch assigned to active partners.
+                    High volume detected in Ariaria Sector. Priority dispatch protocols assigned to Level 2 elite nodes.
                   </p>
                </div>
             </div>

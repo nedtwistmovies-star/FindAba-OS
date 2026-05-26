@@ -25,10 +25,8 @@ export const useGitSync = () => {
         return;
       }
 
-      const url = targetRepo 
-        ? window.location.origin + `/api/git/sync?repo=${encodeURIComponent(targetRepo)}` 
-        : window.location.origin + '/api/git/sync';
-      const response = await fetch(url, { credentials: 'include' });
+      const url = targetRepo ? `/api/git/sync?repo=${encodeURIComponent(targetRepo)}` : '/api/git/sync';
+      const response = await fetch(url);
       const contentType = response.headers.get("content-type");
       
       if (contentType && contentType.includes("application/json")) {
@@ -60,11 +58,10 @@ export const useGitSync = () => {
     setLoading(true);
     try {
       const repo = localStorage.getItem('findaba_git_repo') || '';
-      const response = await fetch(window.location.origin + `/api/git/commit?repo=${encodeURIComponent(repo)}`, {
+      const response = await fetch(`/api/git/commit?repo=${encodeURIComponent(repo)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files, message }),
-        credentials: 'include'
+        body: JSON.stringify({ files, message })
       });
       
       const contentType = response.headers.get("content-type");
@@ -103,12 +100,11 @@ export const useGitSync = () => {
 
     try {
       const repo = localStorage.getItem('findaba_git_repo') || '';
-      const response = await fetch(window.location.origin + `/api/git/sync-full?repo=${encodeURIComponent(repo)}`, {
+      const response = await fetch(`/api/git/sync-full?repo=${encodeURIComponent(repo)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message }),
-        signal: controller.signal,
-        credentials: 'include'
+        signal: controller.signal
       });
       
       clearTimeout(timeoutId);

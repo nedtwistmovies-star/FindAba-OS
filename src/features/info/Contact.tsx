@@ -2,11 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Mail, User, Send, HelpCircle, ChevronDown, CheckCircle, ArrowLeft, ShieldCheck, MessageSquare, Info, Loader2, Cpu, Sparkles } from 'lucide-react';
 // Fixed: Removed TRANSLATIONS as it's not in types.ts
-import { Language, ViewState, SupportMessage } from '../../types';
+import { Language, ViewState } from '../../types';
 import { getSupportResponse } from '../../services/geminiService';
-import { sendSupportMessage } from '../../services/supabaseService';
-import { useAuth } from '../../providers/AuthProvider';
-import { useToast } from '../../providers/ToastProvider';
 
 const FAQ_DATA = [
   { q: "How do I verify my industrial workshop?", a: "To get the Blue Verified badge, submit your CAC documents or Business Permit in your Merchant Portal. Verification typically takes 24-48 hours of review by our verification team." },
@@ -21,28 +18,10 @@ interface ContactProps {
 }
 
 const Contact: React.FC<ContactProps> = ({ language, setView }) => {
-  const { userIdentifier, userName: authUserName } = useAuth();
-  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<'contact' | 'faq' | 'live'>('contact');
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: authUserName || '',
-    email: userIdentifier || '',
-    subject: '',
-    message: ''
-  });
-
-  useEffect(() => {
-    if (userIdentifier || authUserName) {
-      setFormData(prev => ({
-        ...prev,
-        email: userIdentifier || prev.email,
-        name: authUserName || prev.name
-      }));
-    }
-  }, [userIdentifier, authUserName]);
 
   // Live Support State
   const [chatMessages, setChatMessages] = useState<any[]>([
@@ -58,29 +37,13 @@ const Contact: React.FC<ContactProps> = ({ language, setView }) => {
     }
   }, [chatMessages, activeTab, isBotTyping]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    try {
-      const { error } = await sendSupportMessage({
-        name: formData.name,
-        email: formData.email,
-        subject: formData.subject,
-        message: formData.message,
-        status: 'unread'
-      });
-      
-      if (error) throw error;
-      
-      setSubmitted(true);
-      addToast("Support Signal Dispatched", "success");
-    } catch (err) {
-      console.error("[Contact] Dispatch error:", err);
-      addToast("Failed to send message. Check registry connection.", "error");
-    } finally {
+    setTimeout(() => {
       setLoading(false);
-    }
+      setSubmitted(true);
+    }, 1500);
   };
 
   const handleLiveChatSend = async (e: React.FormEvent) => {
@@ -177,8 +140,6 @@ const Contact: React.FC<ContactProps> = ({ language, setView }) => {
                         <input 
                           type="text" 
                           required
-                          value={formData.name}
-                          onChange={e => setFormData({ ...formData, name: e.target.value })}
                           placeholder="Artisan Name / ID" 
                           className="w-full pl-16 pr-6 py-6 bg-white/5 border-2 border-transparent rounded-[2.2rem] outline-none focus:border-aba-gold/50 text-sm font-black uppercase transition-all" 
                         />
@@ -188,11 +149,8 @@ const Contact: React.FC<ContactProps> = ({ language, setView }) => {
                         <input 
                           type="email" 
                           required
-                          value={formData.email}
-                          onChange={e => setFormData({ ...formData, email: e.target.value })}
                           placeholder="Registry Email" 
-                          autoCapitalize="none"
-                          className="w-full pl-16 pr-6 py-6 bg-white/5 border-2 border-transparent rounded-[2.2rem] outline-none focus:border-aba-gold/50 text-sm font-black transition-all" 
+                          className="w-full pl-16 pr-6 py-6 bg-white/5 border-2 border-transparent rounded-[2.2rem] outline-none focus:border-aba-gold/50 text-sm font-black uppercase transition-all" 
                         />
                       </div>
                       <div className="relative group">
@@ -200,8 +158,6 @@ const Contact: React.FC<ContactProps> = ({ language, setView }) => {
                         <input 
                           type="text" 
                           required
-                          value={formData.subject}
-                          onChange={e => setFormData({ ...formData, subject: e.target.value })}
                           placeholder="Subject" 
                           className="w-full pl-16 pr-6 py-6 bg-white/5 border-2 border-transparent rounded-[2.2rem] outline-none focus:border-aba-gold/50 text-sm font-black uppercase transition-all" 
                         />
@@ -211,8 +167,6 @@ const Contact: React.FC<ContactProps> = ({ language, setView }) => {
                         <textarea 
                           rows={6} 
                           required
-                          value={formData.message}
-                          onChange={e => setFormData({ ...formData, message: e.target.value })}
                           placeholder="Describe your requirement..." 
                           className="w-full pl-16 pr-6 py-8 bg-white/5 border-2 border-transparent rounded-[2.5rem] outline-none focus:border-aba-gold/50 text-sm font-medium leading-relaxed transition-all resize-none" 
                         />

@@ -20,10 +20,10 @@ const getAI = () => {
   const key = localKey || envKey || metaKey || hardcodedKey;
   
   if (!key) {
-    console.warn("[Assistant] Signal missing. No API key found in localStorage, process.env or import.meta.env.");
+    console.warn("[Oracle] Signal missing. No API key found in localStorage, process.env or import.meta.env.");
   } else {
     const source = localKey ? "localStorage" : (envKey ? "process.env" : (metaKey ? "import.meta.env" : "hardcoded"));
-    console.log(`[Assistant] Signal detected. Key source: ${source}. Key prefix: ${key.substring(0, 6)}...`);
+    console.log(`[Oracle] Signal detected. Key source: ${source}. Key prefix: ${key.substring(0, 6)}...`);
   }
   return new GoogleGenAI({ apiKey: key });
 };
@@ -51,7 +51,7 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
   }
   
   isSyncing = true;
-  console.log("[Assistant] Initiating connection sync...");
+  console.log("[Oracle] Initiating Signal Sync Protocol...");
   
   try {
     // 1. Check if Gemini Key exists in env/meta for initial check
@@ -60,58 +60,37 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
     const hasInitialKey = !!(envKey || metaKey);
 
     // 2. Sync from server (AI Studio Environment)
-    // Use a robust URL construction to handle various environment contexts
-    const isProd = typeof window !== 'undefined' && (window.location.hostname !== 'localhost' && !window.location.hostname.includes('0.0.0.0'));
-    const syncUrl = isProd ? '/api/config' : `${window.location.origin}/api/config`;
+    const syncUrl = '/api/config';
+    console.log(`[Oracle] Syncing from: ${syncUrl}`);
     
-    console.log(`[Assistant] Initiating Sync. Target: ${syncUrl}`);
-    console.log(`[Assistant] Context: Host=${typeof window !== 'undefined' ? window.location.host : 'unknown'}, Proto=${typeof window !== 'undefined' ? window.location.protocol : 'unknown'}`);
-    
-    let response: Response | undefined;
-    let retries = 3; 
-    let lastNetworkError: any = null;
-
+    let response;
+    let retries = 3;
     while (retries > 0) {
       try {
-        console.log(`[Assistant] Connection attempt ${4 - retries} to ${syncUrl}...`);
-        
+        console.log(`[Oracle] Sync Attempt ${4 - retries} to ${syncUrl}...`);
+        // Add a timeout to the fetch call
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
         
-        response = await fetch(syncUrl, { 
-          signal: controller.signal,
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'Accept': 'application/json'
-          },
-          credentials: 'omit' // No cookies needed for public config
-        });
+        response = await fetch(syncUrl, { signal: controller.signal });
         clearTimeout(timeoutId);
         
         if (response.ok) {
           const contentType = response.headers.get("content-type");
           if (contentType && contentType.includes("application/json")) {
-            console.log("[Oracle] Signal relay established. Connection verified.");
             break;
           } else {
-            const bodyPreview = (await response.text()).substring(0, 100);
-            console.warn(`[Oracle] Relay attempt ${4 - retries} returned non-JSON (${contentType}): ${bodyPreview}`);
+            const text = await response.text();
+            console.warn(`[Oracle] Attempt ${4 - retries} received non-JSON response (${contentType}):`, text.substring(0, 100));
           }
         } else {
-          console.warn(`[Oracle] Relay attempt ${4 - retries} failed with status: ${response.status}`);
+          console.warn(`[Oracle] Attempt ${4 - retries} failed with status: ${response.status}`);
         }
-      } catch (e: any) {
-        lastNetworkError = e;
-        const msg = e.name === 'AbortError' ? 'Signal Timeout (20s)' : (e.message || e);
-        console.warn(`[Oracle] Relay attempt ${4 - retries} hardware fault: ${msg}`);
+      } catch (e) {
+        console.warn(`[Oracle] Attempt ${4 - retries} failed with error:`, e);
       }
       retries--;
-      if (retries > 0 && !response?.ok) {
-        const delay = (4 - retries) * 2000; 
-        console.log(`[Oracle] Cooling down for ${delay}ms before next relay...`);
-        await new Promise(r => setTimeout(r, delay));
-      }
+      if (retries > 0) await new Promise(r => setTimeout(r, 2000));
     }
 
     if (response && response.ok) {
@@ -122,8 +101,8 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
 
         if (config.supabaseUrl && config.supabaseUrl !== 'undefined' && config.supabaseUrl.trim() !== '') {
           // Prevent loopback configuration
-          if (typeof window !== 'undefined' && config.supabaseUrl.includes(window.location.hostname) && !config.supabaseUrl.includes('supabase.co')) {
-            console.error("[Oracle] Loopback detected in server config. Ignoring Supabase URL.");
+          if (config.supabaseUrl.includes(window.location.hostname) && !config.supabaseUrl.includes('supabase.co')) {
+            console.error("[Oracle] Loopback detected in server config: Supabase URL points to the application itself. Ignoring.");
           } else {
             localStorage.setItem('findaba_supabase_url', config.supabaseUrl);
             synced = true;
@@ -137,30 +116,25 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
 
         if (config.geminiKey && config.geminiKey !== 'undefined' && config.geminiKey.trim() !== '') {
           localStorage.setItem('findaba_gemini_key', config.geminiKey);
-          console.log("[Oracle] Signal Logic: Gemini Key Synchronized.");
+          console.log("[Oracle] Gemini Signal Synchronized via Server Partner.");
           synced = true;
         }
 
         if (config.openRouterKey && config.openRouterKey !== 'undefined' && config.openRouterKey.trim() !== '') {
           localStorage.setItem('findaba_openrouter_key', config.openRouterKey);
-          console.log("[Oracle] Signal Logic: OpenRouter Key Synchronized.");
+          console.log("[Oracle] OpenRouter Signal Synchronized via Server Partner.");
           synced = true;
         }
 
         if (config.paystackKey && config.paystackKey !== 'undefined' && config.paystackKey.trim() !== '') {
           localStorage.setItem('findaba_paystack_public_key', config.paystackKey);
-          console.log("[Oracle] Settlement Signal Synchronized.");
+          console.log("[Oracle] Paystack Settlement Signal Synchronized.");
         }
         
         if (synced) {
           return { status: 'healthy', message: 'Oracle Signals Synchronized (Server)', source: 'server' };
         }
       }
-    }
-
-    // 3. Fallback logic: If server sync failed, check for last network error message
-    if (lastNetworkError && !envKey && !metaKey) {
-      console.error("[Oracle] Server Sync Protocol Failed. Diagnostic:", lastNetworkError.message || lastNetworkError);
     }
 
     // 3. Environment Variable Fallback
@@ -313,7 +287,7 @@ export const getOracleStream = async (
     phone: b.phone_whatsapp
   }));
 
-  const sys = `IDENTITY: FindAba Assistant (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Your primary responsibility is to help users find places, services, and information within Aba.
+  const sys = `IDENTITY: FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Your primary responsibility is to help users find places, services, and information within Aba.
                RULES:
                - Always prioritize Aba in your answers.
                - You MAY include nearby cities (e.g., Umuahia, Port Harcourt) ONLY if the user explicitly asks for broader options, OR if there are no strong options in Aba.
@@ -323,7 +297,7 @@ export const getOracleStream = async (
                - Keep responses practical, clear, and helpful.
                - Use a natural, friendly Nigerian tone where appropriate.
                
-               SPECIFICITY & GROUNDING: Be extremely specific and precise. Do NOT give generic area suggestions like "Aba-Owerri Road" or "Faulks Road" without pointing to a specific business, plaza, or exact landmark. When you recommend a place, give the street name, a specific building/plaza name, and a landmark only a resident would know. Use the directory as your primary memory:
+               SPECIFICITY & GROUNDING: Be extremely specific and precise. Do NOT give generic area suggestions like "Aba-Owerri Road" or "Faulks Road" without pointing to a specific business, plaza, or exact landmark. When you recommend a place, give the street name, a specific building/plaza name, and a landmark only a resident would know. Use the registry as your primary memory:
                ${JSON.stringify(businessContext)}
                
                KNOWLEDGE: Your knowledge is rooted in Aba—its markets (Ariaria, Ahia Ohuru, Cemetery), its industrial clusters, and its resilient people. You speak explicitly of Aba.
@@ -339,9 +313,9 @@ export const getOracleStream = async (
                OUTPUT STYLE:
                - Start with Aba options.
                - Then optionally add: "If you're open to nearby areas..."
-               - Avoid generalities. If you don't have a specific business in the directory for a category, suggest a specific plaza or market line (e.g., "Line 4, Ariaria Market") rather than just a road name.
+               - Avoid generalities. If you don't have a specific business in the registry for a category, suggest a specific plaza or market line (e.g., "Line 4, Ariaria Market") rather than just a road name.
                
-               JSON STRUCTURE: { "thought_process": "one sentence logic", "wisdom": "your response as FindAba Assistant (Kalu)", "data_points": { "verified_facts": [], "market_prices": [], "locations": [] }, "trade_signals": [] }`;
+               JSON STRUCTURE: { "thought_process": "one sentence logic", "wisdom": "your response as FindAba AI (Kalu)", "data_points": { "verified_facts": [], "market_prices": [], "locations": [] }, "trade_signals": [] }`;
   
   const contentPart = typeof prompt === 'string' 
     ? { text: prompt } 
@@ -448,10 +422,10 @@ export const getOracleStream = async (
   const isAuth = msg.includes("401") || msg.includes("api_key_invalid") || msg.includes("not found") || msg.includes("permission_denied") || msg.includes("invalid_argument");
   const isNetwork = msg.includes("offline") || msg.includes("network") || msg.includes("failed to fetch") || msg.includes("failed to connect");
   
-  let userMessage = "Connection Lost. Retrying...";
-  if (isQuota) userMessage = "MARKET CONGESTION: THE SYSTEM IS OVERLOADED. PLEASE RETRY IN A MOMENT.";
-  if (isAuth) userMessage = "ASSISTANT AUTHENTICATION FAILED: PLEASE CHECK YOUR SYSTEM CONFIGURATION (ADMIN).";
-  if (isNetwork) userMessage = "CONNECTION INTERRUPTED: NETWORK CONNECTION LOST. CHECK YOUR INTERNET.";
+  let userMessage = "Institutional Signal Lost. Recalibrating...";
+  if (isQuota) userMessage = "MARKET CONGESTION [FLASH RELAY ACTIVE]: THE REGISTRY IS OVERLOADED. PLEASE RETRY IN A MOMENT.";
+  if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN THE SYSTEM CONSOLE (ADMIN).";
+  if (isNetwork) userMessage = "SIGNAL INTERRUPTED: NETWORK CONNECTION LOST. CHECK YOUR INTERNET.";
   
   throw new Error(userMessage);
 };
@@ -490,7 +464,7 @@ export const generateDesignImage = async (prompt: string) => {
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3.1-flash-image-preview',
-      contents: { parts: [{ text: `Business visual: ${prompt}. Professional lighting.` }] },
+      contents: { parts: [{ text: `Industrial visual: ${prompt}. Studio lighting.` }] },
       config: { imageConfig: { aspectRatio: "16:9" } }
     });
     for (const part of response.candidates?.[0]?.content?.parts || []) {
@@ -505,7 +479,7 @@ export const generateHistoryAudio = async (title: string, lang: string = 'Englis
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text: `Narrate business history: ${title} in ${lang}. Tone: Informative, professional, and friendly.` }] }],
+      contents: [{ parts: [{ text: `Narrate industrial history: ${title} in ${lang}. Tone: Informative, professional, and friendly.` }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName as any } } }
@@ -522,10 +496,10 @@ export const generateWelcomeMessage = async (name: string, id: string) => {
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Generate a warm, human, and specific welcome message for ${name} (ID: ${id}) to the FindAba community. 
-      Identity: FindAba Assistant (Kalu). 
-      Tone: Welcoming, using local Aba flavor (Igbo/Pidgin mix). Mention that they are now part of the business heartbeat of Enyimba. 
-      Rules: Prioritize Aba, do NOT roleplay as a character.`,
+      contents: `Generate a warm, human, and specific welcome message for ${name} (ID: ${id}) to the FindAba registry. 
+      Identity: FindAba AI (Kalu). 
+      Tone: Welcoming, using local Aba flavor (Igbo/Pidgin mix). Mention that they are now part of the industrial heartbeat of Enyimba. 
+      Rules: Prioritize Aba, do NOT say 'God's Own State', do NOT roleplay as a character.`,
     });
     return response.text || "Welcome to the Hub. The registry is open.";
   } catch (e) { return "Welcome to the Hub."; }
@@ -537,7 +511,7 @@ export const getSupportResponse = async (prompt: string, history: any[]) => {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
-      config: { systemInstruction: "You are FindAba Assistant (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Follow the rules: Be extremely precise and specific. Do NOT give generic area suggestions. Prioritize Aba, include nearby cities only if needed/asked, label them clearly, do NOT roleplay, be practical and helpful, use a friendly Nigerian tone." }
+      config: { systemInstruction: "You are FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Follow the rules: Be extremely precise and specific. Do NOT give generic area suggestions. Prioritize Aba, include nearby cities only if needed/asked, label them clearly, do NOT say 'God's Own State', do NOT roleplay, be practical and helpful, use a friendly Nigerian tone." }
     });
     return response.text;
   } catch (e) { return "Signal weak."; }
@@ -567,12 +541,12 @@ export const findArtisansAI = async (query: string, businesses: Business[]) => {
       verification_status: b.verification_status
     }));
 
-    const prompt = `You are FindAba Assistant (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria.
+    const prompt = `You are FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria.
     A user is looking for: "${query}".
     
-    Based on the following business directory, identify the top 3-5 most relevant artisans or businesses. Be extremely specific and precise. Do NOT give generic area suggestions. Mention specific streets or market lines if applicable.
+    Based on the following business registry, identify the top 3-5 most relevant artisans or businesses. Be extremely specific and precise. Do NOT give generic area suggestions. Mention specific streets or market lines if applicable.
     
-    DIRECTORY:
+    REGISTRY:
     ${JSON.stringify(businessContext)}
     
     Return a JSON object:
@@ -584,7 +558,7 @@ export const findArtisansAI = async (query: string, businesses: Business[]) => {
           "match_score": number (0-100)
         }
       ],
-      "assistant_insights": "A practical, clear, and helpful summary of the search results in a friendly Nigerian tone. Mention specific streets or market lines if applicable."
+      "oracle_wisdom": "A practical, clear, and helpful summary of the search results in a friendly Nigerian tone. Mention specific streets or market lines if applicable."
     }`;
 
     const response = await ai.models.generateContent({
@@ -595,8 +569,8 @@ export const findArtisansAI = async (query: string, businesses: Business[]) => {
 
     return JSON.parse(cleanJSON(response.text || '{}'));
   } catch (e) {
-    console.error("[Assistant] Discovery Fault:", e);
-    return { recommendations: [], assistant_insights: "The connection is having trouble. Try a different query." };
+    console.error("[Oracle] Discovery Fault:", e);
+    return { recommendations: [], oracle_wisdom: "The industrial signals are crossed. Try a different query." };
   }
 };
 
@@ -631,10 +605,10 @@ export const generateConversationTitle = async (firstMessage: string) => {
     const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Generate a concise, professional, 3-5 word title for a business conversation starting with: "${firstMessage}". Return ONLY the title text.`,
+      contents: `Generate a concise, professional, 3-5 word title for an industrial conversation starting with: "${firstMessage}". Return ONLY the title text.`,
     });
-    return response.text?.replace(/["']/g, '').trim() || 'Business Query';
-  } catch (e) { return 'Business Query'; }
+    return response.text?.replace(/["']/g, '').trim() || 'Industrial Query';
+  } catch (e) { return 'Industrial Query'; }
 };
 
 export const decodeAudio = async (base64: string, ctx: AudioContext): Promise<AudioBuffer> => {

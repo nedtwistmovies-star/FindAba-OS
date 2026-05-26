@@ -104,7 +104,7 @@ export const fetchStories = async () => {
     .from('stories')
     .select(`
       *,
-      author:profiles!stories_user_id_fkey(*)
+      author:profiles(*)
     `)
     .gt('expires_at', now)
     .order('created_at', { ascending: false });
@@ -217,19 +217,6 @@ export const releaseEscrow = async (orderId: string) => {
     throw error;
   }
   return data;
-};
-
-export const deletePost = async (postId: string) => {
-  const { error } = await supabase
-    .from('posts')
-    .delete()
-    .eq('id', postId);
-
-  if (error) {
-    console.error("[Faces] Delete Post Error:", error.message);
-    throw error;
-  }
-  return true;
 };
 
 export const toggleFollow = async (followerId: string, followingId: string) => {

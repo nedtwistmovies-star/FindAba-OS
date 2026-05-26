@@ -5,7 +5,6 @@
  */
 
 const MAKE_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || '';
-const DEFAULT_MAKE_URL = 'https://hook.us1.make.com/default';
 
 export enum WebhookEvent {
   NEW_REGISTRATION = 'new_registration',
@@ -120,38 +119,30 @@ export const triggerWebhook = async (
     let responseText = '';
 
     try {
-      // 🔹 PROXY UPGRADE: Use server-side proxy to avoid browser CORS/Network blocks
-      const apiPath = '/api/automation/trigger';
-      const response = await fetch(window.location.origin + apiPath, {
+      const response = await fetch(activeWebhookUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-FindAba-Event': event,
+          'X-FindAba-Timestamp': standardizedData.timestamp,
+          'X-FindAba-Attempt': (attempt + 1).toString()
         },
-        credentials: 'include',
         body: JSON.stringify({
-          url: activeWebhookUrl,
-          event: event,
-          payload: {
-            ...standardizedData,
-            app: 'FindAba City OS',
-            version: '7.0'
-          },
-          options: {
-            retries: options.retries
-          }
-        })
+          ...standardizedData,
+          app: 'FindAba City OS',
+          version: '7.0'
+        }),
       });
 
-      const result = await response.json();
-      responseText = JSON.stringify(result);
+      responseText = await response.text();
 
       if (response.ok) {
         status = 'success';
-        console.debug(`[Automation] Webhook signal relayed successfully via proxy: ${event}`);
+        console.debug(`[Automation] Webhook signal sent successfully: ${event}`);
         await logAutomationEvent(standardizedData, status, responseText);
         return true;
       } else {
-        const error: any = new Error(result.error || `HTTP ${response.status}: ${responseText}`);
+        const error: any = new Error(`HTTP ${response.status}: ${responseText}`);
         error.status = response.status;
         throw error;
       }
@@ -206,7 +197,7 @@ async function logAutomationEvent(data: any, status: 'success' | 'failed', respo
  * Validates the connection to the automation gateway.
  */
 export const checkMakeAutomation = async (): Promise<{ status: 'working' | 'failed' | 'unconfigured', message: string }> => {
-  const url = localStorage.getItem('findaba_make_webhook_url') || MAKE_WEBHOOK_URL || DEFAULT_MAKE_URL;
+  const url = localStorage.getItem('findaba_make_webhook_url') || MAKE_WEBHOOK_URL;
   
   if (!url) return { status: 'unconfigured', message: 'No Webhook URL detected in environment or local storage.' };
   

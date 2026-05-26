@@ -47,7 +47,7 @@ import {
   Plus,
   GripVertical,
 } from "lucide-react";
-import { motion, Reorder } from "framer-motion";
+import { motion, Reorder } from "motion/react";
 import {
   BarChart,
   Bar,
@@ -76,8 +76,6 @@ import {
   updateTaskItem,
   deleteTaskItem,
   reorderTaskItems,
-  fetchSupportMessages,
-  updateSupportMessageStatus,
 } from "../../services/supabaseService";
 import { ARTISANS } from "../../constants";
 import { useToast } from "../../providers/ToastProvider";
@@ -85,7 +83,7 @@ import { useBusiness } from "../../providers/BusinessProvider";
 import { triggerWebhook, WebhookEvent, validateAutomationGateway, getSamplePayload } from "../../services/webhookService";
 import { paymentService } from "../../services/paymentService";
 import { sendWelcomeEmail } from "../../services/emailService";
-import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel, Task, Order, OrderStatus, SupportMessage } from "../../types";
+import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel, Task, Order, OrderStatus } from "../../types";
 import { ImageUpload, MultiImageUpload } from "../../components/ImageUpload";
 import { MultiVideoUpload } from "../../components/VideoUpload";
 import StatCard from "../../components/StatCard";
@@ -100,18 +98,11 @@ interface AutomationAuditProps {
   runAudit: () => Promise<void>;
 }
 
-  const AutomationAudit: React.FC<AutomationAuditProps> = ({ status, auditing, runAudit }) => {
+const AutomationAudit: React.FC<AutomationAuditProps> = ({ status, auditing, runAudit }) => {
   const { addToast } = useToast();
-  const { config, updateConfig } = useBusiness();
-  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('findaba_make_webhook_url') || '');
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
-
-  useEffect(() => {
-    if (config?.make_webhook_url) {
-      setWebhookUrl(config.make_webhook_url);
-    }
-  }, [config]);
 
   const loadLogs = useCallback(async () => {
     setLoadingLogs(true);
@@ -317,12 +308,11 @@ interface AutomationAuditProps {
                 size="md" 
                 icon={Save}
                 disabled={webhookUrl !== '' && !webhookUrl.startsWith('http')}
-                onClick={async () => {
+                onClick={() => {
                   if (webhookUrl && !webhookUrl.startsWith('http')) {
                     addToast("Invalid URL: Must start with http:// or https://", "error");
                     return;
                   }
-                  await updateConfig({ make_webhook_url: webhookUrl.trim() });
                   localStorage.setItem('findaba_make_webhook_url', webhookUrl.trim());
                   addToast("Webhook URL Saved", "success");
                 }}
@@ -490,7 +480,6 @@ const EmailAudit: React.FC = () => {
               <input 
                 type="email"
                 value={testEmail}
-                autoCapitalize="none"
                 onChange={(e) => setTestEmail(e.target.value)}
                 placeholder="email@example.com"
                 className="flex-1 bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
@@ -545,7 +534,7 @@ const MetadataEditor: React.FC = () => {
   const [metadata, setMetadata] = useState<any>(null);
 
   useEffect(() => {
-    fetch(window.location.origin + '/metadata.json')
+    fetch('/metadata.json')
       .then(res => res.json())
       .then(data => {
         setMetadata(data);
@@ -560,10 +549,9 @@ const MetadataEditor: React.FC = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch(window.location.origin + '/api/metadata', {
+      const response = await fetch('/api/metadata', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(metadata)
       });
       if (response.ok) {
@@ -620,7 +608,6 @@ const MetadataEditor: React.FC = () => {
           <input 
             type="email" 
             value={metadata.contact_email || ''} 
-            autoCapitalize="none"
             onChange={e => setMetadata({...metadata, contact_email: e.target.value})}
             className="w-full bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
           />
@@ -875,110 +862,6 @@ const TasksManager: React.FC = () => {
   );
 };
 
-const SupportMessagesManager: React.FC = () => {
-  const { addToast } = useToast();
-  const [messages, setMessages] = useState<SupportMessage[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadMessages = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchSupportMessages();
-      setMessages(data);
-    } catch (e) {
-      addToast("Failed to load support signals.", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast]);
-
-  useEffect(() => {
-    loadMessages();
-  }, [loadMessages]);
-
-  const handleUpdateStatus = async (id: string, status: 'read' | 'archived') => {
-    try {
-      const { error } = await updateSupportMessageStatus(id, status);
-      if (error) throw error;
-      setMessages(messages.map(m => m.id === id ? { ...m, status } : m));
-      addToast(`Message marked as ${status}`, "success");
-    } catch (e) {
-      addToast("Failed to update status", "error");
-    }
-  };
-
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-            <Mail className="text-aba-gold" /> Support Signals
-          </h4>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Inquiries via Footer & Contact Hub</p>
-        </div>
-        <button 
-          onClick={loadMessages}
-          className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-all text-white/40 hover:text-aba-gold"
-        >
-          <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        {loading ? (
-          <div className="py-20 text-center animate-pulse text-aba-gold font-black uppercase tracking-widest text-[10px]">Interfacing with Registry...</div>
-        ) : messages.length === 0 ? (
-          <div className="py-20 text-center bg-white/5 rounded-[3rem] border border-white/5 text-white/20 font-black uppercase tracking-widest text-[10px]">No Signals Detected</div>
-        ) : (
-          messages.filter(m => m.status !== 'archived').map((msg) => (
-            <div key={msg.id} className={`p-8 rounded-[3rem] border transition-all space-y-6 ${msg.status === 'unread' ? 'bg-white/10 border-aba-gold/50 shadow-2xl' : 'bg-white/5 border-white/5'}`}>
-              <div className="flex justify-between items-start">
-                <div className="flex gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${msg.status === 'unread' ? 'bg-aba-gold text-aba-deep' : 'bg-white/5 text-white/20'}`}>
-                    <Mail size={20} />
-                  </div>
-                  <div>
-                    <h5 className="font-black uppercase tracking-tight">{msg.name || 'Visitor'}</h5>
-                    <p className="text-[10px] font-mono text-white/40">{msg.email}</p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-white/20">
-                    {msg.created_at ? new Date(msg.created_at).toLocaleString() : 'Recent'}
-                  </span>
-                  <div className="flex gap-2">
-                    {msg.status === 'unread' && (
-                      <button 
-                        onClick={() => handleUpdateStatus(msg.id!, 'read')}
-                        className="px-3 py-1 bg-aba-green/10 text-aba-green text-[8px] font-black uppercase tracking-widest rounded-full border border-aba-green/20 hover:bg-aba-green hover:text-white transition-all"
-                      >
-                        Mark Read
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => handleUpdateStatus(msg.id!, 'archived')}
-                      className="px-3 py-1 bg-white/10 text-white/40 text-[8px] font-black uppercase tracking-widest rounded-full border border-white/10 hover:bg-red-500 hover:text-white transition-all"
-                    >
-                      Archive
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-6 bg-black/40 rounded-[2rem] border border-white/5 space-y-4">
-                {msg.subject && (
-                  <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">{msg.subject}</p>
-                )}
-                <p className="text-sm font-medium leading-relaxed text-white/80 whitespace-pre-wrap">{msg.message}</p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-};
-
 const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
   const { commitAll } = useBusiness();
@@ -1005,7 +888,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "overview"
     | "registry"
     | "signals"
-    | "messages"
     | "users"
     | "automation"
     | "tasks"
@@ -1206,7 +1088,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const isWwwDomain = currentHostname === "www.findaba.com.ng";
   const isVercelDomain = currentHostname.endsWith(".vercel.app");
   const isProductionVercel = currentHostname === "findabaos-six.vercel.app";
-  const isCustomDomainActive = isApexDomain || isWwwDomain || platformConfig?.domain_activated;
+  const isCustomDomainActive = isApexDomain || isWwwDomain;
 
   return (
     <div className="flex-1 bg-[#020617] flex flex-col text-white animate-fade-in font-sans h-full">
@@ -1251,7 +1133,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
           { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
           { id: 'registry', label: 'Artisans', icon: <Database size={16} /> },
           { id: 'signals', label: 'Signals', icon: <Zap size={16} /> },
-          { id: 'messages', label: 'Inquiries', icon: <MessageSquare size={16} /> },
           { id: 'users', label: 'Partners', icon: <Users size={16} /> },
           { id: 'automation', label: 'Audit Log', icon: <Activity size={16} /> },
           { id: 'tasks', label: 'Roadmap', icon: <ListTodo size={16} /> },
@@ -1702,61 +1583,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 icon={Globe}
               />
 
-              {/* 🔹 VERCEL DNS TROUBLESHOOTING (Registry Solution) */}
-              <div className="bg-red-500/5 p-8 sm:p-12 rounded-[3rem] border border-red-500/10 space-y-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
-                    <AlertTriangle size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-black uppercase tracking-tight text-white">Domain Node Conflicts</h4>
-                    <p className="text-[10px] font-bold text-red-500/60 uppercase tracking-widest">Resolving Vercel DNS "Invalid Record" Signals</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   <div className="space-y-6">
-                      <p className="text-xs font-medium text-white/60 leading-relaxed uppercase">
-                         If your Vercel dashboard indicates "Invalid Record" for <span className="text-white">findaba.com.ng</span>, ensure the following A-records are committed to your registrar:
-                      </p>
-                      <div className="space-y-4">
-                         <div className="p-5 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between group">
-                            <div>
-                               <p className="text-[9px] font-black uppercase text-white/40 tracking-widest">A Record (Root)</p>
-                               <p className="text-xs font-mono text-aba-gold">76.76.21.21</p>
-                            </div>
-                            <button onClick={() => { navigator.clipboard.writeText('76.76.21.21'); addToast("A Record Copied", "success"); }} className="p-3 bg-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-all"><Copy size={14}/></button>
-                         </div>
-                         <div className="p-5 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between group">
-                            <div>
-                               <p className="text-[9px] font-black uppercase text-white/40 tracking-widest">CNAME (WWW)</p>
-                               <p className="text-xs font-mono text-aba-gold">cname.vercel-dns.com</p>
-                            </div>
-                            <button onClick={() => { navigator.clipboard.writeText('cname.vercel-dns.com'); addToast("CNAME Copied", "success"); }} className="p-3 bg-white/5 rounded-xl opacity-0 group-hover:opacity-100 transition-all"><Copy size={14}/></button>
-                         </div>
-                      </div>
-                   </div>
-
-                   <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-6">
-                      <h5 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-3">
-                         <Info size={16} className="text-aba-gold" /> Critical Protocol
-                      </h5>
-                      <ul className="space-y-4">
-                         {[
-                            "Remove conflicting AAAA (IPv6) records from host.",
-                            "Ensure only ONE A-record exists for the root domain.",
-                            "Wait for propagation (typically 300s - 3600s).",
-                            "Verify NameServers point to findaba.com.ng authoritative nodes."
-                         ].map((text, i) => (
-                            <li key={i} className="flex items-start gap-3 text-[10px] font-bold text-white/40 uppercase tracking-tight leading-relaxed">
-                               <div className="w-1 h-1 rounded-full bg-aba-gold mt-1.5 shrink-0" /> {text}
-                            </li>
-                         ))}
-                      </ul>
-                   </div>
-                </div>
-              </div>
-
               {/* Signal Configuration */}
               <div className="bg-white/5 p-8 sm:p-12 rounded-[3rem] border border-white/5 space-y-10">
                 <SectionHeader 
@@ -1879,27 +1705,10 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-                    <Globe className="text-aba-gold" /> Domain Configuration
-                  </h4>
-                  <div className="flex items-center gap-4">
-                    {/* 🔹 MANUAL ACTIVATION OVERRIDE */}
-                    <button 
-                      onClick={async () => {
-                        const newState = !platformConfig?.domain_activated;
-                        await updatePlatformConfig({ domain_activated: newState });
-                        await refreshAllData();
-                        addToast(newState ? "Secondary Signals Ignored: Domain Activated" : "Secondary Signals Enabled: Tracking Nodes", "info");
-                      }}
-                      className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 transition-all ${
-                        platformConfig?.domain_activated ? 'bg-aba-gold text-aba-dark border-aba-gold' : 'bg-white/5 text-white/40 border-white/10 hover:border-white/20'
-                      }`}
-                    >
-                      <Check size={12} />
-                      <span className="text-[8px] font-black uppercase tracking-widest">Manual Signal Override</span>
-                    </button>
-
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+                      <Globe className="text-aba-gold" /> Domain Configuration
+                    </h4>
                     <div className={`px-3 py-1 rounded-full flex items-center gap-2 ${isCustomDomainActive ? 'bg-aba-green/10 border border-aba-green/20' : 'bg-red-500/10 border border-red-500/20'}`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${isCustomDomainActive ? 'bg-aba-green' : 'bg-red-500 animate-pulse'}`} />
                       <span className={`text-[8px] font-black uppercase tracking-widest ${isCustomDomainActive ? 'text-aba-green' : 'text-red-500'}`}>
@@ -1907,7 +1716,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                       </span>
                     </div>
                   </div>
-                </div>
 
                   <p className="text-[10px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
                     To connect your custom domain to the FindAba OS network, you must update your DNS records at your domain registrar (e.g., Namecheap, GoDaddy, Whogohost).
@@ -2802,12 +2610,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {activeTab === "messages" && (
-            <div className="animate-slide-up">
-              <SupportMessagesManager />
             </div>
           )}
 

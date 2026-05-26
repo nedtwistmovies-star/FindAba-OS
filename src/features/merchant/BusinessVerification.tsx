@@ -51,9 +51,9 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
          {/* SEARCH INTERFACE */}
          <div className="bg-white p-8 rounded-[2.5rem] shadow-lg border border-slate-100 space-y-6">
             <div className="space-y-1">
-               <h3 className="text-xl font-black uppercase tracking-tighter text-aba-dark">Public Verification</h3>
+               <h3 className="text-xl font-black uppercase tracking-tighter text-aba-dark">Public Audit</h3>
                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                  Verify any business in the Aba Directory. Cross-check compliance levels and business integrity.
+                  Verify any node in the Enyimba Master Signal. Cross-check compliance levels and industrial integrity.
                </p>
             </div>
 
@@ -190,10 +190,10 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
                     <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-3">
                        <div className="flex items-center gap-2 text-aba-gold">
                           <Activity size={14} />
-                          <h5 className="text-[9px] font-black uppercase tracking-widest">Business Description</h5>
+                          <h5 className="text-[9px] font-black uppercase tracking-widest">Industrial Narrative</h5>
                        </div>
                        <p className="text-[10px] font-medium text-slate-500 leading-relaxed uppercase tracking-widest italic">
-                          "{selectedBiz.description || 'No narrative provided for this business.'}"
+                          "{selectedBiz.description || 'No narrative provided for this node.'}"
                        </p>
                     </div>
                  </div>

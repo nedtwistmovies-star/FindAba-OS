@@ -4,7 +4,7 @@ import { Database, RefreshCw, CheckCircle, AlertCircle, ShieldCheck, Activity, T
 import { useBusiness } from '../providers/BusinessProvider';
 import { useToast } from '../providers/ToastProvider';
 import { checkDatabaseHealth, getRegistryConfig } from '../services/supabaseService';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const SupabaseSync: React.FC = () => {
   const { refreshData, commitAll, loading } = useBusiness();
