@@ -39,9 +39,12 @@ CREATE TABLE IF NOT EXISTS public.disputes (
   user_id UUID NOT NULL REFERENCES auth.users(id),
   reason TEXT NOT NULL,
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'resolving', 'resolved', 'cancelled')),
+  evidence_images TEXT[],
+  evidence_videos JSONB DEFAULT '[]',
   evidence_urls TEXT[],
   resolution TEXT,
   resolved_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -77,20 +80,20 @@ END $$;
 DROP POLICY IF EXISTS "Involved parties view disputes" ON public.disputes;
 CREATE POLICY "Involved parties view disputes" ON public.disputes 
   FOR SELECT USING (
-    auth.uid() = user_id 
-    OR auth.uid() IN (SELECT buyer_id FROM public.orders WHERE id = order_id)
-    OR auth.uid() IN (SELECT seller_id FROM public.orders WHERE id = order_id)
+    auth.uid()::text = user_id::text 
+    OR auth.uid()::text IN (SELECT buyer_id::text FROM public.orders WHERE id = order_id)
+    OR auth.uid()::text IN (SELECT seller_id::text FROM public.orders WHERE id = order_id)
     OR public.check_is_admin()
   );
 
 DROP POLICY IF EXISTS "Disputes insert policy" ON public.disputes;
 CREATE POLICY "Disputes insert policy" ON public.disputes
-  FOR INSERT WITH CHECK (auth.uid() = user_id OR public.check_is_admin());
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id::text OR public.check_is_admin());
 
 DROP POLICY IF EXISTS "Disputes update policy" ON public.disputes;
 CREATE POLICY "Disputes update policy" ON public.disputes
-  FOR UPDATE USING (auth.uid() = user_id OR public.check_is_admin())
-  WITH CHECK (auth.uid() = user_id OR public.check_is_admin());
+  FOR UPDATE USING (auth.uid()::text = user_id::text OR public.check_is_admin())
+  WITH CHECK (auth.uid()::text = user_id::text OR public.check_is_admin());
 
 -- ==========================================
 -- 3. ESCROW & REFUND LOGIC (UNIFIED)
@@ -391,7 +394,7 @@ ALTER TABLE IF EXISTS public.logistics_orders ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Users can only view their own logistics" ON public.logistics_orders;
 CREATE POLICY "Users can only view their own logistics" ON public.logistics_orders
   FOR SELECT USING (
-    (user_id IS NOT NULL AND auth.uid() = user_id)
+    (user_id IS NOT NULL AND auth.uid()::text = user_id::text)
     OR public.check_is_admin()
   );
 

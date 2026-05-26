@@ -723,15 +723,13 @@ export const saveBusinessToDB = async (business: Business) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
-  // 🔹 Critical: Ensure user_id is present in the payload
-  // If the passed 'business' object doesn't have it, try to get it from the current session
-  let userId = business.user_id;
-  if (!userId) {
-    const { data: { session } } = await client.auth.getSession();
-    if (session?.user) {
-      userId = session.user.id;
-    }
-  }
+  // 🔹 Critical: Synchronize user_id with the active session JWT
+  // We prioritize the session ID from the client itself to satisfy RLS
+  const { data: { session } } = await client.auth.getSession();
+  const activeUid = session?.user?.id;
+  
+  // Use session ID if available, otherwise fallback (e.g. for seed or admin)
+  const userId = activeUid || business.user_id;
 
   let currentPayload: any = { 
     ...business,
@@ -739,12 +737,11 @@ export const saveBusinessToDB = async (business: Business) => {
     email: business.email ? normalizeEmail(business.email) : undefined
   };
   let attempts = 0;
-  const maxAttempts = 10; // Allow for multiple missing columns
+  const maxAttempts = 10; 
 
-  console.log(`[Registry] Attempting to commit hub: ${currentPayload.email} (ID: ${currentPayload.id}, User: ${userId})`);
+  console.log(`[Registry] Committing hub: ${currentPayload.email} (UID: ${userId}, Session: ${!!activeUid})`);
 
   while (attempts < maxAttempts) {
-    // Use upsert to handle existing emails/IDs permanently
     const { error } = await client
       .from('businesses')
       .upsert(currentPayload, { onConflict: 'email' })
@@ -752,6 +749,11 @@ export const saveBusinessToDB = async (business: Business) => {
     
     if (error) {
       console.error(`[Registry] Save attempt ${attempts + 1} failed:`, error);
+
+      // Handle policy violations precisely
+      if (error.code === '42501') {
+        throw new Error(`Registry Sync Error: Access Denied. Policy violation on 'businesses' table. (UID: ${userId || 'None'}, Status: ${activeUid ? 'Authenticated' : 'Anonymous'})`);
+      }
 
       // Handle duplicate key explicitly if upsert didn't catch it
       if (error.code === '23505') {
@@ -772,7 +774,6 @@ export const saveBusinessToDB = async (business: Business) => {
       }
 
       // Handle missing columns gracefully (PGRST204)
-      // Handle missing columns gracefully (PGRST204)
       if (error.code === 'PGRST204') {
         const match = error.message.match(/Could not find the '(.+)' column/);
         if (match && match[1]) {
@@ -785,7 +786,6 @@ export const saveBusinessToDB = async (business: Business) => {
         }
       }
       
-      console.error("[Registry] Save Failure:", error);
       throw new Error(`Registry Sync Error: ${error.message} (${error.code})`);
     }
     
