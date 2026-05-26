@@ -38,7 +38,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       const sb = getSupabase();
-      if (!sb) return;
+      if (!sb) {
+        setIsAuth(false);
+        return;
+      }
 
       const { data: { session } } = await sb.auth.getSession();
       if (session?.user) {
@@ -49,11 +52,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(prof);
         
         const identifier = user.email || user.phone || '';
-        const name = prof?.full_name || user.user_metadata.full_name || 'Verified Citizen';
+        const name = prof?.full_name || user.user_metadata?.full_name || 'Verified Citizen';
         const role = prof?.role || 'registered';
         const uuid = user.id;
         
         handleAuthSuccess(identifier, name, role, uuid);
+      } else {
+        // No session found, but we might have local storage
+        // If there's no session in Supabase, we should probably clear local matches to avoid "Anonymous" errors
+        const storedId = localStorage.getItem('findaba_user_id');
+        if (storedId) {
+          console.warn("[Auth] Found local ID but no Supabase session. Correcting state...");
+          setIsAuth(false);
+          // Don't fully logout yet, maybe it's just slow? 
+          // Actually, if getSession() is null, we are NOT authenticated for RLS.
+        } else {
+          setIsAuth(false);
+        }
       }
     };
 

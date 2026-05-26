@@ -7,7 +7,7 @@ import {
   MapPin, Phone, Mail, Globe, Camera, Briefcase, Award, Lock
 } from 'lucide-react';
 import { SubscriptionTier, ViewState, BillingCycle, Category, VerificationStatus, VerificationLevel, IntegrityGrade, Business, HubTier } from '../../types';
-import { saveBusinessToDB } from '../../services/supabaseService';
+import { saveBusinessToDB, getSupabase } from '../../services/supabaseService';
 import { BUSINESS_PLANS, CATEGORIES, ABA_AREAS } from '../../constants';
 import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
@@ -65,12 +65,11 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
-    whatsapp: '',
+    phone_whatsapp: '',
     category: Category.SHOEMAKING,
     area: ABA_AREAS[0],
     address: '',
-    primary_product: '',
+    primary_product_or_service: '',
     description: '',
     image_url: ''
   });
@@ -93,52 +92,73 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
     e.preventDefault();
     setLoading(true);
 
-    const newBusiness: Business = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
-      user_id: user_id || undefined, // Explicitly map the session user_id
-      name: formData.name,
-      email: formData.email.toLowerCase().trim(),
-      phone: formData.phone,
-      phone_whatsapp: formData.whatsapp,
-      category: formData.category,
-      area: formData.area,
-      address: formData.address,
-      primary_product_or_service: formData.primary_product,
-      description: formData.description,
-      image_url: formData.image_url || 'https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=800',
-      rating: 0,
-      review_count: 0,
-      status: 'pending',
-      verification_status: VerificationStatus.UNVERIFIED,
-      verification_level: VerificationLevel.NONE,
-      integrity_grade: IntegrityGrade.C,
-      hub_tier: HubTier.STARTER,
-      is_export_ready: false,
-      capacity_indicator: 'Standard',
-      premium_features_enabled: selectedPlan !== SubscriptionTier.FREE,
-      subscription_tier: selectedPlan,
-      active_features: {
-        physical_verification_badge: selectedPlan !== SubscriptionTier.FREE
-      },
-      products: [],
-      created_at: new Date().toISOString()
-    };
+    const supabase = getSupabase();
+    if (!supabase) {
+      addToast("Registry Offline: System signal weak.", "error");
+      setLoading(false);
+      return;
+    }
 
     try {
-      console.log("[Registry] Submitting hub payload:", newBusiness);
-      await saveBusinessToDB(newBusiness);
-      
-      // Notify Merchant via Email
-      try {
-        await sendBusinessRegistrationEmail(newBusiness.email, newBusiness.name, newBusiness.subscription_tier || 'Free');
-      } catch (e) {
-        console.warn("[Registry] Email notification protocol failure:", e);
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.user) {
+        throw new Error(
+          'Authentication session not found. Please login again.'
+        );
       }
 
-      setRegisteredBusiness(newBusiness);
-      setStep('success');
-      onRegister(newBusiness);
-      addToast("Hub successfully committed to registry!", "success");
+      const user = session.user;
+
+      const { data, error } = await supabase
+        .from('businesses')
+        .insert([
+          {
+            id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
+            user_id: user.id,
+            name: formData.name,
+            email: formData.email.toLowerCase().trim(),
+            category: formData.category,
+            primary_product_or_service: formData.primary_product_or_service,
+            area: formData.area,
+            address: formData.address,
+            phone_whatsapp: formData.phone_whatsapp,
+            description: formData.description,
+            image_url: formData.image_url || 'https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=800',
+            status: 'pending',
+            verification_status: 'Unverified',
+            verification_level: 'Listed',
+            integrity_grade: 'C',
+            subscription_tier: selectedPlan,
+            premium_features_enabled: selectedPlan !== SubscriptionTier.FREE,
+            created_at: new Date().toISOString()
+          },
+        ])
+        .select()
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Business registration error:', error);
+        throw error;
+      }
+
+      if (data) {
+        // Notify Merchant via Email
+        try {
+          await sendBusinessRegistrationEmail(data.email, data.name, data.subscription_tier || 'Free');
+        } catch (e) {
+          console.warn("[Registry] Email notification protocol failure:", e);
+        }
+
+        setRegisteredBusiness(data as any);
+        setStep('success');
+        onRegister(data as any);
+        addToast("Hub successfully committed to registry!", "success");
+      }
     } catch (error: any) {
       console.error("Registration failed:", error);
       addToast(`Registration failed: ${error.message || "Unknown error"}`, "error");
@@ -314,8 +334,8 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                   <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">WhatsApp Signal</label>
                   <input 
                     required
-                    value={formData.whatsapp}
-                    onChange={e => setFormData({...formData, whatsapp: e.target.value})}
+                    value={formData.phone_whatsapp}
+                    onChange={e => setFormData({...formData, phone_whatsapp: e.target.value})}
                     placeholder="+234..."
                     className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
                   />

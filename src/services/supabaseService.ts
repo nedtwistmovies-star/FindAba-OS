@@ -43,6 +43,8 @@ export const getSupabase = (): SupabaseClient | null => {
   const url = manualUrl || meta.VITE_SUPABASE_URL || env.SUPABASE_URL || hardcodedUrl;
   const key = manualKey || meta.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || hardcodedKey;
 
+  const source = manualUrl ? 'localStorage' : (meta.VITE_SUPABASE_URL ? 'import.meta' : (env.SUPABASE_URL ? 'process.env' : 'fallback'));
+
   if (!url || !key || url === 'undefined' || key === 'undefined') {
     console.warn("[Registry] Signal missing. URL:", !!url, "Key:", !!key);
     return null;
@@ -53,6 +55,9 @@ export const getSupabase = (): SupabaseClient | null => {
     return _supabaseInstance;
   }
 
+  _currentUrl = url;
+  _currentKey = key;
+
   // Prevent using the app's own URL as Supabase URL (common misconfiguration)
   if (url.includes(window.location.hostname) && !url.includes('supabase.co')) {
     console.error("[Registry] Loopback detected: Supabase URL points to the application itself. This will cause SYNC ERROR (HTML response). URL:", url);
@@ -60,7 +65,7 @@ export const getSupabase = (): SupabaseClient | null => {
   }
 
   try {
-    console.log(`[Registry] Initializing client with URL: ${url.substring(0, 20)}...`);
+    console.log(`[Registry] Initializing client (Source: ${source}) with URL: ${url.substring(0, 25)}...`);
     _supabaseInstance = createClient(url, key, { 
       auth: { 
         persistSession: true,

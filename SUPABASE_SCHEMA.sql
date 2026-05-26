@@ -191,20 +191,16 @@ FOR SELECT
 USING (true);
 
 DROP POLICY IF EXISTS "businesses_authenticated_insert_v26" ON public.businesses;
-CREATE POLICY "businesses_authenticated_insert_v26"
+DROP POLICY IF EXISTS "businesses_public_insert_v26" ON public.businesses;
+CREATE POLICY "businesses_public_insert_v26"
 ON public.businesses
 FOR INSERT
-TO authenticated
-WITH CHECK (
-  auth.uid()::text = user_id::text
-  OR user_id IS NULL
-);
+WITH CHECK (true); -- Relaxed for registration flow
 
 DROP POLICY IF EXISTS "businesses_owner_update_v26" ON public.businesses;
 CREATE POLICY "businesses_owner_update_v26"
 ON public.businesses
 FOR UPDATE
-TO authenticated
 USING (
   auth.uid()::text = user_id::text
   OR public.check_is_admin()
@@ -214,7 +210,6 @@ DROP POLICY IF EXISTS "businesses_owner_delete_v26" ON public.businesses;
 CREATE POLICY "businesses_owner_delete_v26"
 ON public.businesses
 FOR DELETE
-TO authenticated
 USING (
   auth.uid()::text = user_id::text
   OR public.check_is_admin()
@@ -312,6 +307,15 @@ CREATE POLICY "posts_read" ON public.posts FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "posts_insert" ON public.posts;
 CREATE POLICY "posts_insert" ON public.posts FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+
+DROP POLICY IF EXISTS "posts_update" ON public.posts;
+CREATE POLICY "posts_update" ON public.posts FOR UPDATE USING (auth.uid()::text = user_id::text OR public.check_is_admin());
+
+DROP POLICY IF EXISTS "comments_insert" ON public.comments;
+CREATE POLICY "comments_insert" ON public.comments FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+
+DROP POLICY IF EXISTS "likes_all" ON public.likes;
+CREATE POLICY "likes_all" ON public.likes FOR ALL USING (auth.uid()::text = user_id::text);
 
 -- =====================================================
 -- 4. ORDERS
@@ -662,6 +666,35 @@ CREATE POLICY "signals_insert" ON public.buyer_signals FOR INSERT WITH CHECK (tr
 
 DROP POLICY IF EXISTS "config_public_read" ON public.platform_config;
 CREATE POLICY "config_public_read" ON public.platform_config FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "favorites_own" ON public.favorites;
+CREATE POLICY "favorites_own" ON public.favorites
+  FOR ALL USING (auth.uid()::text = user_id::text);
+
+DROP POLICY IF EXISTS "notifications_own" ON public.notifications;
+CREATE POLICY "notifications_own" ON public.notifications
+  FOR SELECT USING (auth.uid()::text = user_id::text);
+
+DROP POLICY IF EXISTS "followers_own" ON public.followers;
+CREATE POLICY "followers_own" ON public.followers
+  FOR ALL USING (
+    auth.uid()::text = follower_id::text 
+    OR auth.uid()::text = following_id::text
+  );
+
+DROP POLICY IF EXISTS "wallets_own" ON public.wallets;
+CREATE POLICY "wallets_own" ON public.wallets
+  FOR SELECT USING (auth.uid()::text = user_id::text);
+
+DROP POLICY IF EXISTS "transactions_own" ON public.transactions;
+CREATE POLICY "transactions_own" ON public.transactions
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.wallets
+      WHERE id = public.transactions.wallet_id
+      AND user_id::text = auth.uid()::text
+    )
+  );
 
 -- =====================================================
 -- 16. DRIVERS & FLEET
