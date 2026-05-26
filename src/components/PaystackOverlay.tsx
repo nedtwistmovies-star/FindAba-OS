@@ -5,8 +5,9 @@ import {
   ShieldCheck, Loader2, X, Landmark, Lock, 
   Smartphone, CheckCircle2, ChevronRight, Zap, 
   Activity, AlertTriangle, Globe, ArrowRight, Copy, Check, CreditCard, Cpu, Search,
-  UploadCloud, FileText, Camera, ArrowLeft
+  UploadCloud, FileText, Camera, ArrowLeft, QrCode
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { paymentService } from '../services/paymentService';
 import { OFFICIAL_BANK_DETAILS } from '../constants';
 import { verifyReceiptSignal } from '../services/geminiService';
@@ -34,7 +35,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
   amount, email, label, businessId, userId, bookingId, onSuccess, onCancel, isOpen 
 }) => {
   const { addToast } = useToast();
-  const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan'>('initialize');
+  const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan' | 'qr_pay'>('initialize');
   const [selectedChannel, setSelectedChannel] = useState<string[] | null>(null);
   const [reference, setReference] = useState('');
   const [copied, setCopied] = useState(false);
@@ -213,13 +214,13 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
               <div className="grid grid-cols-2 gap-3 md:gap-4">
                 {[
                   { id: 'card', label: 'Card', icon: <CreditCard size={18} />, channels: ['card'] },
+                  { id: 'qr', label: 'In-Person QR', icon: <QrCode size={18} />, action: () => setStep('qr_pay') },
                   { id: 'transfer', label: 'Transfer', icon: <ArrowRight size={18} />, channels: ['bank_transfer'] },
-                  { id: 'bank', label: 'Bank', icon: <Landmark size={18} />, channels: ['bank'] },
                   { id: 'ussd', label: 'USSD', icon: <Smartphone size={18} />, channels: ['ussd'] }
                 ].map((method) => (
                   <button 
                     key={method.id}
-                    onClick={() => triggerPaystack(method.channels)}
+                    onClick={() => method.action ? method.action() : triggerPaystack(method.channels)}
                     className="p-4 md:p-6 bg-slate-50 border border-slate-100 rounded-2xl md:rounded-3xl flex flex-col items-center gap-2 md:gap-3 hover:border-aba-gold hover:bg-aba-gold/5 transition-all group active:scale-95"
                   >
                     <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl flex items-center justify-center text-slate-300 group-hover:text-aba-gold shadow-sm transition-colors">
@@ -311,6 +312,37 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
 
                   <button onClick={() => setStep('initialize')} className="w-full py-2 md:py-4 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors flex items-center justify-center gap-2">
                     <ArrowLeft size={12} /> Back to Summary
+                  </button>
+               </div>
+            </div>
+          )}
+
+          {step === 'qr_pay' && (
+            <div className="space-y-8 md:space-y-10 animate-fade-in text-center p-4">
+               <div className="space-y-2 md:space-y-4">
+                 <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight">Merchant QR</h3>
+                 <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto leading-relaxed">Scan with your banking app or Paystack agent to finalize settlement.</p>
+               </div>
+               
+               <div className="bg-white p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl border-4 border-aba-gold inline-block mx-auto relative group">
+                  <div className="absolute inset-0 bg-aba-gold/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-[2.5rem] md:rounded-[3rem]" />
+                  <QRCodeSVG 
+                    value={`https://paystack.com/pay/${businessId || 'findaba-merchant'}?amount=${amount * 100}&email=${email}&reference=${reference}`}
+                    size={160}
+                    level="H"
+                    includeMargin={false}
+                  />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-xl shadow-lg border-2 border-aba-gold flex items-center justify-center">
+                    <ShieldCheck size={20} className="text-aba-gold" />
+                  </div>
+               </div>
+
+               <div className="space-y-6">
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-[9px] font-bold text-slate-400">
+                    "Registry signal is active. Auto-verification will trigger once handshake is committed."
+                  </div>
+                  <button onClick={() => setStep('method_select')} className="w-full py-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors flex items-center justify-center gap-2">
+                    <ArrowLeft size={14} /> Back to Channels
                   </button>
                </div>
             </div>

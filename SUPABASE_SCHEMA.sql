@@ -101,28 +101,43 @@ CREATE TABLE IF NOT EXISTS public.businesses (
 ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 
 -- Business Policies
-DROP POLICY IF EXISTS "Public read businesses" ON public.businesses;
-CREATE POLICY "Public read businesses" ON public.businesses FOR SELECT USING (true);
+-- 🛡️ INDUSTRIAL REGISTRY MASTER PROTECTION
+-- Purge all legacy policies to prevent RLS conflicts
+DO $$ 
+DECLARE 
+  pol RECORD;
+BEGIN 
+  FOR pol IN SELECT policyname FROM pg_policies WHERE tablename = 'businesses' AND schemaname = 'public' LOOP
+    EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(pol.policyname) || ' ON public.businesses';
+  END LOOP;
+END $$;
 
--- 🛡️ INDUSTRIAL REGISTRY PROTECTION
-DROP POLICY IF EXISTS "businesses_owner_all" ON public.businesses;
-DROP POLICY IF EXISTS "businesses_insert_authenticated" ON public.businesses;
-DROP POLICY IF EXISTS "Registry access policy" ON public.businesses;
-DROP POLICY IF EXISTS "Authenticated can insert business" ON public.businesses;
-DROP POLICY IF EXISTS "Businesses ownership policy" ON public.businesses;
-DROP POLICY IF EXISTS "Businesses creation policy" ON public.businesses;
+-- 1. UNIVERSAL READ: Registry is public
+CREATE POLICY "businesses_public_read_v3" ON public.businesses
+  FOR SELECT USING (true);
 
--- 1. Anyone authenticated can insert a business
-CREATE POLICY "businesses_insert_authenticated" ON public.businesses
-  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+-- 2. REGISTRATION/INSERT: Any authenticated user can commit a new node
+CREATE POLICY "businesses_authenticated_insert_v3" ON public.businesses
+  FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() IS NOT NULL);
 
--- 2. Owners or people claiming unowned businesses can update
-CREATE POLICY "businesses_update_owner" ON public.businesses
-  FOR UPDATE USING (auth.uid() = user_id OR user_id IS NULL OR public.check_is_admin())
-  WITH CHECK (auth.uid() = user_id OR user_id IS NULL OR public.check_is_admin());
+-- 3. MANAGEMENT (UPDATE/DELETE): Ownership Guard
+-- We cast to TEXT for absolute comparison safety across all PostgreSQL versions and auth sessions
+CREATE POLICY "businesses_authenticated_manage_v3" ON public.businesses
+  FOR ALL TO authenticated
+  USING (
+    auth.uid()::text = user_id::text 
+    OR user_id IS NULL 
+    OR public.check_is_admin()
+  )
+  WITH CHECK (
+    auth.uid()::text = user_id::text 
+    OR user_id IS NULL 
+    OR public.check_is_admin()
+  );
 
--- 3. Admins have full control
-CREATE POLICY "businesses_admin_all" ON public.businesses
+-- 3. ADMIN OVERRIDE
+CREATE POLICY "businesses_admin_master" ON public.businesses
   FOR ALL USING (public.check_is_admin());
 
 -- ==========================================

@@ -723,18 +723,29 @@ export const saveBusinessToDB = async (business: Business) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
+  // 🔹 Critical: Ensure user_id is present in the payload
+  // If the passed 'business' object doesn't have it, try to get it from the current session
+  let userId = business.user_id;
+  if (!userId) {
+    const { data: { session } } = await client.auth.getSession();
+    if (session?.user) {
+      userId = session.user.id;
+    }
+  }
+
   let currentPayload: any = { 
     ...business,
+    user_id: userId,
     email: business.email ? normalizeEmail(business.email) : undefined
   };
   let attempts = 0;
   const maxAttempts = 10; // Allow for multiple missing columns
 
-  console.log(`[Registry] Attempting to commit hub: ${currentPayload.email} (ID: ${currentPayload.id})`);
+  console.log(`[Registry] Attempting to commit hub: ${currentPayload.email} (ID: ${currentPayload.id}, User: ${userId})`);
 
   while (attempts < maxAttempts) {
     // Use upsert to handle existing emails/IDs permanently
-    const { data, error } = await client
+    const { error } = await client
       .from('businesses')
       .upsert(currentPayload, { onConflict: 'email' })
       .select();
@@ -1664,6 +1675,23 @@ export const fetchDisputes = async (merchantId: string) => {
     
   if (error) return [];
   return data || [];
+};
+
+export const updateDisputeEvidence = async (disputeId: string, evidence: { images: string[], videos: any[] }) => {
+  const sb = getSupabase();
+  if (!sb) throw new Error("Registry offline");
+  
+  const { error } = await sb
+    .from('disputes')
+    .update({
+      evidence_images: evidence.images,
+      evidence_videos: evidence.videos,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', disputeId);
+    
+  if (error) throw error;
+  return true;
 };
 
 export const resolveDispute = async (disputeId: string, status: 'resolved' | 'refunded') => {

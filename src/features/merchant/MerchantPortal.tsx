@@ -7,12 +7,14 @@ import {
   ArrowLeft, TrendingUp, BarChart3, ShieldCheck, Landmark, 
   Activity, Clock, ChevronRight, ShoppingBag, ListChecks, 
   Package, DollarSign, Loader2, AlertCircle, ImageIcon, Video, Plus, Trash2, Save,
-  Star, Gavel, ShieldAlert, CheckCircle2, Award, MapPin, Globe, User, Zap, Sparkles, X
+  Star, Gavel, ShieldAlert, CheckCircle2, Award, MapPin, Globe, User, Zap, Sparkles, X,
+  FileText, UploadCloud
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile, updateOrderStatus, fetchDisputes } from '../../services/supabaseService';
+import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile, updateOrderStatus, fetchDisputes, updateDisputeEvidence } from '../../services/supabaseService';
+import { generateWaybillPDF } from '../../utils/pdfGenerator';
 import { MultiImageUpload, ImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
 import { TodoList } from '../../components/TodoList';
@@ -49,6 +51,7 @@ const MerchantPortal: React.FC<{
   const [orders, setOrders] = useState<Order[]>([]);
   const [disputes, setDisputes] = useState<any[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedDispute, setSelectedDispute] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
@@ -663,7 +666,7 @@ const MerchantPortal: React.FC<{
                       </div>
                       <div className="flex w-full md:w-auto gap-3">
                          <button 
-                           onClick={() => addToast("Vault Signal initialized. Evidence archive syncing...", "info")}
+                           onClick={() => setSelectedDispute(d)}
                            className="flex-1 md:flex-none px-6 py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10"
                          >
                            Vault Access
@@ -1237,6 +1240,108 @@ const MerchantPortal: React.FC<{
           </div>
         )}
       </div>
+      {/* Dispute Evidence Modal */}
+      {selectedDispute && (
+        <div className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 animate-fade-in font-sans">
+           <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-14 space-y-10 md:space-y-12 shadow-2xl relative overflow-hidden overflow-y-auto max-h-[92vh] border dark:border-white/10">
+              <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none text-red-500"><ShieldAlert size={200} /></div>
+              
+              <div className="flex justify-between items-start relative z-10">
+                 <div className="space-y-2">
+                    <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Evidence Vault Access</p>
+                    <h3 className="text-2xl md:text-3xl font-black text-aba-dark dark:text-white uppercase tracking-tighter leading-none">Dispute #{selectedDispute.id.slice(-8)}</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{selectedDispute.reason}</p>
+                 </div>
+                 <button onClick={() => setSelectedDispute(null)} className="p-4 bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-400 hover:text-aba-dark dark:hover:text-white transition-all active:scale-95"><X size={24}/></button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 relative z-10">
+                 <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                       <FileText size={20} className="text-aba-gold" />
+                       <h4 className="text-sm font-black uppercase tracking-tight text-aba-dark dark:text-white">Shipping Artifacts</h4>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-black/20 p-6 md:p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 space-y-6">
+                       <p className="text-[9px] font-medium text-slate-500 dark:text-white/30 leading-relaxed uppercase tracking-widest">Upload waybills, bills of lading, or fulfillment logs to resolve the conflict.</p>
+                       <MultiImageUpload 
+                         label="Upload Waybills"
+                         images={selectedDispute.evidence_images || []}
+                         onAdd={(url: string) => {
+                           const current = [...(selectedDispute.evidence_images || [])];
+                           current.push(url);
+                           const updatedDisp = { ...selectedDispute, evidence_images: current };
+                           setSelectedDispute(updatedDisp);
+                           setDisputes(disputes.map(d => d.id === selectedDispute.id ? updatedDisp : d));
+                         }}
+                         onRemove={(idx: number) => {
+                           const current = (selectedDispute.evidence_images || []).filter((_: any, i: number) => i !== idx);
+                           const updatedDisp = { ...selectedDispute, evidence_images: current };
+                           setSelectedDispute(updatedDisp);
+                           setDisputes(disputes.map(d => d.id === selectedDispute.id ? updatedDisp : d));
+                         }}
+                       />
+                    </div>
+                 </div>
+
+                 <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                       <ImageIcon size={20} className="text-aba-gold" />
+                       <h4 className="text-sm font-black uppercase tracking-tight text-aba-dark dark:text-white">Visual Proof</h4>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-black/20 p-6 md:p-8 rounded-[2rem] border border-slate-100 dark:border-white/5 space-y-6">
+                       <p className="text-[9px] font-medium text-slate-500 dark:text-white/30 leading-relaxed uppercase tracking-widest">Provide photos of the items as received or delivered to support your claim.</p>
+                       <MultiVideoUpload 
+                         label="Proof Videos"
+                         videos={selectedDispute.evidence_videos || []}
+                         onAdd={(url: string) => {
+                           const current = [...(selectedDispute.evidence_videos || [])];
+                           current.push({ url, caption: 'Visual Signal' });
+                           const updatedDisp = { ...selectedDispute, evidence_videos: current };
+                           setSelectedDispute(updatedDisp);
+                           setDisputes(disputes.map(d => d.id === selectedDispute.id ? updatedDisp : d));
+                         }}
+                         onRemove={(idx: number) => {
+                           const current = (selectedDispute.evidence_videos || []).filter((_: any, i: number) => i !== idx);
+                           const updatedDisp = { ...selectedDispute, evidence_videos: current };
+                           setSelectedDispute(updatedDisp);
+                           setDisputes(disputes.map(d => d.id === selectedDispute.id ? updatedDisp : d));
+                         }}
+                       />
+                    </div>
+                 </div>
+              </div>
+
+              <div className="pt-6 relative z-10">
+                 <button 
+                   onClick={async () => {
+                     setSyncing(true);
+                     try {
+                        await updateDisputeEvidence(selectedDispute.id, {
+                          images: selectedDispute.evidence_images || [],
+                          videos: selectedDispute.evidence_videos || []
+                        });
+                        addToast("Evidence Signal Transmitted. Registry Sync Initiated.", "success");
+                        setSelectedDispute(null);
+                     } catch (e) {
+                        addToast("Transmission failed.", "error");
+                     } finally {
+                        setSyncing(false);
+                     }
+                   }}
+                   className="w-full py-6 bg-aba-dark dark:bg-aba-gold text-white dark:text-aba-dark rounded-[1.5rem] md:rounded-[2rem] font-black uppercase text-[10px] md:text-[11px] tracking-[0.4em] shadow-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50"
+                   disabled={syncing}
+                 >
+                   {syncing ? <Loader2 className="animate-spin" /> : <UploadCloud size={20} />}
+                   Submit to Arbiter Council
+                 </button>
+                 <p className="text-center text-[7px] md:text-[8px] font-black text-slate-400 dark:text-white/20 uppercase tracking-[0.3em] mt-6 leading-relaxed">
+                   Artifacts are securely hashed and stored in the FINDABA INDUSTRIAL VAULT.
+                 </p>
+              </div>
+           </div>
+        </div>
+      )}
+
       {/* Order Management Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in font-sans">
@@ -1271,8 +1376,24 @@ const MerchantPortal: React.FC<{
               </div>
 
               <div className="space-y-4 relative z-10">
-                 <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Fulfillment Status</p>
+                 <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Registry Actions</p>
                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => {
+                        generateWaybillPDF({
+                          orderId: selectedOrder.id,
+                          customerName: selectedOrder.buyer_id, // Usually a phone or name
+                          pickupAddr: "Aba Industrial Hub", // Hardcoded for demo if not in order
+                          dropoffAddr: "Target Perimeter",
+                          amount: selectedOrder.merchant_payout,
+                          date: new Date(selectedOrder.created_at).toLocaleDateString()
+                        });
+                        addToast("Waybill PDF Generated.", "success");
+                      }}
+                      className="col-span-2 py-4 bg-blue-500 text-white rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+                    >
+                      <FileText size={16} /> Print Waybill Artifact
+                    </button>
                     {[
                       { status: OrderStatus.PROCESSING, label: 'Processing', icon: <Clock size={16}/> },
                       { status: OrderStatus.SHIPPED, label: 'Shipped', icon: <Package size={16}/> },

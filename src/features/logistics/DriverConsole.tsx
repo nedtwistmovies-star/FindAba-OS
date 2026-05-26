@@ -4,13 +4,15 @@ import {
   Shield, User, Smartphone, MapPin, Power, 
   Activity, ArrowLeft, Loader2, ChevronRight, 
   ShieldCheck, Zap, Bell, Landmark, Star, X, Camera, AlertOctagon,
-  Car, Navigation, CheckCircle2, Phone, MessageSquare, ShieldAlert
+  Car, Navigation, CheckCircle2, Phone, MessageSquare, ShieldAlert,
+  FileText, Map as MapIcon
 } from 'lucide-react';
 import { ViewState, DriverPartner, ComplianceLevel } from '../../types';
 import { useToast } from '../../providers/ToastProvider';
 import MapView from '../../components/MapView';
 import { fetchDriverByEmail, updateDriverStatus, subscribeToRideRequests, updateRideBookingStatus, getSupabase, upsertDriverSignal } from '../../services/supabaseService';
-import { getCurrentPosition } from '../../services/locationService';
+import { getCurrentPosition, geocodeAddress, generateRoutePath } from '../../services/locationService';
+import { generateWaybillPDF } from '../../utils/pdfGenerator';
 
 const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
   const { addToast } = useToast();
@@ -26,6 +28,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   const [passengerRating, setPassengerRating] = useState(5);
   const [passengerFeedback, setPassengerFeedback] = useState('');
   const [location, setLocation] = useState({ lat: 5.1065, lng: 7.3633 });
+  const [route, setRoute] = useState<[number, number][]>([]);
   const [panicActive, setPanicActive] = useState(false);
   const [showIncidentReport, setShowIncidentReport] = useState(false);
   const [showBankForm, setShowBankForm] = useState(false);
@@ -123,6 +126,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
       await updateRideBookingStatus(rideRequest.id, 'accepted');
       setCurrentRide({ ...rideRequest, status: 'accepted' });
       setRideRequest(null);
+      setRoute([]); // Clear old route
       startMovement();
     } catch (e) {
       addToast("Handshake failed.", "error");
@@ -171,10 +175,35 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     try {
       await updateRideBookingStatus(currentRide.id, 'completed');
       if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
+      setRoute([]);
       setShowRatingModal(true);
     } catch (e) {
       addToast("Settlement error.", "error");
     }
+  };
+
+  const handleGetRoute = () => {
+    if (!currentRide) return;
+    const start = geocodeAddress(currentRide.pickup_addr);
+    const end = geocodeAddress(currentRide.dropoff_addr);
+    const path = generateRoutePath(start, end);
+    setRoute(path);
+    addToast("Route Signal Synchronized.", "success");
+  };
+
+  const handlePrintWaybill = () => {
+    if (!currentRide) return;
+    generateWaybillPDF({
+      orderId: currentRide.id,
+      customerName: currentRide.passenger_name || 'Guest',
+      pickupAddr: currentRide.pickup_addr,
+      dropoffAddr: currentRide.dropoff_addr,
+      amount: currentRide.amount || 0,
+      driverName: driver?.full_name,
+      vehiclePlate: driver?.plate_number,
+      date: new Date().toLocaleDateString()
+    });
+    addToast("Waybill PDF Generated.", "success");
   };
 
   const submitRating = async () => {
@@ -261,6 +290,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
           businesses={[]} 
           onBusinessClick={() => {}} 
           userLocation={location ? { latitude: location.lat, longitude: location.lng } : null}
+          route={route}
         />
         <div className="absolute top-6 left-6 z-50">
            <button onClick={() => setView('profile')} className="p-4 bg-[#2b004d] rounded-2xl shadow-xl border border-white/10 active:scale-90 transition-all">
@@ -409,6 +439,19 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                  </div>
 
                   <div className="grid grid-cols-2 gap-3 relative z-10">
+                    <button 
+                      onClick={handleGetRoute}
+                      className="col-span-1 py-4 bg-white/5 border border-white/10 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 active:scale-95 transition-all"
+                    >
+                      <MapIcon size={16} className="text-aba-gold" /> Get Route
+                    </button>
+                    <button 
+                      onClick={handlePrintWaybill}
+                      className="col-span-1 py-4 bg-white/5 border border-white/10 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 active:scale-95 transition-all"
+                    >
+                      <FileText size={16} className="text-blue-500" /> Waybill
+                    </button>
+
                     {currentRide.status === 'accepted' && (
                       <button onClick={() => updateStatus('navigating_to_pickup')} className="col-span-2 py-5 bg-aba-gold text-aba-dark rounded-xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
                         <Navigation size={18} /> Start Navigation

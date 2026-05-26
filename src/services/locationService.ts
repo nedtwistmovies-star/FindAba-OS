@@ -58,3 +58,35 @@ export const isWithinAbaBounds = (coords: Coordinates): boolean => {
   const distance = calculateDistance(coords, ABA_CENTER);
   return distance <= 15; // 15km radius from center
 };
+
+/**
+ * Mock geocoding for logistics addresses
+ */
+export const geocodeAddress = (address: string): Coordinates => {
+  // Return random coordinates around Aba for mock addresses
+  const seed = address.length;
+  return {
+    latitude: ABA_CENTER.latitude + (Math.sin(seed) * 0.02),
+    longitude: ABA_CENTER.longitude + (Math.cos(seed) * 0.02)
+  };
+};
+
+/**
+ * Generates a simple route path between two points
+ */
+export const generateRoutePath = (start: Coordinates, end: Coordinates): [number, number][] => {
+  const points: [number, number][] = [];
+  const segments = 10;
+  
+  for (let i = 0; i <= segments; i++) {
+    const ratio = i / segments;
+    const lat = start.latitude + (end.latitude - start.latitude) * ratio;
+    const lng = start.longitude + (end.longitude - start.longitude) * ratio;
+    
+    // Add some "road-like" jitter
+    const jitter = i > 0 && i < segments ? (Math.random() - 0.5) * 0.002 : 0;
+    points.push([lat + jitter, lng + jitter]);
+  }
+  
+  return points;
+};

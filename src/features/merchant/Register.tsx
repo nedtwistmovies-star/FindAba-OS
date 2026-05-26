@@ -95,7 +95,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
     const newBusiness: Business = {
       id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
-      user_id: user_id || undefined,
+      user_id: user_id || undefined, // Explicitly map the session user_id
       name: formData.name,
       email: formData.email.toLowerCase().trim(),
       phone: formData.phone,
