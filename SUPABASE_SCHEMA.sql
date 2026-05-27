@@ -1,13 +1,17 @@
--- FINDABA INDUSTRIAL OS: UNIFIED MASTER SCHEMA v26.0
--- UUID-STABLE PRODUCTION CORE
--- SAFE FIX VERSION
--- Preserves original architecture while fixing uuid/text conflicts
--- Focus: Successful business registration + stable RLS + relational consistency
+-- FINDABA INDUSTRIAL OS: UNIFIED MASTER SCHEMA v26.1
+-- FINAL RECOVERY VERSION - "ONCE AND FOR ALL" FIX
+-- Focus: Force permissions for registration and data consistency
+
+-- =====================================================
+-- 0. SYSTEM GLOBAL CONFIG
+-- =====================================================
+SET search_path = public, auth;
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT USAGE ON SCHEMA public TO service_role;
 
 -- =====================================================
 -- EXTENSIONS
 -- =====================================================
-
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =====================================================
@@ -181,23 +185,48 @@ CREATE TABLE IF NOT EXISTS public.businesses (
 ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
--- BUSINESS POLICIES
+-- BUSINESS POLICIES & GRANTS
 -- =====================================================
 
-DROP POLICY IF EXISTS "businesses_public_read_v26" ON public.businesses;
+-- 1. NUCLEAR CLEAN: Remove all possible old policies
+DO $$
+DECLARE
+  pol RECORD;
+BEGIN
+  FOR pol IN
+    SELECT policyname
+    FROM pg_policies
+    WHERE tablename = 'businesses'
+    AND schemaname = 'public'
+  LOOP
+    EXECUTE format(
+      'DROP POLICY IF EXISTS %I ON public.businesses',
+      pol.policyname
+    );
+  END LOOP;
+END $$;
+
+-- 2. ENSURE RLS
+ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
+
+-- 3. EXPLICIT GRANTS (Fixes PERMISSION DENIED)
+GRANT ALL ON public.businesses TO anon, authenticated, service_role;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+
+-- 4. POLICIES
 CREATE POLICY "businesses_public_read_v26"
 ON public.businesses
 FOR SELECT
 USING (true);
 
-DROP POLICY IF EXISTS "businesses_authenticated_insert_v26" ON public.businesses;
-DROP POLICY IF EXISTS "businesses_public_insert_v26" ON public.businesses;
+-- RELAXED INSERT FOR REGISTRATION
+-- Explicitly targeting ALL roles to bypass any session-state ambiguity
 CREATE POLICY "businesses_public_insert_v26"
 ON public.businesses
 FOR INSERT
-WITH CHECK (true); -- Relaxed for registration flow
+TO anon, authenticated, service_role
+WITH CHECK (true);
 
-DROP POLICY IF EXISTS "businesses_owner_update_v26" ON public.businesses;
 CREATE POLICY "businesses_owner_update_v26"
 ON public.businesses
 FOR UPDATE
@@ -206,7 +235,6 @@ USING (
   OR public.check_is_admin()
 );
 
-DROP POLICY IF EXISTS "businesses_owner_delete_v26" ON public.businesses;
 CREATE POLICY "businesses_owner_delete_v26"
 ON public.businesses
 FOR DELETE

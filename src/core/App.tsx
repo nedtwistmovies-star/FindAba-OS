@@ -27,6 +27,10 @@ const AppContent: React.FC = () => {
   const { toasts = [], removeToast = () => {} } = useToast();
   const { isOracleOpen = false, setIsOracleOpen = () => {}, view = 'home', setView = () => {} } = useOracle();
 
+  // 🔹 BOOT STATE: Shows splash while initializing
+  const [isBooted, setIsBooted] = React.useState(false);
+  const [forceOnboarding, setForceOnboarding] = React.useState(localStorage.getItem('findaba_onboarded') !== 'true');
+
   const handleBusinessClick = (b: any) => {
     setSelectedBusiness(b);
     setView('detail');
@@ -38,8 +42,6 @@ const AppContent: React.FC = () => {
   };
 
   const loading = businessLoading;
-  const isVercelDomain = window.location.hostname.endsWith('.vercel.app');
-  const isCustomDomain = window.location.hostname === 'findaba.com.ng';
 
   useEffect(() => {
     // Force scroll to top on view change
@@ -61,22 +63,9 @@ const AppContent: React.FC = () => {
     'sandals-hotels', 'audio-heritage', 'lab'
   ];
 
-  const RouteComponent = (!isAuth && !GUEST_ALLOWED_VIEWS.includes(view as ViewState) && view !== 'signup' && view !== 'login') 
+  const RouteComponent = (!isAuth && !GUEST_ALLOWED_VIEWS.includes(view as ViewState) && view !== 'signup' && view !== 'login' && view !== 'onboarding') 
     ? (ROUTE_MAP['login'] || ROUTE_MAP['home'])
     : ((ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']));
-
-  const [showQuickSetup, setShowQuickSetup] = React.useState(false);
-  const [quickConfig, setQuickConfig] = React.useState({
-    url: localStorage.getItem('findaba_supabase_url') || '',
-    key: localStorage.getItem('findaba_supabase_key') || ''
-  });
-
-  const handleQuickSave = () => {
-    localStorage.setItem('findaba_supabase_url', quickConfig.url);
-    localStorage.setItem('findaba_supabase_key', quickConfig.key);
-    setShowQuickSetup(false);
-    window.location.reload();
-  };
 
   const [signalHealth, setSignalHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'unknown'; message?: string } | null>(null);
   const [geminiHealth, setGeminiHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'warning'; message: string } | null>(null);
@@ -84,19 +73,11 @@ const AppContent: React.FC = () => {
   React.useEffect(() => {
     const initApp = async () => {
       try {
-        // 1. Sync Config First
         const gHealth = await syncGeminiConfig();
         setGeminiHealth(gHealth);
         
-        // 2. Then Check Health
         const health = await checkDatabaseHealth();
         setSignalHealth(health as any);
-
-        // 3. Check Onboarding Status
-        const onboarded = localStorage.getItem('findaba_onboarded') === 'true';
-        if (!onboarded && isAuth && view === 'home') {
-          setView('onboarding');
-        }
       } catch (e) {
         console.error("App initialization error:", e);
         setSignalHealth({ status: 'unhealthy', message: 'Industrial Signal Lost' });
@@ -104,8 +85,6 @@ const AppContent: React.FC = () => {
     };
     
     initApp();
-    
-    // Periodically refresh health to ensure UI stays in sync with actual connection
     const interval = setInterval(initApp, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -128,13 +107,25 @@ const AppContent: React.FC = () => {
 
   const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
 
-  // REMOVED: Blocks access if database takes too long to sync
-  // if (loading && businesses.length === 0) {
-  //   return <LoadingScreen message="Initializing Industrial Matrix..." />;
-  // }
+  // 🔹 REFINED BOOT LOGIC
+  const showOnboarding = (!isAuth || forceOnboarding) && view !== 'home';
+
+  // 🔹 SHOW ONBOARDING IF NOT AUTHENTICATED
+  if (!isAuth || (forceOnboarding && view === 'onboarding')) {
+    const Onboarding = ROUTE_MAP.onboarding;
+    return (
+      <Suspense fallback={null}>
+        <Onboarding onComplete={() => { setForceOnboarding(false); setView('home'); }} setView={setView} />
+      </Suspense>
+    );
+  }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="relative min-h-screen overflow-x-hidden"
+    >
       {/* 🔹 SUBTLE AMBIENT BACKGROUND ANIMATION */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <motion.div 
@@ -208,7 +199,7 @@ const AppContent: React.FC = () => {
         </div>
       )}
     </Layout>
-  </div>
+  </motion.div>
   );
 };
 

@@ -117,7 +117,6 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         .from('businesses')
         .insert([
           {
-            id: crypto.randomUUID ? crypto.randomUUID() : `biz-${Math.random().toString(36).substr(2, 9)}`,
             user_id: user.id,
             name: formData.name,
             email: formData.email.toLowerCase().trim(),
@@ -134,11 +133,9 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
             integrity_grade: 'C',
             subscription_tier: selectedPlan,
             premium_features_enabled: selectedPlan !== SubscriptionTier.FREE,
-            created_at: new Date().toISOString()
           },
         ])
         .select()
-        .limit(1)
         .single();
 
       if (error) {
