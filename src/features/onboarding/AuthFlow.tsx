@@ -30,17 +30,35 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onSuccess, initialType = 'si
 
     try {
       if (type === 'signup') {
-        const { error } = await supabase.auth.signUp({ 
+        const { error, data } = await supabase.auth.signUp({ 
           email, 
           password,
           options: {
             data: { full_name: 'Verified Citizen' }
           }
         });
+        
+        // 🔹 LOG AUDIT
+        await supabase.from('auth_audit_logs').insert({
+          user_id: data?.user?.id,
+          auth_method: 'email_signup',
+          status: error ? 'error' : 'success',
+          device_info: navigator.userAgent
+        });
+
         if (error) throw error;
         addToast("Handshake Initiated: Check your email.", "success");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+        
+        // 🔹 LOG AUDIT
+        await supabase.from('auth_audit_logs').insert({
+          user_id: data?.user?.id,
+          auth_method: 'email_signin',
+          status: error ? 'error' : 'success',
+          device_info: navigator.userAgent
+        });
+
         if (error) throw error;
         onSuccess();
       }

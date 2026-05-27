@@ -54,6 +54,12 @@ export const MerchantSetup: React.FC<MerchantSetupProps> = ({ onComplete }) => {
 
       if (error) throw error;
       
+      // Update User Role in Profiles
+      await supabase
+        .from('profiles')
+        .update({ role: 'merchant' })
+        .eq('id', session.user.id);
+      
       addToast("Hub successfully committed to registry!", "success");
       onComplete();
     } catch (err: any) {
@@ -103,7 +109,7 @@ export const MerchantSetup: React.FC<MerchantSetupProps> = ({ onComplete }) => {
                   <Globe className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20" size={20} />
                   <select 
                     value={formData.category}
-                    onChange={e => setFormData({...formData, category: e.target.value})}
+                    onChange={e => setFormData({...formData, category: e.target.value as Category})}
                     className="w-full p-6 pl-16 bg-white/5 border border-white/10 rounded-2xl text-white appearance-none focus:border-aba-gold/50 transition-all outline-none text-sm font-bold uppercase tracking-tight"
                   >
                     {CATEGORIES.map(c => <option key={c} value={c} className="bg-aba-deep">{c}</option>)}

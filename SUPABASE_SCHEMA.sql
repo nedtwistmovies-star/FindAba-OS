@@ -101,7 +101,9 @@ DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 CREATE POLICY "profiles_update_own"
 ON public.profiles
 FOR UPDATE
-USING (auth.uid()::text = id::text);
+TO authenticated
+USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
 
 DROP POLICY IF EXISTS "profiles_admin_all" ON public.profiles;
 CREATE POLICY "profiles_admin_all"
@@ -178,6 +180,11 @@ CREATE TABLE IF NOT EXISTS public.businesses (
 
   portfolio_images TEXT[],
 
+  slug TEXT UNIQUE,
+  registry_number TEXT UNIQUE,
+  onboarding_completed BOOLEAN DEFAULT FALSE,
+  profile_completion INTEGER DEFAULT 0,
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -210,6 +217,7 @@ END $$;
 ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 
 -- 3. EXPLICIT GRANTS (Fixes PERMISSION DENIED)
+GRANT ALL ON public.profiles TO anon, authenticated, service_role;
 GRANT ALL ON public.businesses TO anon, authenticated, service_role;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
 
@@ -219,13 +227,12 @@ ON public.businesses
 FOR SELECT
 USING (true);
 
--- RELAXED INSERT FOR REGISTRATION
--- Explicitly targeting ALL roles to bypass any session-state ambiguity
-CREATE POLICY "businesses_public_insert_v26"
+-- SECURE INSERT - Authenticated users can create their own business hub
+CREATE POLICY "businesses_authenticated_insert_v27"
 ON public.businesses
 FOR INSERT
-TO anon, authenticated, service_role
-WITH CHECK (true);
+TO authenticated
+WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "businesses_owner_update_v26"
 ON public.businesses
@@ -819,3 +826,78 @@ SELECT public.enable_realtime_for('notifications');
 SELECT public.enable_realtime_for('buyer_signals');
 SELECT public.enable_realtime_for('logistics_orders');
 SELECT public.enable_realtime_for('ads');
+
+-- =====================================================
+-- 19. ONBOARDING & AUDIT
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS public.onboarding_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  current_step TEXT DEFAULT 'welcome',
+  onboarding_completed BOOLEAN DEFAULT FALSE,
+  preferred_auth_method TEXT,
+  account_type TEXT,
+  ai_context JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.guest_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  device_id TEXT,
+  guest_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.ai_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  conversation_type TEXT DEFAULT 'onboarding',
+  messages JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.auth_audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  auth_method TEXT,
+  ip_address TEXT,
+  device_info TEXT,
+  status TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.onboarding_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guest_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.auth_audit_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "onboarding_sessions_own" ON public.onboarding_sessions
+  FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "ai_conversations_own" ON public.ai_conversations
+  FOR ALL USING (auth.uid() = user_id);
+
+-- GUEST SESSIONS: Limited insert for anonymous users
+CREATE POLICY "guest_sessions_insert" ON public.guest_sessions
+  FOR INSERT WITH CHECK (true);
+
+-- REALTIME ENABLING
+SELECT public.enable_realtime_for('onboarding_sessions');
+SELECT public.enable_realtime_for('ai_conversations');
+
+-- =====================================================
+-- 20. STORAGE CONFIG
+-- =====================================================
+
+-- Ensure storage schema exists and buckets are manageable
+GRANT ALL ON SCHEMA storage TO postgres, service_role;
+
+-- Manually adding buckets if not existing via script logic
+-- NOTE: In some environments, this requires direct UI interaction or specialized extensions
+-- We define the intent here for the system console setup.
+
+-- INSERT INTO storage.buckets (id, name, public) VALUES ('business-media', 'business-media', true) ON CONFLICT (id) DO NOTHING;
+

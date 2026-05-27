@@ -8,6 +8,7 @@ import { AuthFlow } from './AuthFlow';
 import { MerchantSetup } from './MerchantSetup';
 import { SuccessTransition } from './SuccessTransition';
 import { useAuth } from '../../providers/AuthProvider';
+import { getSupabase } from '../../services/supabaseService';
 import { ViewState } from '../../types';
 
 type OnboardingState = 
@@ -29,6 +30,27 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, setV
   const [state, setState] = useState<OnboardingState>('splash');
   const [authType, setAuthType] = useState<'signin' | 'signup' | 'phone' | 'email'>('signin');
 
+  // 🔹 PERSIST ONBOARDING STATE IN DB
+  useEffect(() => {
+    const syncOnboardingState = async () => {
+      if (!isAuth) return;
+      const supabase = getSupabase();
+      if (!supabase) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      await supabase.from('onboarding_sessions').upsert({
+        user_id: session.user.id,
+        current_step: state,
+        onboarding_completed: state === 'completed' || state === 'success',
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+    };
+
+    syncOnboardingState();
+  }, [state, isAuth]);
+
   // Handle Auth changes during flow
   useEffect(() => {
     if (isAuth && state === 'auth') {
@@ -41,7 +63,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, setV
     }
   }, [isAuth, state, authType]);
 
-  const handleAIWelcomeAction = (action: string) => {
+  const handleAIWelcomeAction = async (action: string) => {
     if (action === 'signin') {
       setAuthType('signin');
       setState('auth');
@@ -55,6 +77,15 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete, setV
       setAuthType('email');
       setState('auth');
     } else if (action === 'guest' || action === 'registry') {
+      // 🔹 RECORD GUEST SESSION
+      const supabase = getSupabase();
+      if (supabase) {
+        await supabase.from('guest_sessions').insert({
+          guest_name: 'Explorer-' + Math.floor(Math.random() * 1000),
+          device_id: navigator.userAgent
+        });
+      }
+
       localStorage.setItem('findaba_onboarded', 'true');
       onComplete();
     }

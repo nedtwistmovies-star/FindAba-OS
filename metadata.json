@@ -16,5 +16,8 @@
     "facebook": "https://facebook.com/findaba",
     "linkedin": "https://linkedin.com/company/findaba"
   },
-  "icon": "/icon.png"
+  "icon": "/icon.png",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
