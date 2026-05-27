@@ -10,7 +10,7 @@ import { syncGeminiConfig } from '../services/geminiService';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
-  const { isAuth, userRole, userIdentifier, user_id, handleAuthSuccess = () => {} } = useAuth();
+  const { isAuth, userRole, userIdentifier, user_id, profile, handleAuthSuccess = () => {} } = useAuth();
   const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
   const { 
     businesses = [], 
@@ -107,15 +107,21 @@ const AppContent: React.FC = () => {
 
   const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
 
-  // 🔹 REFINED BOOT LOGIC
-  const showOnboarding = (!isAuth || forceOnboarding) && view !== 'home';
+  // 🔹 PRODUCTION-GRADE ONBOARDING LOGIC
+  const isOnboardingComplete = profile?.onboarding_stage === 'completed' || localStorage.getItem('findaba_onboarded') === 'true';
+  const shouldShowOnboarding = !isOnboardingComplete;
 
-  // 🔹 SHOW ONBOARDING IF NOT AUTHENTICATED
-  if (!isAuth || (forceOnboarding && view === 'onboarding')) {
+  if (shouldShowOnboarding && view !== 'home' && !GUEST_ALLOWED_VIEWS.includes(view as ViewState)) {
     const Onboarding = ROUTE_MAP.onboarding;
     return (
       <Suspense fallback={null}>
-        <Onboarding onComplete={() => { setForceOnboarding(false); setView('home'); }} setView={setView} />
+        <Onboarding 
+          onComplete={() => { 
+            localStorage.setItem('findaba_onboarded', 'true');
+            setView('home'); 
+          }} 
+          setView={setView} 
+        />
       </Suspense>
     );
   }
