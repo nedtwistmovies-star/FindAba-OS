@@ -1,4 +1,4 @@
-```tsx
+
 import React, { Suspense, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ErrorBoundary, Layout, FeedbackToast } from '../components';
