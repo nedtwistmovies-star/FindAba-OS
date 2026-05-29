@@ -69,76 +69,7 @@
       document.addEventListener('touchstart', function() {}, {passive: true});
       document.addEventListener('touchmove', function() {}, {passive: true});
 
-      // PERMANENTLY REMOVE VERCEL TOOLBAR / OVERLAYS
-      const hideOverlays = () => {
-        const selectors = [
-          'vercel-live-feedback',
-          '#vercel-live-feedback-container',
-          '.vercel-toolbar',
-          '[id^="vercel-live-feedback"]',
-          '[class*="vercel-toolbar"]',
-          '#vercel-toolbar',
-          '[data-vercel-toolbar]',
-          '[data-vercel-live-feedback]',
-          '#vercel-toolbar-container',
-          '.vercel-toolbar-container'
-        ];
-        
-        selectors.forEach(s => {
-          try {
-            const els = document.querySelectorAll(s);
-            els.forEach(el => {
-              el.remove();
-            });
-          } catch(e) {}
-        });
-
-        // Hide anything that contains "Vercel" or "Launch!" text and looks like a platform pill
-        const elements = document.getElementsByTagName('*');
-        for (let i = 0; i < elements.length; i++) {
-          const el = elements[i] as HTMLElement;
-          if (el.innerText && (el.innerText.includes('Launch!') || el.innerText.includes('Vercel'))) {
-             // If it's a small floating button/pill
-             const rect = el.getBoundingClientRect();
-             if (rect.width < 150 && rect.height < 150) {
-                el.style.display = 'none';
-                el.style.opacity = '0';
-                el.style.pointerEvents = 'none';
-             }
-          }
-        }
-
-        try { window.localStorage.setItem('vercel_toolbar_hidden', '1'); } catch(e) {}
-      };
-      
-      // Run immediately
-      hideOverlays();
-      
-      // Watch for new elements
-      const observer = new MutationObserver((mutations) => {
-        hideOverlays();
-      });
-      observer.observe(document.documentElement, { childList: true, subtree: true });
-
-      // Block Vercel script injection and any script that looks like a toolbar
-      const originalCreateElement = document.createElement;
-      document.createElement = function(tagName: string, options?: ElementCreationOptions) {
-        const element = originalCreateElement.call(document, tagName, options);
-        if (tagName.toLowerCase() === 'script') {
-          const scriptObserver = new MutationObserver(() => {
-            const src = (element as HTMLScriptElement).src;
-            const id = (element as HTMLElement).id;
-            const data = (element as HTMLElement).getAttribute('data-vercel-toolbar');
-            if (src.includes('vercel') || src.includes('toolbar') || id.includes('vercel') || data !== null) {
-              console.log('[Security] Blocked Vercel/Toolbar script:', src || id || 'data-attr');
-              (element as HTMLScriptElement).src = '';
-              element.remove();
-            }
-          });
-          scriptObserver.observe(element, { attributes: true, attributeFilter: ['src', 'id', 'data-vercel-toolbar'] });
-        }
-        return element;
-      } as any;
+      try { window.localStorage.setItem('vercel_toolbar_hidden', '1'); } catch(e) {}
     </script>
 </head>
 <body>

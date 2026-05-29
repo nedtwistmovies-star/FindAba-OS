@@ -3,30 +3,32 @@ import { supabase } from '../lib/supabaseClient';
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
 
-export const sendOTP = async (phone: string) => {
-  if (FUNCTIONS_URL) {
-    const res = await fetch(`${FUNCTIONS_URL}/send-otp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone }),
+export const sendOtp = async (phone: string) => {
+  try {
+    const { data, error } = await supabase.functions.invoke("send-otp", {
+      body: {
+        phone,
+      },
     });
-    return res.json();
-  }
 
-  // Fallback to direct Supabase Auth if Edge Functions are not configured
-  const { error } = await supabase.auth.signInWithOtp({
-    phone,
-    options: {
-      channel: 'sms'
+    if (error) {
+      console.error(error);
+      alert("Failed to send OTP");
+      return { error };
     }
-  });
 
-  if (error) {
-    console.error("[Auth] OTP Send Error:", error.message);
-    throw error;
+    console.log(data);
+
+    alert("OTP sent successfully to WhatsApp");
+    return data || { success: true };
+  } catch (err: any) {
+    console.error(err);
+    alert("Something went wrong");
+    return { error: err };
   }
-  return true;
 };
+
+export const sendOTP = sendOtp;
 
 export const verifyOTP = async (phone: string, token: string) => {
   if (FUNCTIONS_URL) {

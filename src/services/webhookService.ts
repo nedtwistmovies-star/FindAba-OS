@@ -4,7 +4,7 @@
  * Connects FindAba Registry events to external automation workflows.
  */
 
-const MAKE_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || '';
+const MAKE_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_URL || (typeof process !== 'undefined' && process.env ? process.env.MAKE_WEBHOOK_URL : '') || '';
 
 export enum WebhookEvent {
   NEW_REGISTRATION = 'new_registration',

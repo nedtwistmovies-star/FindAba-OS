@@ -1,6 +1,7 @@
 
 import { getSupabase } from '../../services/supabaseService';
 import { OnboardingStage } from '../store/useOnboardingStore';
+import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
 
 export const onboardingService = {
   async trackEvent(eventName: string, metadata: any = {}) {
@@ -9,6 +10,7 @@ export const onboardingService = {
 
     const { data: { session } } = await supabase.auth.getSession();
     
+    // 1. Sync to Supabase
     await supabase.from('onboarding_events').insert({
       user_id: session?.user?.id || null,
       event_type: eventName,
@@ -18,6 +20,16 @@ export const onboardingService = {
         url: window.location.href,
         userAgent: navigator.userAgent
       }
+    });
+
+    // 2. Trigger External Automation (Make.com)
+    // Map event string to enum if possible, or use a generic audit event
+    const webhookEvent = eventName === 'completed_onboarding' ? WebhookEvent.NEW_REGISTRATION : WebhookEvent.SYSTEM_AUDIT;
+    
+    await triggerWebhook(webhookEvent, metadata, {
+      user_id: session?.user?.id,
+      email: session?.user?.email,
+      tier_level: metadata.type === 'merchant' ? 'premium' : 'standard'
     });
 
     // Also update profile if authenticated
@@ -62,6 +74,9 @@ export const onboardingService = {
 
     if (profileError) throw profileError;
     
-    await this.trackEvent('completed_onboarding', { type: 'merchant' });
+    await this.trackEvent('completed_onboarding', { 
+      type: 'merchant', 
+      ...businessData 
+    });
   }
 };

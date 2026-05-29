@@ -395,8 +395,8 @@ export const purgeLocalRegistry = () => {
 
 export const getRegistryConfig = () => {
   return {
-    url: localStorage.getItem('findaba_supabase_url') || process.env.SUPABASE_URL || '',
-    key: localStorage.getItem('findaba_supabase_key') || process.env.SUPABASE_ANON_KEY || ''
+    url: localStorage.getItem('findaba_supabase_url') || (typeof process !== 'undefined' && process.env ? process.env.SUPABASE_URL : '') || '',
+    key: localStorage.getItem('findaba_supabase_key') || (typeof process !== 'undefined' && process.env ? process.env.SUPABASE_ANON_KEY : '') || ''
   };
 };
 

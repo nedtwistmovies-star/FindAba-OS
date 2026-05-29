@@ -100,24 +100,28 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
     }
 
     try {
+      let activeUserId = user_id;
+
       const {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
 
-      if (sessionError || !session?.user) {
+      if (session?.user) {
+        activeUserId = session.user.id;
+      }
+
+      if (!activeUserId) {
         throw new Error(
           'Authentication session not found. Please login again.'
         );
       }
 
-      const user = session.user;
-
       const { data, error } = await supabase
         .from('businesses')
         .insert([
           {
-            user_id: user.id,
+            user_id: activeUserId,
             name: formData.name,
             email: formData.email.toLowerCase().trim(),
             category: formData.category,
