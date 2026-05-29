@@ -92,10 +92,10 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   ),
 
   signup: lazyWithRetry(() =>
-    import('../features/auth/Login')
+    import('../features/auth/Signup')
   ),
 
-  verifyotp: lazyWithRetry(() =>
+  'verify-otp': lazyWithRetry(() =>
     import('../features/auth/VerifyOTP')
   ),
 
