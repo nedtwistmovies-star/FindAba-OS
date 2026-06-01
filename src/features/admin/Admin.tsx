@@ -76,6 +76,13 @@ import {
   updateTaskItem,
   deleteTaskItem,
   reorderTaskItems,
+  fetchAllThriftAccounts,
+  fetchAdminPosts,
+  createAdminTestPost,
+  runDiagnosticReport,
+  releaseEscrow,
+  createDispute,
+  createEscrowOrder,
 } from "../../services/supabaseService";
 import { ARTISANS } from "../../constants";
 import { useToast } from "../../providers/ToastProvider";
@@ -83,7 +90,7 @@ import { useBusiness } from "../../providers/BusinessProvider";
 import { triggerWebhook, WebhookEvent, validateAutomationGateway, getSamplePayload } from "../../services/webhookService";
 import { paymentService } from "../../services/paymentService";
 import { sendWelcomeEmail } from "../../services/emailService";
-import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel, Task, Order, OrderStatus } from "../../types";
+import { PlatformConfig, Business, BuyerSignal, LedgerEntry, IntegrityGrade, VerificationLevel, Task, Order, OrderStatus, ThriftAccount, Post } from "../../types";
 import { ImageUpload, MultiImageUpload } from "../../components/ImageUpload";
 import { MultiVideoUpload } from "../../components/VideoUpload";
 import StatCard from "../../components/StatCard";
@@ -898,6 +905,9 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "supabase"
     | "infrastructure"
     | "identity"
+    | "thrift"
+    | "posts"
+    | "diagnostics"
   >(() => {
     const storedTab = localStorage.getItem('findaba_admin_tab');
     if (storedTab) {
@@ -915,6 +925,10 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [thriftAccounts, setThriftAccounts] = useState<ThriftAccount[]>([]);
+  const [adminPosts, setAdminPosts] = useState<Post[]>([]);
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [testPostContent, setTestPostContent] = useState('Checking the grid signal... #FindAbaAdmin');
 
   // Supabase Config State
   const [dbConfig, setDbConfig] = useState(getRegistryConfig());
@@ -926,6 +940,10 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
 
   const [automationStatus, setAutomationStatus] = useState<{ status: string, message: string }>({ status: 'unknown', message: 'Audit not yet initialized.' });
   const [isAuditing, setIsAuditing] = useState(false);
+  const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
+  const [isRunningDiagnostic, setIsRunningDiagnostic] = useState(false);
+  const [simulationStep, setSimulationStep] = useState(0);
+  const [simulationLogs, setSimulationLogs] = useState<string[]>([]);
 
   const runAutomationAudit = async () => {
     setIsAuditing(true);
@@ -971,9 +989,22 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
 
         const { data: profileData } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
         setProfiles(profileData || []);
+
+        const thrift = await fetchAllThriftAccounts();
+        setThriftAccounts(thrift);
+
+        const posts = await fetchAdminPosts();
+        setAdminPosts(posts);
       }
-    } catch (err) {
-      console.error("Registry Sync Fault");
+    } catch (err: any) {
+      console.error("Registry Sync Fault:", err);
+      const isPermissionError = err.message?.toLowerCase().includes('permission denied');
+      addToast(
+        isPermissionError 
+          ? `Industrial Sync Fault: Database Permission Denied. This is common when RLS is enabled. Please run the SQL script in the file "/SUPABASE_PERMISSION_FIX.sql" in your Supabase SQL Editor to promote your user and grant access.` 
+          : `Industrial Sync Fault: ${err.message || 'Check database connectivity'}`, 
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -990,8 +1021,89 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     setPin(newPin);
     if (digit !== "" && index < 3) pinRefs[index + 1].current?.focus();
     if (newPin.join("") === "1234") {
+      localStorage.setItem("findaba_auth_token", "admin_secret_mesh");
       localStorage.setItem("findaba_admin_auth", "true");
       setIsAuthenticated(true);
+    }
+  };
+
+  const handleRunDiagnostic = async () => {
+    setIsRunningDiagnostic(true);
+    try {
+      const report = await runDiagnosticReport();
+      setDiagnosticResult(report);
+      if (report.status === 'healthy') {
+        addToast("Industrial Grid Healthy: All mission-critical tables initialized.", "success");
+      } else {
+        addToast("Industrial Grid Degraded: Schema discrepancies detected.", "error");
+      }
+    } catch (err: any) {
+      addToast(`Diagnostic Fault: ${err.message}`, "error");
+    } finally {
+      setIsRunningDiagnostic(false);
+    }
+  };
+
+  const handleStartSimulation = async () => {
+    setSimulationStep(1);
+    setSimulationLogs(["Initialising Industrial Simulation Flow..."]);
+    const addLog = (msg: string) => setSimulationLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+    
+    try {
+      const sb = getSupabase();
+      if (!sb) throw new Error("Registry offline");
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) throw new Error("Auth required for simulation");
+
+      // Find a test business
+      const biz = businesses[0];
+      if (!biz) throw new Error("No business nodes found for simulation");
+
+      addLog("Step 1: Creating Success Flow Order...");
+      const order1 = await createEscrowOrder({
+        buyer_id: user.id,
+        merchant_id: biz.id,
+        amount: 25000,
+        status: OrderStatus.PAID
+      }, biz);
+      addLog(`Order Created: ${order1.id.slice(0, 8)} (Status: PAID)`);
+
+      addLog("Step 2: Attempting Escrow Release (Clean Flow)...");
+      await releaseEscrow(order1.id);
+      addLog("Success: Escrow Released. Merchant Payout Credited.");
+
+      addLog("Step 3: Creating Dispute Logic Block...");
+      const order2 = await createEscrowOrder({
+        buyer_id: user.id,
+        merchant_id: biz.id,
+        amount: 45000,
+        status: OrderStatus.PAID
+      }, biz);
+      addLog(`Conflict Order Created: ${order2.id.slice(0, 8)}`);
+
+      addLog("Step 4: Injecting Dispute Signal...");
+      await createDispute({
+        order_id: order2.id,
+        merchant_id: biz.id,
+        user_id: user.id,
+        reason: "SIMULATION: Package not received",
+        status: 'open'
+      });
+      addLog("Dispute Signal Active. Escrow Locked.");
+
+      addLog("Step 5: Attempting Restricted Release...");
+      try {
+        await releaseEscrow(order2.id);
+        addLog("FAILURE: Escrow release bypassed dispute lock!");
+      } catch (e: any) {
+        addLog(`SUCCESS: Escrow system correctly blocked release. Error: ${e.message}`);
+      }
+
+      setSimulationStep(2);
+      addToast("Simulation Flow Complete", "success");
+    } catch (err: any) {
+      addLog(`Simulation Fault: ${err.message}`);
+      addToast("Simulation Terminated", "error");
     }
   };
 
@@ -1141,6 +1253,9 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
           { id: 'verification', label: 'Veritas', icon: <Shield size={16} /> },
           { id: 'settlement', label: 'Finance', icon: <Landmark size={16} /> },
           { id: 'supabase', label: 'Handshake', icon: <Radio size={16} /> },
+          { id: 'thrift', label: 'Thrift', icon: <Landmark size={16} /> },
+          { id: 'posts', label: 'Posts', icon: <MessageSquare size={16} /> },
+          { id: 'diagnostics', label: 'Diagnostics', icon: <Terminal size={16} /> },
           { id: 'infrastructure', label: 'Sys-Ops', icon: <Globe size={16} /> },
         ].map((tab) => (
           <button
@@ -2509,6 +2624,162 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
               </div>
             </div>
           )}
+          {activeTab === "posts" && (
+            <div className="animate-slide-up space-y-8">
+              <SectionHeader 
+                title="Industrial Content Node" 
+                subtitle={`Analyzing ${adminPosts.length} broadcast signals`}
+                icon={MessageSquare}
+              />
+              
+              <div className="bg-white/5 rounded-[3rem] border border-white/5 p-8 space-y-6">
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-white/40">Manual Signal Injection (Test Snippet)</h3>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <input 
+                      type="text"
+                      value={testPostContent}
+                      onChange={(e) => setTestPostContent(e.target.value)}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-xs font-bold focus:border-aba-gold transition-all"
+                      placeholder="Enter post content for testing..."
+                    />
+                    <IndustrialButton 
+                      variant="primary" 
+                      size="md" 
+                      icon={Send} 
+                      loading={isCreatingPost}
+                      onClick={async () => {
+                        setIsCreatingPost(true);
+                        try {
+                          const result = await createAdminTestPost(testPostContent);
+                          console.log("POST TEST RESULT:", result);
+                          if (result.error) {
+                            addToast(`Injection Fault: ${result.error.message}`, "error");
+                          } else {
+                            addToast("Signal injected successfully into the grid.", "success");
+                            const updated = await fetchAdminPosts();
+                            setAdminPosts(updated);
+                          }
+                        } catch (e: any) {
+                          addToast(`System Crash: ${e.message}`, "error");
+                        } finally {
+                          setIsCreatingPost(false);
+                        }
+                      }}
+                    >
+                      Inject Signal
+                    </IndustrialButton>
+                  </div>
+                  <p className="text-[8px] font-mono text-white/20 uppercase tracking-widest">
+                    Note: This executes the snippet: auth.getUser() &rarr; insert(payload) &rarr; log result.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white/5 rounded-[3rem] border border-white/5 overflow-hidden">
+                 <table className="w-full text-left border-collapse">
+                    <thead>
+                       <tr className="border-b border-white/5">
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Timestamp</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Author</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Content</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Action</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                       {adminPosts.length === 0 ? (
+                         <tr>
+                            <td colSpan={4} className="p-20 text-center opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">
+                               The broadcast channel is silent.
+                            </td>
+                         </tr>
+                       ) : adminPosts.map(post => (
+                          <tr key={post.id} className="hover:bg-white/5 transition-all">
+                             <td className="p-8 text-[10px] font-mono text-white/40">
+                                {new Date(post.created_at).toLocaleString()}
+                             </td>
+                             <td className="p-8">
+                                <div className="flex items-center gap-3">
+                                   <div className="w-8 h-8 rounded-lg bg-aba-gold/10 flex items-center justify-center font-black text-[10px] text-aba-gold border border-aba-gold/20 overflow-hidden">
+                                      {post.author?.avatar_url ? (
+                                        <img src={post.author.avatar_url} className="w-full h-full object-cover" />
+                                      ) : (
+                                        post.user_id.substring(0, 2).toUpperCase()
+                                      )}
+                                   </div>
+                                   <p className="text-xs font-black text-white">{post.author?.email || 'System Account'}</p>
+                                </div>
+                             </td>
+                             <td className="p-8">
+                                <p className="text-xs text-white/60 line-clamp-2">{post.content}</p>
+                             </td>
+                             <td className="p-8">
+                                <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest bg-white/5 text-white/40`}>
+                                   {post.action_type}
+                                </span>
+                             </td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
+            </div>
+          )}
+          {activeTab === "thrift" && (
+            <div className="animate-slide-up space-y-8">
+              <SectionHeader 
+                title="Industrial Thrift Units" 
+                subtitle={`Managing ${thriftAccounts.length} savings registries`}
+                icon={Landmark}
+              />
+              <div className="bg-white/5 rounded-[3rem] border border-white/5 overflow-hidden">
+                 <table className="w-full text-left border-collapse">
+                    <thead>
+                       <tr className="border-b border-white/5">
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Owner</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Cycle</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Total Saved</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Status</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Locked Until</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                       {thriftAccounts.length === 0 ? (
+                         <tr>
+                            <td colSpan={5} className="p-20 text-center opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">
+                               No thrift registries active in the grid.
+                            </td>
+                         </tr>
+                       ) : thriftAccounts.map(acc => (
+                          <tr key={acc.id} className="hover:bg-white/5 transition-all">
+                             <td className="p-8">
+                                <p className="text-xs font-black text-white">{acc.user_email}</p>
+                             </td>
+                             <td className="p-8">
+                                <span className="text-[10px] font-black uppercase text-aba-gold">{acc.cycle}</span>
+                             </td>
+                             <td className="p-8 font-mono text-xs text-aba-green">
+                                ₦{(acc.total_saved || 0).toLocaleString()}
+                             </td>
+                             <td className="p-8">
+                                <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                                   acc.status === 'active' ? 'bg-aba-green/10 text-aba-green' :
+                                   acc.status === 'matured' ? 'bg-aba-gold/10 text-aba-gold' :
+                                   'bg-white/10 text-white/40'
+                                }`}>
+                                   {acc.status}
+                                </span>
+                             </td>
+                             <td className="p-8 text-[10px] font-mono text-white/40">
+                                {acc.locked_until ? new Date(acc.locked_until).toLocaleDateString() : 'N/A'}
+                             </td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
+            </div>
+          )}
           {activeTab === "registry" && (
             <div className="animate-slide-up space-y-8">
               <SectionHeader 
@@ -2621,6 +2892,121 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 icon={ListTodo}
               />
               <TasksManager />
+            </div>
+          )}
+
+          {activeTab === "diagnostics" && (
+            <div className="animate-slide-up space-y-12 pb-20">
+              <SectionHeader 
+                title="System Diagnostics" 
+                subtitle="Audit mission-critical schema, RLS policies, and financial flows"
+                icon={Terminal}
+              />
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+                      <Database className="text-aba-gold" /> Schema Audit
+                    </h4>
+                    <IndustrialButton 
+                      variant="primary" 
+                      size="sm" 
+                      icon={isRunningDiagnostic ? Loader2 : RefreshCcw}
+                      loading={isRunningDiagnostic}
+                      onClick={handleRunDiagnostic}
+                    >
+                      Run Probe
+                    </IndustrialButton>
+                  </div>
+
+                  {!diagnosticResult ? (
+                    <div className="p-12 border border-white/5 rounded-3xl text-center text-[10px] font-bold text-white/20 uppercase tracking-widest">
+                      Audit result pending. Click "Run Probe" to initialize sync.
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className={`p-6 rounded-3xl flex items-center gap-4 ${diagnosticResult.status === 'healthy' ? 'bg-aba-green/10 text-aba-green border border-aba-green/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+                         {diagnosticResult.status === 'healthy' ? <CheckSquare size={20}/> : <AlertTriangle size={20}/>}
+                         <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest leading-none">System Status</p>
+                            <h5 className="text-lg font-black uppercase tracking-tight mt-1">{diagnosticResult.status.toUpperCase()}</h5>
+                         </div>
+                      </div>
+
+                      <div className="space-y-4">
+                         {Object.entries(diagnosticResult.tables).map(([table, res]: [any, any]) => (
+                            <div key={table} className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl group hover:border-white/10 transition-all">
+                               <div className="flex items-center gap-3">
+                                  <div className={`w-2 h-2 rounded-full ${res.status === 'healthy' ? 'bg-aba-green' : 'bg-red-500'}`} />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">{table}</span>
+                               </div>
+                               {res.status !== 'healthy' && (
+                                  <span className="text-[8px] font-mono text-red-400">{res.code}</span>
+                               )}
+                            </div>
+                         ))}
+                      </div>
+
+                      {diagnosticResult.errors?.length > 0 && (
+                        <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-3xl space-y-3">
+                           <p className="text-[10px] font-black uppercase text-red-500 tracking-widest">Fault Signals Detect</p>
+                           <ul className="space-y-2">
+                             {diagnosticResult.errors.map((err: string, i: number) => (
+                               <li key={i} className="text-[9px] font-mono text-red-400 leading-relaxed">• {err}</li>
+                             ))}
+                           </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+                      <Zap className="text-aba-gold" /> Escrow Simulation
+                    </h4>
+                    <IndustrialButton 
+                      variant="secondary" 
+                      size="sm" 
+                      icon={RefreshCcw}
+                      onClick={handleStartSimulation}
+                      disabled={simulationStep === 1}
+                    >
+                      Initialize Flow
+                    </IndustrialButton>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="p-8 bg-black/40 border border-white/5 rounded-3xl space-y-4">
+                       <p className="text-[10px] font-medium text-white/60 leading-relaxed italic">
+                         Simulation will perform two full escrow signals.
+                         <br/>1. <span className="text-aba-green">Clean Transaction:</span> Order creation - Release success.
+                         <br/>2. <span className="text-red-500">Conflict Transaction:</span> Order creation - Dispute Injection - Release Block verification.
+                       </p>
+                    </div>
+
+                    <div className="bg-aba-deep rounded-3xl border border-white/10 p-6 space-y-4 min-h-[300px] flex flex-col">
+                       <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-white/30">Live Terminal Signals</span>
+                          {simulationStep === 1 && <Loader2 size={12} className="animate-spin text-aba-gold" />}
+                       </div>
+                       
+                       <div className="flex-1 space-y-3 overflow-y-auto max-h-[300px] scrollbar-hide font-mono text-[9px] py-4">
+                          {simulationLogs.length === 0 ? (
+                            <div className="h-full flex items-center justify-center text-white/10">Terminal Idle...</div>
+                          ) : simulationLogs.map((log, i) => (
+                            <div key={i} className={`flex gap-3 ${log.includes('SUCCESS') ? 'text-aba-green' : log.includes('FAILURE') || log.includes('Fault') ? 'text-red-500' : 'text-white/60'}`}>
+                               <span className="shrink-0 text-white/20">[{i+1}]</span>
+                               <span>{log}</span>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -49,7 +49,19 @@ export const app = express();
 // Trust proxy is required for correct protocol/host detection behind nginx
 app.set('trust proxy', true);
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+
+// Global error handlers to prevent silent crashes
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Server] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[Server] Uncaught Exception:', error);
+});
 // Increase limits for large repository syncs
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
@@ -192,27 +204,70 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
   app.get("/api/github/user", async (req, res) => {
     const token = req.cookies.github_token;
     if (!token) {
+      console.log("[GitHub] User info requested but no token found in cookies");
       return res.status(401).json({ error: "Not authenticated with GitHub" });
     }
 
     try {
-      console.log("[GitHub] Fetching user info...");
+      console.log("[GitHub] Fetching user info for token starting with:", token.substring(0, 5));
       const response = await axios.get("https://api.github.com/user", {
         headers: {
           Authorization: `Bearer ${token}`,
           "User-Agent": "FindAba-City-OS",
           Accept: "application/vnd.github.v3+json",
         },
+        timeout: 10000 // 10s timeout
       });
       console.log(`[GitHub] User fetched: ${response.data.login}`);
       res.json(response.data);
     } catch (error: any) {
-      console.error("[GitHub] User Fetch Error:", error.response?.data || error.message);
-      res.status(error.response?.status || 500).json({ 
+      const status = error.response?.status || 500;
+      const message = error.response?.data?.message || error.message;
+      console.error("[GitHub] User Fetch Error:", { status, message });
+      
+      // If it's a 401/403, our token is likely stale or invalid
+      if (status === 401 || status === 403) {
+        res.clearCookie("github_token");
+      }
+
+      res.status(status).json({ 
         error: "Failed to fetch GitHub user",
-        details: error.response?.data?.message || error.message
+        details: message
       });
     }
+  });
+
+  // Network Diagnostic Route
+  app.get("/api/debug/network", async (req, res) => {
+    const results: any = {
+      timestamp: new Date().toISOString(),
+      connectivity: {}
+    };
+
+    const targets = [
+      { name: 'github', url: 'https://api.github.com/zen' },
+      { name: 'supabase', url: supabaseUrl },
+      { name: 'google', url: 'https://www.google.com' }
+    ];
+
+    for (const target of targets) {
+      try {
+        const start = Date.now();
+        await axios.get(target.url, { timeout: 5000 });
+        results.connectivity[target.name] = { 
+          status: 'ok', 
+          latency: `${Date.now() - start}ms` 
+        };
+      } catch (err: any) {
+        results.connectivity[target.name] = { 
+          status: 'error', 
+          message: err.message,
+          code: err.code
+        };
+      }
+    }
+
+    res.json(results);
   });
 
   // Logout GitHub

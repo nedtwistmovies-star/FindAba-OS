@@ -60,7 +60,7 @@ const AppContent: React.FC = () => {
   const GUEST_ALLOWED_VIEWS: ViewState[] = [
     'home', 'discover', 'explore', 'detail', 'editorial', 'editorial-detail', 
     'about', 'about-aba', 'legal', 'support', 'pricing', 'hotel-detail', 
-    'sandals-hotels', 'audio-heritage', 'lab'
+    'sandals-hotels', 'audio-heritage', 'lab', 'terminal-pay'
   ];
 
   const RouteComponent = (!isAuth && !GUEST_ALLOWED_VIEWS.includes(view as ViewState) && view !== 'signup' && view !== 'login' && view !== 'onboarding') 
@@ -102,6 +102,7 @@ const AppContent: React.FC = () => {
     else if (view === 'pricing') setView('merchant-portal');
     else if (view === 'ad-checkout') setView('pricing');
     else if (view === 'business-verification') setView('discover');
+    else if (view === 'terminal-pay') setView('home');
     else setView('home');
   };
 

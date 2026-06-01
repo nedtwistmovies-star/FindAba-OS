@@ -195,12 +195,14 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     if (!currentRide) return;
     generateWaybillPDF({
       orderId: currentRide.id,
+      trackingId: currentRide.tracking_session_id,
+      merchantName: "FindAba Logistics Unit",
       customerName: currentRide.passenger_name || 'Guest',
+      customerPhone: 'N/A',
+      customerAddress: currentRide.dropoff_addr,
       pickupAddr: currentRide.pickup_addr,
       dropoffAddr: currentRide.dropoff_addr,
       amount: currentRide.amount || 0,
-      driverName: driver?.full_name,
-      vehiclePlate: driver?.plate_number,
       date: new Date().toLocaleDateString()
     });
     addToast("Waybill PDF Generated.", "success");

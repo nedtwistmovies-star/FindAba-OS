@@ -6,7 +6,7 @@ import {
   LogisticsOrder, ChatMessage, Advertorial, AdPlan, 
   PaymentLog, ThriftAccount, ThriftContribution, ThriftGroup, ThriftGroupMember, ThriftGroupContribution, ThriftPayout, Order, OrderStatus, Dispute, PlatformConfig,
   QualityAudit, SubscriptionTier, RoomType, BuyerSignal, SignalInterest, AdCampaign, HospitalityConfig,
-  AppNotification, HubTier, Task
+  AppNotification, HubTier, Task, Post
 } from '../types';
 import { triggerWebhook, WebhookEvent } from './webhookService';
 import { 
@@ -565,7 +565,11 @@ export const fetchOrdersForBuyer = async (buyerId: string): Promise<Order[]> => 
 export const fetchMerchantOrders = async (merchantId: string): Promise<Order[]> => {
   const client = getSupabase();
   if (!client) return [];
-  const { data } = await client.from('orders').select('*').eq('merchant_id', merchantId).order('created_at', { ascending: false });
+  const { data } = await client
+    .from('orders')
+    .select('*, buyer:profiles!buyer_id(*)')
+    .eq('merchant_id', merchantId)
+    .order('created_at', { ascending: false });
   return data || [];
 };
 
@@ -874,6 +878,71 @@ export const activatePlanFeatures = async (businessId: string, planId: string) =
   const client = getSupabase();
   if (!client) return;
   await client.from('businesses').update({ subscription_tier: planId, premium_features_enabled: planId !== 'Free' }).eq('id', businessId);
+};
+
+export const fetchAdminPosts = async (): Promise<Post[]> => {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from('posts')
+    .select(`
+      *,
+      author:profiles(*)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("[Admin] Fetch Posts Error:", error.message);
+    throw error;
+  }
+  return data || [];
+};
+
+export const createAdminTestPost = async (content: string): Promise<any> => {
+  const sb = getSupabase();
+  if (!sb) return { error: { message: 'No database connection' } };
+
+  try {
+    const {
+      data: { user }
+    } = await sb.auth.getUser();
+
+    console.log("AUTH USER:", user);
+
+    const payload = {
+      user_id: user?.id,
+      content: content,
+      action_type: 'none'
+    };
+
+    console.log("POST PAYLOAD:", payload);
+
+    const result = await sb
+      .from("posts")
+      .insert(payload)
+      .select()
+      .single();
+
+    console.log("POST RESULT:", result);
+    return result;
+  } catch (err: any) {
+    console.error("Post Creation Fault:", err);
+    return { error: { message: err.message } };
+  }
+};
+
+export const fetchAllThriftAccounts = async (): Promise<ThriftAccount[]> => {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("thrift_accounts")
+    .select("*");
+
+  if(error){
+     console.error("[Admin] Thrift Account Sync Error:", error.message);
+     throw error;
+  }
+  return data || [];
 };
 
 export const fetchThriftAccount = async (email: string): Promise<ThriftAccount | null> => {
@@ -1712,6 +1781,66 @@ export const resolveDispute = async (disputeId: string, status: 'resolved' | 're
     
   if (error) throw error;
   return data;
+};
+
+export const fetchMerchantStats = async (merchantId: string) => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry offline");
+
+  const [orders, disputes] = await Promise.all([
+    client.from('orders').select('merchant_payout').eq('merchant_id', merchantId).in('status', [OrderStatus.PAID, OrderStatus.DELIVERED]),
+    client.from('disputes').select('id', { count: 'exact', head: true }).eq('merchant_id', merchantId).eq('status', 'open')
+  ]);
+
+  const pendingPayouts = orders.data?.reduce((sum, o) => sum + (o.merchant_payout || 0), 0) || 0;
+  const activeDisputes = disputes.count || 0;
+
+  return { pendingPayouts, activeDisputes };
+};
+
+export const releaseEscrow = async (orderId: string) => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry offline");
+  const { data, error } = await client.rpc('release_escrow', { p_order_id: orderId });
+  if (error) throw error;
+  return data;
+};
+
+export const createDispute = async (dispute: Partial<Dispute>) => {
+  const client = getSupabase();
+  if (!client) throw new Error("Registry offline");
+  const { data, error } = await client.from('disputes').insert(dispute).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const runDiagnosticReport = async () => {
+  const client = getSupabase();
+  if (!client) return { status: 'offline', errors: ['Registry disconnected'] };
+
+  const tables = ['profiles', 'businesses', 'orders', 'disputes', 'thrift_accounts', 'platform_logs'];
+  const results: any = {};
+  const errors: string[] = [];
+
+  for (const table of tables) {
+    try {
+      const { error } = await client.from(table).select('*').limit(1);
+      if (error) {
+        results[table] = { status: 'error', code: error.code, message: error.message };
+        errors.push(`${table}: ${error.message} (${error.code})`);
+      } else {
+        results[table] = { status: 'healthy' };
+      }
+    } catch (e: any) {
+      errors.push(`${table}: ${e.message}`);
+    }
+  }
+
+  return {
+    status: errors.length === 0 ? 'healthy' : 'degraded',
+    tables: results,
+    errors
+  };
 };
 
 export const fetchAdminStats = async () => {

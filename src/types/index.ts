@@ -9,7 +9,7 @@ export type ViewState =
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
   | 'orders' | 'dispute-center' | 'login' | 'signup' | 'carry-me' | 'driver-registry'
   | 'purple-fleet' | 'driver-console' | 'fleet-admin' | 'legal' | 'hardware-audit' | 'business-verification'
-  | 'carry-go-dash' | 'onboarding' | 'support';
+  | 'carry-go-dash' | 'onboarding' | 'support' | 'terminal' | 'terminal-pay';
 
 export type Language = 'en' | 'ig' | 'pcm' | 'ha' | 'yo' | 'fr' | 'zh';
 export type UserRole = 'visitor' | 'registered' | 'business_owner' | 'verified_business' | 'buyer' | 'editor' | 'admin' | 'driver' | 'fleet_commander';
@@ -122,11 +122,15 @@ export interface Order {
   tracking_id?: string;
   escrow_release_at?: string;
   created_at: string;
+  // Joined fields
+  buyer?: Profile;
 }
 
 export interface Dispute {
   id: string;
   order_id: string;
+  merchant_id: string;
+  user_id: string;
   reason: string;
   status: 'open' | 'resolved' | 'refunded';
   evidence_url?: string;

@@ -1,13 +1,20 @@
--- FINDABA INDUSTRIAL OS: UNIFIED MASTER SCHEMA v26.1
--- FINAL RECOVERY VERSION - "ONCE AND FOR ALL" FIX
--- Focus: Force permissions for registration and data consistency
+-- FINDABA INDUSTRIAL OS: UNIFIED MASTER SCHEMA v27.0
+-- FINAL HARMONIZED VERSION - "INSTITUTIONAL GRADE" CONFIG
+-- Focus: Universal permissions, Admin resilience, and Thrift integrations
 
 -- =====================================================
 -- 0. SYSTEM GLOBAL CONFIG
 -- =====================================================
 SET search_path = public, auth;
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT USAGE ON SCHEMA public TO service_role;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+-- TABLE-LEVEL PERMISSIONS (The "Handshake" layer)
+-- This grants the role permission to even 'look' at the tables.
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+
+-- SEQUENCE PERMISSIONS
+-- Required for any table with auto-incrementing IDs
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- =====================================================
 -- EXTENSIONS
@@ -71,17 +78,20 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  is_admin BOOLEAN;
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RETURN FALSE;
+  -- 1. Explicit Check for Root Owner
+  IF (SELECT email FROM auth.users WHERE id = auth.uid()) = 'pastornelsonezi@gmail.com' THEN
+    RETURN TRUE;
   END IF;
 
-  RETURN EXISTS (
-    SELECT 1
-    FROM public.profiles
-    WHERE id = auth.uid()
-    AND role = 'admin'
-  );
+  -- 2. Role-based Check from Profile
+  SELECT (role = 'admin') INTO is_admin
+  FROM public.profiles
+  WHERE id = auth.uid();
+  
+  RETURN COALESCE(is_admin, FALSE);
 END;
 $$;
 
@@ -360,6 +370,43 @@ CREATE POLICY "likes_all" ON public.likes FOR ALL USING (auth.uid()::text = user
 -- 4. ORDERS
 -- FIXED UUID RELATIONS
 -- =====================================================
+
+CREATE OR REPLACE FUNCTION public.release_escrow(p_order_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_order_status TEXT;
+    v_dispute_count INTEGER;
+BEGIN
+    -- 1. Check if order exists and get status
+    SELECT status INTO v_order_status
+    FROM public.orders
+    WHERE id = p_order_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Order not found';
+    END IF;
+
+    -- 2. Check for active disputes
+    SELECT COUNT(*) INTO v_dispute_count
+    FROM public.disputes
+    WHERE order_id = p_order_id AND status = 'open';
+
+    IF v_dispute_count > 0 THEN
+        RAISE EXCEPTION 'Cannot release escrow: Order has an active dispute.';
+    END IF;
+
+    -- 3. Update order status to COMPLETED
+    UPDATE public.orders
+    SET status = 'completed',
+        escrow_release_at = NOW()
+    WHERE id = p_order_id;
+
+    RETURN TRUE;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS public.orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -906,7 +953,130 @@ CREATE POLICY "onboarding_events_own" ON public.onboarding_events
 SELECT public.enable_realtime_for('onboarding_events');
 
 -- =====================================================
--- 20. STORAGE CONFIG
+-- 23. THRIFT & MICRO-FINANCE
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS public.thrift_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_email TEXT UNIQUE NOT NULL,
+  cycle TEXT DEFAULT 'daily',
+  total_saved NUMERIC DEFAULT 0,
+  status TEXT DEFAULT 'active',
+  start_date TIMESTAMPTZ DEFAULT NOW(),
+  bank_name TEXT,
+  account_number TEXT,
+  account_name TEXT,
+  swift_code TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.thrift_accounts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "thrift_accounts_self_view" ON public.thrift_accounts;
+CREATE POLICY "thrift_accounts_self_view" ON public.thrift_accounts
+  FOR SELECT USING (user_email = (SELECT email FROM auth.users WHERE id = auth.uid()));
+
+DROP POLICY IF EXISTS "thrift_accounts_admin_all" ON public.thrift_accounts;
+CREATE POLICY "thrift_accounts_admin_all" ON public.thrift_accounts
+  FOR ALL USING (public.check_is_admin());
+
+-- =====================================================
+-- 24. SYSTEM LOGS & AUDIT TRAIL
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS public.platform_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_type TEXT NOT NULL,
+  severity TEXT DEFAULT 'info',
+  payload JSONB DEFAULT '{}',
+  user_id UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.platform_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins only logs" ON public.platform_logs;
+CREATE POLICY "Admins only logs" ON public.platform_logs 
+  FOR ALL TO authenticated
+  USING (public.check_is_admin())
+  WITH CHECK (public.check_is_admin());
+
+-- =====================================================
+-- 25. DISPUTES SYSTEM
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS public.disputes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+  merchant_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id),
+  reason TEXT NOT NULL,
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'resolving', 'resolved', 'cancelled')),
+  evidence_images TEXT[],
+  evidence_videos JSONB DEFAULT '[]',
+  evidence_urls TEXT[],
+  resolution TEXT,
+  resolved_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Involved parties view disputes" ON public.disputes;
+CREATE POLICY "Involved parties view disputes" ON public.disputes 
+  FOR SELECT USING (
+    auth.uid()::text = user_id::text 
+    OR auth.uid()::text IN (SELECT buyer_id::text FROM public.orders WHERE id = order_id)
+    OR auth.uid()::text IN (SELECT seller_id::text FROM public.orders WHERE id = order_id)
+    OR public.check_is_admin()
+  );
+
+DROP POLICY IF EXISTS "Disputes insert policy" ON public.disputes;
+CREATE POLICY "Disputes insert policy" ON public.disputes
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id::text OR public.check_is_admin());
+
+-- =====================================================
+-- 26. ESCROW & FINANCIAL PROTOCOLS
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION public.release_escrow(p_order_id UUID, p_admin_id UUID DEFAULT NULL)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_order RECORD;
+  v_wallet_id UUID;
+  v_has_dispute BOOLEAN;
+BEGIN
+  -- 1. Lock order row for update
+  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id FOR UPDATE;
+
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order not found: %', p_order_id; END IF;
+  IF v_order.status = 'completed' THEN RAISE EXCEPTION 'Escrow already released'; END IF;
+
+  -- 2. Check for active disputes
+  SELECT EXISTS (SELECT 1 FROM public.disputes WHERE order_id = p_order_id AND status != 'resolved') INTO v_has_dispute;
+  IF v_has_dispute AND p_admin_id IS NULL THEN RAISE EXCEPTION 'Escrow locked: Active dispute exists'; END IF;
+
+  -- 3. Only allow statuses 'paid' or 'delivered'
+  IF v_order.status NOT IN ('paid', 'delivered') THEN RAISE EXCEPTION 'Order status not eligible'; END IF;
+
+  -- 4. Credit seller wallet safely
+  INSERT INTO public.wallets (user_id) VALUES (v_order.seller_id) ON CONFLICT (user_id) DO NOTHING;
+  SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = v_order.seller_id;
+  
+  UPDATE public.wallets SET balance = balance + v_order.merchant_payout, updated_at = NOW() WHERE id = v_wallet_id;
+  
+  INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
+  VALUES (v_wallet_id, v_order.merchant_payout, 'credit', 'success', 'Order Payout: ' || p_order_id, 'REL-' || p_order_id);
+  
+  UPDATE public.orders SET status = 'completed', escrow_release_at = NOW() WHERE id = p_order_id;
+  
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- =====================================================
+-- 27. STORAGE CONFIG
 -- =====================================================
 
 -- Ensure storage schema exists and buckets are manageable

@@ -26,7 +26,9 @@ export const GitHubSync: React.FC = () => {
 
   const fetchUser = async () => {
     try {
-      const response = await fetch('/api/github/user');
+      const response = await fetch('/api/github/user', {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setUser(data);
@@ -61,7 +63,9 @@ export const GitHubSync: React.FC = () => {
 
   const handleConnect = async () => {
     try {
-      const response = await fetch(`/api/auth/github/url?origin=${encodeURIComponent(window.location.origin)}`);
+      const response = await fetch(`/api/auth/github/url?origin=${encodeURIComponent(window.location.origin)}`, {
+        credentials: 'include'
+      });
       
       let data;
       try {
@@ -102,7 +106,9 @@ export const GitHubSync: React.FC = () => {
   const checkRepoHealth = async () => {
     if (!status.repo || !user) return;
     try {
-      const response = await fetch(`/api/git/sync?repo=${encodeURIComponent(status.repo)}`);
+      const response = await fetch(`/api/git/sync?repo=${encodeURIComponent(status.repo)}`, {
+        credentials: 'include'
+      });
       const result = await response.json();
       if (response.ok) {
         setRepoHealth({
@@ -166,7 +172,10 @@ export const GitHubSync: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/github/logout', { method: 'POST' });
+      await fetch('/api/auth/github/logout', { 
+        method: 'POST',
+        credentials: 'include'
+      });
       setUser(null);
       localStorage.removeItem('findaba_git_repo');
       setRepoInput('');

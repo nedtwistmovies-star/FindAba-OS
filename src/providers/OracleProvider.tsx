@@ -17,6 +17,10 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isOracleOpen, setIsOracleOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setViewState] = useState<ViewState>(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewParam = urlParams.get('view');
+    if (viewParam) return viewParam as ViewState;
+
     const saved = localStorage.getItem('findaba_current_view');
     if (!saved || saved === 'login' || saved === 'onboarding') return 'home';
     return saved as ViewState;

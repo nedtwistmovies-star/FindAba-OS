@@ -8,12 +8,12 @@ import {
   Activity, Clock, ChevronRight, ShoppingBag, ListChecks, 
   Package, DollarSign, Loader2, AlertCircle, ImageIcon, Video, Plus, Trash2, Save,
   Star, Gavel, ShieldAlert, CheckCircle2, Award, MapPin, Globe, User, Zap, Sparkles, X,
-  FileText, UploadCloud
+  FileText, UploadCloud, QrCode
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile, updateOrderStatus, fetchDisputes, updateDisputeEvidence } from '../../services/supabaseService';
+import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile, updateOrderStatus, fetchDisputes, updateDisputeEvidence, fetchMerchantStats } from '../../services/supabaseService';
 import { generateWaybillPDF } from '../../utils/pdfGenerator';
 import { MultiImageUpload, ImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
@@ -23,6 +23,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import { BUSINESS_PLANS } from '../../constants';
 import { BillingCycle, SubscriptionTier, HubTier } from '../../types';
 import HubEnrollment from './HubEnrollment';
+import TerminalTab from './TerminalTab';
 
 // Fix Leaflet icon issue safely
 try {
@@ -55,13 +56,14 @@ const MerchantPortal: React.FC<{
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
-  const [activeTab, setActiveTab] = useState<'identity' | 'orders' | 'media' | 'finance' | 'showroom' | 'trust' | 'subscription' | 'referrals' | 'disputes'>('identity');
+  const [activeTab, setActiveTab] = useState<'identity' | 'orders' | 'media' | 'finance' | 'showroom' | 'trust' | 'subscription' | 'referrals' | 'disputes' | 'terminal'>('identity');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [showUpgradeCheckout, setShowUpgradeCheckout] = useState(false);
   const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<any>(null);
   const [showTasks, setShowTasks] = useState(false);
+  const [stats, setStats] = useState({ pendingPayouts: 0, activeDisputes: 0 });
 
   useEffect(() => {
     if (initialBusiness) {
@@ -86,12 +88,14 @@ const MerchantPortal: React.FC<{
         fetchMerchantOrders(initialBusiness.id),
         fetchDisputes(initialBusiness.id),
         ownerId ? fetchReferrals(ownerId) : Promise.resolve([]),
-        ownerId ? fetchUserProfile(ownerId) : Promise.resolve(null)
-      ]).then(([ordersData, disputesData, referralsData, profileData]) => {
+        ownerId ? fetchUserProfile(ownerId) : Promise.resolve(null),
+        fetchMerchantStats(initialBusiness.id)
+      ]).then(([ordersData, disputesData, referralsData, profileData, statsData]) => {
         setOrders(ordersData);
         setDisputes(disputesData);
         setReferrals(referralsData);
         setUserProfile(profileData);
+        setStats(statsData);
         setLoading(false);
       }).catch(() => {
         setLoading(false);
@@ -312,6 +316,7 @@ const MerchantPortal: React.FC<{
             { id: 'media', label: 'Media Hub', icon: <ImageIcon size={14}/> },
             { id: 'finance', label: 'Finance', icon: <Landmark size={14}/> },
             { id: 'referrals', label: 'Referrals', icon: <Zap size={14}/> },
+            { id: 'terminal', label: 'Terminal', icon: <QrCode size={14}/> },
             { id: 'subscription', label: 'Subscription', icon: <Sparkles size={14}/> },
             { id: 'trust', label: 'Trust Center', icon: <ShieldCheck size={14}/> }
           ].map(tab => (
@@ -325,22 +330,27 @@ const MerchantPortal: React.FC<{
         {activeTab === 'identity' && (
           <div className="animate-slide-up space-y-8 md:space-y-12 pb-20">
             {/* Stats Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-8">
               <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-6 md:p-12 rounded-2xl md:rounded-[3.5rem] shadow-xl border border-slate-100 dark:border-white/10 space-y-3 md:space-y-4 group hover:-translate-y-1 transition-standard">
                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-aba-green/10 flex items-center justify-center text-aba-green mb-1 border border-aba-green/20"><DollarSign size={20} className="md:w-6 md:h-6"/></div>
-                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest px-1">Available Balance</p>
-                 <h3 className="text-2xl md:text-6xl font-bold text-aba-green tracking-tighter truncate">₦{earnings.toLocaleString()}</h3>
+                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest px-1">Available Capital</p>
+                 <h3 className="text-2xl md:text-4xl lg:text-5xl font-bold text-aba-green tracking-tighter truncate">₦{earnings.toLocaleString()}</h3>
               </div>
               <div className="bg-aba-deep p-6 md:p-12 rounded-2xl md:rounded-[3.5rem] shadow-xl text-white space-y-3 md:space-y-4 relative overflow-hidden group hover:-translate-y-1 transition-standard">
-                 <div className="absolute top-0 right-0 p-8 opacity-10 hidden md:block"><Clock size={60} /></div>
+                 <div className="absolute top-0 right-0 p-8 opacity-10 hidden md:block"><Clock size={40} /></div>
                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-aba-gold/10 flex items-center justify-center text-aba-gold mb-1 border border-aba-gold/20"><Activity size={20} className="md:w-6 md:h-6"/></div>
-                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-aba-gold/40 tracking-widest px-1">Pending Settlement</p>
-                 <h3 className="text-2xl md:text-6xl font-bold tracking-tighter text-white truncate">₦{pending.toLocaleString()}</h3>
+                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-aba-gold/40 tracking-widest px-1">Escrow Pending</p>
+                 <h3 className="text-2xl md:text-4xl lg:text-5xl font-bold tracking-tighter text-white truncate">₦{stats.pendingPayouts.toLocaleString()}</h3>
+              </div>
+              <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-6 md:p-12 rounded-2xl md:rounded-[3.5rem] shadow-xl border border-slate-100 dark:border-white/10 space-y-3 md:space-y-4 group hover:-translate-y-1 transition-standard">
+                 <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 mb-1 border border-red-500/20"><Gavel size={20} className="md:w-6 md:h-6"/></div>
+                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest px-1">Conflict Signals</p>
+                 <h3 className="text-2xl md:text-4xl lg:text-5xl font-bold text-red-500 tracking-tighter">{stats.activeDisputes}</h3>
               </div>
               <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-6 md:p-12 rounded-2xl md:rounded-[3.5rem] shadow-xl border border-slate-100 dark:border-white/10 space-y-3 md:space-y-4 group hover:-translate-y-1 transition-standard">
                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-aba-deep/5 dark:bg-white/5 flex items-center justify-center text-aba-deep dark:text-white mb-1 border border-slate-200 dark:border-white/10"><ListChecks size={20} className="md:w-6 md:h-6"/></div>
-                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest px-1">Active Signals</p>
-                 <h3 className="text-2xl md:text-6xl font-bold text-aba-deep dark:text-white tracking-tighter">{orders.length}</h3>
+                 <p className="text-[8px] md:text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest px-1">Total Signals</p>
+                 <h3 className="text-2xl md:text-4xl lg:text-5xl font-bold text-aba-deep dark:text-white tracking-tighter">{orders.length}</h3>
               </div>
             </div>
 
@@ -804,7 +814,7 @@ const MerchantPortal: React.FC<{
                                  </div>
                                </span>
                             </div>
-                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{o.buyer_id}</p>
+                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{o.buyer?.full_name || o.buyer_id}</p>
                          </div>
                       </div>
                       
@@ -813,7 +823,30 @@ const MerchantPortal: React.FC<{
                          <p className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-slate-300 mt-1">Deduction: ₦{o.commission_deducted.toLocaleString()}</p>
                       </div>
                       
-                      <div className="w-full md:w-auto">
+                      <div className="w-full md:w-auto flex flex-col gap-2">
+                         {o.status === OrderStatus.SHIPPED && (
+                           <button 
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               generateWaybillPDF({
+                                 orderId: o.id,
+                                 trackingId: o.tracking_id,
+                                 merchantName: business.name,
+                                 customerName: o.buyer?.full_name || o.buyer?.email || 'N/A',
+                                 customerPhone: o.buyer?.phone || 'N/A',
+                                 customerAddress: o.buyer?.bio || 'N/A',
+                                 pickupAddr: business.address || "Aba Industrial Hub",
+                                 dropoffAddr: o.buyer?.bio || "Target Logistics Point",
+                                 amount: o.merchant_payout,
+                                 date: new Date(o.created_at).toLocaleDateString()
+                               });
+                               addToast("Shipped Waybill Downloaded.", "success");
+                             }}
+                             className="w-full px-4 py-2 bg-aba-gold text-aba-dark rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm animate-pulse-gold group-hover:animate-none"
+                           >
+                             <FileText size={12} /> Waybill
+                           </button>
+                         )}
                          <button 
                            onClick={() => setSelectedOrder(o)}
                            className="w-full px-8 md:px-10 py-4 md:py-5 bg-white dark:bg-slate-700 border dark:border-white/10 rounded-xl md:rounded-2xl text-[8px] md:text-[9px] font-black uppercase tracking-widest hover:bg-aba-dark hover:text-white transition-all shadow-sm"
@@ -1102,6 +1135,10 @@ const MerchantPortal: React.FC<{
           </div>
         )}
 
+        {activeTab === 'terminal' && (
+          <TerminalTab business={business} />
+        )}
+
         {activeTab === 'trust' && (
           <div className="space-y-6 md:space-y-8 animate-slide-up pb-20">
             {/* Integrity Grade Card */}
@@ -1380,19 +1417,25 @@ const MerchantPortal: React.FC<{
                  <div className="grid grid-cols-2 gap-3">
                     <button 
                       onClick={() => {
+                        const buyer = selectedOrder.buyer;
                         generateWaybillPDF({
                           orderId: selectedOrder.id,
-                          customerName: selectedOrder.buyer_id, // Usually a phone or name
-                          pickupAddr: "Aba Industrial Hub", // Hardcoded for demo if not in order
-                          dropoffAddr: "Target Perimeter",
+                          trackingId: selectedOrder.tracking_id,
+                          merchantName: business.name,
+                          customerName: buyer?.full_name || buyer?.email || 'N/A',
+                          customerPhone: buyer?.phone || 'N/A',
+                          customerAddress: buyer?.bio || 'N/A', // Using bio as address fallback if address not in profile
+                          pickupAddr: business.address || "Aba Industrial Hub",
+                          dropoffAddr: buyer?.bio || "Target Logistics Point",
                           amount: selectedOrder.merchant_payout,
                           date: new Date(selectedOrder.created_at).toLocaleDateString()
                         });
                         addToast("Waybill PDF Generated.", "success");
                       }}
-                      className="col-span-2 py-4 bg-blue-500 text-white rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+                      className={`col-span-2 py-4 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all ${selectedOrder.status === OrderStatus.SHIPPED ? 'bg-aba-gold text-aba-dark' : 'bg-blue-500 text-white opacity-70'}`}
                     >
-                      <FileText size={16} /> Print Waybill Artifact
+                      <FileText size={16} /> 
+                      {selectedOrder.status === OrderStatus.SHIPPED ? 'Download Shipped Waybill' : 'Print Waybill Artifact'}
                     </button>
                     {[
                       { status: OrderStatus.PROCESSING, label: 'Processing', icon: <Clock size={16}/> },
