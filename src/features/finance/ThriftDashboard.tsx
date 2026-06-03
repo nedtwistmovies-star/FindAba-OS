@@ -215,13 +215,87 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const handleCreateGroup = async () => {
     if (!newGroup.name) return addToast("Group name required", "error");
     setActionLoading(true);
+    setDebugInfo(null);
     try {
+      const client = getSupabase();
+      if (!client) throw new Error("Registry offline");
+
+      // 1. COLLECT PRE-FLIGHT
+      const { data: { user }, error: auth_error } = await client.auth.getUser();
+      
+      const diagnosticPayload = {
+        name: newGroup.name,
+        contribution_amount: newGroup.contribution_amount,
+        cycle_length: newGroup.cycle_length,
+        payout_frequency: newGroup.payout_frequency,
+        creator_id: user?.id,
+        status: 'forming'
+      };
+
+      const initialDebug = {
+        AUTH_UID: user?.id || 'NULL',
+        AUTH_EMAIL: user?.email || 'NULL',
+        USER_OBJECT: user,
+        AUTH_ERROR: auth_error,
+        INSERT_PAYLOAD: diagnosticPayload,
+        status: 'EXECUTING ISUSU...'
+      };
+      
+      setDebugInfo(initialDebug);
+
       await createThriftGroup(newGroup as any, userEmail);
+      
+      setDebugInfo({
+        ...initialDebug,
+        status: 'SUCCESS',
+        INSERT_RESULT: 'GROUP_CREATED_SUCCESSFULLY'
+      });
+
       addToast("Isusu Group Forming!", "success");
       setShowCreateGroup(false);
       await refreshData();
     } catch (e: any) {
+      console.error("Group Diagnostic error caught:", e);
       addToast(e.message, "error");
+      
+      setDebugInfo((prev: any) => ({
+        ...prev,
+        status: 'FAILED',
+        INSERT_RESULT: 'FAILURE',
+        SUPABASE_ERROR: {
+          code: e.code || 'UNKNOWN',
+          message: e.message || 'No message',
+          details: e.details || 'No details',
+          hint: e.hint || 'No hint'
+        }
+      }));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const runSchemaCheck = async () => {
+    setActionLoading(true);
+    const client = getSupabase();
+    const results: any = {};
+    
+    try {
+      const checkTable = async (table: string) => {
+        const { error } = await client!.from(table).select('count', { count: 'exact', head: true });
+        return error ? { exists: false, error } : { exists: true };
+      };
+
+      results.thrift_accounts = await checkTable('thrift_accounts');
+      results.thrift_groups = await checkTable('thrift_groups');
+      results.thrift_group_members = await checkTable('thrift_group_members');
+      results.thrift_contributions = await checkTable('thrift_contributions');
+      
+      setDebugInfo({
+        status: 'SCHEMA_CHECK_COMPLETE',
+        SCHEMA_AUDIT: results
+      });
+    } catch (err: any) {
+      setDebugInfo({ status: 'SCHEMA_CHECK_FAILED', error: err.message });
     } finally {
       setActionLoading(false);
     }
@@ -409,6 +483,34 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                    </div>
                  )}
 
+                 {debugInfo.SCHEMA_AUDIT && (
+                   <div className="p-6 bg-blue-900/20 rounded-[2rem] border-2 border-blue-500/30 space-y-4">
+                      <p className="text-blue-400 font-black uppercase text-xs flex items-center gap-2">
+                        <Database size={14} /> REGISTRY SCHEMA AUDIT
+                      </p>
+                      <div className="space-y-2">
+                        {Object.entries(debugInfo.SCHEMA_AUDIT).map(([table, result]: [string, any]) => (
+                          <div key={table} className="flex justify-between items-center bg-black/20 p-3 rounded-xl border border-white/5">
+                            <span className="text-white/60 uppercase font-bold">{table}</span>
+                            <div className="flex items-center gap-2">
+                              {result.exists ? (
+                                <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-[8px] font-black uppercase">ONLINE</span>
+                              ) : (
+                                <div className="flex flex-col items-end">
+                                  <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[8px] font-black uppercase">MISSING / ERROR</span>
+                                  <span className="text-[7px] text-red-400/50 mt-1">{result.error?.message}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[8px] text-blue-400/60 italic px-2">
+                        If tables are MISSING, please run the SQL setup in your Supabase Dashboard.
+                      </p>
+                   </div>
+                 )}
+
                  <button 
                   onClick={() => setDebugInfo(null)}
                   className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl uppercase font-black tracking-[0.2em] transition-all border border-white/10"
@@ -419,13 +521,20 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
              </div>
            )}
 
-           <div className="flex flex-col items-center">
+           <div className="flex flex-col items-center gap-4">
              <button 
                onClick={() => setActiveTab('group')}
                className="text-[10px] font-black uppercase text-blue-600 tracking-widest hover:underline"
              >
                Switch to Group Isusu
              </button>
+             
+             <button 
+                onClick={runSchemaCheck}
+                className="flex items-center gap-2 text-[8px] font-black uppercase text-slate-400 tracking-widest hover:text-blue-500 transition-colors"
+              >
+                <Database size={10} /> Perform Registry Schema Audit
+              </button>
            </div>
         </div>
         
