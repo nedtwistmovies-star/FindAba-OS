@@ -31,6 +31,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const [contributions, setContributions] = useState<ThriftContribution[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   const [contributionAmount, setContributionAmount] = useState<number>(5000);
   const [showCheckout, setShowCheckout] = useState(false);
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
@@ -98,12 +99,56 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
   const handleOpenAccount = async () => {
     setActionLoading(true);
+    setDebugInfo(null);
     try {
+      // Diagnostic Hook
+      const client = getSupabase();
+      if (client) {
+        const { data: { user } } = await client.auth.getUser();
+        const startDate = new Date();
+        let lockedUntil = new Date();
+        if (selectedCycle === 'daily') lockedUntil.setDate(startDate.getDate() + 1);
+        else if (selectedCycle === 'weekly') lockedUntil.setDate(startDate.getDate() + 7);
+        else if (selectedCycle === 'monthly') lockedUntil.setMonth(startDate.getMonth() + 1);
+        else if (selectedCycle === 'quarterly') lockedUntil.setMonth(startDate.getMonth() + 3);
+        else if (selectedCycle === 'yearly') lockedUntil.setFullYear(startDate.getFullYear() + 1);
+
+        const diagnosticPayload = {
+          user_id: user?.id,
+          user_email: userEmail,
+          cycle: selectedCycle,
+          total_saved: 0,
+          status: 'active',
+          start_date: startDate.toISOString(),
+          locked_until: lockedUntil.toISOString(),
+          service_fee_rate: 0.035,
+          protocol_type: 'FIDELITY_SAVINGS'
+        };
+
+        setDebugInfo({
+          auth_user_id: user?.id,
+          auth_user_email: user?.email,
+          insert_payload: diagnosticPayload,
+          status: 'PRE-SUBMISSION'
+        });
+      }
+
       await createThriftAccount(userEmail, selectedCycle);
       await refreshData();
       addToast(`Individual Savings Unit (${selectedCycle.toUpperCase()}) Activated.`, "success");
+      setDebugInfo(null);
     } catch (err: any) {
       addToast(`SIGNAL FAILURE: ${err.message}`, "error");
+      setDebugInfo((prev: any) => ({
+        ...prev,
+        supabase_error: {
+          code: err.code,
+          message: err.message,
+          details: err.details,
+          hint: err.hint
+        },
+        status: 'FAILED'
+      }));
     } finally {
       setActionLoading(false);
     }
@@ -250,6 +295,53 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
            >
              {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={20} />} Activate Protocol
            </button>
+
+           {/* RLS DIAGNOSTIC PANEL */}
+           {debugInfo && (
+             <div className="mt-8 p-6 bg-slate-900 rounded-[2rem] text-[10px] font-mono text-blue-400 overflow-x-auto space-y-4 border-2 border-blue-500/30">
+               <div className="flex justify-between items-center border-b border-blue-500/20 pb-2">
+                 <span className="font-black uppercase tracking-widest text-white">RLS Diagnostic Output</span>
+                 <span className={`px-2 py-0.5 rounded ${debugInfo.status === 'FAILED' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
+                   {debugInfo.status}
+                 </span>
+               </div>
+               
+               <div className="space-y-4">
+                 <div>
+                   <p className="text-white/60 uppercase mb-1">Auth User ID:</p>
+                   <p className="bg-black/40 p-2 rounded border border-white/5 break-all">{debugInfo.auth_user_id || 'NULL'}</p>
+                 </div>
+                 
+                 <div>
+                   <p className="text-white/60 uppercase mb-1">Auth User Email:</p>
+                   <p className="bg-black/40 p-2 rounded border border-white/5">{debugInfo.auth_user_email || 'NULL'}</p>
+                 </div>
+
+                 <div>
+                   <p className="text-white/60 uppercase mb-1">Insert Payload:</p>
+                   <pre className="bg-black/40 p-2 rounded border border-white/5 whitespace-pre-wrap">
+                     {JSON.stringify(debugInfo.insert_payload, null, 2)}
+                   </pre>
+                 </div>
+
+                 {debugInfo.supabase_error && (
+                   <div className="pt-2 border-t border-red-500/20">
+                     <p className="text-red-400 font-black uppercase mb-1">Supabase Error Object:</p>
+                     <pre className="bg-red-950/40 p-2 rounded border border-red-500/20 whitespace-pre-wrap text-red-300">
+                       {JSON.stringify(debugInfo.supabase_error, null, 2)}
+                     </pre>
+                   </div>
+                 )}
+               </div>
+               
+               <button 
+                onClick={() => setDebugInfo(null)}
+                className="w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg uppercase font-black transition-colors"
+               >
+                 Close Diagnostics
+               </button>
+             </div>
+           )}
 
            <div className="flex flex-col items-center">
              <button 

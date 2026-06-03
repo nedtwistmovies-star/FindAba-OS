@@ -513,8 +513,8 @@ export const createEscrowOrder = async (order: Partial<Order>, business: Busines
   let rate = 0.07; 
   if (business.subscription_tier === SubscriptionTier.PREMIUM) rate = 0.03;
   else if (business.subscription_tier === SubscriptionTier.GROWTH) rate = 0.05;
-  const commission = (order.amount || 0) * rate;
-  const merchant_payout = (order.amount || 0) - commission;
+  const commission = Math.round((order.amount || 0) * rate);
+  const merchant_payout = Math.round((order.amount || 0) - commission);
   
   // Create order in PENDING status (Escrow flow starts here)
   const finalOrder = { 
@@ -950,7 +950,18 @@ export const fetchThriftAccount = async (email: string): Promise<ThriftAccount |
   if (!client) return null;
   const normalizedEmail = normalizeEmail(email);
   try {
-    const { data, error } = await client.from('thrift_accounts').select('*').eq('user_email', normalizedEmail).maybeSingle();
+    // Prefer user_id if we can get it from the session
+    const { data: { user } } = await client.auth.getUser();
+    let query = client.from('thrift_accounts').select('*');
+    
+    if (user) {
+      query = query.eq('user_id', user.id);
+    } else {
+      query = query.eq('user_email', normalizedEmail);
+    }
+
+    const { data, error } = await query.maybeSingle();
+    
     if (error) {
       if (error.code === '42P01') throw new Error("Thrift Table Missing: Please run SQL setup.");
       if (error.message.includes('Unexpected token')) throw new Error("Signal Error: Received HTML instead of JSON. Check Supabase URL.");
@@ -968,6 +979,17 @@ export const createThriftAccount = async (email: string, cycle: 'daily' | 'weekl
   if (!client) return;
   const normalizedEmail = normalizeEmail(email);
   
+  // Get current user ID for RLS stabilization
+  const { data: { user }, error: authError } = await client.auth.getUser();
+  
+  console.log('========== THRIFT RLS DEBUG ==========');
+  console.log('AUTH ERROR:', authError);
+  console.log('AUTH USER:', user);
+  console.log('AUTH USER ID:', user?.id);
+  console.log('AUTH EMAIL:', user?.email);
+
+  if (!user) throw new Error("Authentication signal required to activate protocol.");
+
   // Arrangement: 3.5% management fee
   const service_fee_rate = 0.035;
   
@@ -980,16 +1002,28 @@ export const createThriftAccount = async (email: string, cycle: 'daily' | 'weekl
   else if (cycle === 'quarterly') lockedUntil.setMonth(startDate.getMonth() + 3);
   else if (cycle === 'yearly') lockedUntil.setFullYear(startDate.getFullYear() + 1);
   
-  const { error } = await client.from('thrift_accounts').insert({ 
+  const payload = { 
+    user_id: user.id,
     user_email: normalizedEmail, 
     cycle, 
     total_saved: 0, 
     status: 'active', 
     start_date: startDate.toISOString(),
     locked_until: lockedUntil.toISOString(),
-    service_fee_rate
-  });
-  if (error) throw error;
+    service_fee_rate,
+    protocol_type: 'FIDELITY_SAVINGS'
+  };
+
+  console.log('INSERT PAYLOAD:', payload);
+
+  const result = await client.from('thrift_accounts').insert(payload).select();
+  
+  console.log('INSERT RESULT:', result);
+  console.log('====================================');
+  
+  if (result.error) {
+    throw result.error;
+  }
 };
 
 export const fetchThriftContributions = async (thriftId: string): Promise<ThriftContribution[]> => {
@@ -1020,8 +1054,12 @@ export const saveThriftContribution = async (email: string, amount: number) => {
       throw new Error("Savings cycle has ended. Cannot contribute.");
     }
 
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) throw new Error("Auth Signal Required");
+
     const { data: contrib, error: contribError } = await client.from('thrift_contributions').insert({
       thrift_id: account.id,
+      user_id: user.id,
       user_email: normalizedEmail,
       amount: Number(amount)
     }).select().single();

@@ -404,7 +404,11 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                      { label: 'Travel Logistics', icon: <MapPin size={16}/> },
                      { label: 'Local Insights', icon: <Globe size={16}/> }
                    ].map(item => (
-                     <button key={item.label} className="p-6 bg-white/5 border border-white/10 rounded-3xl hover:border-aba-gold/40 transition-all group">
+                     <button 
+                       key={item.label} 
+                       onClick={() => addToast(`${item.label} requested. SR_EXEC processing signal...`, "info")}
+                       className="p-6 bg-white/5 border border-white/10 rounded-3xl hover:border-aba-gold/40 transition-all group"
+                     >
                         <div className="w-10 h-10 bg-white/5 rounded-xl mx-auto mb-4 flex items-center justify-center text-white/40 group-hover:text-aba-gold transition-colors">{item.icon}</div>
                         <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
                      </button>

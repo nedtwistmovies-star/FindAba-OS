@@ -500,7 +500,10 @@ export interface HospitalityConfig {
 
 export interface ThriftAccount {
   id: string;
+  user_id: string;
   user_email: string;
+  protocol_type?: string;
+  amount?: number;
   cycle: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
   total_saved: number;
   status: 'active' | 'settled' | 'matured' | 'withdrawn';

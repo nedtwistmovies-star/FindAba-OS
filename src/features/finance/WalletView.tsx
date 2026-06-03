@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Wallet, ArrowUpRight, ArrowDownLeft, ChevronRight, Filter, Download, Landmark, CreditCard, Zap, History, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, ChevronRight, Filter, Download, Landmark, CreditCard, Zap, History, ShieldCheck, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../../providers/AuthProvider';
+import { useToast } from '../../providers/ToastProvider';
 import { fetchWallet, fetchTransactions } from '../../services/facesService';
 import { Transaction, Wallet as WalletType } from '../../types';
 import LoadingScreen from '../../components/LoadingScreen';
 
 const WalletView: React.FC = () => {
   const { user_id } = useAuth();
+  const { addToast } = useToast();
   const [wallet, setWallet] = useState<WalletType | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +34,48 @@ const WalletView: React.FC = () => {
       loadWalletData();
     }
   }, [user_id]);
+
+  const [showDeposit, setShowDeposit] = useState(false);
+  const [showPayout, setShowPayout] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [processing, setProcessing] = useState(false);
+
+  const handleDeposit = async () => {
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      addToast("Please enter a valid amount.", "error");
+      return;
+    }
+    setProcessing(true);
+    try {
+      // Simulate financial handshake
+      await new Promise(r => setTimeout(r, 2000));
+      addToast(`Deposit of ₦${Number(amount).toLocaleString()} initiated. Proceed to secure gateway.`, "success");
+      setAmount('');
+      setShowDeposit(false);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handlePayout = async () => {
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      addToast("Please enter a valid amount.", "error");
+      return;
+    }
+    if (wallet && Number(amount) > wallet.balance) {
+      addToast("Insufficient liquidity in node.", "error");
+      return;
+    }
+    setProcessing(true);
+    try {
+      await new Promise(r => setTimeout(r, 2500));
+      addToast(`Payout request for ₦${Number(amount).toLocaleString()} submitted to audit.`, "success");
+      setAmount('');
+      setShowPayout(false);
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   if (loading) {
     return <LoadingScreen message="Accessing Financial Vault..." />;
@@ -100,19 +144,84 @@ const WalletView: React.FC = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4 sm:gap-6">
-           <button className="p-5 sm:p-8 bg-white/5 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-3 sm:gap-4 hover:bg-white/10 transition-standard group">
+           <button 
+             onClick={() => setShowDeposit(true)}
+             className="p-5 sm:p-8 bg-white/5 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-3 sm:gap-4 hover:bg-white/10 transition-standard group"
+           >
               <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-aba-green/10 flex items-center justify-center text-aba-green border border-aba-green/20 group-hover:scale-110 transition-standard">
                 <ArrowUpRight size={20} className="sm:w-6 sm:h-6" />
               </div>
               <span className="text-[9px] sm:text-xs font-bold uppercase tracking-widest">Deposit Hub</span>
            </button>
-           <button className="p-5 sm:p-8 bg-white/5 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-3 sm:gap-4 hover:bg-white/10 transition-standard group">
+           <button 
+             onClick={() => setShowPayout(true)}
+             className="p-5 sm:p-8 bg-white/5 rounded-[1.5rem] sm:rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-3 sm:gap-4 hover:bg-white/10 transition-standard group"
+           >
               <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-aba-red/10 flex items-center justify-center text-aba-red border border-aba-red/20 group-hover:scale-110 transition-standard">
                 <ArrowDownLeft size={20} className="sm:w-6 sm:h-6" />
               </div>
               <span className="text-[9px] sm:text-xs font-bold uppercase tracking-widest">Payout Portal</span>
            </button>
         </div>
+
+        {/* Action Modals */}
+        <AnimatePresence>
+          {(showDeposit || showPayout) && (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => { setShowDeposit(false); setShowPayout(false); setAmount(''); }}
+                className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+              />
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="relative w-full max-w-md bg-aba-deep border border-white/10 rounded-[2.5rem] p-8 shadow-2xl space-y-8"
+              >
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${showDeposit ? 'bg-aba-green/10 text-aba-green border-aba-green/20' : 'bg-aba-red/10 text-aba-red border-aba-red/20'}`}>
+                      {showDeposit ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}
+                    </div>
+                    <h3 className="text-xl font-bold uppercase tracking-tight">{showDeposit ? 'Deposit' : 'Payout'} Hub</h3>
+                  </div>
+                  <button onClick={() => { setShowDeposit(false); setShowPayout(false); setAmount(''); }} className="p-2 text-white/40 hover:text-white">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-[10px] font-bold uppercase text-white/40 tracking-widest ml-4">Settlement Amount (₦)</label>
+                  <div className="relative">
+                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-bold text-white/20">₦</span>
+                    <input 
+                      autoFocus
+                      type="number"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={e => setAmount(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 p-6 pl-12 rounded-2xl text-2xl font-bold text-white outline-none focus:border-aba-gold transition-standard"
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  onClick={showDeposit ? handleDeposit : handlePayout}
+                  disabled={processing || !amount}
+                  className={`w-full py-6 rounded-2xl font-black uppercase text-[10px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 ${processing ? 'opacity-50' : showDeposit ? 'bg-aba-green text-white' : 'bg-aba-red text-white'}`}
+                >
+                  {processing ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} fill="currentColor" />}
+                  {showDeposit ? 'Authorize Deposit' : 'Request Payout'}
+                </button>
+                
+                <p className="text-[8px] font-bold text-center text-white/20 uppercase tracking-[0.2em]">Authorized Handshake Encrypted • 256-bit Financial SSL</p>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* Transaction History */}
         <div className="space-y-8">

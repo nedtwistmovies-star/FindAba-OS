@@ -7,6 +7,8 @@ import {
   ShieldCheck, ChevronRight, Zap, Radio, Megaphone,
   CreditCard, ExternalLink, Info, AlertTriangle, Scale
 } from 'lucide-react';
+import { useToast } from '../../providers/ToastProvider';
+import { useAuth } from '../../providers/AuthProvider';
 import { generateDesignImage, generateIndustrialVideo, getSupportResponse } from '../../services/geminiService';
 import { saveVisionToCloud, fetchVisionHistory } from '../../services/supabaseService';
 
@@ -17,6 +19,8 @@ const PRESENTERS = [
 ];
 
 const CreativeLab: React.FC<any> = ({ onBack }) => {
+  const { addToast } = useToast();
+  const { userIdentifier } = useAuth();
   const [mode, setMode] = useState<'generate' | 'video' | 'avatar'>('generate');
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,7 +55,7 @@ const CreativeLab: React.FC<any> = ({ onBack }) => {
         }
       }
     } catch (e: any) { 
-      alert("Vision Cycle Failed. Ensure your API signal is active."); 
+      addToast("Vision Cycle Failed. Ensure your API signal is active.", "error"); 
     } finally { 
       setLoading(false); 
     }
@@ -116,9 +120,9 @@ const CreativeLab: React.FC<any> = ({ onBack }) => {
         <>
           <div className="flex bg-aba-white/5 rounded-[2.5rem] p-2 mb-10 border border-aba-white/10 overflow-x-auto scrollbar-hide shadow-inner">
             {[
-              { id: 'generate', label: 'Master Design', icon: <ImageIcon size={20}/>, desc: 'Gemini 3 Vision', premium: false },
-              { id: 'video', label: 'Process Film', icon: <Video size={20}/>, desc: 'Veo Cinematic', premium: false },
-              { id: 'avatar', label: 'Avatar Dispatch', icon: <Megaphone size={20}/>, desc: 'Synthetic Spokesperson', premium: false }
+              { id: 'generate', label: 'Color Lab', icon: <ImageIcon size={20}/>, desc: 'Master Design Suite', premium: false },
+              { id: 'video', label: 'Motion Lab', icon: <Video size={20}/>, desc: 'Film Processor', premium: false },
+              { id: 'avatar', label: 'Veo Generate', icon: <Megaphone size={20}/>, desc: 'Cinematic Protocol', premium: false }
             ].map(m => (
               <button key={m.id} onClick={() => { setMode(m.id as any); setResult(null); }} className={`flex-1 py-5 rounded-3xl text-[10px] font-black uppercase flex flex-col items-center justify-center gap-1 transition-all min-w-[140px] relative ${mode === m.id ? 'bg-aba-gold text-aba-dark shadow-xl scale-[1.02]' : 'text-aba-white/30 hover:text-aba-white'}`}>
                  <div className="flex items-center gap-3">{m.icon} {m.label}</div>
