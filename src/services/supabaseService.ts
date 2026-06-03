@@ -1129,28 +1129,37 @@ export const withdrawThriftSavings = async (email: string) => {
 
 // --- GROUP THRIFT (ISUSU) SERVICES ---
 
-export const fetchThriftGroups = async (): Promise<ThriftGroup[]> => {
+export const fetchThriftGroups = async (visibility?: 'public' | 'private'): Promise<ThriftGroup[]> => {
   const client = getSupabase();
   if (!client) return [];
-  const { data, error } = await client
-    .from('thrift_groups')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let query = client.from('thrift_groups').select('*');
+  
+  if (visibility) {
+    query = query.eq('visibility', visibility);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
   if (error && error.code === '42P01') return [];
   return data || [];
 };
 
-export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmail: string) => {
+export const createThriftGroup = async (group: Partial<ThriftGroup>) => {
   const client = getSupabase();
   if (!client) return;
   const { data: user } = await client.auth.getUser();
   if (!user.user) throw new Error("Auth Required");
+
+  // Generate invite code for private groups
+  const inviteCode = group.visibility === 'private' 
+    ? Math.random().toString(36).substring(2, 8).toUpperCase()
+    : null;
 
   const { data, error } = await client
     .from('thrift_groups')
     .insert({
       ...group,
       creator_id: user.user.id,
+      invite_code: inviteCode,
       status: 'forming'
     })
     .select()
@@ -1168,11 +1177,37 @@ export const createThriftGroup = async (group: Partial<ThriftGroup>, creatorEmai
   return data;
 };
 
-export const joinThriftGroup = async (groupId: string) => {
+export const fetchGroupByInviteCode = async (inviteCode: string): Promise<ThriftGroup | null> => {
+  const client = getSupabase();
+  if (!client) return null;
+  const { data, error } = await client
+    .from('thrift_groups')
+    .select('*')
+    .eq('invite_code', inviteCode.toUpperCase())
+    .maybeSingle();
+  if (error) return null;
+  return data;
+};
+
+export const joinThriftGroup = async (groupId: string, inviteCode?: string) => {
   const client = getSupabase();
   if (!client) return;
   const { data: user } = await client.auth.getUser();
   if (!user.user) throw new Error("Auth Required");
+
+  const { data: group, error: groupError } = await client
+    .from('thrift_groups')
+    .select('*')
+    .eq('id', groupId)
+    .single();
+  
+  if (groupError) throw groupError;
+  if (group.status !== 'forming') throw new Error("Group is already active or completed.");
+
+  // Check invite code if private
+  if (group.visibility === 'private' && group.invite_code !== inviteCode) {
+    throw new Error("Invalid invite code.");
+  }
 
   // Get current members count
   const { data: members } = await client
@@ -1180,6 +1215,10 @@ export const joinThriftGroup = async (groupId: string) => {
     .select('id')
     .eq('group_id', groupId);
   
+  if (members && members.length >= group.max_members) {
+    throw new Error("Group is full.");
+  }
+
   const nextPosition = (members?.length || 0) + 1;
 
   const { error } = await client.from('thrift_group_members').insert({
@@ -1189,6 +1228,14 @@ export const joinThriftGroup = async (groupId: string) => {
   });
 
   if (error) throw error;
+
+  // Auto-activate if full
+  if (nextPosition === group.max_members) {
+    await client.from('thrift_groups').update({ 
+      status: 'active',
+      start_date: new Date().toISOString()
+    }).eq('id', groupId);
+  }
 };
 
 export const fetchThriftGroupDetails = async (groupId: string) => {
@@ -1196,7 +1243,10 @@ export const fetchThriftGroupDetails = async (groupId: string) => {
   if (!client) return null;
 
   const { data: group } = await client.from('thrift_groups').select('*').eq('id', groupId).single();
-  const { data: members } = await client.from('thrift_group_members').select('*').eq('group_id', groupId);
+  const { data: members } = await client
+    .from('thrift_group_members')
+    .select('*, profile:profiles!user_id(*)')
+    .eq('group_id', groupId);
   const { data: contributions } = await client.from('thrift_group_contributions').select('*').eq('group_id', groupId);
   const { data: payouts } = await client.from('thrift_payouts').select('*').eq('group_id', groupId);
 

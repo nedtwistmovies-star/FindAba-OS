@@ -10,7 +10,8 @@ import {
   fetchThriftAccount, createThriftAccount, saveThriftContribution, 
   updateThriftAccountSettlement, getSupabase, purgeLocalRegistry,
   fetchThriftContributions, withdrawThriftSavings,
-  fetchThriftGroups, createThriftGroup, joinThriftGroup, fetchThriftGroupDetails, saveGroupContribution
+  fetchThriftGroups, createThriftGroup, joinThriftGroup, fetchThriftGroupDetails, saveGroupContribution,
+  fetchGroupByInviteCode
 } from '../../services/supabaseService';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { useToast } from '../../providers/ToastProvider';
@@ -45,9 +46,18 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   
   // Group Thrift States
   const [groups, setGroups] = useState<ThriftGroup[]>([]);
+  const [userGroups, setUserGroups] = useState<ThriftGroup[]>([]);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
-  const [newGroup, setNewGroup] = useState({ name: '', contribution_amount: 5000, cycle_length: 5, payout_frequency: 'monthly' });
+  const [inviteCodeInput, setInviteCodeInput] = useState('');
+  const [newGroup, setNewGroup] = useState({ 
+    name: '', 
+    description: '',
+    contribution_amount: 5000, 
+    max_members: 5, 
+    payout_frequency: 'monthly',
+    visibility: 'public' as 'public' | 'private'
+  });
 
   const isSupabaseLive = !!getSupabase();
   const isPaystackActive = paymentService.hasKey();
@@ -91,8 +101,31 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
           setContributions(contribs);
         }
       } else {
-        const allGroups = await fetchThriftGroups();
-        setGroups(allGroups);
+        const allPublicGroups = await fetchThriftGroups('public');
+        setGroups(allPublicGroups);
+        
+        // Fetch groups user belongs to
+        const client = getSupabase();
+        if (client) {
+          const { data: { user } } = await client.auth.getUser();
+          if (user) {
+            const { data: memberships } = await client
+              .from('thrift_group_members')
+              .select('group_id')
+              .eq('user_id', user.id);
+            
+            if (memberships && memberships.length > 0) {
+              const groupIds = memberships.map(m => m.group_id);
+              const { data: userOwnedGroups } = await client
+                .from('thrift_groups')
+                .select('*')
+                .in('id', groupIds);
+              setUserGroups(userOwnedGroups || []);
+            } else {
+              setUserGroups([]);
+            }
+          }
+        }
       }
     } catch (e) {
       console.error("Fetch failed", e);
@@ -258,9 +291,11 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       
       const diagnosticPayload = {
         name: newGroup.name,
+        description: newGroup.description,
         contribution_amount: newGroup.contribution_amount,
-        cycle_length: newGroup.cycle_length,
+        max_members: newGroup.max_members,
         payout_frequency: newGroup.payout_frequency,
+        visibility: newGroup.visibility,
         creator_id: user?.id,
         status: 'forming'
       };
@@ -276,7 +311,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       
       setDebugInfo(initialDebug);
 
-      await createThriftGroup(newGroup as any, userEmail);
+      await createThriftGroup(newGroup as any);
       
       setDebugInfo({
         ...initialDebug,
@@ -313,11 +348,12 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
     setActionLoading(false);
   };
 
-  const handleJoinGroup = async (groupId: string) => {
+  const handleJoinGroup = async (groupId: string, code?: string) => {
     setActionLoading(true);
     try {
-      await joinThriftGroup(groupId);
+      await joinThriftGroup(groupId, code);
       addToast("Joined Isusu Group Successfully", "success");
+      setInviteCodeInput('');
       await refreshData();
     } catch (e: any) {
       addToast(e.message, "error");
@@ -330,6 +366,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
     setActionLoading(true);
     try {
       const details = await fetchThriftGroupDetails(groupId);
+      // Ensure we have profiles for all members
       setSelectedGroup(details);
     } catch (e: any) {
       addToast("Failed to load details", "error");
@@ -812,46 +849,139 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                       <Layers size={200} className="absolute -right-10 -bottom-10 opacity-10 -rotate-12 pointer-events-none" />
                    </div>
 
-                   {/* Groups List */}
-                   <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Available Groups</h3>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{groups.length} ACTIVE UNITS</span>
+                    {/* Group Sections */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* JOIN VIA CODE */}
+                      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
+                              <Zap size={20} />
+                           </div>
+                           <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Private Join</h4>
+                        </div>
+                        <div className="space-y-3">
+                           <input 
+                              type="text" 
+                              placeholder="Enter Invite Code"
+                              value={inviteCodeInput}
+                              onChange={(e) => setInviteCodeInput(e.target.value.toUpperCase())}
+                              className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] outline-none focus:border-indigo-500 transition-all"
+                           />
+                           <button 
+                              onClick={async () => {
+                                if (!inviteCodeInput) return addToast("Enter invite code", "error");
+                                setActionLoading(true);
+                                try {
+                                  addToast("Searching for private unit...", "info");
+                                  const group = await fetchGroupByInviteCode(inviteCodeInput);
+                                  if (group) {
+                                    await handleJoinGroup(group.id, inviteCodeInput);
+                                    setInviteCodeInput('');
+                                  } else {
+                                    addToast("Invalid code or group not found", "error");
+                                  }
+                                } catch (e: any) {
+                                  addToast(e.message, "error");
+                                } finally {
+                                  setActionLoading(false);
+                                }
+                              }}
+                              disabled={actionLoading}
+                              className="w-full py-4 bg-indigo-600 disabled:opacity-50 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg active:scale-95 transition-all"
+                           >
+                              {actionLoading ? <Loader2 className="animate-spin text-white mx-auto" size={16} /> : "Join Private Unit"}
+                           </button>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {groups.map(g => (
-                          <div key={g.id} className="group p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
-                             <div className="space-y-2">
-                                <h4 className="text-xl font-black uppercase tracking-tight text-slate-900">{g.name}</h4>
-                                <div className="flex items-center gap-4">
-                                   <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">₦{g.contribution_amount.toLocaleString()} / {g.payout_frequency}</span>
-                                   <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${g.status === 'forming' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{g.status}</span>
-                                </div>
-                             </div>
-                             
-                             <div className="flex justify-between items-end">
-                                <div className="space-y-1">
-                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Structure</span>
-                                   <p className="text-sm font-black text-slate-900">{g.cycle_length} Members</p>
-                                </div>
-                                <button 
-                                  onClick={() => openGroupDetails(g.id)}
-                                  className="p-4 bg-white border border-slate-200 rounded-2xl text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
-                                >
-                                  <ArrowRight size={20} />
-                                </button>
-                             </div>
-                          </div>
-                        ))}
-                        {groups.length === 0 && (
-                           <div className="col-span-full py-20 text-center opacity-30 grayscale space-y-4">
-                              <Globe size={48} className="mx-auto" />
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em]">No industrial groups forming in this region</p>
-                           </div>
-                        )}
+                      {/* STATS PLACEHOLDER */}
+                      <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white flex flex-col justify-between">
+                         <p className="text-[10px] font-black uppercase tracking-widest text-white/40">My Isusu Presence</p>
+                         <div className="flex items-end justify-between">
+                            <div className="text-4xl font-black tracking-tighter">{userGroups.length}</div>
+                            <p className="text-[8px] font-bold uppercase tracking-tighter text-white/30 text-right max-w-[8ch]">Active Units</p>
+                         </div>
                       </div>
-                   </div>
+                    </div>
+
+                    {/* My Groups List */}
+                    {userGroups.length > 0 && (
+                      <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">My Consilium Units</h3>
+                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{userGroups.length} REGISTERED</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           {userGroups.map(g => (
+                             <div key={g.id} className="group p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
+                                <div className="space-y-2">
+                                   <div className="flex justify-between items-start">
+                                      <h4 className="text-xl font-black uppercase tracking-tight text-slate-900 truncate pr-4">{g.name}</h4>
+                                      <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${g.status === 'forming' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{g.status}</span>
+                                   </div>
+                                   <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">₦{g.contribution_amount.toLocaleString()} / {g.payout_frequency}</p>
+                                </div>
+                                <div className="flex justify-between items-end">
+                                   <div className="space-y-1">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Visibility</span>
+                                      <p className="text-[10px] font-black text-slate-900 uppercase flex items-center gap-1">
+                                         {g.visibility === 'public' ? <Globe size={10} /> : <ShieldCheck size={10} className="text-indigo-600" />}
+                                         {g.visibility}
+                                      </p>
+                                   </div>
+                                   <button 
+                                     onClick={() => openGroupDetails(g.id)}
+                                     className="p-4 bg-white border border-slate-200 rounded-2xl text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                                   >
+                                     <ArrowRight size={20} />
+                                   </button>
+                                </div>
+                             </div>
+                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Available Groups List */}
+                    <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
+                       <div className="flex items-center justify-between">
+                         <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Public Registry Units</h3>
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">EXPLORE NETWORK</span>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         {groups.filter(g => !userGroups.find(ug => ug.id === g.id)).map(g => (
+                           <div key={g.id} className="group p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
+                              <div className="space-y-2">
+                                 <h4 className="text-xl font-black uppercase tracking-tight text-slate-900">{g.name}</h4>
+                                 <div className="flex items-center gap-4">
+                                    <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">₦{g.contribution_amount.toLocaleString()} / {g.payout_frequency}</span>
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${g.status === 'forming' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{g.status}</span>
+                                 </div>
+                              </div>
+                              
+                              <div className="flex justify-between items-end">
+                                 <div className="space-y-1">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Member Slots</span>
+                                    <p className="text-sm font-black text-slate-900">{g.max_members} Capacity</p>
+                                 </div>
+                                 <button 
+                                   onClick={() => openGroupDetails(g.id)}
+                                   className="p-4 bg-white border border-slate-200 rounded-2xl text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                                 >
+                                   <ArrowRight size={20} />
+                                 </button>
+                              </div>
+                           </div>
+                         ))}
+                         {groups.filter(g => !userGroups.find(ug => ug.id === g.id)).length === 0 && (
+                            <div className="col-span-full py-20 text-center opacity-30 grayscale space-y-4">
+                               <Globe size={48} className="mx-auto" />
+                               <p className="text-[10px] font-black uppercase tracking-[0.2em]">No new public groups forming in this region</p>
+                            </div>
+                         )}
+                       </div>
+                    </div>
                 </div>
               ) : (
                 /* Group Details Dashboard */
@@ -904,7 +1034,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                                       {idx + 1}
                                    </div>
                                    <div className="font-black text-sm text-slate-900 uppercase tracking-tight">
-                                      {m.user_id === userEmail ? 'YOU (PASTOR)' : `REGISTRY USER ${idx + 1}`}
+                                      {m.profile?.full_name || m.user_id || 'REGISTRY USER'} {m.user_id === userEmail ? '(YOU)' : ''}
                                    </div>
                                 </div>
                                 {m.has_received ? (
@@ -983,6 +1113,14 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                          onChange={e => setNewGroup({...newGroup, name: e.target.value})}
                        />
                     </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Description</label>
+                        <textarea 
+                          placeholder="State the mission of this consilium..."
+                          className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 font-medium text-xs outline-none h-24"
+                          onChange={e => setNewGroup({...newGroup, description: e.target.value})}
+                        />
+                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Contribution (₦)</label>
@@ -994,28 +1132,42 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Total Members</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Max Members</label>
                           <input 
                             type="number" 
-                            value={newGroup.cycle_length}
+                            value={newGroup.max_members}
                             className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 font-bold outline-none"
-                            onChange={e => setNewGroup({...newGroup, cycle_length: Number(e.target.value)})}
+                            onChange={e => setNewGroup({...newGroup, max_members: Number(e.target.value)})}
                           />
                         </div>
                     </div>
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Frequency</label>
-                       <div className="flex gap-2">
-                          {['daily', 'weekly', 'monthly'].map(f => (
-                             <button 
-                                key={f}
-                                onClick={() => setNewGroup({...newGroup, payout_frequency: f})}
-                                className={`flex-1 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${newGroup.payout_frequency === f ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-400 border-slate-100'}`}
-                             >
-                               {f}
-                             </button>
-                          ))}
-                       </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Frequency</label>
+                           <select 
+                              className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 font-black uppercase text-[10px] tracking-widest outline-none"
+                              value={newGroup.payout_frequency}
+                              onChange={e => setNewGroup({...newGroup, payout_frequency: e.target.value})}
+                           >
+                              <option value="daily">Daily</option>
+                              <option value="weekly">Weekly</option>
+                              <option value="monthly">Monthly</option>
+                           </select>
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Visibility</label>
+                           <div className="flex gap-2">
+                              {['public', 'private'].map(v => (
+                                 <button 
+                                    key={v}
+                                    onClick={() => setNewGroup({...newGroup, visibility: v as any})}
+                                    className={`flex-1 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${newGroup.visibility === v ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-slate-50 text-slate-400 border-slate-100'}`}
+                                 >
+                                    {v}
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
                     </div>
                  </div>
 
@@ -1024,7 +1176,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                     disabled={actionLoading}
                     className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
                  >
-                    {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={18} />} Form Isusu Unit
+                    {actionLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={20} />} Establish Unit
                  </button>
               </div>
            </div>

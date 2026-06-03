@@ -6,10 +6,13 @@
 CREATE TABLE IF NOT EXISTS public.thrift_groups (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
+  description TEXT,
   creator_id UUID REFERENCES auth.users(id),
   contribution_amount NUMERIC NOT NULL,
-  cycle_length INT NOT NULL,
+  max_members INT NOT NULL DEFAULT 5,
   payout_frequency TEXT CHECK (payout_frequency IN ('daily', 'weekly', 'monthly')),
+  visibility TEXT DEFAULT 'public' CHECK (visibility IN ('public', 'private')),
+  invite_code TEXT UNIQUE,
   status TEXT DEFAULT 'forming' CHECK (status IN ('forming', 'active', 'completed')),
   start_date TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()

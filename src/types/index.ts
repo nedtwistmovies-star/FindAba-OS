@@ -527,10 +527,14 @@ export interface ThriftContribution {
 export interface ThriftGroup {
   id: string;
   name: string;
+  description?: string;
   creator_id: string;
   contribution_amount: number;
-  cycle_length: number; // Number of members
+  cycle_length: number; // Number of members/slots
+  max_members: number;
   payout_frequency: 'daily' | 'weekly' | 'monthly';
+  visibility: 'public' | 'private';
+  invite_code?: string;
   start_date: string | null;
   status: 'forming' | 'active' | 'completed';
   created_at: string;
