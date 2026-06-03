@@ -100,54 +100,75 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const handleOpenAccount = async () => {
     setActionLoading(true);
     setDebugInfo(null);
+    
     try {
-      // Diagnostic Hook
       const client = getSupabase();
-      if (client) {
-        const { data: { user } } = await client.auth.getUser();
-        const startDate = new Date();
-        let lockedUntil = new Date();
-        if (selectedCycle === 'daily') lockedUntil.setDate(startDate.getDate() + 1);
-        else if (selectedCycle === 'weekly') lockedUntil.setDate(startDate.getDate() + 7);
-        else if (selectedCycle === 'monthly') lockedUntil.setMonth(startDate.getMonth() + 1);
-        else if (selectedCycle === 'quarterly') lockedUntil.setMonth(startDate.getMonth() + 3);
-        else if (selectedCycle === 'yearly') lockedUntil.setFullYear(startDate.getFullYear() + 1);
+      if (!client) throw new Error("Registry offline");
 
-        const diagnosticPayload = {
-          user_id: user?.id,
-          user_email: userEmail,
-          cycle: selectedCycle,
-          total_saved: 0,
-          status: 'active',
-          start_date: startDate.toISOString(),
-          locked_until: lockedUntil.toISOString(),
-          service_fee_rate: 0.035,
-          protocol_type: 'FIDELITY_SAVINGS'
-        };
+      // 1. COLLECT PRE-FLIGHT DIAGNOSTICS
+      const { data: { user }, error: auth_error } = await client.auth.getUser();
+      
+      const startDate = new Date();
+      let lockedUntil = new Date();
+      if (selectedCycle === 'daily') lockedUntil.setDate(startDate.getDate() + 1);
+      else if (selectedCycle === 'weekly') lockedUntil.setDate(startDate.getDate() + 7);
+      else if (selectedCycle === 'monthly') lockedUntil.setMonth(startDate.getMonth() + 1);
+      else if (selectedCycle === 'quarterly') lockedUntil.setMonth(startDate.getMonth() + 3);
+      else if (selectedCycle === 'yearly') lockedUntil.setFullYear(startDate.getFullYear() + 1);
 
-        setDebugInfo({
-          auth_user_id: user?.id,
-          auth_user_email: user?.email,
-          insert_payload: diagnosticPayload,
-          status: 'PRE-SUBMISSION'
-        });
-      }
+      const service_fee_rate = 0.035;
+      const diagnosticPayload = {
+        user_id: user?.id,
+        user_email: userEmail,
+        cycle: selectedCycle,
+        total_saved: 0,
+        status: 'active',
+        start_date: startDate.toISOString(),
+        locked_until: lockedUntil.toISOString(),
+        service_fee_rate,
+        protocol_type: 'FIDELITY_SAVINGS'
+      };
 
+      const initialDebug = {
+        AUTH_UID: user?.id || 'NULL',
+        AUTH_EMAIL: user?.email || 'NULL',
+        USER_OBJECT: user,
+        AUTH_ERROR: auth_error,
+        INSERT_PAYLOAD: diagnosticPayload,
+        status: 'EXECUTING...'
+      };
+      
+      setDebugInfo(initialDebug);
+
+      // 2. EXECUTE PROTOCOL
       await createThriftAccount(userEmail, selectedCycle);
+      
+      // 3. SUCCESS STATE
+      setDebugInfo({
+        ...initialDebug,
+        status: 'SUCCESS',
+        INSERT_RESULT: 'INSERTED_SUCCESSFULLY'
+      });
+      
       await refreshData();
       addToast(`Individual Savings Unit (${selectedCycle.toUpperCase()}) Activated.`, "success");
-      setDebugInfo(null);
+      
+      // Clear debug info on success after a delay or keep it? User might want to see it.
+      // Keeping it for audit purposes as requested.
     } catch (err: any) {
+      console.error("Diagnostic error caught:", err);
       addToast(`SIGNAL FAILURE: ${err.message}`, "error");
+      
       setDebugInfo((prev: any) => ({
         ...prev,
-        supabase_error: {
-          code: err.code,
-          message: err.message,
-          details: err.details,
-          hint: err.hint
-        },
-        status: 'FAILED'
+        status: 'FAILED',
+        INSERT_RESULT: 'FAILURE',
+        SUPABASE_ERROR: {
+          code: err.code || 'UNKNOWN',
+          message: err.message || 'No message',
+          details: err.details || 'No details',
+          hint: err.hint || 'No hint'
+        }
       }));
     } finally {
       setActionLoading(false);
@@ -298,48 +319,103 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
            {/* RLS DIAGNOSTIC PANEL */}
            {debugInfo && (
-             <div className="mt-8 p-6 bg-slate-900 rounded-[2rem] text-[10px] font-mono text-blue-400 overflow-x-auto space-y-4 border-2 border-blue-500/30">
-               <div className="flex justify-between items-center border-b border-blue-500/20 pb-2">
-                 <span className="font-black uppercase tracking-widest text-white">RLS Diagnostic Output</span>
-                 <span className={`px-2 py-0.5 rounded ${debugInfo.status === 'FAILED' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
+             <div className="mt-8 p-6 bg-slate-950 rounded-[2.5rem] border-2 border-blue-500/50 shadow-2xl shadow-blue-500/10 overflow-hidden">
+               <div className="flex justify-between items-center bg-blue-500/10 -mx-6 -mt-6 px-6 py-4 border-b border-blue-500/20 mb-6">
+                 <div>
+                   <h3 className="text-white font-black uppercase tracking-tighter text-lg">Mission Audit Logic</h3>
+                   <p className="text-[9px] text-blue-400 font-bold uppercase tracking-widest">Fidelity Protocol Diagnostics</p>
+                 </div>
+                 <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${debugInfo.status === 'FAILED' ? 'bg-red-600 text-white' : (debugInfo.status === 'SUCCESS' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white animate-pulse')}`}>
                    {debugInfo.status}
-                 </span>
+                 </div>
                </div>
                
-               <div className="space-y-4">
-                 <div>
-                   <p className="text-white/60 uppercase mb-1">Auth User ID:</p>
-                   <p className="bg-black/40 p-2 rounded border border-white/5 break-all">{debugInfo.auth_user_id || 'NULL'}</p>
-                 </div>
-                 
-                 <div>
-                   <p className="text-white/60 uppercase mb-1">Auth User Email:</p>
-                   <p className="bg-black/40 p-2 rounded border border-white/5">{debugInfo.auth_user_email || 'NULL'}</p>
+               <div className="space-y-6 text-[10px] font-mono">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="space-y-4">
+                     <div className="p-4 bg-black/40 rounded-2xl border border-white/5">
+                       <p className="text-blue-500/60 uppercase font-black mb-2 flex items-center gap-2">
+                         <div className="w-1 h-1 bg-blue-500 rounded-full" /> AUTH_UID
+                       </p>
+                       <p className="text-white break-all">{debugInfo.AUTH_UID}</p>
+                     </div>
+
+                     <div className="p-4 bg-black/40 rounded-2xl border border-white/5">
+                       <p className="text-blue-500/60 uppercase font-black mb-2 flex items-center gap-2">
+                         <div className="w-1 h-1 bg-blue-500 rounded-full" /> AUTH_EMAIL
+                       </p>
+                       <p className="text-white">{debugInfo.AUTH_EMAIL}</p>
+                     </div>
+
+                     <div className="p-4 bg-black/40 rounded-2xl border border-white/5">
+                       <p className="text-blue-500/60 uppercase font-black mb-2 flex items-center gap-2">
+                         <div className="w-1 h-1 bg-blue-500 rounded-full" /> USER_OBJECT
+                       </p>
+                       <pre className="text-blue-300/80 max-h-32 overflow-y-auto mt-2">
+                         {JSON.stringify(debugInfo.USER_OBJECT, null, 2)}
+                       </pre>
+                     </div>
+                   </div>
+
+                   <div className="space-y-4">
+                      <div className="p-4 bg-black/40 rounded-2xl border border-white/5">
+                       <p className="text-blue-500/60 uppercase font-black mb-2 flex items-center gap-2">
+                         <div className="w-1 h-1 bg-blue-500 rounded-full" /> INSERT_PAYLOAD
+                       </p>
+                       <div className="grid grid-cols-1 gap-1 text-[9px]">
+                         {debugInfo.INSERT_PAYLOAD && Object.entries(debugInfo.INSERT_PAYLOAD).map(([k, v]) => (
+                           <div key={k} className="flex justify-between border-b border-white/5 pb-1 last:border-0">
+                             <span className="text-white/40">{k}:</span>
+                             <span className="text-blue-400 font-bold">{String(v)}</span>
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+
+                     <div className="p-4 bg-black/40 rounded-2xl border border-white/5">
+                        <p className="text-blue-500/60 uppercase font-black mb-2 flex items-center gap-2">
+                         <div className="w-1 h-1 bg-blue-500 rounded-full" /> INSERT_RESULT
+                       </p>
+                       <p className={`font-black uppercase tracking-widest ${debugInfo.INSERT_RESULT === 'FAILURE' ? 'text-red-400' : 'text-green-400'}`}>
+                         {debugInfo.INSERT_RESULT || 'WAITING...'}
+                       </p>
+                     </div>
+                   </div>
                  </div>
 
-                 <div>
-                   <p className="text-white/60 uppercase mb-1">Insert Payload:</p>
-                   <pre className="bg-black/40 p-2 rounded border border-white/5 whitespace-pre-wrap">
-                     {JSON.stringify(debugInfo.insert_payload, null, 2)}
-                   </pre>
-                 </div>
-
-                 {debugInfo.supabase_error && (
-                   <div className="pt-2 border-t border-red-500/20">
-                     <p className="text-red-400 font-black uppercase mb-1">Supabase Error Object:</p>
-                     <pre className="bg-red-950/40 p-2 rounded border border-red-500/20 whitespace-pre-wrap text-red-300">
-                       {JSON.stringify(debugInfo.supabase_error, null, 2)}
-                     </pre>
+                 {debugInfo.SUPABASE_ERROR && (
+                   <div className="p-6 bg-red-950/40 rounded-[2rem] border-2 border-red-500/30 space-y-4">
+                     <p className="text-red-400 font-black uppercase text-xs flex items-center gap-2">
+                       <AlertTriangle size={14} /> SUPABASE_ERROR_OBJECT
+                     </p>
+                     <div className="grid grid-cols-1 gap-3">
+                       <div className="flex flex-col gap-1">
+                         <span className="text-red-400/40 uppercase text-[8px] font-black">Code</span>
+                         <span className="text-red-300 font-bold bg-black/20 p-2 rounded-lg">{debugInfo.SUPABASE_ERROR.code}</span>
+                       </div>
+                       <div className="flex flex-col gap-1">
+                         <span className="text-red-400/40 uppercase text-[8px] font-black">Message</span>
+                         <span className="text-red-300 font-bold bg-black/20 p-2 rounded-lg">{debugInfo.SUPABASE_ERROR.message}</span>
+                       </div>
+                       <div className="flex flex-col gap-1">
+                         <span className="text-red-400/40 uppercase text-[8px] font-black">Details</span>
+                         <span className="text-red-300 font-bold bg-black/20 p-2 rounded-lg">{debugInfo.SUPABASE_ERROR.details || 'NULL'}</span>
+                       </div>
+                       <div className="flex flex-col gap-1">
+                         <span className="text-red-400/40 uppercase text-[8px] font-black">Hint</span>
+                         <span className="text-red-300 font-bold bg-black/20 p-2 rounded-lg">{debugInfo.SUPABASE_ERROR.hint || 'NULL'}</span>
+                       </div>
+                     </div>
                    </div>
                  )}
+
+                 <button 
+                  onClick={() => setDebugInfo(null)}
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl uppercase font-black tracking-[0.2em] transition-all border border-white/10"
+                 >
+                   Dismiss Diagnostic Link
+                 </button>
                </div>
-               
-               <button 
-                onClick={() => setDebugInfo(null)}
-                className="w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg uppercase font-black transition-colors"
-               >
-                 Close Diagnostics
-               </button>
              </div>
            )}
 
