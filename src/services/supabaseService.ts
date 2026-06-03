@@ -1250,7 +1250,12 @@ export const fetchThriftGroupDetails = async (groupId: string) => {
   const { data: contributions } = await client.from('thrift_group_contributions').select('*').eq('group_id', groupId);
   const { data: payouts } = await client.from('thrift_payouts').select('*').eq('group_id', groupId);
 
-  return { group, members, contributions, payouts };
+  return { 
+    group, 
+    members: members || [], 
+    contributions: contributions || [], 
+    payouts: payouts || [] 
+  };
 };
 
 export const saveGroupContribution = async (groupId: string, amount: number, cycleNumber: number) => {

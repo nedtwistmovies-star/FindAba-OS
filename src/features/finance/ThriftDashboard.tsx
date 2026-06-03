@@ -803,10 +803,10 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                     <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
                        <History size={16} /> Registry Logs
                     </h4>
-                    <span className="text-[10px] font-black text-slate-400 uppercase">{contributions.length} SIGNALS</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase">{(contributions || []).length} SIGNALS</span>
                  </div>
                  <div className="space-y-4">
-                   {contributions.map((c, i) => (
+                   {(contributions || []).map((c, i) => (
                       <div key={i} className="flex items-center justify-between p-7 bg-slate-50 rounded-3xl border border-slate-100">
                          <div className="flex items-center gap-4">
                             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
@@ -820,7 +820,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                          <span className="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[8px] font-black text-blue-600 uppercase tracking-widest">Synchronized</span>
                       </div>
                    ))}
-                   {contributions.length === 0 && (
+                   {(contributions || []).length === 0 && (
                       <div className="text-center py-12 opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">No signals recorded in the registry</div>
                    )}
                  </div>
@@ -1027,7 +1027,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                      <div className="space-y-6">
                         <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Guild Members</h4>
                         <div className="space-y-3">
-                           {selectedGroup.members.map((m: any, idx: number) => (
+                           {(selectedGroup?.members || []).map((m: any, idx: number) => (
                              <div key={m.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
                                 <div className="flex items-center gap-4">
                                    <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-900 font-black text-xs">
