@@ -37,6 +37,11 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   const [selectedCycle, setSelectedCycle] = useState<'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
   const [timeLeft, setTimeLeft] = useState<string>('');
+  const [infrastructureStatus, setInfrastructureStatus] = useState<{
+    verified: boolean;
+    missingTables: string[];
+    checking: boolean;
+  }>({ verified: false, missingTables: [], checking: true });
   
   // Group Thrift States
   const [groups, setGroups] = useState<ThriftGroup[]>([]);
@@ -46,6 +51,33 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
   const isSupabaseLive = !!getSupabase();
   const isPaystackActive = paymentService.hasKey();
+
+  const verifyInfrastructure = async () => {
+    const client = getSupabase();
+    if (!client) return;
+
+    setInfrastructureStatus(prev => ({ ...prev, checking: true }));
+    const tables = ['thrift_accounts', 'thrift_groups', 'thrift_group_members', 'thrift_group_contributions', 'thrift_payouts'];
+    const missing: string[] = [];
+
+    try {
+      await Promise.all(tables.map(async (table) => {
+        const { error } = await client.from(table).select('count', { count: 'exact', head: true });
+        if (error && error.code === '42P01') {
+          missing.push(table);
+        }
+      }));
+
+      setInfrastructureStatus({
+        verified: missing.length === 0,
+        missingTables: missing,
+        checking: false
+      });
+    } catch (e) {
+      console.error("Infrastructure verification failed", e);
+      setInfrastructureStatus(prev => ({ ...prev, checking: false }));
+    }
+  };
 
   const refreshData = async () => {
     if (!userEmail) return;
@@ -70,6 +102,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   };
 
   useEffect(() => {
+    verifyInfrastructure();
     refreshData();
   }, [userEmail, activeTab]);
 
@@ -276,29 +309,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
   const runSchemaCheck = async () => {
     setActionLoading(true);
-    const client = getSupabase();
-    const results: any = {};
-    
-    try {
-      const checkTable = async (table: string) => {
-        const { error } = await client!.from(table).select('count', { count: 'exact', head: true });
-        return error ? { exists: false, error } : { exists: true };
-      };
-
-      results.thrift_accounts = await checkTable('thrift_accounts');
-      results.thrift_groups = await checkTable('thrift_groups');
-      results.thrift_group_members = await checkTable('thrift_group_members');
-      results.thrift_contributions = await checkTable('thrift_contributions');
-      
-      setDebugInfo({
-        status: 'SCHEMA_CHECK_COMPLETE',
-        SCHEMA_AUDIT: results
-      });
-    } catch (err: any) {
-      setDebugInfo({ status: 'SCHEMA_CHECK_FAILED', error: err.message });
-    } finally {
-      setActionLoading(false);
-    }
+    await verifyInfrastructure();
+    setActionLoading(false);
   };
 
   const handleJoinGroup = async (groupId: string) => {
@@ -390,6 +402,41 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
            >
              {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={20} />} Activate Protocol
            </button>
+
+           {/* INFRASTRUCTURE WARNING */}
+           {!infrastructureStatus.verified && !infrastructureStatus.checking && (
+             <div className="mt-8 p-8 bg-red-50 border-2 border-red-100 rounded-[2.5rem] space-y-6">
+                <div className="flex items-center gap-4 text-red-600">
+                  <AlertTriangle size={32} />
+                  <div>
+                    <h4 className="text-lg font-black uppercase tracking-tight">Infrastructure Incomplete</h4>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Missing Registry Modules</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  {infrastructureStatus.missingTables.map(t => (
+                    <div key={t} className="flex justify-between items-center bg-white/50 p-4 rounded-2xl border border-red-100">
+                      <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{t}</span>
+                      <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[8px] font-black rounded uppercase">Missing</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-6 bg-white border border-red-100 rounded-3xl space-y-3">
+                  <p className="text-[11px] font-medium text-slate-600 leading-relaxed">
+                    The missing tables are required for established protocol operation. Please run the SQL script provided in the <strong>MISSION_STABILIZATION.sql</strong> or <strong>GROUP_ISUSU_SCHEMA.sql</strong> files in your Supabase SQL Editor.
+                  </p>
+                  <button 
+                    onClick={verifyInfrastructure}
+                    className="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-lg shadow-red-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <RefreshCcw size={14} className={infrastructureStatus.checking ? 'animate-spin' : ''} />
+                    Verify Fix
+                  </button>
+                </div>
+             </div>
+           )}
 
            {/* RLS DIAGNOSTIC PANEL */}
            {debugInfo && (
@@ -573,6 +620,25 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
         </div>
 
         <div className="max-w-4xl mx-auto p-8 space-y-12">
+          {!infrastructureStatus.verified && !infrastructureStatus.checking && (
+            <div className="p-8 bg-red-50 border-2 border-red-100 rounded-[2.5rem] space-y-4">
+              <div className="flex items-center gap-3 text-red-600">
+                <AlertTriangle size={24} />
+                <h4 className="text-sm font-black uppercase tracking-tight">System Infrastructure Fault</h4>
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest leading-relaxed">
+                Group Isusu required tables are missing from the registry. Individual Savings are functional, but Group operations are disabled.
+              </p>
+              <button 
+                onClick={verifyInfrastructure}
+                className="px-6 py-3 bg-red-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-xl active:scale-95 transition-all flex items-center gap-2"
+              >
+                <RefreshCcw size={12} className={infrastructureStatus.checking ? 'animate-spin' : ''} />
+                Audit Registry
+              </button>
+            </div>
+          )}
+
           {activeTab === 'individual' ? (
             <>
               {/* Dashboard Content */}
