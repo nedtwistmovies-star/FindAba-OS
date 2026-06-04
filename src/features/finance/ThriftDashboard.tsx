@@ -1105,8 +1105,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
         {/* Create Group Modal */}
         {showCreateGroup && (
-           <div className="fixed inset-0 z-[1000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6">
-              <div className="bg-white w-full max-w-xl rounded-[3.5rem] p-12 space-y-10 relative animate-slide-up">
+           <div className="fixed inset-0 z-[1000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-xl rounded-[3.5rem] p-8 md:p-12 space-y-10 relative animate-slide-up max-h-[90vh] overflow-y-auto">
                  <button 
                     onClick={() => setShowCreateGroup(false)} 
                     className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-colors"
