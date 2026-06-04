@@ -1136,13 +1136,33 @@ export const withdrawThriftSavings = async (email: string) => {
 export const fetchThriftGroups = async (visibility?: 'public' | 'private'): Promise<ThriftGroup[]> => {
   const client = getSupabase();
   if (!client) return [];
+  
+  // Audited Query: Load Public Registry Units adhering strictly to security instructions
   let query = client.from('thrift_groups').select('*');
   
-  if (visibility) {
+  if (visibility === 'public') {
+    query = query.eq('visibility', 'public').in('status', ['forming', 'active']);
+  } else if (visibility) {
     query = query.eq('visibility', visibility);
   }
 
   const { data, error } = await query.order('created_at', { ascending: false });
+  
+  if (visibility === 'public') {
+    console.log('PUBLIC_GROUPS_RAW', data);
+    console.log('PUBLIC_GROUPS_COUNT', data?.length);
+  }
+  
+  // Verify resulting groups state is not null and log the returned rows per guidelines
+  if (visibility === 'public') {
+    if (data !== null) {
+      console.log("[Audit][Thrift Public Registry] Loaded groups is not null. Count:", data.length);
+      console.log("[Audit][Thrift Public Registry] Returned Rows Details:", data);
+    } else {
+      console.error("[Audit][Thrift Public Registry] Warning: Loaded groups data is null.");
+    }
+  }
+
   if (error && error.code === '42P01') return [];
   return data || [];
 };
@@ -1153,10 +1173,8 @@ export const createThriftGroup = async (group: Partial<ThriftGroup>) => {
   const { data: user } = await client.auth.getUser();
   if (!user.user) throw new Error("Auth Required");
 
-  // Generate invite code for private groups
-  const inviteCode = group.visibility === 'private' 
-    ? Math.random().toString(36).substring(2, 8).toUpperCase()
-    : null;
+  // Generate unique branded invite code (e.g. ABA729)
+  const inviteCode = `ABA${Math.floor(100 + Math.random() * 900)}${Math.random().toString(36).substring(2, 4).toUpperCase()}`;
 
   const { data, error } = await client
     .from('thrift_groups')
@@ -1213,17 +1231,29 @@ export const joinThriftGroup = async (groupId: string, inviteCode?: string) => {
     throw new Error("Invalid invite code.");
   }
 
+  // Check if already a member
+  const { data: existing } = await client
+    .from('thrift_group_members')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('user_id', user.user.id)
+    .maybeSingle();
+  
+  if (existing) throw new Error("You are already a member of this savings unit.");
+
   // Get current members count
   const { data: members } = await client
     .from('thrift_group_members')
-    .select('id')
+    .select('payout_position')
     .eq('group_id', groupId);
   
-  if (members && members.length >= group.max_members) {
-    throw new Error("Group is full.");
+  if (members && members.length >= (group.max_members || 8)) {
+    throw new Error("Group capacity reached. Slot selection terminated.");
   }
 
-  const nextPosition = (members?.length || 0) + 1;
+  // Robustly determine next position using MAX(payout_position) + 1
+  const positions = (members || []).map(m => m.payout_position || 0);
+  const nextPosition = Math.max(0, ...positions) + 1;
 
   const { error } = await client.from('thrift_group_members').insert({
     group_id: groupId,
@@ -1234,7 +1264,7 @@ export const joinThriftGroup = async (groupId: string, inviteCode?: string) => {
   if (error) throw error;
 
   // Auto-activate if full
-  if (nextPosition === group.max_members) {
+  if (nextPosition >= (group.max_members || 8)) {
     await client.from('thrift_groups').update({ 
       status: 'active',
       start_date: new Date().toISOString()

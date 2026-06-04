@@ -4,7 +4,7 @@ import {
   ShieldCheck, Calendar, Info,
   DollarSign, CheckCircle2, Wallet, CreditCard, Loader2, Globe, Sparkles,
   Building2, User, Landmark, Edit3, X, AlertTriangle, RefreshCcw, Zap, Database, Clock,
-  Users, Layers, ArrowRight, Layout, TrendingUp, Copy, Share2, Send, MessageSquare
+  Users, Layers, ArrowRight, Layout, TrendingUp, Copy, Share2, Send, MessageSquare, Search
 } from 'lucide-react';
 import { 
   fetchThriftAccount, createThriftAccount, saveThriftContribution, 
@@ -17,6 +17,7 @@ import PaystackOverlay from '../../components/PaystackOverlay';
 import { useToast } from '../../providers/ToastProvider';
 import { paymentService } from '../../services/paymentService';
 import { ThriftAccount, ThriftContribution, ThriftGroup, ThriftGroupMember, ViewState } from '../../types';
+import { generateGroupFinancialAdvice } from '../../services/geminiService';
 
 import FidelityHero from './FidelityHero';
 
@@ -50,13 +51,18 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const [groupTab, setGroupTab] = useState<'public' | 'private' | 'my-groups'>('public');
   const [groupMembersCounts, setGroupMembersCounts] = useState<Record<string, number>>({});
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [joiningGroup, setJoiningGroup] = useState<ThriftGroup | null>(null);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
   const [inviteCodeInput, setInviteCodeInput] = useState('');
+  const [isFindingGroup, setIsFindingGroup] = useState(false);
+  const [invitePreviewGroup, setInvitePreviewGroup] = useState<ThriftGroup | null>(null);
   const [newGroup, setNewGroup] = useState({ 
     name: '', 
     description: '',
-    contribution_amount: 5000, 
-    max_members: 5, 
+    contribution_amount: 10000, 
+    max_members: 8, 
     payout_frequency: 'monthly',
     visibility: 'public' as 'public' | 'private'
   });
@@ -67,10 +73,39 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
   // Profile Modal State & Chat State
   const [selectedProfileMember, setSelectedProfileMember] = useState<any | null>(null);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'pulse'>('chat');
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'pulse' | 'oracle'>('oracle');
   const [groupMessages, setGroupMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+
+  // Oracle Financial Advice State
+  const [financialAdvice, setFinancialAdvice] = useState<any | null>(null);
+  const [loadingAdvice, setLoadingAdvice] = useState(false);
+
+  const fetchAdvice = async (groupDetails: any) => {
+    if (!groupDetails?.group?.id) return;
+    setLoadingAdvice(true);
+    try {
+      const advice = await generateGroupFinancialAdvice(
+        groupDetails.group,
+        groupDetails.members || [],
+        groupDetails.contributions || []
+      );
+      setFinancialAdvice(advice);
+    } catch (e) {
+      console.error("[Oracle Advice Exception]", e);
+    } finally {
+      setLoadingAdvice(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedGroup?.group?.id) {
+      fetchAdvice(selectedGroup);
+    } else {
+      setFinancialAdvice(null);
+    }
+  }, [selectedGroup?.group?.id]);
 
   // Group Messages listener
   useEffect(() => {
@@ -414,7 +449,16 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
         }
       } else {
         const allPublicGroups = await fetchThriftGroups('public');
-        setGroups(allPublicGroups);
+        if (allPublicGroups !== null) {
+          console.log("[Audit][UI Registry] Public groups verified as not null. Count:", allPublicGroups.length);
+          console.log("[Audit][UI Registry] Rows retrieved:", allPublicGroups);
+          console.log('PUBLIC_GROUPS_STATE_UPDATE', allPublicGroups);
+          setGroups(allPublicGroups || []);
+        } else {
+          console.error("[Audit][UI Registry] Warning: public groups state is null.");
+          console.log('PUBLIC_GROUPS_STATE_UPDATE', null);
+          setGroups([]);
+        }
         
         // Fetch groups user belongs to and member counts
         const client = getSupabase();
@@ -672,10 +716,38 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
     }
   };
 
-  const runSchemaCheck = async () => {
+  const handleFindGroupByCode = async () => {
+    if (!inviteCodeInput.trim()) return;
+    setIsFindingGroup(true);
+    try {
+      const g = await fetchGroupByInviteCode(inviteCodeInput.trim());
+      if (g) {
+        setInvitePreviewGroup(g);
+      } else {
+        addToast("Handshake Failed: Invalid invite code.", "error");
+      }
+    } catch (e) {
+      addToast("Network Error: Could not verify code.", "error");
+    } finally {
+      setIsFindingGroup(false);
+    }
+  };
+
+  const handleConfirmJoin = async () => {
+    const targetGroup = joiningGroup || invitePreviewGroup;
+    if (!targetGroup) return;
     setActionLoading(true);
-    await verifyInfrastructure();
-    setActionLoading(false);
+    try {
+      await handleJoinGroup(targetGroup.id, targetGroup.invite_code || undefined);
+      setShowJoinModal(false);
+      setJoiningGroup(null);
+      setInvitePreviewGroup(null);
+      setShowInviteModal(false);
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleJoinGroup = async (groupId: string, code?: string) => {
@@ -946,7 +1018,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
              </button>
              
              <button 
-                onClick={runSchemaCheck}
+                onClick={verifyInfrastructure}
                 className="flex items-center gap-2 text-[8px] font-black uppercase text-slate-400 tracking-widest hover:text-blue-500 transition-colors"
               >
                 <Database size={10} /> Perform Registry Schema Audit
@@ -1010,7 +1082,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
           {activeTab === 'individual' ? (
             <>
-              {/* Dashboard Content */}
+              {/* Individual Savings Content (Preserved) */}
               <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden text-white">
                 <div className="relative z-10 space-y-6">
                     <div className="flex items-center justify-between">
@@ -1160,219 +1232,232 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
             </>
           ) : (
             <>
-              {/* Group Isusu Navigation */}
+              {/* Group Isusu Redesign */}
               {!selectedGroup ? (
-                <div className="space-y-12">
-                   {/* Create Group Call to Action */}
-                   <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-12 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden">
-                      <div className="relative z-10 space-y-6">
-                        <Users size={48} className="text-blue-200" />
-                        <div className="space-y-2">
-                          <h2 className="text-4xl font-black uppercase tracking-tighter">Isusu Network</h2>
-                          <p className="text-sm font-medium text-white/70 uppercase tracking-widest">Rotating community savings with industrial precision.</p>
-                        </div>
-                        <button 
-                          onClick={() => setShowCreateGroup(true)}
-                          className="px-10 py-5 bg-white text-blue-600 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center gap-2"
-                        >
-                          <Plus size={20} /> Form New Group
-                        </button>
-                      </div>
-                      <Layers size={200} className="absolute -right-10 -bottom-10 opacity-10 -rotate-12 pointer-events-none" />
-                   </div>
-
-                    {/* Sub-Navigation Tabs */}
-                    <div className="flex border-b border-slate-200">
-                      <button
-                        onClick={() => setGroupTab('public')}
-                        className={`flex-1 py-4 text-center font-black uppercase text-xs tracking-wider transition-all border-b-2 ${groupTab === 'public' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                      >
-                        Public Groups
-                      </button>
-                      <button
-                        onClick={() => setGroupTab('private')}
-                        className={`flex-1 py-4 text-center font-black uppercase text-xs tracking-wider transition-all border-b-2 ${groupTab === 'private' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                      >
-                        Join Private Group
-                      </button>
-                      <button
-                        onClick={() => setGroupTab('my-groups')}
-                        className={`flex-1 py-4 text-center font-black uppercase text-xs tracking-wider transition-all border-b-2 ${groupTab === 'my-groups' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                      >
-                        My Units ({userGroups.length})
-                      </button>
+                <div className="space-y-16">
+                  {/* SECTION 1 — DASHBOARD REDESIGN */}
+                  <div className="space-y-8">
+                    <div className="space-y-2">
+                      <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">MY ISUSU NETWORK</h2>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Industrial Savings Syndicate Dashboard</p>
                     </div>
 
-                    {/* RENDERING PRIVATE JOIN SUB-VIEW */}
-                    {groupTab === 'private' && (
-                      <div className="space-y-8 max-w-xl mx-auto pt-6">
-                        <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8 text-center animate-fade-in">
-                           <div className="w-16 h-16 bg-indigo-50 border border-indigo-100 rounded-[2rem] flex items-center justify-center text-indigo-600 mx-auto">
-                              <Zap size={28} />
-                           </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <button 
+                        onClick={() => setShowCreateGroup(true)}
+                        className="group p-8 bg-blue-600 hover:bg-blue-700 text-white rounded-[2.5rem] shadow-xl shadow-blue-600/20 transition-all active:scale-95 flex flex-col items-start gap-4"
+                      >
+                         <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                            <Plus size={24} />
+                         </div>
+                         <div className="text-left">
+                            <h3 className="text-lg font-black uppercase tracking-tight">FORM NEW GROUP</h3>
+                            <p className="text-[9px] font-medium text-white/60 uppercase tracking-widest">Initialize a fresh savings pool</p>
+                         </div>
+                      </button>
+
+                      <button 
+                        onClick={() => { setGroupTab('public'); window.scrollTo({ top: document.getElementById('discover-public')?.offsetTop || 0, behavior: 'smooth' }); }}
+                        className="group p-8 bg-white hover:bg-slate-50 text-slate-900 rounded-[2.5rem] shadow-xl shadow-slate-100 border border-slate-100 transition-all active:scale-95 flex flex-col items-start gap-4"
+                      >
+                         <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                            <Globe size={24} />
+                         </div>
+                         <div className="text-left">
+                            <h3 className="text-lg font-black uppercase tracking-tight">JOIN PUBLIC GROUP</h3>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Discover open community units</p>
+                         </div>
+                      </button>
+
+                      <button 
+                        onClick={() => setShowInviteModal(true)}
+                        className="group p-8 bg-white hover:bg-slate-50 text-slate-900 rounded-[2.5rem] shadow-xl shadow-slate-100 border border-slate-100 transition-all active:scale-95 flex flex-col items-start gap-4"
+                      >
+                         <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+                            <Zap size={24} />
+                         </div>
+                         <div className="text-left">
+                            <h3 className="text-lg font-black uppercase tracking-tight">ENTER INVITE CODE</h3>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Authenticate & join private units</p>
+                         </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Section 9: My Groups Empty State Filter */}
+                  {userGroups.length > 0 && (
+                    <div className="space-y-8">
+                       <div className="flex items-center justify-between">
+                          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Your Participating Units</h3>
+                          <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest">{userGroups.length} Active</span>
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {userGroups.map(g => (
+                             <div key={g.id} className="p-8 bg-white rounded-[2.5rem] border border-slate-100 space-y-6 shadow-sm hover:shadow-xl transition-all">
+                                <div className="flex justify-between items-start">
+                                   <div>
+                                      <h4 className="text-xl font-black uppercase tracking-tight text-slate-900">{g.name}</h4>
+                                      <div className={`mt-1 inline-flex px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                                        g.status === 'forming' ? 'bg-orange-50 text-orange-600' : 
+                                        g.status === 'active' ? 'bg-green-50 text-green-600' :
+                                        g.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-600'
+                                      }`}>
+                                        {g.status}
+                                      </div>
+                                   </div>
+                                   <div className="text-right">
+                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">CONTRIBUTION</span>
+                                      <p className="text-lg font-black text-slate-900">₦{g.contribution_amount.toLocaleString()}</p>
+                                   </div>
+                                </div>
+                                <button 
+                                  onClick={() => openGroupDetails(g.id)}
+                                  className="w-full py-4 bg-slate-900 hover:bg-blue-600 text-white rounded-2xl transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                                >
+                                  Enter Unit Dashboard <ArrowRight size={14} />
+                                </button>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+                  )}
+
+                  {userGroups.length === 0 && (
+                    <div className="p-12 bg-white border border-slate-100 rounded-[3.5rem] text-center space-y-6">
+                       <Users size={48} className="mx-auto text-slate-200" />
+                       <div className="space-y-2">
+                          <p className="text-lg font-black uppercase tracking-tight text-slate-400">You are not currently participating in any savings unit.</p>
+                          <div className="flex flex-wrap justify-center gap-4 pt-4">
+                             <button onClick={() => { setGroupTab('public'); window.scrollTo({ top: document.getElementById('discover-public')?.offsetTop || 0, behavior: 'smooth' }); }} className="text-[10px] font-black uppercase text-blue-600 tracking-widest hover:underline">JOIN PUBLIC GROUP</button>
+                             <button onClick={() => setShowCreateGroup(true)} className="text-[10px] font-black uppercase text-blue-600 tracking-widest hover:underline">FORM NEW GROUP</button>
+                          </div>
+                       </div>
+                    </div>
+                  )}
+
+                  {/* SECTION 2 — PUBLIC GROUP MARKETPLACE */}
+                  <div id="discover-public" className="space-y-8 scroll-mt-32">
+                    <div className="space-y-2">
+                      <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900">DISCOVER PUBLIC GROUPS</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Marketplace of active and forming Isusu syndicates</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {groups.map(g => {
+                        const memberCount = groupMembersCounts[g.id] || 0;
+                        const availableSlots = Math.max(0, g.max_members - memberCount);
+                        const isFull = memberCount >= g.max_members;
+
+                        return (
+                          <div key={g.id} className="group p-10 bg-white rounded-[3.5rem] border border-slate-100 space-y-8 shadow-sm hover:shadow-2xl transition-all relative overflow-hidden">
+                             {isFull && <div className="absolute top-8 right-8 px-3 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase">FULL</div>}
+                             {!isFull && <div className="absolute top-8 right-8 px-3 py-1 bg-orange-400 text-white rounded-lg text-[10px] font-black uppercase">FORMING</div>}
+
+                             <div className="space-y-2">
+                                <h4 className="text-2xl font-black uppercase tracking-tight text-slate-900">{g.name}</h4>
+                                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest leading-relaxed line-clamp-2">{g.description || 'Verified industrial savings pool for trusted partners.'}</p>
+                             </div>
+
+                             <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-50">
+                                <div>
+                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">CONTRIBUTION</span>
+                                   <p className="text-lg font-black text-blue-600">₦{g.contribution_amount.toLocaleString()} <span className="text-[8px] font-medium opacity-60">/{g.payout_frequency}</span></p>
+                                </div>
+                                <div>
+                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">MEMBERS</span>
+                                   <p className="text-lg font-black text-slate-900">{memberCount} <span className="text-[8px] font-medium opacity-60">/ {g.max_members}</span></p>
+                                </div>
+                                <div>
+                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">AVAILABLE</span>
+                                   <p className={`text-lg font-black ${availableSlots > 0 ? 'text-green-600' : 'text-red-500'}`}>{availableSlots} Slots</p>
+                                </div>
+                                <div>
+                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">CREATED BY</span>
+                                   <p className="text-[10px] font-black text-slate-900 uppercase truncate">Aba Partner</p>
+                                </div>
+                             </div>
+
+                             <button 
+                               onClick={() => {
+                                 if (isFull) return;
+                                 setJoiningGroup(g);
+                                 setShowJoinModal(true);
+                               }}
+                               disabled={isFull}
+                               className={`w-full py-6 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
+                                 isFull ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-blue-600'
+                               }`}
+                             >
+                               {isFull ? 'GROUP FULL' : (
+                                 <>JOIN GROUP <ArrowRight size={16} /></>
+                               )}
+                             </button>
+                          </div>
+                        );
+                      })}
+
+                      {groups.length === 0 && (
+                        <div className="col-span-full p-20 bg-white border border-slate-100 rounded-[3.5rem] text-center space-y-4">
+                           <Globe size={48} className="mx-auto text-slate-200" />
                            <div className="space-y-2">
-                              <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Join Private Unit</h3>
-                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
-                                 Enter a secure invite code sent by your guild creator to join a private rotating savings pool.
-                              </p>
-                           </div>
-
-                           <div className="space-y-4 pt-4">
-                              <div className="space-y-1">
-                                 <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block text-left ml-2">Invite Code</label>
-                                 <input 
-                                    type="text" 
-                                    placeholder="Enter Invite Code (e.g. AB1234)"
-                                    value={inviteCodeInput}
-                                    onChange={(e) => setInviteCodeInput(e.target.value.toUpperCase())}
-                                    className="w-full bg-slate-50 border border-slate-100 p-6 rounded-[2rem] text-lg font-mono font-black text-center uppercase tracking-[0.3em] outline-none focus:border-indigo-500 transition-all text-slate-900 placeholder:tracking-normal placeholder:font-sans placeholder:text-xs placeholder:text-slate-300"
-                                 />
-                              </div>
-
-                              <button 
-                                 onClick={async () => {
-                                   if (!inviteCodeInput) return addToast("Enter invite code", "error");
-                                   setActionLoading(true);
-                                   try {
-                                      addToast("Searching for private unit...", "info");
-                                      const group = await fetchGroupByInviteCode(inviteCodeInput);
-                                      if (group) {
-                                        await handleJoinGroup(group.id, inviteCodeInput);
-                                      } else {
-                                        addToast("Invalid code or group not found", "error");
-                                      }
-                                   } catch (e: any) {
-                                      addToast(e.message, "error");
-                                   } finally {
-                                      setActionLoading(false);
-                                   }
-                                 }}
-                                 disabled={actionLoading}
-                                 className="w-full py-6 bg-indigo-600 hover:bg-slate-900 disabled:opacity-50 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.25em] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-                              >
-                                 {actionLoading ? <Loader2 className="animate-spin text-white" size={16} /> : <ShieldCheck size={16} />} Authenticate & Join
-                              </button>
+                             <p className="text-lg font-black uppercase tracking-tight text-slate-400">No public groups available yet.</p>
+                             <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Be the first to create one.</p>
+                             <button onClick={() => setShowCreateGroup(true)} className="px-10 py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl mt-6">FORM NEW GROUP</button>
                            </div>
                         </div>
-                      </div>
-                    )}
-
-                    {/* My Groups List */}
-                    {groupTab === 'my-groups' && (
-                      <div className="space-y-8 pt-6">
-                        <div className="flex items-center justify-between">
-                           <div>
-                              <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">My Consilium Units</h3>
-                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Your registered Rotating Community Savings Units</p>
-                           </div>
-                           <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest">
-                              {userGroups.length} Registered
-                           </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                           {userGroups.map(g => {
-                              const currentMembers = groupMembersCounts[g.id] || 1;
-                              return (
-                                 <div key={g.id} className="group p-8 bg-white rounded-[2.5rem] border border-slate-100 space-y-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between">
-                                    <div className="space-y-4">
-                                       <div className="flex justify-between items-start">
-                                          <div>
-                                             <h4 className="text-xl font-black uppercase tracking-tight text-slate-900 truncate pr-4">{g.name}</h4>
-                                             <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${g.status === 'forming' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>{g.status}</span>
-                                          </div>
-                                          <span className="px-2.5 py-1 bg-slate-50 text-slate-500 border border-slate-100 rounded-lg text-[8px] font-black uppercase tracking-widest">
-                                             {g.payout_frequency}
-                                          </span>
-                                       </div>
-                                       
-                                       <div className="space-y-1">
-                                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">CYCLE CONTRIBUTION</span>
-                                          <p className="text-2xl font-black text-slate-900">₦{g.contribution_amount.toLocaleString()}</p>
-                                       </div>
-
-                                       <div className="space-y-2 pt-2">
-                                          <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                             <span>COMMUNITY SLOTS</span>
-                                             <span>{currentMembers} / {g.max_members} JOINED</span>
-                                          </div>
-                                          <div className="h-2 bg-slate-50 border border-slate-100 rounded-full overflow-hidden">
-                                             <div 
-                                                className="h-full bg-slate-900 rounded-full transition-all duration-500" 
-                                                style={{ width: `${(currentMembers / g.max_members) * 100}%` }}
-                                             />
-                                          </div>
-                                       </div>
-                                    </div>
-                                    
-                                    <div className="pt-4 flex items-center justify-between gap-3">
-                                       <div className="space-y-1">
-                                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Visibility</span>
-                                          <p className="text-[10px] font-black text-slate-900 uppercase flex items-center gap-1">
-                                             {g.visibility === 'public' ? <Globe size={11} className="text-slate-500" /> : <ShieldCheck size={11} className="text-indigo-600" />}
-                                             {g.visibility}
-                                          </p>
-                                       </div>
-                                       <button 
-                                         onClick={() => openGroupDetails(g.id)}
-                                         className="p-4 bg-slate-900 hover:bg-blue-600 text-white rounded-2xl transition-all shadow-sm flex items-center gap-2 text-xs font-black uppercase tracking-widest px-6"
-                                       >
-                                         Dashboard <ArrowRight size={16} />
-                                       </button>
-                                    </div>
-                                 </div>
-                              );
-                           })}
-
-                           {userGroups.length === 0 && (
-                              <div className="col-span-full py-20 bg-white border border-slate-100 rounded-[3.5rem] text-center opacity-30 grayscale space-y-4">
-                                 <Users size={48} className="mx-auto text-slate-400" />
-                                 <p className="text-[10px] font-black uppercase tracking-[0.2em]">You have not joined any Isusu units yet</p>
-                              </div>
-                           )}
-                        </div>
-                      </div>
-                    )}
-
-
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : (
-                /* Group Details Dashboard */
-                <div className="space-y-12 animate-fade-in">
-                  <button 
-                    onClick={() => setSelectedGroup(null)}
-                    className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 tracking-widest hover:text-slate-900 transition-colors"
-                  >
-                    <ArrowLeft size={14} /> Back to Network
-                  </button>
+                /* SECTION 6 — MEMBER COUNTER (Updated Selected Group View) */
+                <div className="space-y-12 animate-fade-in relative">
+                  <div className="flex items-center justify-between">
+                    <button 
+                      onClick={() => setSelectedGroup(null)}
+                      className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 tracking-widest hover:text-slate-900 transition-colors"
+                    >
+                      <ArrowLeft size={14} /> Back to Network
+                    </button>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                        selectedGroup?.group?.status === 'forming' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                        selectedGroup?.group?.status === 'active' ? 'bg-green-50 text-green-600 border-green-100' :
+                        selectedGroup?.group?.status === 'full' ? 'bg-red-50 text-red-600 border-red-100' :
+                        'bg-blue-50 text-blue-600 border-blue-100'
+                      }`}>
+                        {selectedGroup?.group?.status === 'active' && '● GROUP ACTIVE'}
+                        {selectedGroup?.group?.status === 'forming' && '○ FORMING'}
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
                      <div className="flex items-center justify-between">
                         <div className="space-y-2">
                            <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">{selectedGroup?.group?.name}</h2>
                            <div className="flex items-center gap-4">
-                              <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-black uppercase tracking-widest">₦{(selectedGroup?.group?.contribution_amount || 0).toLocaleString()} Cycles</span>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedGroup?.group?.payout_frequency} Protocol</span>
+                              <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-black uppercase tracking-widest">₦{(selectedGroup?.group?.contribution_amount || 0).toLocaleString()} {selectedGroup?.group?.payout_frequency}</span>
+                              {selectedGroup?.group?.status === 'active' && (
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Started: {new Date(selectedGroup.group.start_date).toLocaleDateString()}</span>
+                              )}
                            </div>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Index</p>
-                           <p className="text-xl font-black text-blue-600 uppercase tracking-tight">{selectedGroup?.group?.status}</p>
                         </div>
                      </div>
 
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-1">
-                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Your Position</span>
-                           <p className="text-2xl font-black text-slate-900">#1 <span className="text-xs text-slate-400 font-medium">/ {selectedGroup?.group?.cycle_length || '...'}</span></p>
+                        <div className="p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-2">
+                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">YOUR POSITION</span>
+                           <p className="text-3xl font-black text-slate-900">#{ (selectedGroup?.members || []).find((m: any) => m.user_id === currentUserId)?.payout_position || '?' }</p>
                         </div>
-                        <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-1">
-                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Current Cycle</span>
-                           <p className="text-2xl font-black text-slate-900">1 <span className="text-xs text-slate-400 font-medium">/ {selectedGroup?.group?.cycle_length || '...'}</span></p>
+                        <div className="p-10 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-2">
+                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">GROUP CAPACITY</span>
+                           <p className="text-3xl font-black text-slate-900">{selectedGroup?.members?.length} <span className="text-sm text-slate-400 font-bold">/ {selectedGroup?.group?.max_members} Members</span></p>
                         </div>
-                        <div className="p-8 bg-blue-900 rounded-[2.5rem] text-white space-y-1 shadow-xl shadow-blue-900/20">
-                           <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Next payout turn</span>
-                           <p className="text-2xl font-black">You <span className="text-xs text-white/30 font-medium">(₦{ ((selectedGroup?.group?.contribution_amount || 0) * (selectedGroup?.group?.cycle_length || 1) * 0.965).toLocaleString() })</span></p>
+                        <div className="p-10 bg-blue-900 rounded-[2.5rem] text-white space-y-2 shadow-xl shadow-blue-900/20">
+                           <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">NEXT OPEN SLOT</span>
+                           <p className="text-3xl font-black text-white">#{ (selectedGroup?.members?.length || 0) + 1 }</p>
                         </div>
                      </div>
 
@@ -1500,7 +1585,22 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                         {/* Column 2: Activity Logs, Real-Time Group Chat & Reminders */}
                         <div className="lg:col-span-5 space-y-8">
                            {/* Right Panel Tabs */}
-                           <div className="bg-slate-50 p-2 rounded-2xl border border-slate-100 flex gap-2">
+                           <div className="bg-slate-50 p-2 rounded-2xl border border-slate-100 flex flex-wrap gap-2">
+                              <button
+                                 onClick={() => setRightPanelTab('oracle')}
+                                 className={`flex-1 py-3 px-4 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 relative ${
+                                    rightPanelTab === 'oracle'
+                                       ? 'bg-gradient-to-r from-indigo-900 to-indigo-700 text-white shadow-md shadow-indigo-900/10'
+                                       : 'text-indigo-600 hover:text-indigo-950 font-extrabold'
+                                 }`}
+                              >
+                                 <Sparkles size={12} className={rightPanelTab === 'oracle' ? 'animate-pulse text-yellow-300' : 'text-indigo-600'} />
+                                 Oracle Advice
+                                 <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-600"></span>
+                                 </span>
+                              </button>
                               <button
                                  onClick={() => setRightPanelTab('chat')}
                                  className={`flex-1 py-3 px-4 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
@@ -1525,8 +1625,133 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                               </button>
                            </div>
 
-                           {/* Tab 1: Real-Time Group Chat Section */}
-                           {rightPanelTab === 'chat' && (
+                           {/* Tab Oracle: AI Advisory Section */}
+                           {rightPanelTab === 'oracle' && (
+                              <div className="bg-slate-50/55 p-6 rounded-[2rem] border border-slate-100/80 space-y-5 flex flex-col min-h-[440px] animate-fade-in">
+                                 <div className="flex items-center justify-between shrink-0">
+                                    <div className="flex items-center gap-2">
+                                       <Sparkles size={14} className="text-indigo-600 animate-spin animate-duration-3000" />
+                                       <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-950">Oracle Advisory Booklet</h4>
+                                    </div>
+                                    <button
+                                       type="button"
+                                       onClick={() => fetchAdvice(selectedGroup)}
+                                       disabled={loadingAdvice}
+                                       className="p-1 px-2.5 bg-indigo-50 hover:bg-slate-900 hover:text-white text-[8px] text-indigo-700 font-black uppercase tracking-wider rounded-lg border border-indigo-200/40 transition-all flex items-center gap-1 disabled:opacity-55 active:scale-95 cursor-pointer"
+                                       title="Re-run industrial consensus prediction"
+                                    >
+                                       <RefreshCcw size={10} className={loadingAdvice ? 'animate-spin' : ''} />
+                                       Re-Analyze
+                                    </button>
+                                 </div>
+                                 <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide shrink-0">
+                                    Consensus strategy and risk forecast engine grounded in Aba raw materials markets
+                                 </p>
+
+                                 {loadingAdvice ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4">
+                                       <div className="relative">
+                                          <div className="absolute inset-x-0 -top-4 bg-indigo-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                                          <div className="w-12 h-12 bg-white border border-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-md relative">
+                                             <Sparkles size={20} className="animate-spin text-indigo-600 animate-duration-3000" />
+                                          </div>
+                                       </div>
+                                       <div className="space-y-1.5 max-w-[85%] mx-auto">
+                                          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-950">Analytic Lock-In</p>
+                                          <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400 leading-relaxed">
+                                             Synthesized group velocities, rotating payouts and structural default limits...
+                                          </p>
+                                       </div>
+                                    </div>
+                                 ) : financialAdvice ? (
+                                    <div className="flex-1 overflow-y-auto space-y-5 pr-1 max-h-[340px]">
+                                       
+                                       {/* Core Analysis Card */}
+                                       <div className="p-5 bg-white rounded-2xl border border-slate-100/90 shadow-sm space-y-2">
+                                          <div className="flex items-center gap-1.5">
+                                             <TrendingUp size={12} className="text-indigo-600" />
+                                             <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Consolidated Performance Review</span>
+                                          </div>
+                                          <p className="text-[11px] leading-relaxed font-semibold text-slate-650 text-slate-650">
+                                             {financialAdvice.analysis}
+                                          </p>
+                                        </div>
+
+                                       {/* Sustainability Rating and Completion Probability Grid */}
+                                       <div className="grid grid-cols-2 gap-3">
+                                          <div className="p-4 bg-white rounded-2xl border border-slate-100/90 shadow-sm space-y-1.5">
+                                             <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Sustainability Level</span>
+                                             <div className="flex items-center gap-1.5 pt-0.5">
+                                                <span className={`w-2.5 h-2.5 rounded-full ${
+                                                   financialAdvice.sustainability_rating === 'High' ? 'bg-emerald-500 animate-pulse' :
+                                                   financialAdvice.sustainability_rating === 'Moderate' ? 'bg-amber-500' : 'bg-rose-500'
+                                                }`} />
+                                                <span className="text-xs font-black uppercase tracking-wide text-slate-950">{financialAdvice.sustainability_rating} Risk</span>
+                                             </div>
+                                          </div>
+
+                                          <div className="p-4 bg-white rounded-2xl border border-slate-100/90 shadow-sm space-y-1.5">
+                                             <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Cycle Completion Sync</span>
+                                             <p className="text-xs font-black text-slate-950 uppercase">{financialAdvice.completion_confidence}% Confidence</p>
+                                          </div>
+
+                                          <div className="col-span-2 p-4 bg-indigo-50/40 border border-indigo-100/30 rounded-2xl text-[9px] text-indigo-950 font-bold tracking-tight leading-relaxed uppercase">
+                                             {financialAdvice.sustainability_justification}
+                                          </div>
+                                       </div>
+
+                                       {/* Investment Strategies */}
+                                       <div className="space-y-2.5">
+                                          <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                                             <Building2 size={11} className="text-indigo-600" />
+                                             Aba Industrial Strategy Blueprint
+                                          </h5>
+                                          <div className="space-y-2">
+                                             {financialAdvice.investment_strategies.map((strategy: string, sIdx: number) => (
+                                                <div key={sIdx} className="bg-white p-4 rounded-2xl border border-slate-100/80 shadow-sm flex gap-3 items-start hover:border-indigo-100 transition-colors">
+                                                   <span className="w-5.5 h-5.5 rounded-xl bg-indigo-50 border border-indigo-100/50 flex items-center justify-center text-[10px] font-black text-indigo-700 shrink-0">
+                                                      {sIdx + 1}
+                                                   </span>
+                                                   <p className="text-[10px] text-slate-700 leading-snug font-black uppercase tracking-tight">{strategy}</p>
+                                                </div>
+                                             ))}
+                                          </div>
+                                       </div>
+
+                                       {/* Sustainability and Risk Tips */}
+                                       <div className="space-y-3 p-4 bg-white rounded-2xl border border-slate-100/90 shadow-sm">
+                                          <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                                             <Info size={11} className="text-indigo-600" />
+                                             Savings Sustainability Tips
+                                          </h5>
+                                          <div className="space-y-2.5">
+                                             {financialAdvice.tips.map((tip: string, tIdx: number) => (
+                                                <div key={tIdx} className="flex gap-2.5 items-start">
+                                                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-1.5 shrink-0" />
+                                                   <p className="text-[10px] text-slate-500 font-extrabold uppercase leading-snug tracking-tight">{tip}</p>
+                                                </div>
+                                             ))}
+                                          </div>
+                                        </div>
+
+                                     </div>
+                                  ) : (
+                                     <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-white rounded-2xl border border-slate-100/50">
+                                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Oracle Advisory Signal Missing</p>
+                                        <button
+                                           type="button"
+                                           onClick={() => fetchAdvice(selectedGroup)}
+                                           className="mt-3 px-5 py-3 bg-indigo-600 hover:bg-slate-900 transition-all text-white rounded-xl text-[9px] font-black uppercase tracking-wider shadow-sm cursor-pointer"
+                                        >
+                                           Synthesize Oracle Wisdom
+                                        </button>
+                                     </div>
+                                  )}
+                               </div>
+                            )}
+
+                            {/* Tab 1: Real-Time Group Chat Section */}
+                            {rightPanelTab === 'chat' && (
                               <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100/80 space-y-4 flex flex-col h-[400px]">
                                  <div className="flex items-center gap-2 shrink-0">
                                     <MessageSquare size={14} className="text-blue-600" />
@@ -2063,20 +2288,122 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                               ))}
                            </div>
                         </div>
+                     </div>
+                  </div>
+
+                  <div className="pb-12">
+                    <button 
+                       onClick={handleCreateGroup}
+                       disabled={actionLoading}
+                       className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
+                    >
+                       {actionLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={20} />} Establish Unit
+                    </button>
+                  </div>
+              </div>
+           </div>
+        )}
+
+        {/* JOIN PUBLIC GROUP MODAL */}
+        {showJoinModal && joiningGroup && (
+           <div className="fixed inset-0 z-[2005] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-10 space-y-8 animate-slide-up relative">
+                 <button onClick={() => { setShowJoinModal(false); setJoiningGroup(null); }} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900"><X /></button>
+                 <div className="text-center space-y-2">
+                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Join {joiningGroup.name}?</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acknowledge contribution terms to proceed.</p>
+                 </div>
+                 <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-4">
+                    <div className="flex justify-between items-center">
+                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Monthly Commitment</span>
+                       <span className="text-sm font-black text-slate-900">₦{joiningGroup.contribution_amount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Current Position</span>
+                       <span className="text-sm font-black text-blue-600">#{ (groupMembersCounts[joiningGroup.id] || 0) + 1 }</span>
+                    </div>
+                    <div className="pt-4 border-t border-slate-200">
+                       <p className="text-[9px] font-medium text-slate-500 uppercase tracking-widest leading-relaxed">
+                          You will become member #{ (groupMembersCounts[joiningGroup.id] || 0) + 1 } of this syndicate. Payouts rotate once capacity is reached.
+                       </p>
                     </div>
                  </div>
-
-                 <div className="pb-12">
-                   <button 
-                      onClick={handleCreateGroup}
+                 <div className="flex gap-4">
+                    <button onClick={() => { setShowJoinModal(false); setJoiningGroup(null); }} className="flex-1 py-5 bg-slate-100 text-slate-500 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">Cancel</button>
+                    <button 
+                      onClick={handleConfirmJoin} 
                       disabled={actionLoading}
-                      className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
-                   >
-                      {actionLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={20} />} Establish Unit
-                   </button>
+                      className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      {actionLoading ? <Loader2 className="animate-spin" size={14} /> : <ShieldCheck size={14} />} Confirm Join
+                    </button>
                  </div>
               </div>
            </div>
+        )}
+
+        {/* ENTER INVITE CODE MODAL */}
+        {showInviteModal && (
+           <div className="fixed inset-0 z-[2005] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-10 space-y-8 animate-slide-up relative">
+                 <button onClick={() => { setShowInviteModal(false); setInvitePreviewGroup(null); setInviteCodeInput(''); }} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900"><X /></button>
+                 <div className="text-center space-y-2">
+                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">{invitePreviewGroup ? 'Verify Syndicate' : 'Enter Invite Code'}</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Access exclusive private units via credential code.</p>
+                 </div>
+
+                 {!invitePreviewGroup ? (
+                   <div className="space-y-4">
+                      <input 
+                         type="text" 
+                         placeholder="ABA729"
+                         value={inviteCodeInput}
+                         onChange={(e) => setInviteCodeInput(e.target.value.toUpperCase())}
+                         className="w-full bg-slate-50 border border-slate-100 p-8 rounded-[2rem] text-3xl font-mono font-black text-center uppercase tracking-[0.3em] outline-none focus:ring-4 focus:ring-indigo-100 transition-all text-slate-900"
+                      />
+                      <button 
+                        onClick={handleFindGroupByCode}
+                        disabled={isFindingGroup || !inviteCodeInput}
+                        className="w-full py-6 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                      >
+                         {isFindingGroup ? <Loader2 className="animate-spin" /> : <Search size={16} />} Find Group
+                      </button>
+                   </div>
+                 ) : (
+                   <div className="space-y-8">
+                     <div className="p-8 bg-indigo-50 border border-indigo-100 rounded-[2.5rem] space-y-4">
+                        <h4 className="text-xl font-black uppercase tracking-tight text-indigo-950">{invitePreviewGroup.name}</h4>
+                        <div className="flex justify-between items-center">
+                           <span className="text-[9px] font-black text-indigo-600/60 uppercase tracking-widest">Contribution</span>
+                           <span className="text-sm font-black text-indigo-950">₦{invitePreviewGroup.contribution_amount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                           <span className="text-[9px] font-black text-indigo-600/60 uppercase tracking-widest">Members</span>
+                           <span className="text-sm font-black text-indigo-950">{groupMembersCounts[invitePreviewGroup.id] || 0} / {invitePreviewGroup.max_members}</span>
+                        </div>
+                     </div>
+                     <button 
+                        onClick={handleConfirmJoin}
+                        disabled={actionLoading}
+                        className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                     >
+                        JOIN PRIVATE GROUP <ArrowRight size={16} />
+                     </button>
+                   </div>
+                 )}
+              </div>
+           </div>
+        )}
+
+        {/* STICKY FORM NEW GROUP FAB */}
+        {activeTab === 'group' && (
+          <button 
+            onClick={() => setShowCreateGroup(true)}
+            className="fixed bottom-8 right-8 sm:bottom-12 sm:right-12 p-6 bg-blue-600 text-white rounded-full shadow-2xl shadow-blue-600/40 active:scale-90 hover:bg-blue-700 transition-all z-[1500] flex items-center justify-center group lg:hidden"
+            title="Form New Group"
+          >
+            <Plus size={32} />
+          </button>
         )}
 
         {/* PAYSTACK OVERLAY */}

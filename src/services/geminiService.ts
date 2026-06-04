@@ -682,3 +682,89 @@ export const verifyReceiptSignal = async (base64: string, expectedAmount: number
     return { is_valid: false, confidence_score: 0, reasoning: "Signal interrupted during visual audit." };
   }
 };
+
+export interface GroupFinancialAdvice {
+  analysis: string;
+  sustainability_rating: 'High' | 'Moderate' | 'Low';
+  sustainability_justification: string;
+  investment_strategies: string[];
+  tips: string[];
+  completion_confidence: number;
+}
+
+export const generateGroupFinancialAdvice = async (
+  group: any,
+  members: any[],
+  contributions: any[]
+): Promise<GroupFinancialAdvice> => {
+  const prompt = `You are Oracle AI, the premier financial intelligence strategist for the industrious businesses of Aba, Abia State.
+  Analyze the performance, structure, and current status of this rotating savings circle ('Isusu' group):
+
+  Group Name: "${group.name}"
+  Status: "${group.status}"
+  Contribution Amount: ₦${(group.contribution_amount || 0).toLocaleString()} per cycle
+  Payout Frequency: "${group.payout_frequency}"
+  Cycle Length (Partners Count): ${group.cycle_length || members.length}
+  Active Members Count: ${members.length}
+  Total Contributions Made: ${contributions.length} payments
+  Total Value Consolidated: ₦${contributions.reduce((acc, c) => acc + (c.amount || 0), 0).toLocaleString()}
+
+  Based on this actual data, provide highly detailed and personalized advice including:
+  1. A multi-sentence performance analysis of their current savings velocity and consistency in Aba.
+  2. A sustainability rating ("High", "Moderate", or "Low") with a clear, direct justification about the group's health and potential payment defaults.
+  3. A list of 3-4 specific industrial investment strategies suitable for this specific group's collective pool size in Aba (e.g. purchasing leather tooling or mechanical sewing equipment, bulk batch procurement of fabrics in Ariaria, or joint transport and logistics arrangements).
+  4. Practical tips to maximize savings completion and manage default risks.
+  5. An estimated group cycle completion confidence score (0-100%).
+
+  Your tone must be highly professional, encouraging, with real localized Aba industrial flavor (e.g. referencing Ariaria market, production hubs, shoe/garment/leather industries, and Enyimba resilience).
+  `;
+
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [{ text: prompt }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            analysis: { type: Type.STRING },
+            sustainability_rating: { type: Type.STRING },
+            sustainability_justification: { type: Type.STRING },
+            investment_strategies: { type: Type.ARRAY, items: { type: Type.STRING } },
+            tips: { type: Type.ARRAY, items: { type: Type.STRING } },
+            completion_confidence: { type: Type.NUMBER }
+          },
+          required: ["analysis", "sustainability_rating", "sustainability_justification", "investment_strategies", "tips", "completion_confidence"]
+        }
+      }
+    });
+
+    const parsed = JSON.parse(cleanJSON(response.text || '{}'));
+    return {
+      analysis: parsed.analysis || "Savings circle active. Analyze contributions to optimize sustainability.",
+      sustainability_rating: parsed.sustainability_rating || "Moderate",
+      sustainability_justification: parsed.sustainability_justification || "Calculated based on membership density and capital velocity.",
+      investment_strategies: parsed.investment_strategies || ["Consolidated bulk procurement", "Tooling mechanization upgrade"],
+      tips: parsed.tips || ["Maintain strict rotation slots.", "Automate reminders on the eve of cycles."],
+      completion_confidence: parsed.completion_confidence ?? 85
+    };
+  } catch (error) {
+    console.error("[Oracle] Group Advice Generation Error:", error);
+    return {
+      analysis: "Unable to synthesize raw signals. Let's calibrate individual payouts to guarantee cycle completion.",
+      sustainability_rating: "Moderate",
+      sustainability_justification: "System sync pending. Ensure partners maintain standard reserve ratios.",
+      investment_strategies: [
+        "Consolidated Raw Materials: Purchase premium Italian leather batches directly in Ariaria to bypass wholesale markups.",
+        "Joint Equipment Finance: Co-acquire heavy-duty leather splitting or mechanical sewing machinery to scale output."
+      ],
+      tips: [
+        "Prompt contribution: Keep rotations under 24h of slot turn.",
+        "Promote micro-collaboration: Synchronize transport logistics down Port Harcourt road for raw materials."
+      ],
+      completion_confidence: 90
+    };
+  }
+};
