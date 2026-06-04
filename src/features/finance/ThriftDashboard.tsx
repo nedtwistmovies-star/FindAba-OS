@@ -1105,7 +1105,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
         {/* Create Group Modal */}
         {showCreateGroup && (
-           <div className="fixed inset-0 z-[1000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
+           <div className="fixed inset-0 z-[2000] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4">
               <div className="bg-white w-full max-w-xl rounded-[3.5rem] p-8 md:p-12 space-y-10 relative animate-slide-up max-h-[90vh] overflow-y-auto">
                  <button 
                     onClick={() => setShowCreateGroup(false)} 
@@ -1187,13 +1187,15 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                     </div>
                  </div>
 
-                 <button 
-                    onClick={handleCreateGroup}
-                    disabled={actionLoading}
-                    className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
-                 >
-                    {actionLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={20} />} Establish Unit
-                 </button>
+                 <div className="pb-12">
+                   <button 
+                      onClick={handleCreateGroup}
+                      disabled={actionLoading}
+                      className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
+                   >
+                      {actionLoading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={20} />} Establish Unit
+                   </button>
+                 </div>
               </div>
            </div>
         )}
