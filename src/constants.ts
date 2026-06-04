@@ -5,7 +5,7 @@ export const SANDALS_BRAND = {
   name: "FindAba",
   brandOwner: "SANDALSroyalle",
   fullName: "FindAba by SANDALSroyalle • Industrial Operating System",
-  logo: "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800&auto=format&fit=crop",
+  logo: "/assets/images/findaba_logo_official_1780607887279.png",
   category: "Business Service / Industrial Company",
   location: "Aba, Abia State, Nigeria",
   website: "https://findaba.app",
@@ -368,7 +368,11 @@ export const AD_TIERS: Record<AdType, { name: string, prices: { price: number, d
 
 export const ORACLE_AVATAR = "https://images.unsplash.com/photo-1540562760343-6902269a9b13?q=80&w=800&auto=format&fit=crop";
 export const SANDALS_HQ_IMAGE = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop";
-export const DEFAULT_HERO_IMAGES = ["https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=1200"];
+export const DEFAULT_HERO_IMAGES = [
+  "/assets/images/aba_industrial_workshop_1780607904297.png",
+  "/assets/images/aba_leather_craft_1780607920291.png",
+  "/assets/images/aba_city_pulse_1780607936713.png"
+];
 
 export const SANDALS_CORPORATE_BRANCHES = [
   {

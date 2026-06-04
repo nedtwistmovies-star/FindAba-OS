@@ -454,9 +454,13 @@ export const fetchPlatformConfig = async (): Promise<PlatformConfig | null> => {
 
   const defaultConfig: PlatformConfig = {
     id: 1,
-    app_logo: 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=800&auto=format&fit=crop',
+    app_logo: '/assets/images/findaba_logo_official_1780607887279.png',
     oracle_avatar: 'https://images.unsplash.com/photo-1540562760343-6902269a9b13?q=80&w=800&auto=format&fit=crop',
-    hero_images: ["https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=1200"],
+    hero_images: [
+      "/assets/images/aba_industrial_workshop_1780607904297.png",
+      "/assets/images/aba_leather_craft_1780607920291.png",
+      "/assets/images/aba_city_pulse_1780607936713.png"
+    ],
     hero_videos: [],
     facebook_url: 'https://facebook.com/findaba',
     instagram_url: 'https://instagram.com/find_aba',

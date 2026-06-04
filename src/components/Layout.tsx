@@ -297,10 +297,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
       <div className={`flex-1 flex flex-col transition-standard ${isDarkThemeActive ? 'bg-aba-deep' : 'bg-aba-white'} ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         
         <header className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-6 py-3 md:py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? 'lg:left-20' : 'lg:left-64'} ${isDarkThemeActive ? 'bg-black/60 border-b border-white/5 shadow-2xl' : 'bg-white/90 border-b border-black/5 shadow-lg'}`}>
-          <div className="flex items-center gap-3 sm:gap-4 cursor-pointer group shrink-0 lg:hidden" onClick={() => setView('home')}>
-              <Logo src={activeLogo} size={28} className="sm:w-8 sm:h-8 group-hover:scale-105 transition-standard" />
+          <div className="flex items-center gap-3 sm:gap-5 cursor-pointer group shrink-0 lg:hidden" onClick={() => setView('home')}>
+              <Logo src={activeLogo} size={36} className="sm:w-10 sm:h-10 group-hover:scale-105 transition-standard shadow-lg border-aba-gold/20" />
               <div className="flex flex-col">
-                <h1 className="text-base sm:text-xl font-bold tracking-tight leading-none group-hover:text-aba-gold transition-standard italic">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-standard italic uppercase">
                   FindAba
                 </h1>
                 <div className="flex items-center gap-1 mt-0.5">
