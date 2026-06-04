@@ -4,7 +4,7 @@ import {
   ShieldCheck, Calendar, Info,
   DollarSign, CheckCircle2, Wallet, CreditCard, Loader2, Globe, Sparkles,
   Building2, User, Landmark, Edit3, X, AlertTriangle, RefreshCcw, Zap, Database,
-  Users, Layers, ArrowRight, Layout, TrendingUp
+  Users, Layers, ArrowRight, Layout, TrendingUp, Copy, Share2, Send
 } from 'lucide-react';
 import { 
   fetchThriftAccount, createThriftAccount, saveThriftContribution, 
@@ -47,6 +47,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   // Group Thrift States
   const [groups, setGroups] = useState<ThriftGroup[]>([]);
   const [userGroups, setUserGroups] = useState<ThriftGroup[]>([]);
+  const [groupTab, setGroupTab] = useState<'public' | 'private' | 'my-groups'>('public');
+  const [groupMembersCounts, setGroupMembersCounts] = useState<Record<string, number>>({});
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
   const [inviteCodeInput, setInviteCodeInput] = useState('');
@@ -105,9 +107,22 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
         const allPublicGroups = await fetchThriftGroups('public');
         setGroups(allPublicGroups);
         
-        // Fetch groups user belongs to
+        // Fetch groups user belongs to and member counts
         const client = getSupabase();
         if (client) {
+          // Fetch membership counts for all groups to display slots correctly
+          const { data: allMemberships } = await client
+            .from('thrift_group_members')
+            .select('group_id');
+          
+          const counts: Record<string, number> = {};
+          if (allMemberships) {
+            allMemberships.forEach((m: any) => {
+              counts[m.group_id] = (counts[m.group_id] || 0) + 1;
+            });
+          }
+          setGroupMembersCounts(counts);
+
           const { data: { user } } = await client.auth.getUser();
           if (user) {
             const { data: memberships } = await client
@@ -116,7 +131,6 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
               .eq('user_id', user.id);
             
             if (memberships && memberships.length > 0) {
-              {console.log('memberships', memberships)}
               const groupIds = (memberships || []).map((m: any) => m.group_id).filter(Boolean);
               
               if (groupIds.length > 0) {
@@ -361,6 +375,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       await joinThriftGroup(groupId, code);
       addToast("Joined Isusu Group Successfully", "success");
       setInviteCodeInput('');
+      await openGroupDetails(groupId);
       await refreshData();
     } catch (e: any) {
       addToast(e.message, "error");
@@ -459,7 +474,6 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                 </div>
                 
                 <div className="space-y-2">
-                  {console.log('infrastructureStatus', infrastructureStatus)}
                   {(infrastructureStatus?.missingTables || []).map(t => (
                     <div key={t} className="flex justify-between items-center bg-white/50 p-4 rounded-2xl border border-red-100">
                       <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{t}</span>
@@ -582,7 +596,6 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                         <Database size={14} /> REGISTRY SCHEMA AUDIT
                       </p>
                       <div className="space-y-2">
-                        {console.log('debugInfo.SCHEMA_AUDIT', debugInfo.SCHEMA_AUDIT)}
                         {Object.entries(debugInfo?.SCHEMA_AUDIT || {}).map(([table, result]: [string, any]) => (
                           <div key={table} className="flex justify-between items-center bg-black/20 p-3 rounded-xl border border-white/5">
                             <span className="text-white/60 uppercase font-bold">{table}</span>
@@ -816,7 +829,6 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                     <span className="text-[10px] font-black text-slate-400 uppercase">{(contributions || []).length} SIGNALS</span>
                  </div>
                  <div className="space-y-4">
-                        {console.log('active contributions state', contributions)}
                         {(contributions || []).map((c, i) => (
                       <div key={i} className="flex items-center justify-between p-7 bg-slate-50 rounded-3xl border border-slate-100">
                          <div className="flex items-center gap-4">
@@ -860,142 +872,160 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                       <Layers size={200} className="absolute -right-10 -bottom-10 opacity-10 -rotate-12 pointer-events-none" />
                    </div>
 
-                    {/* Group Sections */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      {/* JOIN VIA CODE */}
-                      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
-                              <Zap size={20} />
-                           </div>
-                           <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Private Join</h4>
-                        </div>
-                        <div className="space-y-3">
-                           <input 
-                              type="text" 
-                              placeholder="Enter Invite Code"
-                              value={inviteCodeInput}
-                              onChange={(e) => setInviteCodeInput(e.target.value.toUpperCase())}
-                              className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] outline-none focus:border-indigo-500 transition-all"
-                           />
-                           <button 
-                              onClick={async () => {
-                                if (!inviteCodeInput) return addToast("Enter invite code", "error");
-                                setActionLoading(true);
-                                try {
-                                  addToast("Searching for private unit...", "info");
-                                  const group = await fetchGroupByInviteCode(inviteCodeInput);
-                                  if (group) {
-                                    await handleJoinGroup(group.id, inviteCodeInput);
-                                    setInviteCodeInput('');
-                                  } else {
-                                    addToast("Invalid code or group not found", "error");
-                                  }
-                                } catch (e: any) {
-                                  addToast(e.message, "error");
-                                } finally {
-                                  setActionLoading(false);
-                                }
-                              }}
-                              disabled={actionLoading}
-                              className="w-full py-4 bg-indigo-600 disabled:opacity-50 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg active:scale-95 transition-all"
-                           >
-                              {actionLoading ? <Loader2 className="animate-spin text-white mx-auto" size={16} /> : "Join Private Unit"}
-                           </button>
-                        </div>
-                      </div>
-
-                      {/* STATS PLACEHOLDER */}
-                      <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white flex flex-col justify-between">
-                         <p className="text-[10px] font-black uppercase tracking-widest text-white/40">My Isusu Presence</p>
-                         <div className="flex items-end justify-between">
-                            <div className="text-4xl font-black tracking-tighter">{userGroups.length}</div>
-                            <p className="text-[8px] font-bold uppercase tracking-tighter text-white/30 text-right max-w-[8ch]">Active Units</p>
-                         </div>
-                      </div>
+                    {/* Sub-Navigation Tabs */}
+                    <div className="flex border-b border-slate-200">
+                      <button
+                        onClick={() => setGroupTab('public')}
+                        className={`flex-1 py-4 text-center font-black uppercase text-xs tracking-wider transition-all border-b-2 ${groupTab === 'public' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                      >
+                        Public Groups
+                      </button>
+                      <button
+                        onClick={() => setGroupTab('private')}
+                        className={`flex-1 py-4 text-center font-black uppercase text-xs tracking-wider transition-all border-b-2 ${groupTab === 'private' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                      >
+                        Join Private Group
+                      </button>
+                      <button
+                        onClick={() => setGroupTab('my-groups')}
+                        className={`flex-1 py-4 text-center font-black uppercase text-xs tracking-wider transition-all border-b-2 ${groupTab === 'my-groups' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                      >
+                        My Units ({userGroups.length})
+                      </button>
                     </div>
 
-                    {/* My Groups List */}
-                    {userGroups.length > 0 && (
-                      <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">My Consilium Units</h3>
-                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{userGroups.length} REGISTERED</span>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {console.log('userGroups', userGroups)}
-                        {(userGroups || []).map(g => (
-                             <div key={g.id} className="group p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
-                                <div className="space-y-2">
-                                   <div className="flex justify-between items-start">
-                                      <h4 className="text-xl font-black uppercase tracking-tight text-slate-900 truncate pr-4">{g.name}</h4>
-                                      <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${g.status === 'forming' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{g.status}</span>
-                                   </div>
-                                   <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">₦{g.contribution_amount.toLocaleString()} / {g.payout_frequency}</p>
-                                </div>
-                                <div className="flex justify-between items-end">
-                                   <div className="space-y-1">
-                                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Visibility</span>
-                                      <p className="text-[10px] font-black text-slate-900 uppercase flex items-center gap-1">
-                                         {g.visibility === 'public' ? <Globe size={10} /> : <ShieldCheck size={10} className="text-indigo-600" />}
-                                         {g.visibility}
-                                      </p>
-                                   </div>
-                                   <button 
-                                     onClick={() => openGroupDetails(g.id)}
-                                     className="p-4 bg-white border border-slate-200 rounded-2xl text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
-                                   >
-                                     <ArrowRight size={20} />
-                                   </button>
-                                </div>
-                             </div>
-                           ))}
+                    {/* RENDERING PRIVATE JOIN SUB-VIEW */}
+                    {groupTab === 'private' && (
+                      <div className="space-y-8 max-w-xl mx-auto pt-6">
+                        <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8 text-center animate-fade-in">
+                           <div className="w-16 h-16 bg-indigo-50 border border-indigo-100 rounded-[2rem] flex items-center justify-center text-indigo-600 mx-auto">
+                              <Zap size={28} />
+                           </div>
+                           <div className="space-y-2">
+                              <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Join Private Unit</h3>
+                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                                 Enter a secure invite code sent by your guild creator to join a private rotating savings pool.
+                              </p>
+                           </div>
+
+                           <div className="space-y-4 pt-4">
+                              <div className="space-y-1">
+                                 <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block text-left ml-2">Invite Code</label>
+                                 <input 
+                                    type="text" 
+                                    placeholder="Enter Invite Code (e.g. AB1234)"
+                                    value={inviteCodeInput}
+                                    onChange={(e) => setInviteCodeInput(e.target.value.toUpperCase())}
+                                    className="w-full bg-slate-50 border border-slate-100 p-6 rounded-[2rem] text-lg font-mono font-black text-center uppercase tracking-[0.3em] outline-none focus:border-indigo-500 transition-all text-slate-900 placeholder:tracking-normal placeholder:font-sans placeholder:text-xs placeholder:text-slate-300"
+                                 />
+                              </div>
+
+                              <button 
+                                 onClick={async () => {
+                                   if (!inviteCodeInput) return addToast("Enter invite code", "error");
+                                   setActionLoading(true);
+                                   try {
+                                      addToast("Searching for private unit...", "info");
+                                      const group = await fetchGroupByInviteCode(inviteCodeInput);
+                                      if (group) {
+                                        await handleJoinGroup(group.id, inviteCodeInput);
+                                      } else {
+                                        addToast("Invalid code or group not found", "error");
+                                      }
+                                   } catch (e: any) {
+                                      addToast(e.message, "error");
+                                   } finally {
+                                      setActionLoading(false);
+                                   }
+                                 }}
+                                 disabled={actionLoading}
+                                 className="w-full py-6 bg-indigo-600 hover:bg-slate-900 disabled:opacity-50 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.25em] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                              >
+                                 {actionLoading ? <Loader2 className="animate-spin text-white" size={16} /> : <ShieldCheck size={16} />} Authenticate & Join
+                              </button>
+                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Available Groups List */}
-                    <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
-                       <div className="flex items-center justify-between">
-                         <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Public Registry Units</h3>
-                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">EXPLORE NETWORK</span>
-                       </div>
-
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         {console.log('groups evaluation', groups)}
-                         {(groups || []).filter(g => !(userGroups || []).find(ug => ug.id === g.id)).map(g => (
-                           <div key={g.id} className="group p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
-                              <div className="space-y-2">
-                                 <h4 className="text-xl font-black uppercase tracking-tight text-slate-900">{g.name}</h4>
-                                 <div className="flex items-center gap-4">
-                                    <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">₦{g.contribution_amount.toLocaleString()} / {g.payout_frequency}</span>
-                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${g.status === 'forming' ? 'bg-orange-100 text-orange-600' : 'bg-green-100 text-green-600'}`}>{g.status}</span>
-                                 </div>
-                              </div>
-                              
-                              <div className="flex justify-between items-end">
-                                 <div className="space-y-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Member Slots</span>
-                                    <p className="text-sm font-black text-slate-900">{g.max_members} Capacity</p>
-                                 </div>
-                                 <button 
-                                   onClick={() => openGroupDetails(g.id)}
-                                   className="p-4 bg-white border border-slate-200 rounded-2xl text-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
-                                 >
-                                   <ArrowRight size={20} />
-                                 </button>
-                              </div>
+                    {/* My Groups List */}
+                    {groupTab === 'my-groups' && (
+                      <div className="space-y-8 pt-6">
+                        <div className="flex items-center justify-between">
+                           <div>
+                              <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">My Consilium Units</h3>
+                              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Your registered Rotating Community Savings Units</p>
                            </div>
-                         ))}
-                         {console.log('groups evaluation for empty state', groups)}
-                         {(groups || []).filter(g => !(userGroups || []).find(ug => ug.id === g.id)).length === 0 && (
-                            <div className="col-span-full py-20 text-center opacity-30 grayscale space-y-4">
-                               <Globe size={48} className="mx-auto" />
-                               <p className="text-[10px] font-black uppercase tracking-[0.2em]">No new public groups forming in this region</p>
-                            </div>
-                         )}
-                       </div>
-                    </div>
+                           <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest">
+                              {userGroups.length} Registered
+                           </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           {userGroups.map(g => {
+                              const currentMembers = groupMembersCounts[g.id] || 1;
+                              return (
+                                 <div key={g.id} className="group p-8 bg-white rounded-[2.5rem] border border-slate-100 space-y-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col justify-between">
+                                    <div className="space-y-4">
+                                       <div className="flex justify-between items-start">
+                                          <div>
+                                             <h4 className="text-xl font-black uppercase tracking-tight text-slate-900 truncate pr-4">{g.name}</h4>
+                                             <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${g.status === 'forming' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>{g.status}</span>
+                                          </div>
+                                          <span className="px-2.5 py-1 bg-slate-50 text-slate-500 border border-slate-100 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                                             {g.payout_frequency}
+                                          </span>
+                                       </div>
+                                       
+                                       <div className="space-y-1">
+                                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">CYCLE CONTRIBUTION</span>
+                                          <p className="text-2xl font-black text-slate-900">₦{g.contribution_amount.toLocaleString()}</p>
+                                       </div>
+
+                                       <div className="space-y-2 pt-2">
+                                          <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                             <span>COMMUNITY SLOTS</span>
+                                             <span>{currentMembers} / {g.max_members} JOINED</span>
+                                          </div>
+                                          <div className="h-2 bg-slate-50 border border-slate-100 rounded-full overflow-hidden">
+                                             <div 
+                                                className="h-full bg-slate-900 rounded-full transition-all duration-500" 
+                                                style={{ width: `${(currentMembers / g.max_members) * 100}%` }}
+                                             />
+                                          </div>
+                                       </div>
+                                    </div>
+                                    
+                                    <div className="pt-4 flex items-center justify-between gap-3">
+                                       <div className="space-y-1">
+                                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Visibility</span>
+                                          <p className="text-[10px] font-black text-slate-900 uppercase flex items-center gap-1">
+                                             {g.visibility === 'public' ? <Globe size={11} className="text-slate-500" /> : <ShieldCheck size={11} className="text-indigo-600" />}
+                                             {g.visibility}
+                                          </p>
+                                       </div>
+                                       <button 
+                                         onClick={() => openGroupDetails(g.id)}
+                                         className="p-4 bg-slate-900 hover:bg-blue-600 text-white rounded-2xl transition-all shadow-sm flex items-center gap-2 text-xs font-black uppercase tracking-widest px-6"
+                                       >
+                                         Dashboard <ArrowRight size={16} />
+                                       </button>
+                                    </div>
+                                 </div>
+                              );
+                           })}
+
+                           {userGroups.length === 0 && (
+                              <div className="col-span-full py-20 bg-white border border-slate-100 rounded-[3.5rem] text-center opacity-30 grayscale space-y-4">
+                                 <Users size={48} className="mx-auto text-slate-400" />
+                                 <p className="text-[10px] font-black uppercase tracking-[0.2em]">You have not joined any Isusu units yet</p>
+                              </div>
+                           )}
+                        </div>
+                      </div>
+                    )}
+
+
                 </div>
               ) : (
                 /* Group Details Dashboard */
@@ -1036,6 +1066,58 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                            <p className="text-2xl font-black">You <span className="text-xs text-white/30 font-medium">(₦{ ((selectedGroup?.group?.contribution_amount || 0) * (selectedGroup?.group?.cycle_length || 1) * 0.965).toLocaleString() })</span></p>
                         </div>
                      </div>
+
+                     {/* Invite & Share Action Pool */}
+                     {selectedGroup?.group?.invite_code && (
+                       <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-8 rounded-[2.5rem] border border-indigo-200/50 space-y-6">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                             <div className="space-y-1">
+                                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.25em] font-mono flex items-center gap-1.5">
+                                   <ShieldCheck size={12} /> SECURE INVITATION CODE
+                                </span>
+                                <h3 className="text-3xl font-mono font-black uppercase text-indigo-950 tracking-[0.2em]">
+                                   {selectedGroup.group.invite_code}
+                                </h3>
+                                <p className="text-[10px] font-medium text-indigo-600/80 uppercase tracking-wider">
+                                   Share this exclusive key to authorize and admit partners into this trusted savings group.
+                                </p>
+                             </div>
+                             
+                             <div className="flex flex-wrap items-center gap-3">
+                                <button 
+                                   onClick={() => {
+                                     navigator.clipboard.writeText(selectedGroup.group.invite_code || '');
+                                     addToast("Invite code copied to registry clipboard!", "success");
+                                   }}
+                                   className="px-5 py-3.5 bg-indigo-600 hover:bg-slate-900 text-white rounded-xl font-black uppercase text-[10px] tracking-wider active:scale-95 transition-all flex items-center gap-2 shadow-sm"
+                                >
+                                   <Copy size={12} /> Copy Code
+                                </button>
+                                
+                                <button 
+                                   onClick={() => {
+                                     const text = encodeURIComponent(`Join our secure rotating savings circle: ${selectedGroup.group.name}. Use Invite Code to authenticate: ${selectedGroup.group.invite_code}`);
+                                     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+                                   }}
+                                   className="px-5 py-3.5 bg-[#25D366] hover:bg-slate-900 text-white rounded-xl font-black uppercase text-[10px] tracking-wider active:scale-95 transition-all flex items-center gap-2 shadow-sm"
+                                >
+                                   <Share2 size={12} /> WhatsApp Share
+                                </button>
+
+                                <button 
+                                   onClick={() => {
+                                     const link = `${window.location.origin}${window.location.pathname}?invite=${selectedGroup.group.invite_code}`;
+                                     navigator.clipboard.writeText(link);
+                                     addToast("Invite link copied to registry clipboard!", "success");
+                                   }}
+                                   className="px-5 py-3.5 bg-white border border-indigo-200 text-indigo-950 hover:bg-slate-900 hover:text-white rounded-xl font-black uppercase text-[10px] tracking-wider active:scale-95 transition-all flex items-center gap-2 shadow-sm"
+                                >
+                                   <Send size={12} /> Share Link
+                                </button>
+                             </div>
+                          </div>
+                       </div>
+                     )}
 
                      {/* Membership List */}
                      <div className="space-y-6">
