@@ -2578,7 +2578,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {profiles.map((profile) => (
+                    {(profiles || []).map((profile) => (
                       <tr key={profile.id} className="hover:bg-white/5 transition-colors">
                         <td className="p-6">
                           <div className="flex items-center gap-4">
@@ -2693,7 +2693,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                                The broadcast channel is silent.
                             </td>
                          </tr>
-                       ) : adminPosts.map(post => (
+                       ) : (adminPosts || []).map(post => (
                           <tr key={post.id} className="hover:bg-white/5 transition-all">
                              <td className="p-8 text-[10px] font-mono text-white/40">
                                 {new Date(post.created_at).toLocaleString()}
@@ -2750,7 +2750,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                                No thrift registries active in the grid.
                             </td>
                          </tr>
-                       ) : thriftAccounts.map(acc => (
+                       ) : (thriftAccounts || []).map(acc => (
                           <tr key={acc.id} className="hover:bg-white/5 transition-all">
                              <td className="p-8">
                                 <p className="text-xs font-black text-white">{acc.user_email}</p>
@@ -2788,7 +2788,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 icon={Database}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {businesses.map((b) => (
+                {(businesses || []).map((b) => (
                   <div
                     key={b.id}
                     className="bg-white/5 p-6 sm:p-8 rounded-3xl sm:rounded-[2.5rem] border border-white/5 flex items-center justify-between group hover:border-aba-gold/30 transition-all"
@@ -2850,7 +2850,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 icon={Zap}
               />
               <div className="space-y-4">
-                {signals.map((s) => (
+                {(signals || []).map((s) => (
                   <div
                     key={s.id}
                     className="bg-white/5 p-6 sm:p-8 rounded-3xl sm:rounded-[2.5rem] border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6"
@@ -2935,7 +2935,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                       </div>
 
                       <div className="space-y-4">
-                         {Object.entries(diagnosticResult.tables).map(([table, res]: [any, any]) => (
+                         {Object.entries(diagnosticResult?.tables || {}).map(([table, res]: [any, any]) => (
                             <div key={table} className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl group hover:border-white/10 transition-all">
                                <div className="flex items-center gap-3">
                                   <div className={`w-2 h-2 rounded-full ${res.status === 'healthy' ? 'bg-aba-green' : 'bg-red-500'}`} />
@@ -2948,11 +2948,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                          ))}
                       </div>
 
-                      {diagnosticResult.errors?.length > 0 && (
+                      {diagnosticResult?.errors?.length > 0 && (
                         <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-3xl space-y-3">
                            <p className="text-[10px] font-black uppercase text-red-500 tracking-widest">Fault Signals Detect</p>
                            <ul className="space-y-2">
-                             {diagnosticResult.errors.map((err: string, i: number) => (
+                             {(diagnosticResult.errors || []).map((err: string, i: number) => (
                                <li key={i} className="text-[9px] font-mono text-red-400 leading-relaxed">• {err}</li>
                              ))}
                            </ul>

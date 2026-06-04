@@ -23,6 +23,8 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('THRIFT RUNTIME ERROR', error);
+    console.error('Error Info:', errorInfo);
     console.error('Uncaught error:', error, errorInfo);
     
     // Auto-recovery for chunk loading errors (caused by new deployments)

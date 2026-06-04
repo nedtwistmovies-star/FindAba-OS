@@ -71,6 +71,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
     const missing: string[] = [];
 
     try {
+      {console.log('verifying infrastructure tables', tables)}
       await Promise.all(tables.map(async (table) => {
         const { error } = await client.from(table).select('count', { count: 'exact', head: true });
         if (error && error.code === '42P01') {
@@ -115,12 +116,18 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
               .eq('user_id', user.id);
             
             if (memberships && memberships.length > 0) {
-              const groupIds = memberships.map(m => m.group_id);
-              const { data: userOwnedGroups } = await client
-                .from('thrift_groups')
-                .select('*')
-                .in('id', groupIds);
-              setUserGroups(userOwnedGroups || []);
+              {console.log('memberships', memberships)}
+              const groupIds = (memberships || []).map((m: any) => m.group_id).filter(Boolean);
+              
+              if (groupIds.length > 0) {
+                const { data: userOwnedGroups } = await client
+                  .from('thrift_groups')
+                  .select('*')
+                  .in('id', groupIds);
+                setUserGroups(userOwnedGroups || []);
+              } else {
+                setUserGroups([]);
+              }
             } else {
               setUserGroups([]);
             }
@@ -263,7 +270,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
         await saveThriftContribution(userEmail, amountToSave);
         addToast(`Contribution Locked: ₦${amountToSave.toLocaleString()}`, "success");
         await refreshData();
-      } else if (selectedGroup) {
+      } else if (selectedGroup?.group) {
         // Handle group contribution
         await saveGroupContribution(selectedGroup.group.id, selectedGroup.group.contribution_amount, 1); // Cycle 1 for now
         addToast("Group Isusu Contribution Recorded", "success");
@@ -452,7 +459,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                 </div>
                 
                 <div className="space-y-2">
-                  {infrastructureStatus.missingTables.map(t => (
+                  {console.log('infrastructureStatus', infrastructureStatus)}
+                  {(infrastructureStatus?.missingTables || []).map(t => (
                     <div key={t} className="flex justify-between items-center bg-white/50 p-4 rounded-2xl border border-red-100">
                       <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{t}</span>
                       <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[8px] font-black rounded uppercase">Missing</span>
@@ -521,7 +529,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                          <div className="w-1 h-1 bg-blue-500 rounded-full" /> INSERT_PAYLOAD
                        </p>
                        <div className="grid grid-cols-1 gap-1 text-[9px]">
-                         {debugInfo.INSERT_PAYLOAD && Object.entries(debugInfo.INSERT_PAYLOAD).map(([k, v]) => (
+                         {console.log('debugInfo.INSERT_PAYLOAD', debugInfo.INSERT_PAYLOAD)}
+                         {debugInfo.INSERT_PAYLOAD && Object.entries(debugInfo.INSERT_PAYLOAD || {}).map(([k, v]) => (
                            <div key={k} className="flex justify-between border-b border-white/5 pb-1 last:border-0">
                              <span className="text-white/40">{k}:</span>
                              <span className="text-blue-400 font-bold">{String(v)}</span>
@@ -573,7 +582,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                         <Database size={14} /> REGISTRY SCHEMA AUDIT
                       </p>
                       <div className="space-y-2">
-                        {Object.entries(debugInfo.SCHEMA_AUDIT).map(([table, result]: [string, any]) => (
+                        {console.log('debugInfo.SCHEMA_AUDIT', debugInfo.SCHEMA_AUDIT)}
+                        {Object.entries(debugInfo?.SCHEMA_AUDIT || {}).map(([table, result]: [string, any]) => (
                           <div key={table} className="flex justify-between items-center bg-black/20 p-3 rounded-xl border border-white/5">
                             <span className="text-white/60 uppercase font-bold">{table}</span>
                             <div className="flex items-center gap-2">
@@ -806,7 +816,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                     <span className="text-[10px] font-black text-slate-400 uppercase">{(contributions || []).length} SIGNALS</span>
                  </div>
                  <div className="space-y-4">
-                   {(contributions || []).map((c, i) => (
+                        {console.log('active contributions state', contributions)}
+                        {(contributions || []).map((c, i) => (
                       <div key={i} className="flex items-center justify-between p-7 bg-slate-50 rounded-3xl border border-slate-100">
                          <div className="flex items-center gap-4">
                             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
@@ -912,7 +923,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                           <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{userGroups.length} REGISTERED</span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                           {userGroups.map(g => (
+                        {console.log('userGroups', userGroups)}
+                        {(userGroups || []).map(g => (
                              <div key={g.id} className="group p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
                                 <div className="space-y-2">
                                    <div className="flex justify-between items-start">
@@ -950,7 +962,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                        </div>
 
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         {groups.filter(g => !userGroups.find(ug => ug.id === g.id)).map(g => (
+                         {console.log('groups evaluation', groups)}
+                         {(groups || []).filter(g => !(userGroups || []).find(ug => ug.id === g.id)).map(g => (
                            <div key={g.id} className="group p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
                               <div className="space-y-2">
                                  <h4 className="text-xl font-black uppercase tracking-tight text-slate-900">{g.name}</h4>
@@ -974,7 +987,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                               </div>
                            </div>
                          ))}
-                         {groups.filter(g => !userGroups.find(ug => ug.id === g.id)).length === 0 && (
+                         {console.log('groups evaluation for empty state', groups)}
+                         {(groups || []).filter(g => !(userGroups || []).find(ug => ug.id === g.id)).length === 0 && (
                             <div className="col-span-full py-20 text-center opacity-30 grayscale space-y-4">
                                <Globe size={48} className="mx-auto" />
                                <p className="text-[10px] font-black uppercase tracking-[0.2em]">No new public groups forming in this region</p>
@@ -996,30 +1010,30 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                   <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-10">
                      <div className="flex items-center justify-between">
                         <div className="space-y-2">
-                           <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">{selectedGroup.group.name}</h2>
+                           <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">{selectedGroup?.group?.name}</h2>
                            <div className="flex items-center gap-4">
-                              <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-black uppercase tracking-widest">₦{selectedGroup.group.contribution_amount.toLocaleString()} Cycles</span>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedGroup.group.payout_frequency} Protocol</span>
+                              <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-black uppercase tracking-widest">₦{(selectedGroup?.group?.contribution_amount || 0).toLocaleString()} Cycles</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedGroup?.group?.payout_frequency} Protocol</span>
                            </div>
                         </div>
                         <div className="text-right">
                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status Index</p>
-                           <p className="text-xl font-black text-blue-600 uppercase tracking-tight">{selectedGroup.group.status}</p>
+                           <p className="text-xl font-black text-blue-600 uppercase tracking-tight">{selectedGroup?.group?.status}</p>
                         </div>
                      </div>
 
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-1">
                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Your Position</span>
-                           <p className="text-2xl font-black text-slate-900">#1 <span className="text-xs text-slate-400 font-medium">/ {selectedGroup.group.cycle_length}</span></p>
+                           <p className="text-2xl font-black text-slate-900">#1 <span className="text-xs text-slate-400 font-medium">/ {selectedGroup?.group?.cycle_length || '...'}</span></p>
                         </div>
                         <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-1">
                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Current Cycle</span>
-                           <p className="text-2xl font-black text-slate-900">1 <span className="text-xs text-slate-400 font-medium">/ {selectedGroup.group.cycle_length}</span></p>
+                           <p className="text-2xl font-black text-slate-900">1 <span className="text-xs text-slate-400 font-medium">/ {selectedGroup?.group?.cycle_length || '...'}</span></p>
                         </div>
                         <div className="p-8 bg-blue-900 rounded-[2.5rem] text-white space-y-1 shadow-xl shadow-blue-900/20">
                            <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Next payout turn</span>
-                           <p className="text-2xl font-black">You <span className="text-xs text-white/30 font-medium">(₦{ (selectedGroup.group.contribution_amount * selectedGroup.group.cycle_length * 0.965).toLocaleString() })</span></p>
+                           <p className="text-2xl font-black">You <span className="text-xs text-white/30 font-medium">(₦{ ((selectedGroup?.group?.contribution_amount || 0) * (selectedGroup?.group?.cycle_length || 1) * 0.965).toLocaleString() })</span></p>
                         </div>
                      </div>
 
@@ -1027,7 +1041,9 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                      <div className="space-y-6">
                         <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Guild Members</h4>
                         <div className="space-y-3">
-                           {(selectedGroup?.members || []).map((m: any, idx: number) => (
+                         {console.log('selectedGroup details', selectedGroup)}
+                         {console.log('selectedGroup.members', selectedGroup?.members)}
+                         {(selectedGroup?.members || []).map((m: any, idx: number) => (
                              <div key={m.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
                                 <div className="flex items-center gap-4">
                                    <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-900 font-black text-xs">
