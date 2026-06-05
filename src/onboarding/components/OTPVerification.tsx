@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { ShieldCheck, ArrowRight, Loader2, RefreshCw, MessageSquare } from 'lucide-react';
 import { useToast } from '../../providers/ToastProvider';
 import { verifyOTP, sendOTP } from '../../services/authService';
+import { getSupabase } from '../../services/supabaseService';
 
 interface OTPVerificationProps {
   identifier: string; // phone or email
@@ -53,6 +54,16 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({ identifier, ty
     setLoading(true);
     try {
       await verifyOTP(identifier, otp);
+      
+      // Update onboarding stage
+      const sb = getSupabase();
+      if (sb) {
+        const { data: { user } } = await sb.auth.getUser();
+        if (user) {
+          await sb.from('profiles').update({ onboarding_stage: 'profile_setup' }).eq('id', user.id);
+        }
+      }
+
       addToast("Industrial Identity Validated.", "success");
       onSuccess();
     } catch (err: any) {

@@ -62,12 +62,6 @@ export const loginWithPhone = async (phone: string, code: string) => {
     throw new Error(result.error || "OTP verification failed");
   }
 
-  // If using edge functions, we might need to handle the profile specifically
-  if (result.profile) {
-    localStorage.setItem("user", JSON.stringify(result.profile));
-    return result.profile;
-  }
-
   // If using native auth
   return result.session;
 };
@@ -231,48 +225,95 @@ export const getCurrentUser = async () => {
 };
 
 export const syncProfile = async (user: any) => {
-  if (!user) return null;
-
-  // Check if profile exists
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (error && error.code === 'PGRST116') {
-    // Profile doesn't exist, create it
-    const identifier = user.email || user.phone || 'Anonymous';
-    const cleanName = identifier.split('@')[0].split('+').pop() || 'Artesian';
-    
-    // Generate referral code (re-using logic or simplified)
-    const referralCode = `ABA${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-
-    const { data: newProfile, error: createError } = await supabase
-      .from('profiles')
-      .insert({
-        id: user.id,
-        email: user.email || '',
-        phone: user.phone || '',
-        username: user.user_metadata.username || null,
-        full_name: user.user_metadata.full_name || cleanName,
-        role: 'registered',
-        referral_code: referralCode,
-        referral_count: 0,
-        referral_earnings: 0,
-        preferred_language: 'en',
-        notification_settings: { email: true, sms: false, push: true },
-        dark_mode: false
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      console.error("[Auth] Profile Sync (Create) Error:", createError.message);
-      throw createError;
-    }
-    return newProfile;
+  const profileId = user?.id;
+  const startTime = Date.now();
+  console.log(`[AuthService] syncProfile started for: ${profileId}`);
+  if (!user) {
+    console.log("[AuthService] syncProfile: No user provided");
+    return null;
   }
 
-  return profile;
+  const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error(`SYNC_PROFILE_TIMEOUT_${ms}MS`)), ms));
+
+  try {
+    // Check if profile exists
+    console.log(`[AuthService] ${profileId} - Querying profiles table...`);
+    
+    // Retry loop for the database query which might fail on cold start
+    let profile = null;
+    let error = null;
+    let attempts = 0;
+    const maxAttempts = 2;
+
+    while (attempts < maxAttempts) {
+      try {
+        const result = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        profile = result.data;
+        error = result.error;
+        
+        if (!error) break;
+        // If it's a real "missing" error, don't retry
+        if (error.code === 'PGRST116') break;
+        
+        console.warn(`[AuthService] Profile fetch attempt ${attempts + 1} fail:`, error.message);
+      } catch (e: any) {
+        console.warn(`[AuthService] profile fetch exception ${attempts + 1}:`, e.message);
+      }
+      attempts++;
+      if (attempts < maxAttempts) await new Promise(r => setTimeout(r, 2000));
+    }
+
+    if (error && error.code === 'PGRST116') {
+      console.log(`[AuthService] ${profileId} - Profile missing, starting creation...`);
+      // Profile doesn't exist, create it
+      const identifier = user.email || user.phone || 'Anonymous';
+      const cleanName = identifier.split('@')[0].split('+').pop() || 'Artesian';
+      
+      // Generate referral code
+      const referralCode = `ABA${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email || '',
+          phone: user.phone || '',
+          username: user.user_metadata.username || null,
+          full_name: user.user_metadata.full_name || cleanName,
+          role: 'registered',
+          referral_code: referralCode,
+          referral_count: 0,
+          referral_earnings: 0,
+          preferred_language: 'en',
+          notification_settings: { email: true, sms: false, push: true },
+          dark_mode: false,
+          onboarding_stage: 'identity_unverified'
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error("[AuthService] Profile Sync (Create) Error:", createError.message);
+        throw createError;
+      }
+      console.log("[AuthService] Profile created successfully in", Date.now() - startTime, "ms");
+      return newProfile;
+    }
+
+    if (error) {
+      console.error("[AuthService] Profile fetch error:", error);
+    } else {
+      console.log("[AuthService] Profile fetched successfully in", Date.now() - startTime, "ms");
+    }
+
+    return profile;
+  } catch (err: any) {
+    console.error("[AuthService] syncProfile critical failure:", err);
+    throw err;
+  }
 };

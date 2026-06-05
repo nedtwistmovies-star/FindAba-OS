@@ -21,9 +21,7 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const viewParam = urlParams.get('view');
     if (viewParam) return viewParam as ViewState;
 
-    const saved = localStorage.getItem('findaba_current_view');
-    if (!saved || saved === 'login' || saved === 'onboarding') return 'home';
-    return saved as ViewState;
+    return 'splash';
   });
 
   const setView = (v: ViewState) => {

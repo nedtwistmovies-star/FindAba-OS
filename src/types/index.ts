@@ -2,14 +2,15 @@
 export type ViewState = 
   | 'discover' | 'home' | 'oracle' | 'lab' | 'cargo' | 'profile' | 'detail' 
   | 'explore' | 'messages' | 'merchant-portal' 
-  | 'register' | 'admin' | 'srts-dashboard' | 'editorial' | 'editorial-detail'
-  | 'buyer-portal' | 'ad-manager' | 'feed' | 'registry-setup' | 'sandals-hotels' 
+  | 'register' | 'admin' | 'thrift-dashboard' | 'editorial' | 'editorial-detail'
+  | 'buyer-portal' | 'ad-manager' | 'faces' | 'registry-setup' | 'fidelity' 
   | 'wallet' | 'contact' | 'audio-heritage' | 'srts-office' | 'booking-ledger' 
   | 'hotel-detail' | 'hotel-partner-control' | 'pricing' | 'ad-checkout' | 'about'
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
   | 'orders' | 'dispute-center' | 'login' | 'signup' | 'carry-me' | 'driver-registry'
   | 'purple-fleet' | 'driver-console' | 'fleet-admin' | 'legal' | 'hardware-audit' | 'business-verification'
-  | 'carry-go-dash' | 'onboarding' | 'support' | 'terminal' | 'terminal-pay';
+  | 'carry-go-dash' | 'onboarding' | 'support' | 'terminal' | 'terminal-pay' | 'splash'
+  | 'industrial-directory';
 
 export type Language = 'en' | 'ig' | 'pcm' | 'ha' | 'yo' | 'fr' | 'zh';
 export type UserRole = 'visitor' | 'registered' | 'business_owner' | 'verified_business' | 'buyer' | 'editor' | 'admin' | 'driver' | 'fleet_commander';
@@ -741,6 +742,7 @@ export interface Profile {
     push: boolean;
   };
   dark_mode?: boolean;
+  onboarding_stage?: string;
   created_at: string;
 }
 

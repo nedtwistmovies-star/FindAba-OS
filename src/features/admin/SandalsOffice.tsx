@@ -89,7 +89,7 @@ const SandalsOffice: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                 {selectedBranch.id === 'hotels' ? (
                    <div className="space-y-4 mt-auto relative z-10 pb-4">
                       <button 
-                        onClick={() => setView('sandals-hotels')} 
+                        onClick={() => setView('fidelity')} 
                         className="w-full py-6 bg-aba-gold text-aba-dark rounded-full font-black uppercase text-[11px] tracking-[0.4em] flex items-center justify-center gap-3 hover:bg-white transition-all shadow-2xl active:scale-95"
                       >
                          Hotel Portal <ExternalLink size={16} />

@@ -38,7 +38,7 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   detail: lazyWithRetry(() => import('../features/discovery/BusinessDetail')),
   editorial: lazyWithRetry(() => import('../features/discovery/AdvertorialFeed')),
   'editorial-detail': lazyWithRetry(() => import('../features/discovery/AdvertorialDetail')),
-  feed: lazyWithRetry(() => import('../features/faces/FacesFeed')),
+  faces: lazyWithRetry(() => import('../features/faces/FacesFeed')),
   'merchant-portal': lazyWithRetry(() => import('../features/merchant/MerchantPortal')),
   register: lazyWithRetry(() => import('../features/merchant/Register')),
   pricing: lazyWithRetry(() => import('../features/merchant/Pricing')),
@@ -58,11 +58,11 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   profile: lazyWithRetry(() => import('../features/auth/Profile')),
   messages: lazyWithRetry(() => import('../features/oracle/ChatView')),
   admin: lazyWithRetry(() => import('../features/admin/Admin')),
-  'srts-dashboard': lazyWithRetry(() => import('../features/finance/ThriftDashboard')),
+  'thrift-dashboard': lazyWithRetry(() => import('../features/finance/ThriftDashboard')),
   'buyer-portal': lazyWithRetry(() => import('../features/finance/BuyerPortal')),
   'ad-manager': lazyWithRetry(() => import('../features/merchant/AdManager')),
   'registry-setup': lazyWithRetry(() => import('../features/tech/RegistrySetup')),
-  'sandals-hotels': lazyWithRetry(() => import('../features/hospitality/SandalsHotels')),
+  'fidelity': lazyWithRetry(() => import('../features/hospitality/SandalsHotels')),
   wallet: lazyWithRetry(() => import('../features/finance/WalletView')),
   contact: lazyWithRetry(() => import('../features/info/Contact')),
   'audio-heritage': lazyWithRetry(() => import('../features/creative/AudioHeritage')),
@@ -84,5 +84,7 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'carry-go-dash': lazyWithRetry(() => import('../features/logistics/CarryGoDash')),
   onboarding: lazyWithRetry(() => import('../onboarding/components/OnboardingRouter').then(m => ({ default: m.OnboardingRouter }))),
   'terminal': lazyWithRetry(() => import('../features/merchant/TerminalTab')),
-  'terminal-pay': lazyWithRetry(() => import('../features/merchant/TerminalPay'))
+  'terminal-pay': lazyWithRetry(() => import('../features/merchant/TerminalPay')),
+  'splash': lazyWithRetry(() => import('../components/SplashScreen').then(m => ({ default: m.SplashScreen }))),
+  'industrial-directory': lazyWithRetry(() => import('../features/discovery/Explore'))
 };

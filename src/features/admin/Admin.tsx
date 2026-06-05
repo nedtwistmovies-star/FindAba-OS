@@ -872,24 +872,7 @@ const TasksManager: React.FC = () => {
 const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
   const { commitAll } = useBusiness();
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const pinAuth = localStorage.getItem("findaba_admin_auth") === "true";
-    const isOwner = userEmail === 'pastornelsonezi@gmail.com';
-    return pinAuth || userRole === "admin" || isOwner;
-  });
-
-  useEffect(() => {
-    const isOwner = userEmail === 'pastornelsonezi@gmail.com';
-    if (isOwner || userRole === "admin") {
-      setIsAuthenticated(true);
-    }
-  }, [userEmail, userRole]);
-  const [pin, setPin] = useState(["", "", "", ""]);
-  const pin0 = useRef<HTMLInputElement>(null);
-  const pin1 = useRef<HTMLInputElement>(null);
-  const pin2 = useRef<HTMLInputElement>(null);
-  const pin3 = useRef<HTMLInputElement>(null);
-  const pinRefs = [pin0, pin1, pin2, pin3];
+  const isAuthenticated = userRole === "admin" || userEmail === 'pastornelsonezi@gmail.com';
 
   const [activeTab, setActiveTab] = useState<
     | "overview"
@@ -1013,19 +996,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   useEffect(() => {
     if (isAuthenticated) refreshAllData();
   }, [isAuthenticated, refreshAllData]);
-
-  const handlePinChange = (index: number, value: string) => {
-    const digit = value.replace(/[^0-9]/g, "").slice(-1);
-    const newPin = [...pin];
-    newPin[index] = digit;
-    setPin(newPin);
-    if (digit !== "" && index < 3) pinRefs[index + 1].current?.focus();
-    if (newPin.join("") === "1234") {
-      localStorage.setItem("findaba_auth_token", "admin_secret_mesh");
-      localStorage.setItem("findaba_admin_auth", "true");
-      setIsAuthenticated(true);
-    }
-  };
 
   const handleRunDiagnostic = async () => {
     setIsRunningDiagnostic(true);
@@ -1157,41 +1127,20 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
       <div className="fixed inset-0 z-[6000] bg-[#020617] flex flex-col items-center justify-center p-8 font-sans text-white">
         <Shield
           size={64}
-          className="text-aba-gold mb-10 animate-pulse-subtle"
+          className="text-red-500 mb-10"
         />
-        <h3 className="text-3xl font-black uppercase text-white tracking-tighter mb-12">
-          Command Console
+        <h3 className="text-3xl font-black uppercase text-white tracking-tighter mb-4 text-center">
+          Restricted Access
         </h3>
-        <div className="flex gap-4">
-          {[0, 1, 2, 3].map((i) => (
-            <input
-              key={i}
-              ref={pinRefs[i]}
-              type="tel"
-              maxLength={1}
-              value={pin[i]}
-              autoFocus={i === 0}
-              onChange={(e) => handlePinChange(i, e.target.value)}
-              className="w-16 h-24 rounded-2xl border-2 text-center text-4xl font-black bg-white/5 text-white outline-none border-white/10 focus:border-aba-gold transition-all"
-            />
-          ))}
-        </div>
-        <p className="mt-12 text-[10px] font-black uppercase text-white/20 tracking-[0.5em]">
-          Institutional PIN Required
+        <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.5em] text-center max-w-xs leading-relaxed">
+          Identity Signal Mismatch. Administrative Clearance Required.
         </p>
-
-        {userRole !== "admin" && (
-          <div className="mt-20 p-8 bg-white/5 border border-white/10 rounded-[2rem] max-w-md text-center">
-            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-relaxed">
-              To gain permanent admin access without a PIN, run this SQL in your
-              Supabase Editor:
-            </p>
-            <div className="mt-6 p-4 bg-black rounded-xl border border-white/5 font-mono text-[10px] text-aba-gold/80 break-all">
-              UPDATE profiles SET role = 'admin' WHERE email = '
-              {userEmail || "your-email@example.com"}';
-            </div>
-          </div>
-        )}
+        <button 
+          onClick={() => setView('home')}
+          className="mt-12 px-10 py-5 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-3"
+        >
+          <ArrowLeft size={16} /> Disconnect Signal
+        </button>
       </div>
     );
 

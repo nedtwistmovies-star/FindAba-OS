@@ -2,10 +2,13 @@
 import { supabase } from '../lib/supabaseClient';
 import { Post, Comment, Like, Story, Wallet, Transaction, PostActionType } from '../types';
 
+import { ensureAuth } from './supabaseService';
+
 /**
  * FEED & POSTS
  */
 export const fetchPosts = async (limit = 20, offset = 0) => {
+  await ensureAuth();
   const { data, error } = await supabase
     .from('posts')
     .select(`
@@ -23,6 +26,7 @@ export const fetchPosts = async (limit = 20, offset = 0) => {
 };
 
 export const createPost = async (post: Partial<Post>) => {
+  await ensureAuth();
   const { data, error } = await supabase
     .from('posts')
     .insert(post)
@@ -40,6 +44,7 @@ export const createPost = async (post: Partial<Post>) => {
  * LIKES
  */
 export const toggleLike = async (postId: string, userId: string) => {
+  await ensureAuth();
   // Check if like exists
   const { data: existingLike } = await supabase
     .from('likes')
@@ -68,6 +73,7 @@ export const toggleLike = async (postId: string, userId: string) => {
  * COMMENTS
  */
 export const fetchComments = async (postId: string) => {
+  await ensureAuth();
   const { data, error } = await supabase
     .from('comments')
     .select(`
@@ -82,6 +88,7 @@ export const fetchComments = async (postId: string) => {
 };
 
 export const addComment = async (postId: string, userId: string, content: string) => {
+  await ensureAuth();
   const { data, error } = await supabase
     .from('comments')
     .insert({ post_id: postId, user_id: userId, content })
@@ -99,6 +106,7 @@ export const addComment = async (postId: string, userId: string, content: string
  * STORIES
  */
 export const fetchStories = async () => {
+  await ensureAuth();
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('stories')
@@ -114,6 +122,7 @@ export const fetchStories = async () => {
 };
 
 export const createStory = async (story: Partial<Story>) => {
+  await ensureAuth();
   // Stories expire in 24 hours
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   
@@ -131,6 +140,7 @@ export const createStory = async (story: Partial<Story>) => {
  * WALLET & COMMERCE
  */
 export const fetchWallet = async (userId: string) => {
+  await ensureAuth();
   const { data, error } = await supabase
     .from('wallets')
     .select('*')
@@ -153,6 +163,7 @@ export const fetchWallet = async (userId: string) => {
 };
 
 export const fetchTransactions = async (walletId: string) => {
+  await ensureAuth();
   const { data, error } = await supabase
     .from('transactions')
     .select('*')

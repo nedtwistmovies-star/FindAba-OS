@@ -1,11 +1,13 @@
 
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from './supabaseClient';
 
 // Note: Using VITE_ environment variables as this is a Vite project
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Use a proxy that always uses the latest singleton instance from supabaseService
+// to avoid dual-client session conflicts
+export { supabase, supabase as supabaseSingleton };
 
 // SEND OTP
 export async function sendOTP(phone: string) {

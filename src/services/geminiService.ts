@@ -14,18 +14,13 @@ const getAI = () => {
   // 3. Check import.meta.env (Vite Environment)
   const metaKey = (typeof import.meta !== 'undefined' && import.meta.env) ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY) : '';
   
-  // 4. Hardcoded Fallback (Emergency only)
-  const hardcodedKey = 'AIzaSyCxjuQC56zQJsuhSJH8LJFfAjRe4xI8jpk';
-  
-  const key = localKey || envKey || metaKey || hardcodedKey;
+  // 4. Hardcoded Fallback (Removed for security)
+  const key = localKey || envKey || metaKey;
   
   if (!key) {
-    console.warn("[Oracle] Signal missing. No API key found in localStorage, process.env or import.meta.env.");
-  } else {
-    const source = localKey ? "localStorage" : (envKey ? "process.env" : (metaKey ? "import.meta.env" : "hardcoded"));
-    console.log(`[Oracle] Signal detected. Key source: ${source}. Key prefix: ${key.substring(0, 6)}...`);
+    // We expect the server to handle this now
   }
-  return new GoogleGenAI({ apiKey: key });
+  return new GoogleGenAI({ apiKey: key || 'proxy' });
 };
 
 export interface GeminiHealthStatus {
@@ -259,175 +254,40 @@ export const getOracleStream = async (
   history: any[], 
   catalog: Business[]
 ) => {
-  // Gemini is now NATIVE and PRIMARY for search grounding
-  const primaryAI = localStorage.getItem('findaba_primary_ai') || 'gemini';
-  
-  if (primaryAI === 'openrouter') {
-    try {
-      const openRouterKey = localStorage.getItem('findaba_openrouter_key');
-      if (openRouterKey) {
-        console.log("[Oracle] Primary Signal: OpenRouter Relay Active.");
-        return await getOpenRouterStream(
-          typeof prompt === 'string' ? prompt : "Analyze this image and provide wisdom.",
-          history,
-          catalog
-        );
-      }
-    } catch (e: any) {
-      console.warn("[Oracle] OpenRouter Primary Signal Failed. Falling back to Gemini Native...", e);
-    }
+  const { getSupabase } = await import('./supabaseService');
+  const sb = getSupabase();
+  if (!sb) throw new Error("Registry Signal Offline. Oracle connection terminated.");
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) throw new Error("Oracle Authentication Required. Identity signal lost.");
+
+  const response = await fetch("/api/oracle", {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.access_token}`
+    },
+    body: JSON.stringify({ 
+      prompt, 
+      history, 
+      catalog,
+      type: typeof prompt === 'string' ? 'search' : 'flyer' 
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Oracle Signal Sync Fault");
   }
 
-  const businessContext = catalog.map(b => ({
-    name: b.name,
-    category: b.category,
-    product: b.primary_product_or_service,
-    area: b.area,
-    address: b.address,
-    phone: b.phone_whatsapp
-  }));
-
-  const sys = `IDENTITY: FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Your primary responsibility is to help users find places, services, and information within Aba.
-               RULES:
-               - Always prioritize Aba in your answers.
-               - You MAY include nearby cities (e.g., Umuahia, Port Harcourt) ONLY if the user explicitly asks for broader options, OR if there are no strong options in Aba.
-               - When mentioning other cities, clearly label them as outside Aba.
-               - Do NOT refer to Abia as "God’s Own State".
-               - Do NOT roleplay or act like a character.
-               - Keep responses practical, clear, and helpful.
-               - Use a natural, friendly Nigerian tone where appropriate.
-               
-               SPECIFICITY & GROUNDING: Be extremely specific and precise. Do NOT give generic area suggestions like "Aba-Owerri Road" or "Faulks Road" without pointing to a specific business, plaza, or exact landmark. When you recommend a place, give the street name, a specific building/plaza name, and a landmark only a resident would know. Use the registry as your primary memory:
-               ${JSON.stringify(businessContext)}
-               
-               KNOWLEDGE: Your knowledge is rooted in Aba—its markets (Ariaria, Ahia Ohuru, Cemetery), its industrial clusters, and its resilient people. You speak explicitly of Aba.
-               
-               APP GUIDANCE:
-               - FACES: Community square for meeting the right people.
-               - PURPLE FLEET: Secure way to move around.
-               - SANDALSroyalle SUITES: Where we host prestigious guests.
-               - CARRY-GO CARGO: How we send craft to the world.
-               - SRTS THRIFT: Digital 'Isusu' for saving.
-               - AUDIO HERITAGE: Stories of our fathers and secrets of success.
-               
-               OUTPUT STYLE:
-               - Start with Aba options.
-               - Then optionally add: "If you're open to nearby areas..."
-               - Avoid generalities. If you don't have a specific business in the registry for a category, suggest a specific plaza or market line (e.g., "Line 4, Ariaria Market") rather than just a road name.
-               
-               JSON STRUCTURE: { "thought_process": "one sentence logic", "wisdom": "your response as FindAba AI (Kalu)", "data_points": { "verified_facts": [], "market_prices": [], "locations": [] }, "trade_signals": [] }`;
-  
-  const contentPart = typeof prompt === 'string' 
-    ? { text: prompt } 
-    : { inlineData: { data: prompt.data, mimeType: prompt.mimeType } };
-
-  const callModel = async (modelName: string, useSearch = true) => {
-    const ai = getAI();
-    const config: any = { 
-      systemInstruction: sys, 
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          thought_process: { type: Type.STRING },
-          wisdom: { type: Type.STRING },
-          data_points: {
-            type: Type.OBJECT,
-            properties: {
-              verified_facts: { type: Type.ARRAY, items: { type: Type.STRING } },
-              market_prices: { type: Type.ARRAY, items: { type: Type.STRING } },
-              locations: { type: Type.ARRAY, items: { type: Type.STRING } }
-            },
-            required: ["verified_facts", "locations"]
-          },
-          trade_signals: { type: Type.ARRAY, items: { type: Type.STRING } }
-        },
-        required: ["wisdom", "thought_process", "data_points", "trade_signals"]
-      }
-    };
-
-    if (useSearch) {
-      config.tools = [{ googleSearch: {} }];
-    }
-
-    return await (ai as any).models.generateContent({
-      model: modelName,
-      contents: [...history, { role: 'user', parts: [contentPart] }],
-      config
-    });
+  const result = await response.json();
+  return {
+    text: result.text || result.wisdom || "Signal lost. Re-establishing...",
+    thoughtProcess: result.thoughtProcess || result.thought_process,
+    dataPoints: result.dataPoints || result.data_points || { verified_facts: [], locations: [] },
+    suggestions: result.suggestions || result.trade_signals || [],
+    grounding: result.grounding
   };
-
-  let lastError: any = null;
-  
-  // Attempt 1: Gemini 2.0 Flash (Primary)
-  try {
-    const response = await callModel('gemini-2.0-flash');
-    return processOracleResponse(response);
-  } catch (e: any) {
-    lastError = e;
-    const msg = e.message?.toLowerCase() || "";
-    const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("resource_exhausted");
-    
-    if (isQuota) {
-      console.warn("[Oracle] Flash Signal Congested. Switching to Flash Lite Relay...");
-      
-      // Attempt 2: Gemini 2.0 Flash Lite (High Availability)
-      try {
-        const response = await callModel('gemini-2.0-flash-lite-preview-02-05');
-        return processOracleResponse(response);
-      } catch (e2: any) {
-        lastError = e2;
-        console.warn("[Oracle] Flash Lite Congested. Switching to Pro Standard...");
-        
-        // Attempt 3: Gemini 3.1 Pro (Standard)
-        try {
-          const response = await callModel('gemini-3.1-pro-preview');
-          return processOracleResponse(response);
-        } catch (e3: any) {
-          lastError = e3;
-          console.warn("[Oracle] Pro Standard Congested. Emergency Protocol: Disabling Search Grounding...");
-          
-          // Attempt 4: Gemini 3 Flash without Search (Lowest Quota usage)
-          try {
-            const response = await callModel('gemini-3-flash-preview', false);
-            return processOracleResponse(response);
-          } catch (e4: any) {
-            lastError = e4;
-            console.warn("[Oracle] Gemini Signal Completely Lost. Attempting OpenRouter Relay...");
-            
-            // Attempt 5: OpenRouter (External Relay)
-            try {
-              const openRouterKey = localStorage.getItem('findaba_openrouter_key');
-              if (openRouterKey) {
-                return await getOpenRouterStream(
-                  typeof prompt === 'string' ? prompt : "Analyze this image and provide wisdom.",
-                  history,
-                  catalog
-                );
-              }
-            } catch (e5: any) {
-              console.error("[Oracle] OpenRouter Relay Fault:", e5);
-              lastError = e5;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // If we reached here, all attempts failed
-  console.error("Oracle Hub Fault:", lastError);
-  const msg = lastError?.message?.toLowerCase() || "";
-  const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("resource_exhausted") || msg.includes("overloaded");
-  const isAuth = msg.includes("401") || msg.includes("api_key_invalid") || msg.includes("not found") || msg.includes("permission_denied") || msg.includes("invalid_argument");
-  const isNetwork = msg.includes("offline") || msg.includes("network") || msg.includes("failed to fetch") || msg.includes("failed to connect");
-  
-  let userMessage = "Institutional Signal Lost. Recalibrating...";
-  if (isQuota) userMessage = "MARKET CONGESTION [FLASH RELAY ACTIVE]: THE REGISTRY IS OVERLOADED. PLEASE RETRY IN A MOMENT.";
-  if (isAuth) userMessage = "ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN THE SYSTEM CONSOLE (ADMIN).";
-  if (isNetwork) userMessage = "SIGNAL INTERRUPTED: NETWORK CONNECTION LOST. CHECK YOUR INTERNET.";
-  
-  throw new Error(userMessage);
 };
 
 // Helper to process response

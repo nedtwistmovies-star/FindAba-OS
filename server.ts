@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import { createServer as createViteServer } from "vite";
 import axios from "axios";
 import cookieParser from "cookie-parser";
@@ -10,6 +10,8 @@ import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from 'resend';
 import { sendPaymentSuccessEmail } from './src/services/emailService.ts';
+
+import { GoogleGenAI, Type } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +38,30 @@ try {
 
 const resendKey = process.env.RESEND_API_KEY || 're_placeholder';
 const resend = new Resend(resendKey);
+
+const getAI = () => {
+  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY not configured on server.");
+  return new GoogleGenAI({
+    apiKey: key,
+    httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+  });
+};
+
+const ensureAuthenticated = async (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: "Missing identity signal (Auth Header)" });
+  
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    return res.status(401).json({ error: "Invalid identity signal" });
+  }
+  
+  (req as any).user = user;
+  next();
+};
 
 console.log("Initializing FindAba City OS Server...");
 console.log("Environment Check:", {
@@ -76,8 +102,6 @@ app.get("/api/health", (req, res) => {
   // Config Sync
 app.get(["/api/config", "/api/config/"], (req, res) => {
   console.log(`[Server] Config sync requested from ${req.ip}`);
-  const geminiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || 'AIzaSyCxjuQC56zQJsuhSJH8LJFfAjRe4xI8jpk';
-  const openRouterKey = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY || '';
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co';
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6InFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
   const paystackKey = process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -85,15 +109,67 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
   const config = { 
     supabaseUrl,
     supabaseKey,
-    geminiKey,
-    openRouterKey,
     paystackKey,
     githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '',
     makeWebhookUrl: process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || ''
   };
 
-  console.log(`[Server] Sending config. Gemini: ${geminiKey ? 'OK' : 'NO'}, OpenRouter: ${openRouterKey ? 'OK' : 'NO'}`);
   res.json(config);
+});
+
+// Gemini Proxy
+app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
+  try {
+    const { prompt, history = [], catalog = [], type = 'search' } = req.body;
+    const ai = getAI();
+    
+    if (type === 'search') {
+      const businessContext = catalog.slice(0, 50).map((b: any) => ({
+        name: b.name,
+        category: b.category,
+        product: b.primary_product_or_service,
+        area: b.area,
+        address: b.address,
+        phone: b.phone_whatsapp
+      }));
+
+      const sys = `IDENTITY: FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. 
+                   RULES: Prioritize Aba. Do NOT say 'God's Own State'. Use the registry: ${JSON.stringify(businessContext)}`;
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
+        config: { 
+          systemInstruction: sys,
+          responseMimeType: "application/json",
+          tools: [{ googleSearch: {} }]
+        }
+      });
+      return res.json({ 
+        text: response.text, 
+        grounding: response.candidates?.[0]?.groundingMetadata?.groundingChunks 
+      });
+    }
+
+    if (type === 'flyer') {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: { 
+          parts: [
+            { inlineData: { data: prompt.base64.split(',')[1] || prompt.base64, mimeType: prompt.mimeType || 'image/jpeg' } }, 
+            { text: "Analyze this industrial flyer. Extract JSON: { businessName, category, area, phone, description, confidence_score }" }
+          ] 
+        },
+        config: { responseMimeType: "application/json" }
+      });
+      return res.json(JSON.parse(response.text || '{}'));
+    }
+
+    res.status(400).json({ error: "Invalid oracle type" });
+  } catch (err: any) {
+    console.error("[Server] Oracle Fault:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
   // GitHub OAuth URL

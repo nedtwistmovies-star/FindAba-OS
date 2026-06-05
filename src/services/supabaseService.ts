@@ -31,19 +31,16 @@ export const resetSupabaseInstance = (force = false) => {
 };
 
 export const getSupabase = (): SupabaseClient | null => {
-  const manualUrl = localStorage.getItem('findaba_supabase_url');
-  const manualKey = localStorage.getItem('findaba_supabase_key');
-  
   const env: any = (typeof process !== 'undefined' && process.env) ? process.env : {};
   const meta: any = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
 
   const hardcodedUrl = 'https://pqzjkvqmherngispxlzy.supabase.co';
   const hardcodedKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
 
-  const url = manualUrl || meta.VITE_SUPABASE_URL || env.SUPABASE_URL || hardcodedUrl;
-  const key = manualKey || meta.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || hardcodedKey;
+  const url = meta.VITE_SUPABASE_URL || env.SUPABASE_URL || hardcodedUrl;
+  const key = meta.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || hardcodedKey;
 
-  const source = manualUrl ? 'localStorage' : (meta.VITE_SUPABASE_URL ? 'import.meta' : (env.SUPABASE_URL ? 'process.env' : 'fallback'));
+  const source = meta.VITE_SUPABASE_URL ? 'import.meta' : (env.SUPABASE_URL ? 'process.env' : 'fallback');
 
   if (!url || !key || url === 'undefined' || key === 'undefined') {
     console.warn("[Registry] Signal missing. URL:", !!url, "Key:", !!key);
@@ -65,16 +62,15 @@ export const getSupabase = (): SupabaseClient | null => {
   }
 
   try {
-    console.log(`[Registry] Initializing client (Source: ${source}) with URL: ${url.substring(0, 25)}...`);
+    console.log(`[Registry] 🚀 INITIALIZING_CLIENT_V6.1 (Source: ${source})`);
     _supabaseInstance = createClient(url, key, { 
       auth: { 
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        // Use a custom storage key to avoid conflicts with other apps on the same domain
-        storageKey: `findaba-auth-token-${url.substring(0, 10)}`,
-        // Disable Web Locks API usage which causes "Lock broken" errors in iframes
-        lock: async (name: string, acquireTimeout: number, callback: () => Promise<any>) => {
+        storageKey: `findaba-auth-token-${url.substring(url.length - 10)}`,
+        lock: async (name: string, _acquireTimeout: number, callback: () => Promise<any>) => {
+          // Absolute zero-overhead lock bypass for iframe environments
           return await callback();
         }
       } 
@@ -90,6 +86,20 @@ export const getSupabase = (): SupabaseClient | null => {
 
 export const isRegistryConfigured = () => {
   return !!getSupabase();
+};
+
+export const ensureAuth = async () => {
+  console.log("[SupabaseService] ensureAuth check start");
+  const sb = getSupabase();
+  if (!sb) {
+    console.error("[SupabaseService] ensureAuth: Registry Offline");
+    throw new Error("Registry Offline");
+  }
+  console.log("[SupabaseService] ensureAuth: getSession start");
+  const { data: { session }, error } = await sb.auth.getSession();
+  console.log("[SupabaseService] ensureAuth: getSession complete", { hasSession: !!session, error });
+  if (!session) throw new Error('Authentication required');
+  return session;
 };
 
 const normalizeEmail = (email: string) => email.toLowerCase().trim();
@@ -200,13 +210,6 @@ export const authSignIn = async (email: string, pass: string) => {
     throw error;
   }
   
-  // Fetch profile to get role
-  const { data: profile } = await sb.from('profiles').select('role, full_name').eq('id', data.user.id).single();
-  if (profile) {
-    localStorage.setItem('findaba_user_role', profile.role);
-    localStorage.setItem('findaba_user_name', profile.full_name || '');
-  }
-  
   return data;
 };
 
@@ -224,6 +227,7 @@ export const authSignInWithGoogle = async () => {
 };
 
 export const fetchUserProfile = async (userId: string) => {
+  await ensureAuth();
   const sb = getSupabase();
   if (!sb) return null;
   const { data } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
@@ -231,6 +235,7 @@ export const fetchUserProfile = async (userId: string) => {
 };
 
 export const updateUserProfile = async (userId: string, updates: any) => {
+  await ensureAuth();
   const sb = getSupabase();
   if (!sb) return;
   await sb.from('profiles').update(updates).eq('id', userId);
@@ -324,6 +329,7 @@ export const authSignOut = async () => {
 };
 
 export const checkDatabaseHealth = async (url?: string, key?: string) => {
+  console.log("[SupabaseService] checkDatabaseHealth probe start");
   // If specific URL/Key provided, test that instead of the main instance
   let client = getSupabase();
   if (url && key) {
@@ -336,32 +342,47 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
         }
       });
     } catch (e) {
+      console.error("[SupabaseService] checkDatabaseHealth: Invalid URL");
       return { status: 'unhealthy' as const, message: 'Invalid URL format.' };
     }
   }
 
-  if (!client) return { status: 'unhealthy' as const, message: 'No client configuration detected.' };
+  if (!client) {
+    console.error("[SupabaseService] checkDatabaseHealth: No client");
+    return { status: 'unhealthy' as const, message: 'No client configuration detected.' };
+  }
   
   // Timeout for health check - we don't want to hang the app init
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const timeoutId = setTimeout(() => {
+    console.warn("[SupabaseService] checkDatabaseHealth probe ABORTED by timeout");
+    controller.abort();
+  }, 10000);
   
   try {
     // Probe a subset of critical tables to ensure schema health
     const criticalTables = ['businesses', 'profiles', 'platform_config'];
     
+    console.log("[SupabaseService] Probing critical tables:", criticalTables);
     // We check sequentially or with a shorter timeout to avoid hanging
     const results = await Promise.all(criticalTables.map(async (table) => {
       try {
+        console.log(`[SupabaseService] Probing table: ${table}`);
         const { error } = await client!.from(table).select('id').limit(1).abortSignal(controller.signal);
-        if (error && error.code === '42P01') return table;
+        if (error && error.code === '42P01') {
+          console.warn(`[SupabaseService] Table ${table} missing`);
+          return table;
+        }
+        console.log(`[SupabaseService] Table ${table} probe complete`);
         return null;
-      } catch (e) {
+      } catch (e: any) {
+        console.warn(`[SupabaseService] Table ${table} probe fail:`, e.message);
         return null; // Ignore individual table fetch errors, possibly due to abort
       }
     }));
 
     clearTimeout(timeoutId);
+    console.log("[SupabaseService] checkDatabaseHealth probe finished");
 
     const missingTables = results.filter(t => t !== null);
     
@@ -375,7 +396,7 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
     return { status: 'healthy' as const };
   } catch (e: any) { 
     clearTimeout(timeoutId);
-    console.warn("[Supabase] Health probe skipped or timed out:", e.message);
+    console.warn("[Supabase] Health probe fatal or timed out:", e.message);
     return { status: 'unknown' as const, message: 'Signal strength low. Registry sync might be affected.' }; 
   }
 };
@@ -547,8 +568,8 @@ export const createEscrowOrder = async (order: Partial<Order>, business: Busines
 
   // Notify Merchant
   if (business.email) {
-    const customerName = localStorage.getItem('findaba_user_name') || 'A Customer';
-    sendMerchantNewOrderEmail(business.email, data.id, merchant_payout, customerName).catch(err => 
+    const customerName = order.buyer_id ? (await client.from('profiles').select('full_name').eq('id', order.buyer_id).single()).data?.full_name : 'A Customer';
+    sendMerchantNewOrderEmail(business.email, data.id, merchant_payout, customerName || 'A Customer').catch(err => 
       console.warn("[Email] Merchant notification failed:", err)
     );
   }
@@ -560,6 +581,7 @@ export const createEscrowOrder = async (order: Partial<Order>, business: Busines
 };
 
 export const fetchOrdersForBuyer = async (buyerId: string): Promise<Order[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   const { data } = await client.from('orders').select('*, merchant:businesses(*)').eq('buyer_id', buyerId).order('created_at', { ascending: false });
@@ -567,6 +589,7 @@ export const fetchOrdersForBuyer = async (buyerId: string): Promise<Order[]> => 
 };
 
 export const fetchMerchantOrders = async (merchantId: string): Promise<Order[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   const { data } = await client
@@ -936,6 +959,7 @@ export const createAdminTestPost = async (content: string): Promise<any> => {
 };
 
 export const fetchAllThriftAccounts = async (): Promise<ThriftAccount[]> => {
+  await ensureAuth();
   const sb = getSupabase();
   if (!sb) return [];
   const { data, error } = await sb
@@ -950,6 +974,7 @@ export const fetchAllThriftAccounts = async (): Promise<ThriftAccount[]> => {
 };
 
 export const fetchThriftAccount = async (email: string): Promise<ThriftAccount | null> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return null;
   const normalizedEmail = normalizeEmail(email);
@@ -979,6 +1004,7 @@ export const fetchThriftAccount = async (email: string): Promise<ThriftAccount |
 };
 
 export const createThriftAccount = async (email: string, cycle: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly') => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   const normalizedEmail = normalizeEmail(email);
@@ -1031,6 +1057,7 @@ export const createThriftAccount = async (email: string, cycle: 'daily' | 'weekl
 };
 
 export const fetchThriftContributions = async (thriftId: string): Promise<ThriftContribution[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1045,6 +1072,7 @@ export const fetchThriftContributions = async (thriftId: string): Promise<Thrift
 };
 
 export const saveThriftContribution = async (email: string, amount: number) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
@@ -1090,6 +1118,7 @@ export const saveThriftContribution = async (email: string, amount: number) => {
 };
 
 export const withdrawThriftSavings = async (email: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   const normalizedEmail = normalizeEmail(email);
@@ -1172,6 +1201,7 @@ export const fetchThriftGroups = async (visibility?: 'public' | 'private'): Prom
 };
 
 export const generateUniqueInviteCode = async (): Promise<string> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Supabase client is not initialized");
 
@@ -1212,10 +1242,10 @@ export const generateUniqueInviteCode = async (): Promise<string> => {
 };
 
 export const createThriftGroup = async (group: Partial<ThriftGroup>) => {
+  const session = await ensureAuth();
   const client = getSupabase();
   if (!client) return;
-  const { data: user } = await client.auth.getUser();
-  if (!user.user) throw new Error("Auth Required");
+  const user = session.user;
 
   // Generate unique secure invite code and verify uniqueness
   const inviteCode = await generateUniqueInviteCode();
@@ -1224,7 +1254,7 @@ export const createThriftGroup = async (group: Partial<ThriftGroup>) => {
     .from('thrift_groups')
     .insert({
       ...group,
-      creator_id: user.user.id,
+      creator_id: user.id,
       invite_code: inviteCode,
       status: 'forming'
     })
@@ -1236,7 +1266,7 @@ export const createThriftGroup = async (group: Partial<ThriftGroup>) => {
   // Add creator as first member
   await client.from('thrift_group_members').insert({
     group_id: data.id,
-    user_id: user.user.id,
+    user_id: user.id,
     payout_position: 1
   });
 
@@ -1244,6 +1274,7 @@ export const createThriftGroup = async (group: Partial<ThriftGroup>) => {
 };
 
 export const fetchGroupByInviteCode = async (inviteCode: string): Promise<ThriftGroup | null> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return null;
   const { data, error } = await client
@@ -1256,10 +1287,10 @@ export const fetchGroupByInviteCode = async (inviteCode: string): Promise<Thrift
 };
 
 export const joinThriftGroup = async (groupId: string, inviteCode?: string) => {
+  const session = await ensureAuth();
   const client = getSupabase();
   if (!client) return;
-  const { data: user } = await client.auth.getUser();
-  if (!user.user) throw new Error("Auth Required");
+  const user = session.user;
 
   const { data: group, error: groupError } = await client
     .from('thrift_groups')
@@ -1280,7 +1311,7 @@ export const joinThriftGroup = async (groupId: string, inviteCode?: string) => {
     .from('thrift_group_members')
     .select('id')
     .eq('group_id', groupId)
-    .eq('user_id', user.user.id)
+    .eq('user_id', user.id)
     .maybeSingle();
   
   if (existing) throw new Error("You are already a member of this savings unit.");
@@ -1301,7 +1332,7 @@ export const joinThriftGroup = async (groupId: string, inviteCode?: string) => {
 
   const { error } = await client.from('thrift_group_members').insert({
     group_id: groupId,
-    user_id: user.user.id,
+    user_id: user.id,
     payout_position: nextPosition
   });
 
@@ -1317,6 +1348,7 @@ export const joinThriftGroup = async (groupId: string, inviteCode?: string) => {
 };
 
 export const fetchThriftGroupDetails = async (groupId: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return null;
 
@@ -1337,14 +1369,14 @@ export const fetchThriftGroupDetails = async (groupId: string) => {
 };
 
 export const saveGroupContribution = async (groupId: string, amount: number, cycleNumber: number) => {
+  const session = await ensureAuth();
   const client = getSupabase();
   if (!client) return;
-  const { data: user } = await client.auth.getUser();
-  if (!user.user) throw new Error("Auth Required");
+  const user = session.user;
 
   const { error } = await client.from('thrift_group_contributions').insert({
     group_id: groupId,
-    user_id: user.user.id,
+    user_id: user.id,
     amount,
     cycle_number: cycleNumber
   });
@@ -1353,6 +1385,7 @@ export const saveGroupContribution = async (groupId: string, amount: number, cyc
 };
 
 export const updateThriftAccountSettlement = async (email: string, details: any) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   const normalizedEmail = normalizeEmail(email);
@@ -1360,6 +1393,7 @@ export const updateThriftAccountSettlement = async (email: string, details: any)
 };
 
 export const fetchLedgerEntries = async (): Promise<LedgerEntry[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1370,12 +1404,14 @@ export const fetchLedgerEntries = async (): Promise<LedgerEntry[]> => {
 };
 
 export const updateLedgerSettlement = async (id: string, status: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('ledger').update({ settlement_status: status }).eq('id', id);
 };
 
 export const fetchPartnerHotels = async (): Promise<Hotel[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1396,6 +1432,7 @@ export const fetchAllPartnerHotels = async (): Promise<Hotel[]> => {
 };
 
 export const logQualityAudit = async (audit: Partial<QualityAudit>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('quality_audits').insert({ ...audit, created_at: new Date().toISOString() });
@@ -1403,24 +1440,28 @@ export const logQualityAudit = async (audit: Partial<QualityAudit>) => {
 };
 
 export const updateHotelStatus = async (id: string, status: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('hotels').update({ status }).eq('id', id);
 };
 
 export const updateHotelDetails = async (id: string, updates: Partial<Hotel>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('hotels').update(updates).eq('id', id);
 };
 
 export const createHotelRecord = async (hotel: Partial<Hotel>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('hotels').insert(hotel);
 };
 
 export const fetchRoomsByHotel = async (hotelId: string): Promise<Room[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1431,12 +1472,14 @@ export const fetchRoomsByHotel = async (hotelId: string): Promise<Room[]> => {
 };
 
 export const updateRoomProtocol = async (id: string, updates: Partial<Room>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('rooms').update(updates).eq('id', id);
 };
 
 export const addRoomToPartner = async (room: Partial<Room>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('rooms').insert(room);
@@ -1463,6 +1506,7 @@ export const fetchSRRooms = async (hotelId: string): Promise<Room[]> => {
 };
 
 export const createPendingBooking = async (booking: Partial<Booking>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   
@@ -1477,6 +1521,7 @@ export const createPendingBooking = async (booking: Partial<Booking>) => {
 };
 
 export const finalizeSRBooking = async (booking: Partial<Booking>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   // This is now mostly for manual confirmation or post-payment sync
@@ -1501,6 +1546,7 @@ export const finalizeSRBooking = async (booking: Partial<Booking>) => {
 };
 
 export const fetchUserBookings = async (userId: string): Promise<Booking[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1511,6 +1557,7 @@ export const fetchUserBookings = async (userId: string): Promise<Booking[]> => {
 };
 
 export const fetchBuyerSignals = async (): Promise<BuyerSignal[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1521,6 +1568,7 @@ export const fetchBuyerSignals = async (): Promise<BuyerSignal[]> => {
 };
 
 export const createBuyerSignal = async (signal: Partial<BuyerSignal>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   const { data, error } = await client.from('buyer_signals').insert({ ...signal, status: 'open', response_count: 0, created_at: new Date().toISOString() }).select().single();
@@ -1532,6 +1580,7 @@ export const createBuyerSignal = async (signal: Partial<BuyerSignal>) => {
 };
 
 export const submitSignalInterest = async (interest: Partial<SignalInterest>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   const { data, error } = await client.from('signal_interests').insert({ ...interest, created_at: new Date().toISOString() }).select().single();
@@ -1545,6 +1594,7 @@ export const submitSignalInterest = async (interest: Partial<SignalInterest>) =>
 };
 
 export const fetchSignalInterests = async (signalId: string): Promise<SignalInterest[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1555,12 +1605,14 @@ export const fetchSignalInterests = async (signalId: string): Promise<SignalInte
 };
 
 export const closeBuyerSignal = async (id: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('buyer_signals').update({ status: 'closed' }).eq('id', id);
 };
 
 export const saveVisionToCloud = async (email: string, prompt: string, result_url: string, mode: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   const normalizedEmail = normalizeEmail(email);
@@ -1568,6 +1620,7 @@ export const saveVisionToCloud = async (email: string, prompt: string, result_ur
 };
 
 export const fetchVisionHistory = async (email: string): Promise<any[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   const normalizedEmail = normalizeEmail(email);
@@ -1579,6 +1632,7 @@ export const fetchVisionHistory = async (email: string): Promise<any[]> => {
 };
 
 export const fetchMessagesFromDB = async (userEmail: string, targetBusinessId: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1595,6 +1649,7 @@ export const fetchMessagesFromDB = async (userEmail: string, targetBusinessId: s
 export const getAdvertorials = fetchAllAdvertorials;
 
 export const toggleFavorite = async (userId: string, businessId: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   const { data: existing } = await client.from('favorites').select('*').eq('user_id', userId).eq('business_id', businessId).maybeSingle();
@@ -1606,6 +1661,7 @@ export const toggleFavorite = async (userId: string, businessId: string) => {
 };
 
 export const createAdvertorial = async (ad: Partial<Advertorial>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   const { data, error } = await client.from('advertorials').insert({
@@ -1618,6 +1674,7 @@ export const createAdvertorial = async (ad: Partial<Advertorial>) => {
 };
 
 export const trackAdvertorialView = async (id: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   const { data } = await client.from('advertorials').select('views').eq('id', id).maybeSingle();
@@ -1649,6 +1706,7 @@ export const createWelcomeNotification = async (userId: string) => {
 };
 
 export const fetchNotifications = async (userId: string): Promise<AppNotification[]> => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1666,6 +1724,7 @@ export const fetchNotifications = async (userId: string): Promise<AppNotificatio
 };
 
 export const markNotificationAsRead = async (id: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('notifications').update({ read: true }).eq('id', id);
@@ -1674,6 +1733,7 @@ export const markNotificationAsRead = async (id: string) => {
 // --- PURPLE FLEET & DRIVER NODE PROTOCOLS ---
 
 export const fetchDriverByEmail = async (email: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return null;
   const normalizedEmail = normalizeEmail(email);
@@ -1682,6 +1742,7 @@ export const fetchDriverByEmail = async (email: string) => {
 };
 
 export const updateDriverStatus = async (email: string, status: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   const normalizedEmail = normalizeEmail(email);
@@ -1689,6 +1750,7 @@ export const updateDriverStatus = async (email: string, status: string) => {
 };
 
 export const updateDriverCompliance = async (email: string, updates: any) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   const normalizedEmail = normalizeEmail(email);
@@ -1708,6 +1770,7 @@ export const updateDriverCompliance = async (email: string, updates: any) => {
 };
 
 export const fetchAvailableVehicles = async (category: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   const { data } = await client.from('vehicles')
@@ -1718,12 +1781,14 @@ export const fetchAvailableVehicles = async (category: string) => {
 };
 
 export const updateVehicleLocation = async (vehicleId: string, lat: number, lng: number) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('vehicles').update({ current_lat: lat, current_lng: lng }).eq('id', vehicleId);
 };
 
 export const createRideBooking = async (booking: any) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
   const { data, error } = await client.from('ride_bookings').insert(booking).select().single();
@@ -1736,6 +1801,7 @@ export const createRideBooking = async (booking: any) => {
 };
 
 export const fetchRideBookingsForDriver = async (driverId: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   const { data } = await client.from('ride_bookings').select('*').eq('driver_id', driverId).order('created_at', { ascending: false });
@@ -1743,6 +1809,7 @@ export const fetchRideBookingsForDriver = async (driverId: string) => {
 };
 
 export const updateRideBookingStatus = async (id: string, status: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   await client.from('ride_bookings').update({ status }).eq('id', id);
@@ -1765,6 +1832,7 @@ export const fetchOnlineVehicles = async () => {
 export const subscribeToRideRequests = (driverId: string, callback: (payload: any) => void) => {
   const client = getSupabase();
   if (!client) return { unsubscribe: () => {} };
+  // Pre-subscribe auth check could go here if synchronous
   const channel = client.channel(`ride_requests:${driverId}`)
     .on('postgres_changes', { 
       event: 'INSERT', 
@@ -1805,6 +1873,7 @@ export const searchBusinesses = async (query: string): Promise<Business[]> => {
  * Logistics: Real-time driver signals (GPS broadcasting)
  */
 export const upsertDriverSignal = async (driverId: string, vehicleId: string, lat: number, lng: number) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return;
   
@@ -1826,6 +1895,7 @@ export const upsertDriverSignal = async (driverId: string, vehicleId: string, la
 };
 
 export const fetchLatestDriverSignals = async () => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   
@@ -1864,6 +1934,7 @@ export const subscribeToDriverSignals = (callback: (payload: any) => void) => {
  * Merchant: Order & Dispute Hardening
  */
 export const releaseOrderEscrow = async (orderId: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry offline");
   const { data, error } = await client.rpc('release_escrow', { p_order_id: orderId });
@@ -1872,6 +1943,7 @@ export const releaseOrderEscrow = async (orderId: string) => {
 };
 
 export const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry offline");
   
@@ -1910,6 +1982,7 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
 };
 
 export const fetchDisputes = async (merchantId: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return [];
   
@@ -1923,6 +1996,7 @@ export const fetchDisputes = async (merchantId: string) => {
 };
 
 export const updateDisputeEvidence = async (disputeId: string, evidence: { images: string[], videos: any[] }) => {
+  await ensureAuth();
   const sb = getSupabase();
   if (!sb) throw new Error("Registry offline");
   
@@ -1940,6 +2014,7 @@ export const updateDisputeEvidence = async (disputeId: string, evidence: { image
 };
 
 export const resolveDispute = async (disputeId: string, status: 'resolved' | 'refunded') => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry offline");
   
@@ -1955,6 +2030,7 @@ export const resolveDispute = async (disputeId: string, status: 'resolved' | 're
 };
 
 export const fetchMerchantStats = async (merchantId: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry offline");
 
@@ -1970,6 +2046,7 @@ export const fetchMerchantStats = async (merchantId: string) => {
 };
 
 export const releaseEscrow = async (orderId: string) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry offline");
   const { data, error } = await client.rpc('release_escrow', { p_order_id: orderId });
@@ -1978,6 +2055,7 @@ export const releaseEscrow = async (orderId: string) => {
 };
 
 export const createDispute = async (dispute: Partial<Dispute>) => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry offline");
   const { data, error } = await client.from('disputes').insert(dispute).select().single();
@@ -1986,6 +2064,7 @@ export const createDispute = async (dispute: Partial<Dispute>) => {
 };
 
 export const runDiagnosticReport = async () => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) return { status: 'offline', errors: ['Registry disconnected'] };
 
@@ -2015,6 +2094,7 @@ export const runDiagnosticReport = async () => {
 };
 
 export const fetchAdminStats = async () => {
+  await ensureAuth();
   const client = getSupabase();
   if (!client) throw new Error("Registry offline");
   
@@ -2039,11 +2119,11 @@ export const fetchAdminStats = async () => {
  * Then sends an email with the raw OTP.
  */
 export const createBusinessClaim = async (businessId: string, email: string): Promise<void> => {
+  const session = await ensureAuth();
   const sb = getSupabase();
   if (!sb) throw new Error("Registry offline");
 
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) throw new Error("Authentication required to claim business.");
+  const user = session.user;
 
   // 1. Generate 6-digit OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -2116,11 +2196,11 @@ export const createBusinessClaim = async (businessId: string, email: string): Pr
  * Verifies a business claim with the provided OTP.
  */
 export const verifyBusinessClaim = async (businessId: string, otp: string): Promise<boolean> => {
+  const session = await ensureAuth();
   const sb = getSupabase();
   if (!sb) throw new Error("Registry offline");
 
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) throw new Error("Authentication required.");
+  const user = session.user;
 
   // 1. Fetch claim
   const { data: claim, error: fetchError } = await sb

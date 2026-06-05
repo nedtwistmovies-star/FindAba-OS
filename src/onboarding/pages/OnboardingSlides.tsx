@@ -1,41 +1,41 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Globe, ShieldCheck, Briefcase, Zap, ArrowRight, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Globe, ShieldCheck, Users, TrendingUp, ArrowRight, ChevronLeft } from 'lucide-react';
 
 const SLIDES = [
   {
     icon: <Globe className="w-12 h-12 text-aba-gold" />,
-    title: "The Industrial Hub",
+    title: "Discover Aba",
     description: "Welcome to the central nervous system of Aba's commerce. Connect with verified artisans, manufacturers, and wholesalers in real-time.",
     bg: "bg-blue-900/20"
   },
   {
-    icon: <ShieldCheck className="w-12 h-12 text-aba-green" />,
-    title: "Verified Registry",
+    icon: <Users className="w-12 h-12 text-aba-green" />,
+    title: "Connect with Businesses",
     description: "Every participant is vetted through our physical verification protocol. Trust is the currency of FindAba.",
     bg: "bg-emerald-900/20"
   },
   {
-    icon: <Briefcase className="w-12 h-12 text-aba-gold" />,
-    title: "Isusu Fidelity",
+    icon: <ShieldCheck className="w-12 h-12 text-aba-gold" />,
+    title: "Save Collectively with Isusu",
     description: "Participate in secure, transparent rotating savings and credit circles. Built for industrial growth and resilience.",
     bg: "bg-orange-900/20"
   },
   {
-    icon: <Zap className="w-12 h-12 text-blue-400" />,
-    title: "Hyper-Logistics",
-    description: "Integrated 'Carry-Me' fleets ensure your industrial cargo moves seamlessly from the heart of Aba to the global market.",
+    icon: <TrendingUp className="w-12 h-12 text-blue-400" />,
+    title: "Power Your Growth",
+    description: "Integrated logistics and financial tools ensure your industrial output moves seamlessly from Aba to the global market.",
     bg: "bg-indigo-900/20"
   }
 ];
 
-export const OnboardingSlides: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
+export const OnboardingSlides: React.FC<{ onComplete: (mode: 'signin' | 'signup') => void }> = ({ onComplete }) => {
   const [current, setCurrent] = useState(0);
 
   const next = () => {
     if (current === SLIDES.length - 1) {
-      onComplete();
+      onComplete('signup');
     } else {
       setCurrent(current + 1);
     }
@@ -103,13 +103,30 @@ export const OnboardingSlides: React.FC<{ onComplete: () => void }> = ({ onCompl
           <ChevronLeft size={24} />
         </button>
 
-        <button 
-          onClick={next}
-          className="group flex items-center gap-4 bg-white text-aba-deep px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-aba-gold transition-all active:scale-95"
-        >
-          {current === SLIDES.length - 1 ? 'Get Started' : 'Next Protocol'}
-          <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
-        </button>
+        {current === SLIDES.length - 1 ? (
+          <div className="flex gap-4 w-full ml-4">
+             <button 
+               onClick={() => onComplete('signup')}
+               className="flex-1 bg-white text-aba-deep py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest hover:bg-aba-gold transition-all active:scale-95"
+             >
+               CREATE ACCOUNT
+             </button>
+             <button 
+               onClick={() => onComplete('signin')}
+               className="flex-1 bg-white/5 border border-white/10 text-white py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all active:scale-95"
+             >
+               LOGIN
+             </button>
+          </div>
+        ) : (
+          <button 
+            onClick={next}
+            className="group flex items-center gap-4 bg-white text-aba-deep px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-aba-gold transition-all active:scale-95"
+          >
+            Next Protocol
+            <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+          </button>
+        )}
       </div>
     </div>
   );

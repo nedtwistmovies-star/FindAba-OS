@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { ViewState, DriverPartner, ComplianceLevel } from '../../types';
 import { useToast } from '../../providers/ToastProvider';
+import { useAuth } from '../../providers/AuthProvider';
 import MapView from '../../components/MapView';
 import { fetchDriverByEmail, updateDriverStatus, subscribeToRideRequests, updateRideBookingStatus, getSupabase, upsertDriverSignal } from '../../services/supabaseService';
 import { getCurrentPosition, geocodeAddress, generateRoutePath } from '../../services/locationService';
@@ -16,12 +17,10 @@ import { generateWaybillPDF } from '../../utils/pdfGenerator';
 
 const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
   const { addToast } = useToast();
+  const { userIdentifier, isAuth, authLoading } = useAuth();
   const [driver, setDriver] = useState<any>(null);
   const [online, setOnline] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [rideRequest, setRideRequest] = useState<any>(null);
   const [currentRide, setCurrentRide] = useState<any>(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -34,14 +33,19 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   const [showBankForm, setShowBankForm] = useState(false);
   const [bankDetails, setBankDetails] = useState({ bank_name: '', account_number: '', account_name: '' });
   const [incidentType, setIncidentType] = useState('Mechanical Failure');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const moveIntervalRef = useRef<number | null>(null);
-
-  const userEmail = localStorage.getItem('findaba_user_email') || '';
 
   useEffect(() => {
     const init = async () => {
+      if (!isAuth || !userIdentifier) {
+        setLoading(false);
+        return;
+      }
       try {
-        const d = await fetchDriverByEmail(userEmail);
+        const d = await fetchDriverByEmail(userIdentifier);
         if (d) {
           setDriver(d);
           setOnline(d.status === 'online');
@@ -55,7 +59,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
       }
     };
     init();
-  }, [userEmail]);
+  }, [isAuth, userIdentifier]);
 
   useEffect(() => {
     if (driver && online) {
@@ -97,10 +101,11 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   };
 
   const handleToggleOnline = async () => {
+    if (!userIdentifier) return;
     setLoading(true);
     const next = !online;
     try {
-      await updateDriverStatus(userEmail, next ? 'online' : 'offline');
+      await updateDriverStatus(userIdentifier, next ? 'online' : 'offline');
       setOnline(next);
       if (!next) {
         setRideRequest(null);
@@ -240,6 +245,27 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     return () => { if (moveIntervalRef.current) clearInterval(moveIntervalRef.current); };
   }, []);
 
+  if (authLoading) return (
+    <div className="flex-1 bg-[#0f001a] flex items-center justify-center h-screen">
+      <Loader2 className="text-aba-gold animate-spin" size={48} />
+    </div>
+  );
+
+  if (!isAuth) {
+    return (
+      <div className="flex-1 flex flex-col bg-[#0f001a] items-center justify-center p-8 text-center space-y-8 h-screen">
+        <div className="w-20 h-20 bg-red-500/10 rounded-[2rem] flex items-center justify-center border border-red-500/20">
+          <Shield size={40} className="text-red-500" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black uppercase tracking-tight">Identity Signal Lost</h2>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Authentication Required to Access Command Node</p>
+        </div>
+        <button onClick={() => setView('home')} className="px-10 py-5 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest">Return to Home</button>
+      </div>
+    );
+  }
+
   if (!driver && !loading) {
     return (
       <div className="flex-1 flex flex-col bg-[#0f001a] items-center justify-center p-8 text-center space-y-8 h-screen">
@@ -247,38 +273,12 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
           <Shield size={40} className="text-aba-gold" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black uppercase tracking-tight">Driver Command</h2>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Secure Partner Authentication Required</p>
+          <h2 className="text-2xl font-black uppercase tracking-tight">Partner Verification</h2>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-relaxed">
+            Identity signal {userIdentifier} is not authorized for driver protocols.
+          </p>
         </div>
-        
-        <div className="w-full max-w-sm space-y-4">
-          <input 
-            type="email" 
-            placeholder="Registered Email" 
-            className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold outline-none focus:border-aba-gold transition-all"
-            value={authEmail}
-            onChange={e => setAuthEmail(e.target.value)}
-          />
-          <input 
-            type="password" 
-            placeholder="Secure Key" 
-            className="w-full p-5 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold outline-none focus:border-aba-gold transition-all"
-            value={authPassword}
-            onChange={e => setAuthPassword(e.target.value)}
-          />
-          <button 
-            onClick={handleLogin}
-            disabled={isLoggingIn}
-            className="w-full py-5 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-[10px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
-          >
-            {isLoggingIn ? <Loader2 size={16} className="animate-spin" /> : <Power size={16} />}
-            Initialize Handshake
-          </button>
-        </div>
-
-        <button onClick={() => setView('home')} className="text-[9px] font-black uppercase text-white/20 tracking-widest hover:text-white transition-colors">
-          Return to Civilian View
-        </button>
+        <button onClick={() => setView('home')} className="px-10 py-5 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-[10px] tracking-widest">Abort Signal</button>
       </div>
     );
   }
@@ -586,7 +586,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                   try {
                     const client = getSupabase();
                     if (client) {
-                      await client.from('drivers').update(bankDetails).eq('email', userEmail);
+                      await client.from('drivers').update(bankDetails).eq('email', userIdentifier);
                       setDriver({...driver, ...bankDetails});
                       addToast("Settlement Gateway Bound Successfully.", "success");
                       setShowBankForm(false);

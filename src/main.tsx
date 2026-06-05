@@ -1,5 +1,9 @@
 
 import React from 'react';
+
+console.log("%cFindAba OS Build: v110.0-PROD", "color: #FFD700; font-weight: bold; font-size: 14px;");
+console.log(`[BOOT] Environment: ${import.meta.env.MODE}`);
+console.log(`[BOOT] Timestamp: ${new Date().toISOString()}`);
 import { createRoot } from 'react-dom/client';
 import App from './core/App';
 import './index.css';

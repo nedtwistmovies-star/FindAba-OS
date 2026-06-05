@@ -21,10 +21,10 @@ export async function loginWithPhone(phone: string, code: string) {
 
   if (!data.success) throw new Error("OTP failed");
 
-  localStorage.setItem("user", JSON.stringify(data.profile));
   return data.profile;
 }
 
 export function logout() {
+  // Local storage cleanup (legacy)
   localStorage.removeItem("user");
 }

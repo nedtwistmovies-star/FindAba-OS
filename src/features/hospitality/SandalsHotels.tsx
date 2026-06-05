@@ -29,7 +29,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   const [showRegForm, setShowRegForm] = useState(false);
   
   const [regData, setRegData] = useState({
-    guest_name: userName || localStorage.getItem('findaba_user_name') || '',
+    guest_name: userName || '',
     guest_address: '',
     guest_phone: '',
     guest_company: '',
@@ -39,7 +39,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     special_requests: ''
   });
 
-  const userEmail = localStorage.getItem('findaba_user_email') || '';
+  const userEmail = userIdentifier || '';
   const userId = userIdentifier;
   const isRegistryConnected = !!getSupabase();
 
@@ -60,12 +60,7 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
       const hotelData = await fetchPartnerHotels();
       setHotels(hotelData || []);
       
-      let bookingData = await fetchUserBookings(userId || userEmail);
-      const local = localStorage.getItem(`findaba_bookings_${userEmail}`);
-      if (local) {
-        const localParsed = JSON.parse(local);
-        bookingData = [...(bookingData || []), ...localParsed].filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-      }
+      let bookingData = await fetchUserBookings(userId || '');
       setUserBookings(bookingData || []);
     } catch (e) {
       console.warn("Hospitality Signal Interference...");
@@ -160,8 +155,6 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
       if (isRegistryConnected) {
         await finalizeSRBooking(newBooking);
       }
-      const existing = JSON.parse(localStorage.getItem(`findaba_bookings_${userEmail}`) || '[]');
-      localStorage.setItem(`findaba_bookings_${userEmail}`, JSON.stringify([newBooking, ...existing]));
       addToast("Executive Protocol Locked: Stay Documented and Confirmed.", "success");
       setShowCheckout(false);
       setSelectedHotel(null);

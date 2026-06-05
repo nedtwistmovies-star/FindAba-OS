@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
 import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast } from '../components';
 import { SplashScreen } from '../components/SplashScreen';
+import AuthLoadingScreen from '../components/AuthLoadingScreen';
+import ProtectedRoute from './ProtectedRoute';
+import { AuthErrorBoundary } from './AuthErrorBoundary';
 import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } from '../providers';
 import { ROUTE_MAP } from './router';
 import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
@@ -11,7 +14,8 @@ import { syncGeminiConfig } from '../services/geminiService';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
-  const { isAuth, userRole, userIdentifier, user_id, profile, handleAuthSuccess = () => {} } = useAuth();
+  // 1. All Context/Hooks First
+  const { isAuth, userRole, userIdentifier, user_id, profile, authLoading, currentStep, handleAuthSuccess = () => {} } = useAuth();
   const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
   const { 
     businesses = [], 
@@ -26,12 +30,45 @@ const AppContent: React.FC = () => {
     setSelectedStory
   } = useBusiness();
   const { toasts = [], removeToast = () => {} } = useToast();
-  const { isOracleOpen = false, setIsOracleOpen = () => {}, view = 'home', setView = () => {} } = useOracle();
+  const { isOracleOpen, setIsOracleOpen, view, setView } = useOracle();
 
-  // 🔹 AUTH-FIRST BOOT STATE
-  const [showSplash, setShowSplash] = useState(true);
+  // 2. State Declarations
   const [isBooted, setIsBooted] = useState(false);
-  const [isOnboarding, setIsOnboarding] = useState(false);
+
+  const handleBootComplete = React.useCallback(() => {
+    console.log("[AppContent] 🚀 handleBootComplete triggered");
+    setIsBooted(true);
+  }, []);
+
+  // 3. Effects (MUST be after all used variables are declared)
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log("[AppContent] 🧩 STATUS_HEARTBEAT:", {
+        authLoading,
+        isBooted,
+        view,
+        isAuth,
+        hasProfile: !!profile,
+        currentStep
+      });
+      
+      // EMERGENCY GATE RELEASE: If auth finalized and we are stuck on splash
+      if (!authLoading && (view as string) === 'splash') {
+        console.warn("[AppContent] 🚨 AUTO_RELEASE: Stuck on splash detected. Navigating...");
+        const targetView = !isAuth ? 'onboarding' : (profile?.onboarding_stage !== 'completed' ? 'onboarding' : 'home');
+        
+        console.log(`[AppContent] 🧭 Navigating to: ${targetView}`);
+        window.dispatchEvent(new CustomEvent('NAVIGATE_EVENT', { detail: targetView }));
+        setView(targetView);
+        
+        // Hard release isBooted if it's blocking
+        if (!isBooted) setIsBooted(true);
+      }
+    }, 2000);
+    return () => clearInterval(intervalId);
+  }, [authLoading, isBooted, view, isAuth, profile, currentStep, setView]);
+
+  console.log("[AppContent] RENDER", { authLoading, isBooted, view, currentStep });
 
   const handleBusinessClick = (b: any) => {
     setSelectedBusiness(b);
@@ -48,64 +85,85 @@ const AppContent: React.FC = () => {
   }, [view]);
 
   // 🔹 STRICT NAVIGATION PROTOCOL
-  const RESTRICTED_VIEWS: ViewState[] = [
-    'home', 'feed', 'oracle', 'merchant-portal', 'profile', 'srts-dashboard', 
-    'wallet', 'buyer-portal', 'messages', 'explore', 'discover'
+  const PROTECTED_VIEWS: ViewState[] = [
+    'home', 'faces', 'oracle', 'fidelity', 'profile', 'merchant-portal', 
+    'thrift-dashboard', 'industrial-directory', 'detail', 'explore', 'messages'
   ];
 
   const PUBLIC_VIEWS: ViewState[] = [
-    'about', 'about-aba', 'legal', 'support', 'pricing', 'hotel-detail', 
-    'sandals-hotels', 'audio-heritage', 'lab', 'terminal-pay', 'login', 'signup', 'onboarding'
+    'splash', 'onboarding', 'login', 'signup', 'legal', 'support', 'about', 'about-aba'
   ];
 
   // Route Guard Logic
   useEffect(() => {
-    if (!isBooted) return;
+    if (authLoading || !isBooted || (view as string) === 'splash') return;
 
-    const isOnboardingComplete = profile?.onboarding_stage === 'completed' || localStorage.getItem('findaba_onboarded') === 'true';
+    const isOnboardingComplete = profile?.onboarding_stage === 'completed' && profile?.full_name && profile?.username;
 
     if (!isAuth) {
-      if (!PUBLIC_VIEWS.includes(view as ViewState)) {
-        if (!isOnboardingComplete) {
-          setView('onboarding');
-        } else {
-          setView('login');
-        }
+      if (PROTECTED_VIEWS.includes(view as ViewState) || !PUBLIC_VIEWS.includes(view as ViewState)) {
+        setView('onboarding');
       }
-    } else if (!isOnboardingComplete && view !== 'onboarding') {
+    } else if (!isOnboardingComplete && view !== 'onboarding' && !PUBLIC_VIEWS.includes(view as ViewState)) {
       setView('onboarding');
     }
-  }, [isAuth, view, isBooted, profile]);
+  }, [isAuth, view, isBooted, profile, authLoading]);
 
   useEffect(() => {
     const initApp = async () => {
       try {
         await syncGeminiConfig();
-        await checkDatabaseHealth();
-        setIsBooted(true);
+        // Background probe - don't block boot
+        checkDatabaseHealth().then(res => {
+          console.log("[AppContent] Database health probe result:", res);
+        });
       } catch (e) {
         console.error("Industrial sync fault:", e);
-        setIsBooted(true);
       }
     };
     initApp();
   }, []);
 
   const handleBack = () => {
-    if (view === 'detail') setView('explore');
-    else if (view === 'editorial-detail') setView('editorial');
-    else if (view === 'explore') setView('home');
-    else if (view === 'discover') setView('home');
+    if (view === 'detail') setView('industrial-directory');
+    else if (view === 'industrial-directory') setView('home');
     else setView('home');
   };
 
-  if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  // 🔹 MANDATORY REDIRECT AFTER BOOT
+  useEffect(() => {
+    if (isBooted && (view as string) === 'splash') {
+      if (!isAuth) {
+        setView('onboarding');
+      } else if (profile?.onboarding_stage !== 'completed') {
+        setView('onboarding');
+      } else {
+        setView('home');
+      }
+    }
+  }, [isBooted, isAuth, profile, view, setView]);
+
+  if (authLoading) {
+    return <AuthLoadingScreen />;
   }
+
+  if (!isBooted || (view as string) === 'splash') {
+    return <SplashScreen onComplete={handleBootComplete} />;
+  }
+
+  const handleOnboardingComplete = () => {
+    console.log("[AppContent] handleOnboardingComplete triggered");
+    refreshData();
+    setView('home');
+  };
 
   const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || ROUTE_MAP['home'];
 
+  const isProtectedRoute = !PUBLIC_VIEWS.includes(view);
+
   const myBusiness = (businesses?.find ? businesses.find(b => b.user_id === user_id) : null) || null;
+
+  const extraProps = view === 'onboarding' ? { onComplete: handleOnboardingComplete } : {};
 
   return (
     <motion.div 
@@ -121,27 +179,55 @@ const AppContent: React.FC = () => {
         socialLinks={socialLinks}
       >
         <Suspense fallback={<LoadingScreen />}>
-          <RouteComponent 
-            setView={setView} 
-            onBack={handleBack}
-            businesses={businesses} 
-            heroImages={heroImages} 
-            heroVideos={heroVideos} 
-            business={selectedBusiness}
-            story={selectedStory}
-            advertorial={selectedAdvertorial}
-            myBusiness={myBusiness}
-            favorites={favorites}
-            onToggleFavorite={toggleFavorite}
-            onBusinessClick={handleBusinessClick}
-            onStoryClick={handleStoryClick}
-            onRegister={refreshData}
-            onRefresh={refreshData}
-            onAuthSuccess={handleAuthSuccess}
-            userEmail={userIdentifier}
-            userRole={userRole}
-            isRegistryLoading={businessLoading}
-          />
+          {isProtectedRoute ? (
+            <ProtectedRoute>
+              <RouteComponent 
+                setView={setView} 
+                onBack={handleBack}
+                {...extraProps}
+                businesses={businesses} 
+                heroImages={heroImages} 
+                heroVideos={heroVideos} 
+                business={selectedBusiness}
+                story={selectedStory}
+                advertorial={selectedAdvertorial}
+                myBusiness={myBusiness}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+                onBusinessClick={handleBusinessClick}
+                onStoryClick={handleStoryClick}
+                onRegister={refreshData}
+                onRefresh={refreshData}
+                onAuthSuccess={handleAuthSuccess}
+                userEmail={userIdentifier}
+                userRole={userRole}
+                isRegistryLoading={businessLoading}
+              />
+            </ProtectedRoute>
+          ) : (
+            <RouteComponent 
+              setView={setView} 
+              onBack={handleBack}
+              {...extraProps}
+              businesses={businesses} 
+              heroImages={heroImages} 
+              heroVideos={heroVideos} 
+              business={selectedBusiness}
+              story={selectedStory}
+              advertorial={selectedAdvertorial}
+              myBusiness={myBusiness}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              onBusinessClick={handleBusinessClick}
+              onStoryClick={handleStoryClick}
+              onRegister={refreshData}
+              onRefresh={refreshData}
+              onAuthSuccess={handleAuthSuccess}
+              userEmail={userIdentifier}
+              userRole={userRole}
+              isRegistryLoading={businessLoading}
+            />
+          )}
         </Suspense>
 
         <FeedbackToast toasts={toasts} onRemove={removeToast} />
@@ -167,7 +253,9 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <AppProviders>
-        <AppContent />
+        <AuthErrorBoundary>
+          <AppContent />
+        </AuthErrorBoundary>
       </AppProviders>
     </ErrorBoundary>
   );

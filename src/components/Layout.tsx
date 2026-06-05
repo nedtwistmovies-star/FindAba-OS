@@ -215,23 +215,19 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   }, [currentView]);
 
   const menuItems = [
-    { label: 'City Faces', icon: <Users size={20} />, view: 'feed' as ViewState },
-    { label: 'Fidelity Wallet', icon: <Landmark size={20} />, view: 'wallet' as ViewState },
+    { label: 'City Faces', icon: <Users size={20} />, view: 'faces' as ViewState },
+    { label: 'Fidelity Wallet', icon: <Landmark size={20} />, view: 'fidelity' as ViewState },
     { label: 'Purple Fleet', icon: <Car size={20} />, view: 'purple-fleet' as ViewState },
-    { label: 'SANDALSroyalle Hotels & Suites', icon: <Building2 size={20} />, view: 'sandals-hotels' as ViewState },
+    { label: 'SANDALSroyalle Hotels & Suites', icon: <Building2 size={20} />, view: 'fidelity' as ViewState },
     { label: 'Carry-Go Cargo', icon: <Truck size={20} />, view: 'cargo' as ViewState },
-    { label: 'Thrift Savings', icon: <Wallet size={20} />, view: 'srts-dashboard' as ViewState },
+    { label: 'Thrift Savings', icon: <Wallet size={20} />, view: 'thrift-dashboard' as ViewState },
     { label: 'Audio Archive', icon: <Radio size={20} />, view: 'audio-heritage' as ViewState },
     { label: 'Creative Lab', icon: <Sparkles size={20} />, view: 'lab' as ViewState },
     { label: 'Hardware Audit', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
     { label: 'Aba History', icon: <BookOpen size={20} />, view: 'about-aba' as ViewState },
-    { label: 'City Registry', icon: <Layers size={20} />, view: 'explore' as ViewState },
+    { label: 'City Registry', icon: <Layers size={20} />, view: 'industrial-directory' as ViewState },
     { label: 'Oracle Hub', icon: <Cpu size={20} />, view: 'oracle' as ViewState },
-    { label: 'System Console', icon: <ShieldCheck size={20} />, view: 'admin' as ViewState },
-    { label: 'System Support', icon: <LifeBuoy size={20} />, view: 'support' as ViewState },
-    { label: 'Discover', icon: <Sparkles size={20} />, view: 'discover' as ViewState },
-    { label: 'Stories', icon: <BookOpen size={20} />, view: 'editorial' as ViewState },
-    { label: 'Executive HQ', icon: <ShieldCheck size={20} />, view: 'srts-office' as ViewState },
+    { id: 'home', label: 'Home Node', icon: <Home size={20} />, view: 'home' as ViewState },
   ];
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -239,9 +235,28 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const userDarkMode = safeProfile?.dark_mode;
   const isDarkThemeActive = userDarkMode !== undefined ? userDarkMode : ['discover', 'home', 'editorial', 'editorial-detail', 'oracle', 'admin', 'srts-dashboard', 'sandals-hotels', 'lab', 'about', 'feed', 'login', 'purple-fleet', 'driver-console', 'fleet-admin', 'wallet'].includes(currentView);
 
+  const PUBLIC_VIEWS: ViewState[] = [
+    'splash', 'onboarding', 'login', 'signup', 'legal', 'support', 'about', 'about-aba'
+  ];
+
+  if (PUBLIC_VIEWS.includes(currentView)) {
+    return (
+      <div className={`min-h-screen transition-colors duration-500 overflow-x-hidden ${isDarkThemeActive ? 'bg-aba-deep text-white' : 'bg-aba-white text-aba-deep'}`}>
+        {children}
+      </div>
+    );
+  }
+
   const SidebarItem = ({ item }: { item: typeof menuItems[0] }) => (
     <button 
-      onClick={() => setView(item.view)}
+      onClick={() => {
+        if (!isAuth && item.view !== 'about' && item.view !== 'support') {
+          addToast("Authentication required to access this node.", "info");
+          setView('login');
+          return;
+        }
+        setView(item.view);
+      }}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-standard group ${
         currentView === item.view 
           ? 'bg-aba-green text-white shadow-sm' 
@@ -392,7 +407,14 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             
             <div className="lg:hidden flex items-center gap-1">
               <button 
-                onClick={() => setView('explore')}
+                onClick={() => {
+                  if (!isAuth) {
+                    addToast("Search requires established link.", "info");
+                    setView('login');
+                    return;
+                  }
+                  setView('industrial-directory');
+                }}
                 className="p-2.5 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-xl border border-transparent active:border-white/10"
               >
                 <Search size={22} strokeWidth={2.5} />
@@ -510,9 +532,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                 <h4 className="text-aba-green text-sm font-bold uppercase tracking-widest">Ecosystem</h4>
                 <div className="space-y-3">
                   <button onClick={() => setView('purple-fleet')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Purple Fleet</button>
-                  <button onClick={() => setView('sandals-hotels')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Sandals Hotels</button>
+                  <button onClick={() => setView('fidelity')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Sandals Hotels</button>
                   <button onClick={() => setView('cargo')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Carry-Go Cargo</button>
-                  <button onClick={() => setView('srts-dashboard')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Fidelity Thrift</button>
+                  <button onClick={() => setView('thrift-dashboard')} className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest">Fidelity Thrift</button>
                 </div>
               </div>
 
@@ -604,14 +626,21 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
       <nav className={`fixed bottom-0 left-0 right-0 z-[1000] backdrop-blur-3xl border-t px-2 md:px-8 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:py-6 flex justify-around items-center transition-standard lg:hidden ${isDarkThemeActive ? 'bg-aba-deep/90 border-white/5 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]' : 'bg-aba-white/90 border-aba-green/5 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]'}`}>
         {[
           { id: 'home', icon: <Home size={18} />, label: 'HOME' },
-          { id: 'feed', icon: <Users size={18} />, label: 'FACES' },
+          { id: 'faces', icon: <Users size={18} />, label: 'FACES' },
           { id: 'oracle', icon: <Cpu size={18} />, label: 'ORACLE' },
-          { id: 'wallet', icon: <Landmark size={18} />, label: 'Fidelity' },
+          { id: 'fidelity', icon: <Landmark size={18} />, label: 'Fidelity' },
           { id: 'profile', icon: <UserCircle size={18} />, label: 'PROFILE' }
         ].map((btn, i) => (
           <button 
             key={i}
-            onClick={() => setView(btn.id as ViewState)} 
+            onClick={() => {
+              if (!isAuth) {
+                addToast("Authentication required.", "info");
+                setView('login');
+                return;
+              }
+              setView(btn.id as ViewState);
+            }} 
             className={`flex flex-col items-center gap-1 transition-all active:scale-90 group pb-1 ${currentView === btn.id ? 'text-aba-gold' : (isDarkThemeActive ? 'text-white/30 hover:text-white/50' : 'text-aba-deep/30 hover:text-aba-deep/50')}`}
           >
             <div className={`transition-transform duration-500 ${currentView === btn.id ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'group-hover:scale-105'}`}>{btn.icon}</div>

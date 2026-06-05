@@ -123,7 +123,7 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
                 } else if (cat.title === "Success Stories") {
                   setView('editorial');
                 } else if (cat.title === "Events") {
-                  setView('feed');
+                  setView('faces');
                 }
               }}
               className="group cursor-pointer relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/5 shadow-sm transition-standard hover:-translate-y-2 hover:border-aba-gold/30"

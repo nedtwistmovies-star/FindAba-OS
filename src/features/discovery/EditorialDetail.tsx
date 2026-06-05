@@ -154,7 +154,7 @@ const EditorialDetail: React.FC<EditorialDetailProps> = ({ story, onBack, setVie
                      variant="primary"
                      size="lg"
                      icon={ChevronRight}
-                     onClick={() => setView('feed')}
+                     onClick={() => setView('faces')}
                      className="bg-white text-aba-deep hover:bg-aba-gold"
                   >
                      Open Faces Feed

@@ -21,18 +21,23 @@ export const OnboardingRouter: React.FC<{ onComplete: () => void; setView?: (v: 
 
   // Handle existing auth state
   useEffect(() => {
-    if (isAuth) {
-      if (profile?.onboarding_stage === 'completed') {
+    if (isAuth && profile) {
+      const stage = profile.onboarding_stage;
+      
+      if (stage === 'completed') {
         setStep('success');
-      } else if (!profile?.username) {
+      } else if (stage === 'identity_unverified') {
+        setStep('otp');
+      } else if (stage === 'profile_setup' || !profile.username) {
         setStep('profile');
-      } else if (profile?.onboarding_stage === 'merchant_setup') {
+      } else if (stage === 'merchant_setup') {
         setStep('merchant');
       }
     }
   }, [isAuth, profile]);
 
-  const handleSlidesComplete = () => {
+  const handleSlidesComplete = (mode: 'signin' | 'signup') => {
+    setAuthIntent(mode);
     setStep('auth');
   };
 
@@ -44,7 +49,7 @@ export const OnboardingRouter: React.FC<{ onComplete: () => void; setView?: (v: 
       setStep('otp');
     } else {
       // For signin, if profile incomplete go to profile, else success
-      if (!profile?.username) {
+      if (!profile?.username || profile?.onboarding_stage !== 'completed') {
         setStep('profile');
       } else {
         setStep('success');
@@ -58,6 +63,16 @@ export const OnboardingRouter: React.FC<{ onComplete: () => void; setView?: (v: 
 
   const handleProfileComplete = () => {
     setStep('success');
+  };
+
+  const handleFinalComplete = () => {
+    console.log("[OnboardingRouter] Final transition triggered.");
+    if (onComplete) onComplete();
+    if (setView) {
+      const target = !isAuth ? 'onboarding' : (profile?.onboarding_stage !== 'completed' ? 'onboarding' : 'home');
+      console.log(`[OnboardingRouter] setView to ${target}`);
+      setView(target);
+    }
   };
 
   return (
@@ -87,7 +102,7 @@ export const OnboardingRouter: React.FC<{ onComplete: () => void; setView?: (v: 
         <MerchantSetup onSuccess={() => setStep('success')} />
       )}
       {step === 'success' && (
-        <SuccessTransition onComplete={onComplete} />
+        <SuccessTransition onComplete={handleFinalComplete} />
       )}
     </OnboardingLayout>
   );

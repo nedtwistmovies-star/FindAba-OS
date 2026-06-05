@@ -1,10 +1,9 @@
 
-const CACHE_NAME = 'findaba-trinity-v18.2';
+const CACHE_NAME = 'findaba-trinity-v110.0';
 const ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (e) => {
@@ -25,7 +24,8 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  // NETWORK FIRST FOR BOOT ASSETS
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });

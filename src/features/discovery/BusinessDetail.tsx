@@ -171,7 +171,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                        variant="primary"
                        size="lg"
                        icon={MessageCircle}
-                       onClick={() => setView('feed')}
+                       onClick={() => setView('faces')}
                        className="shadow-xl w-full sm:w-auto"
                     >
                        Contact Partner

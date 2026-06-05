@@ -372,6 +372,33 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                           </div>
                         </div>
                      </div>
+
+                     {/* Password Strength Indicator */}
+                     {password && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-3 px-4 py-2"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Protocol Strength</span>
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${strengthTextColors[strength]}`}>
+                              {strengthLabels[strength]}
+                            </span>
+                          </div>
+                          <div className="flex gap-1.5 h-1">
+                            {[0, 1, 2, 3, 4].map((i) => (
+                              <div 
+                                key={i}
+                                className={`flex-1 rounded-full transition-all duration-500 ${i <= strength ? strengthColors[strength] : 'bg-white/5'}`}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-[8px] font-bold text-white/20 uppercase tracking-[0.2em] leading-relaxed italic text-center">
+                            Use 10+ characters with symbols and mixed casing for maximum fidelity.
+                          </p>
+                        </motion.div>
+                      )}
                    </div>
                    
                    <button 
