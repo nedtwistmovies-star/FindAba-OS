@@ -1,8 +1,9 @@
 
-import React, { Suspense, useEffect } from 'react';
-import { motion } from 'motion/react';
+import React, { Suspense, useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
 import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast } from '../components';
+import { SplashScreen } from '../components/SplashScreen';
 import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } from '../providers';
 import { ROUTE_MAP } from './router';
 import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
@@ -27,9 +28,10 @@ const AppContent: React.FC = () => {
   const { toasts = [], removeToast = () => {} } = useToast();
   const { isOracleOpen = false, setIsOracleOpen = () => {}, view = 'home', setView = () => {} } = useOracle();
 
-  // 🔹 BOOT STATE: Shows splash while initializing
-  const [isBooted, setIsBooted] = React.useState(false);
-  const [forceOnboarding, setForceOnboarding] = React.useState(localStorage.getItem('findaba_onboarded') !== 'true');
+  // 🔹 AUTH-FIRST BOOT STATE
+  const [showSplash, setShowSplash] = useState(true);
+  const [isBooted, setIsBooted] = useState(false);
+  const [isOnboarding, setIsOnboarding] = useState(false);
 
   const handleBusinessClick = (b: any) => {
     setSelectedBusiness(b);
@@ -41,122 +43,76 @@ const AppContent: React.FC = () => {
     setView('editorial-detail');
   };
 
-  const loading = businessLoading;
-
   useEffect(() => {
-    // Force scroll to top on view change
     window.scrollTo(0, 0);
-    document.documentElement.scrollTo(0, 0);
-    document.body.scrollTo(0, 0);
   }, [view]);
 
-  const myBusiness = (businesses?.find ? businesses.find(b => 
-    b.user_id === user_id ||
-    b.email === userIdentifier || 
-    b.phone === userIdentifier || 
-    b.phone_whatsapp === userIdentifier ||
-    (b.phone_whatsapp && userIdentifier && (b.phone_whatsapp.includes(userIdentifier) || userIdentifier.includes(b.phone_whatsapp)))
-  ) : null) || null;
-  const GUEST_ALLOWED_VIEWS: ViewState[] = [
-    'home', 'discover', 'explore', 'detail', 'editorial', 'editorial-detail', 
-    'about', 'about-aba', 'legal', 'support', 'pricing', 'hotel-detail', 
-    'sandals-hotels', 'audio-heritage', 'lab', 'terminal-pay'
+  // 🔹 STRICT NAVIGATION PROTOCOL
+  const RESTRICTED_VIEWS: ViewState[] = [
+    'home', 'feed', 'oracle', 'merchant-portal', 'profile', 'srts-dashboard', 
+    'wallet', 'buyer-portal', 'messages', 'explore', 'discover'
   ];
 
-  const RouteComponent = (!isAuth && !GUEST_ALLOWED_VIEWS.includes(view as ViewState) && view !== 'signup' && view !== 'login' && view !== 'onboarding') 
-    ? (ROUTE_MAP['login'] || ROUTE_MAP['home'])
-    : ((ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || (ROUTE_MAP && ROUTE_MAP['home']));
+  const PUBLIC_VIEWS: ViewState[] = [
+    'about', 'about-aba', 'legal', 'support', 'pricing', 'hotel-detail', 
+    'sandals-hotels', 'audio-heritage', 'lab', 'terminal-pay', 'login', 'signup', 'onboarding'
+  ];
 
-  const [signalHealth, setSignalHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'unknown'; message?: string } | null>(null);
-  const [geminiHealth, setGeminiHealth] = React.useState<{ status: 'healthy' | 'unhealthy' | 'warning'; message: string } | null>(null);
+  // Route Guard Logic
+  useEffect(() => {
+    if (!isBooted) return;
 
-  React.useEffect(() => {
+    const isOnboardingComplete = profile?.onboarding_stage === 'completed' || localStorage.getItem('findaba_onboarded') === 'true';
+
+    if (!isAuth) {
+      if (!PUBLIC_VIEWS.includes(view as ViewState)) {
+        if (!isOnboardingComplete) {
+          setView('onboarding');
+        } else {
+          setView('login');
+        }
+      }
+    } else if (!isOnboardingComplete && view !== 'onboarding') {
+      setView('onboarding');
+    }
+  }, [isAuth, view, isBooted, profile]);
+
+  useEffect(() => {
     const initApp = async () => {
       try {
-        const gHealth = await syncGeminiConfig();
-        setGeminiHealth(gHealth);
-        
-        const health = await checkDatabaseHealth();
-        setSignalHealth(health as any);
+        await syncGeminiConfig();
+        await checkDatabaseHealth();
+        setIsBooted(true);
       } catch (e) {
-        console.error("App initialization error:", e);
-        setSignalHealth({ status: 'unhealthy', message: 'Industrial Signal Lost' });
+        console.error("Industrial sync fault:", e);
+        setIsBooted(true);
       }
     };
-    
     initApp();
-    const interval = setInterval(initApp, 60000);
-    return () => clearInterval(interval);
   }, []);
 
   const handleBack = () => {
     if (view === 'detail') setView('explore');
     else if (view === 'editorial-detail') setView('editorial');
-    else if (view === 'editorial') setView('discover');
-    else if (view === 'about-aba') setView('discover');
-    else if (view === 'feed') setView('discover');
     else if (view === 'explore') setView('home');
     else if (view === 'discover') setView('home');
-    else if (view === 'merchant-portal') setView('home');
-    else if (view === 'register') setView('home');
-    else if (view === 'pricing') setView('merchant-portal');
-    else if (view === 'ad-checkout') setView('pricing');
-    else if (view === 'business-verification') setView('discover');
-    else if (view === 'terminal-pay') setView('home');
     else setView('home');
   };
 
-  const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
-
-  // 🔹 PRODUCTION-GRADE ONBOARDING LOGIC
-  const isOnboardingComplete = profile?.onboarding_stage === 'completed' || localStorage.getItem('findaba_onboarded') === 'true';
-  const shouldShowOnboarding = !isOnboardingComplete;
-
-  if (shouldShowOnboarding && view !== 'home' && !GUEST_ALLOWED_VIEWS.includes(view as ViewState)) {
-    const Onboarding = ROUTE_MAP.onboarding;
-    return (
-      <Suspense fallback={null}>
-        <Onboarding 
-          onComplete={() => { 
-            localStorage.setItem('findaba_onboarded', 'true');
-            setView('home'); 
-          }} 
-          setView={setView} 
-        />
-      </Suspense>
-    );
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
+
+  const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || ROUTE_MAP['home'];
+
+  const myBusiness = (businesses?.find ? businesses.find(b => b.user_id === user_id) : null) || null;
 
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="relative min-h-screen overflow-x-hidden"
+      className="relative min-h-screen overflow-x-hidden bg-[#0b100e]"
     >
-      {/* 🔹 SUBTLE AMBIENT BACKGROUND ANIMATION */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-            x: [0, 100, 0],
-            y: [0, 50, 0]
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-aba-gold/5 blur-[120px] rounded-full"
-        />
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.1, 1],
-            rotate: [0, -45, 0],
-            x: [0, -50, 0],
-            y: [0, 100, 0]
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-aba-green/5 blur-[100px] rounded-full"
-        />
-      </div>
-
       <Layout 
         currentView={view} 
         setView={setView} 
@@ -164,49 +120,46 @@ const AppContent: React.FC = () => {
         oracleAvatar={oracleAvatar} 
         socialLinks={socialLinks}
       >
-      {/* Non-blocking loading indicator removed for faster launch */}
-      
-      <Suspense fallback={null}>
-        <RouteComponent 
-          setView={setView} 
-          onBack={handleBack}
-          businesses={businesses} 
-          heroImages={heroImages} 
-          heroVideos={heroVideos} 
-          business={selectedBusiness}
-          story={selectedStory}
-          advertorial={selectedAdvertorial}
-          myBusiness={myBusiness}
-          favorites={favorites}
-          onToggleFavorite={toggleFavorite}
-          onBusinessClick={handleBusinessClick}
-          onStoryClick={handleStoryClick}
-          onRegister={refreshData}
-          onRefresh={refreshData}
-          onAuthSuccess={handleAuthSuccess}
-          userEmail={userIdentifier}
-          userRole={userRole}
-          isRegistryLoading={businessLoading}
-        />
-      </Suspense>
+        <Suspense fallback={<LoadingScreen />}>
+          <RouteComponent 
+            setView={setView} 
+            onBack={handleBack}
+            businesses={businesses} 
+            heroImages={heroImages} 
+            heroVideos={heroVideos} 
+            business={selectedBusiness}
+            story={selectedStory}
+            advertorial={selectedAdvertorial}
+            myBusiness={myBusiness}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            onBusinessClick={handleBusinessClick}
+            onStoryClick={handleStoryClick}
+            onRegister={refreshData}
+            onRefresh={refreshData}
+            onAuthSuccess={handleAuthSuccess}
+            userEmail={userIdentifier}
+            userRole={userRole}
+            isRegistryLoading={businessLoading}
+          />
+        </Suspense>
 
-      <FeedbackToast toasts={toasts} onRemove={removeToast} />
+        <FeedbackToast toasts={toasts} onRemove={removeToast} />
 
-      {isOracleOpen && (
-        <div className="fixed inset-0 z-[9999] animate-fade-in">
-          {/* Lazy Loaded Oracle from ROUTE_MAP */}
-          <Suspense fallback={null}>
-            <ROUTE_MAP.oracle
-              onBack={() => setIsOracleOpen(false)}
-              setView={setView}
-              catalog={businesses}
-              oracleAvatar={oracleAvatar}
-            />
-          </Suspense>
-        </div>
-      )}
-    </Layout>
-  </motion.div>
+        {isOracleOpen && (
+          <div className="fixed inset-0 z-[9999] animate-fade-in">
+            <Suspense fallback={null}>
+              <ROUTE_MAP.oracle
+                onBack={() => setIsOracleOpen(false)}
+                setView={setView}
+                catalog={businesses}
+                oracleAvatar={oracleAvatar}
+              />
+            </Suspense>
+          </div>
+        )}
+      </Layout>
+    </motion.div>
   );
 };
 

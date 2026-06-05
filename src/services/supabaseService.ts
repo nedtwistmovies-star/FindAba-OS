@@ -38,7 +38,7 @@ export const getSupabase = (): SupabaseClient | null => {
   const meta: any = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
 
   const hardcodedUrl = 'https://pqzjkvqmherngispxlzy.supabase.co';
-  const hardcodedKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6InFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
+  const hardcodedKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
 
   const url = manualUrl || meta.VITE_SUPABASE_URL || env.SUPABASE_URL || hardcodedUrl;
   const key = manualKey || meta.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || hardcodedKey;
@@ -1163,8 +1163,52 @@ export const fetchThriftGroups = async (visibility?: 'public' | 'private'): Prom
     }
   }
 
-  if (error && error.code === '42P01') return [];
+  if (error) {
+    if (error.code === '42P01') return [];
+    console.error("[fetchThriftGroups Error]", error);
+    throw new Error(`${error.message} (Code: ${error.code})`);
+  }
   return data || [];
+};
+
+export const generateUniqueInviteCode = async (): Promise<string> => {
+  const client = getSupabase();
+  if (!client) throw new Error("Supabase client is not initialized");
+
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let attempts = 0;
+  const maxAttempts = 20;
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    let code = '';
+    
+    const cryptoObj = (typeof window !== 'undefined' ? window.crypto : null) || (typeof globalThis !== 'undefined' ? (globalThis as any).crypto : null);
+    if (cryptoObj && cryptoObj.getRandomValues) {
+      const array = new Uint32Array(6);
+      cryptoObj.getRandomValues(array);
+      for (let i = 0; i < 6; i++) {
+        code += chars[array[i] % chars.length];
+      }
+    } else {
+      for (let i = 0; i < 6; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
+      }
+    }
+
+    // Ensure the generated code does not already exist in the thrift_groups table
+    const { data, error } = await client
+      .from('thrift_groups')
+      .select('id')
+      .eq('invite_code', code)
+      .maybeSingle();
+
+    if (!error && !data) {
+      return code;
+    }
+  }
+
+  throw new Error("Failed to generate a unique invite code after multiple attempts");
 };
 
 export const createThriftGroup = async (group: Partial<ThriftGroup>) => {
@@ -1173,8 +1217,8 @@ export const createThriftGroup = async (group: Partial<ThriftGroup>) => {
   const { data: user } = await client.auth.getUser();
   if (!user.user) throw new Error("Auth Required");
 
-  // Generate unique branded invite code (e.g. ABA729)
-  const inviteCode = `ABA${Math.floor(100 + Math.random() * 900)}${Math.random().toString(36).substring(2, 4).toUpperCase()}`;
+  // Generate unique secure invite code and verify uniqueness
+  const inviteCode = await generateUniqueInviteCode();
 
   const { data, error } = await client
     .from('thrift_groups')

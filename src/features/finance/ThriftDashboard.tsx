@@ -14,6 +14,7 @@ import {
   fetchGroupByInviteCode
 } from '../../services/supabaseService';
 import PaystackOverlay from '../../components/PaystackOverlay';
+import { DiagnosticRegistryView } from '../../components/diagnostic/DiagnosticRegistryView';
 import { useToast } from '../../providers/ToastProvider';
 import { paymentService } from '../../services/paymentService';
 import { ThriftAccount, ThriftContribution, ThriftGroup, ThriftGroupMember, ViewState } from '../../types';
@@ -50,6 +51,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const [userGroups, setUserGroups] = useState<ThriftGroup[]>([]);
   const [groupTab, setGroupTab] = useState<'public' | 'private' | 'my-groups'>('public');
   const [groupMembersCounts, setGroupMembersCounts] = useState<Record<string, number>>({});
+  const [groupFetchError, setGroupFetchError] = useState<string | null>(null);
+  const [showFetchDiagnostics, setShowFetchDiagnostics] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [joiningGroup, setJoiningGroup] = useState<ThriftGroup | null>(null);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -439,6 +442,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   const refreshData = async () => {
     if (!userEmail) return;
     setLoading(true);
+    setGroupFetchError(null);
     try {
       if (activeTab === 'individual') {
         const data = await fetchThriftAccount(userEmail);
@@ -448,60 +452,70 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
           setContributions(contribs);
         }
       } else {
-        const allPublicGroups = await fetchThriftGroups('public');
-        if (allPublicGroups !== null) {
-          console.log("[Audit][UI Registry] Public groups verified as not null. Count:", allPublicGroups.length);
-          console.log("[Audit][UI Registry] Rows retrieved:", allPublicGroups);
-          console.log('PUBLIC_GROUPS_STATE_UPDATE', allPublicGroups);
-          setGroups(allPublicGroups || []);
-        } else {
-          console.error("[Audit][UI Registry] Warning: public groups state is null.");
-          console.log('PUBLIC_GROUPS_STATE_UPDATE', null);
+        try {
+          const allPublicGroups = await fetchThriftGroups('public');
+          if (allPublicGroups !== null) {
+            console.log("[Audit][UI Registry] Public groups verified as not null. Count:", allPublicGroups.length);
+            console.log("[Audit][UI Registry] Rows retrieved:", allPublicGroups);
+            console.log('PUBLIC_GROUPS_STATE_UPDATE', allPublicGroups);
+            setGroups(allPublicGroups || []);
+          } else {
+            console.error("[Audit][UI Registry] Warning: public groups state is null.");
+            console.log('PUBLIC_GROUPS_STATE_UPDATE', null);
+            setGroups([]);
+          }
+        } catch (groupError: any) {
+          console.error("Group fetch failed", groupError);
+          setGroupFetchError(groupError.message || String(groupError));
           setGroups([]);
         }
         
         // Fetch groups user belongs to and member counts
-        const client = getSupabase();
-        if (client) {
-          // Fetch membership counts for all groups to display slots correctly
-          const { data: allMemberships } = await client
-            .from('thrift_group_members')
-            .select('group_id');
-          
-          const counts: Record<string, number> = {};
-          if (allMemberships) {
-            allMemberships.forEach((m: any) => {
-              counts[m.group_id] = (counts[m.group_id] || 0) + 1;
-            });
-          }
-          setGroupMembersCounts(counts);
-
-          const { data: { user } } = await client.auth.getUser();
-          if (user) {
-            const { data: memberships } = await client
+        try {
+          const client = getSupabase();
+          if (client) {
+            // Fetch membership counts for all groups to display slots correctly
+            const { data: allMemberships } = await client
               .from('thrift_group_members')
-              .select('group_id')
-              .eq('user_id', user.id);
+              .select('group_id');
             
-            if (memberships && memberships.length > 0) {
-              const groupIds = (memberships || []).map((m: any) => m.group_id).filter(Boolean);
+            const counts: Record<string, number> = {};
+            if (allMemberships) {
+              allMemberships.forEach((m: any) => {
+                counts[m.group_id] = (counts[m.group_id] || 0) + 1;
+              });
+            }
+            setGroupMembersCounts(counts);
+ 
+            const { data: { user } } = await client.auth.getUser();
+            if (user) {
+              const { data: memberships } = await client
+                .from('thrift_group_members')
+                .select('group_id')
+                .eq('user_id', user.id);
               
-              if (groupIds.length > 0) {
-                const { data: userOwnedGroups } = await client
-                  .from('thrift_groups')
-                  .select('*')
-                  .in('id', groupIds);
-                setUserGroups(userOwnedGroups || []);
+              if (memberships && memberships.length > 0) {
+                const groupIds = (memberships || []).map((m: any) => m.group_id).filter(Boolean);
+                
+                if (groupIds.length > 0) {
+                  const { data: userOwnedGroups } = await client
+                    .from('thrift_groups')
+                    .select('*')
+                    .in('id', groupIds);
+                  setUserGroups(userOwnedGroups || []);
+                } else {
+                  setUserGroups([]);
+                }
               } else {
                 setUserGroups([]);
               }
-            } else {
-              setUserGroups([]);
             }
           }
+        } catch (membershipError: any) {
+          console.error("Membership fetch failed:", membershipError);
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Fetch failed", e);
     } finally {
       setLoading(false);
@@ -1282,6 +1296,45 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                          </div>
                       </button>
                     </div>
+                  </div>
+
+                  {/* GROUPS DIAGNOSTIC & TELEMETRY PANEL */}
+                  <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${groupFetchError ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
+                        <div>
+                          <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Isusu Registry Telemetry</h3>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Supabase Service Connection Status</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setShowFetchDiagnostics(!showFetchDiagnostics)}
+                        className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 bg-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                      >
+                        {showFetchDiagnostics ? 'Hide Diagnostics' : 'Show Diagnostic Logs'}
+                      </button>
+                    </div>
+
+                    {groupFetchError && (
+                      <div className="p-6 bg-red-50 border border-red-100 text-red-700 rounded-3xl space-y-2">
+                        <p className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                          <AlertTriangle size={14} /> Fetch Error Intercepted!
+                        </p>
+                        <p className="text-[11px] font-mono whitespace-pre-wrap break-all bg-white/60 p-4 rounded-xl border border-red-100">
+                          {groupFetchError}
+                        </p>
+                        <p className="text-[10px] uppercase font-bold tracking-wider opacity-80 leading-relaxed">
+                          Note: The Supabase public client encountered this error when fetching rows from the <code>thrift_groups</code> table. Verify the table permissions or access keys in the SQL editor.
+                        </p>
+                      </div>
+                    )}
+
+                    {showFetchDiagnostics && (
+                      <div className="mt-4 pt-4 border-t border-slate-100">
+                        <DiagnosticRegistryView />
+                      </div>
+                    )}
                   </div>
 
                   {/* Section 9: My Groups Empty State Filter */}

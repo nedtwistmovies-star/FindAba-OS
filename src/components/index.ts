@@ -26,6 +26,7 @@ import SectionHeader from './SectionHeader';
 import StatCard from './StatCard';
 import { VideoUpload, MultiVideoUpload } from './VideoUpload';
 import { BusinessCardSkeleton, FeedSkeleton, HeroSkeleton } from './SkeletonLoader';
+import { DiagnosticRegistryView } from './diagnostic/DiagnosticRegistryView';
 
 export {
   BentoGrid, BentoItem,
@@ -53,5 +54,6 @@ export {
   SectionHeader,
   StatCard,
   VideoUpload, MultiVideoUpload,
-  BusinessCardSkeleton, FeedSkeleton, HeroSkeleton
+  BusinessCardSkeleton, FeedSkeleton, HeroSkeleton,
+  DiagnosticRegistryView
 };

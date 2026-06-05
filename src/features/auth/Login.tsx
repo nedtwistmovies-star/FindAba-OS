@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mail, Lock, ShieldCheck, ChevronRight, ArrowLeft, Loader2, Sparkles, Globe, User, Fingerprint, Zap, Wand2 } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, ChevronRight, ArrowLeft, Loader2, Sparkles, Globe, User, Fingerprint, Zap, Wand2, Phone } from 'lucide-react';
 import { useAuth, useOracle } from '../../providers';
 import { sendOTP, verifyOTP, loginWithEmail, loginWithGoogle, sendMagicLink, loginWithUsername, signUpWithUsername } from '../../services/authService';
 import { sendWelcomeEmail } from '../../services/emailService';
@@ -19,19 +19,37 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   const { view } = useOracle();
   const { addToast } = useToast();
   
-  const [method, setMethod] = useState<'email'>('email');
-  const [step, setStep] = useState<'request' | 'forgot' | 'reset' | 'signup'>(view === 'signup' ? 'signup' : 'request');
+  const [method, setMethod] = useState<'email' | 'phone'>('email');
+  const [step, setStep] = useState<'request' | 'otp' | 'forgot' | 'reset' | 'signup'>(view === 'signup' ? 'signup' : 'request');
   const [useMagicLink, setUseMagicLink] = useState(false);
   const [loading, setLoading] = useState(false);
   
   // Form State
-  const [identifier, setIdentifier] = useState(''); // Unified Email/Username
+  const [identifier, setIdentifier] = useState(''); // Unified Email/Phone/Username
   const [username, setUsername] = useState('');
+  const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [newPassword, setNewPassword] = useState('');
+
+  // Password Strength Logic
+  const calculateStrength = (pass: string) => {
+    let score = 0;
+    if (!pass) return 0;
+    if (pass.length > 6) score += 1;
+    if (pass.length >= 10) score += 1;
+    if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass) || /[^A-Za-z0-9]/.test(pass)) score += 1;
+    return score;
+  };
+
+  const strength = calculateStrength(password);
+  const newStrength = calculateStrength(newPassword);
+  const strengthLabels = ['WEAK', 'FAIR', 'GOOD', 'STRONG', 'ELITE'];
+  const strengthColors = ['bg-red-500/20', 'bg-orange-500/40', 'bg-yellow-500/60', 'bg-emerald-500/80', 'bg-aba-gold shadow-[0_0_10px_rgba(200,168,75,0.5)]'];
+  const strengthTextColors = ['text-red-400', 'text-orange-400', 'text-yellow-400', 'text-emerald-400', 'text-aba-gold'];
 
   useEffect(() => {
     // Detect password recovery mode from URL (crucial for redirect links)
@@ -76,6 +94,42 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
       window.history.replaceState({}, document.title, window.location.pathname);
     } catch (err: any) {
       addToast(err.message || "Failed to update protocol key", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhoneLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!identifier) return;
+    setLoading(true);
+    try {
+      await sendOTP(identifier);
+      addToast("Validation token dispatched to WhatsApp/SMS.", "success");
+      setStep('otp');
+    } catch (err: any) {
+      addToast("Failed to dispatch token.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOTPVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = otpCode.join('');
+    if (token.length < 6) return;
+    setLoading(true);
+    try {
+      const result = await verifyOTP(identifier, token);
+      if (result.session?.user) {
+        const user = result.session.user;
+        handleAuthSuccess(identifier, user.user_metadata?.full_name || 'Citizen', 'registered', user.id);
+        addToast("Industrial Link Authorized.", "success");
+        onAuthSuccess(identifier, user.user_metadata?.full_name || 'Citizen', 'registered', user.id);
+        setView('home');
+      }
+    } catch (err: any) {
+      addToast("Validation Failure.", "error");
     } finally {
       setLoading(false);
     }
@@ -189,9 +243,66 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
            </p>
         </div>
 
+        {step === 'request' && (
+          <div className="flex gap-4 mb-8">
+            <button 
+              onClick={() => setMethod('email')}
+              className={`flex-1 py-3 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all ${method === 'email' ? 'bg-white/10 text-white border border-white/20' : 'text-white/20 hover:text-white/40'}`}
+            >
+              Email Protocol
+            </button>
+            <button 
+              onClick={() => setMethod('phone')}
+              className={`flex-1 py-3 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all ${method === 'phone' ? 'bg-white/10 text-white border border-white/20' : 'text-white/20 hover:text-white/40'}`}
+            >
+              Phone Signal
+            </button>
+          </div>
+        )}
+
         <div className="space-y-8">
             <AnimatePresence mode="wait">
-              {step === 'signup' ? (
+              {step === 'otp' ? (
+                <motion.form 
+                  key="otp-form"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onSubmit={handleOTPVerify}
+                  className="space-y-6"
+                >
+                   <div className="text-center mb-4">
+                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Verify Industrial Signal</p>
+                     <p className="text-[8px] text-white/40 mt-1 uppercase tracking-widest">Sent to {identifier}</p>
+                   </div>
+                   
+                   <div className="flex justify-between gap-2">
+                     {otpCode.map((digit, i) => (
+                       <input
+                         key={i}
+                         type="text"
+                         maxLength={1}
+                         value={digit}
+                         onChange={e => {
+                           const newOtp = [...otpCode];
+                           newOtp[i] = e.target.value.slice(-1);
+                           setOtpCode(newOtp);
+                           if (e.target.value && i < 5) (e.target.nextSibling as HTMLInputElement)?.focus();
+                         }}
+                         className="w-12 h-14 bg-white/5 border border-white/10 rounded-xl text-center text-white font-black outline-none focus:border-aba-gold/50"
+                       />
+                     ))}
+                   </div>
+                   
+                   <button 
+                     type="submit"
+                     disabled={loading || otpCode.join('').length < 6}
+                     className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 disabled:opacity-50"
+                   >
+                     {loading ? <Loader2 className="animate-spin" size={20} /> : "AUTHORIZE ACCESS"}
+                   </button>
+                </motion.form>
+              ) : step === 'signup' ? (
                 <motion.form 
                   key="signup-form"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -350,6 +461,30 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                        />
                      </div>
                    </div>
+
+                   {/* New Password Strength Indicator */}
+                    {newPassword && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-3 px-2 mt-2"
+                      >
+                         <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">New Link Security</span>
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${strengthTextColors[newStrength]}`}>
+                              {strengthLabels[newStrength]}
+                            </span>
+                          </div>
+                          <div className="flex gap-1.5 h-1">
+                            {[0, 1, 2, 3, 4].map((i) => (
+                              <div 
+                                key={i}
+                                className={`flex-1 rounded-full transition-all duration-500 ${i <= newStrength ? strengthColors[newStrength] : 'bg-white/5'}`}
+                              />
+                            ))}
+                          </div>
+                      </motion.div>
+                    )}
                    
                    <button 
                      type="submit"
@@ -375,15 +510,15 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  onSubmit={handleLogin}
+                  onSubmit={method === 'email' ? handleLogin : handlePhoneLogin}
                   className="space-y-6"
                 >
                    <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
                      <div className="flex items-center">
-                       <div className="p-4"><Fingerprint className="text-white/20" size={18} /></div>
+                       <div className="p-4">{method === 'email' ? <Fingerprint className="text-white/20" size={18} /> : <Phone className="text-white/20" size={18} />}</div>
                        <input 
-                         type="text" 
-                         placeholder="USERNAME OR EMAIL" 
+                         type={method === 'email' ? "text" : "tel"} 
+                         placeholder={method === 'email' ? "USERNAME OR EMAIL" : "PHONE NUMBER (+234...)"}
                          value={identifier}
                          onChange={e => setIdentifier(e.target.value)}
                          className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
@@ -392,7 +527,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                      </div>
                    </div>
                    
-                   {!useMagicLink && (
+                   {method === 'email' && !useMagicLink && (
                      <motion.div 
                        initial={{ opacity: 0, height: 0 }}
                        animate={{ opacity: 1, height: 'auto' }}
@@ -427,21 +562,25 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                      </label>
                      
                      <div className="flex items-center gap-4">
-                       <button 
-                         type="button"
-                         onClick={() => setStep('forgot')}
-                         className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors"
-                       >
-                         Forgot Key?
-                       </button>
-                       <button 
-                         type="button"
-                         onClick={() => setUseMagicLink(!useMagicLink)}
-                         className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors flex items-center gap-2"
-                       >
-                         <Wand2 size={12} />
-                         {useMagicLink ? "Password" : "Magic Link"}
-                       </button>
+                       {method === 'email' && (
+                         <>
+                            <button 
+                              type="button"
+                              onClick={() => setStep('forgot')}
+                              className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors"
+                            >
+                              Forgot Key?
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setUseMagicLink(!useMagicLink)}
+                              className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors flex items-center gap-2"
+                            >
+                              <Wand2 size={12} />
+                              {useMagicLink ? "Password" : "Magic Link"}
+                            </button>
+                         </>
+                       )}
                      </div>
                    </div>
 
@@ -451,7 +590,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
                      className="w-full py-6 bg-white text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl hover:bg-aba-gold transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
                    >
                       {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>{useMagicLink ? "Dispatch Magic Node" : "Initialize Link"}</>
+                        <>{method === 'phone' ? "DISPATCH TOKEN" : (useMagicLink ? "Dispatch Magic Node" : "Initialize Link")}</>
                       )}
                    </button>
                 </motion.form>

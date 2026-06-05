@@ -1,57 +1,92 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { OnboardingLayout } from '../pages/OnboardingLayout';
-import { WelcomeScreen } from '../pages/WelcomeScreen';
+import { OnboardingSlides } from '../pages/OnboardingSlides';
 import { AuthScreen } from '../pages/AuthScreen';
+import { OTPVerification } from './OTPVerification';
+import { ProfileSetup } from '../pages/ProfileSetup';
 import { MerchantSetup } from '../pages/MerchantSetup';
 import { SuccessTransition } from './SuccessTransition';
 import { useOnboarding } from '../hooks/useOnboarding';
+import { useAuth } from '../../providers/AuthProvider';
 
-export const OnboardingRouter: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const { stage, advanceStage, isAuth, startGuestSession, setAccountType } = useOnboarding();
-  const [localMode, setLocalMode] = useState<'welcome' | 'auth' | 'merchant' | 'success'>('welcome');
-  const [authIntent, setAuthIntent] = useState<'signin' | 'signup'>('signin');
+export const OnboardingRouter: React.FC<{ onComplete: () => void; setView?: (v: any) => void }> = ({ onComplete, setView }) => {
+  const { stage, advanceStage, isAuth, startGuestSession, setAccountType, profile } = useOnboarding();
+  const { userIdentifier } = useAuth();
+  
+  // Local state to manage the specific flow steps
+  const [step, setStep] = useState<'slides' | 'auth' | 'otp' | 'profile' | 'merchant' | 'success'>('slides');
+  const [authIntent, setAuthIntent] = useState<'signin' | 'signup'>('signup');
+  const [authIdentifier, setAuthIdentifier] = useState('');
 
-  const handleWelcomeAction = async (action: string) => {
-    if (action === 'guest') {
-      await startGuestSession();
-      onComplete();
-    } else if (action === 'signin') {
-      setAuthIntent('signin');
-      setLocalMode('auth');
-    } else if (action === 'signup') {
-      setAuthIntent('signup');
-      setLocalMode('auth');
+  // Handle existing auth state
+  useEffect(() => {
+    if (isAuth) {
+      if (profile?.onboarding_stage === 'completed') {
+        setStep('success');
+      } else if (!profile?.username) {
+        setStep('profile');
+      } else if (profile?.onboarding_stage === 'merchant_setup') {
+        setStep('merchant');
+      }
+    }
+  }, [isAuth, profile]);
+
+  const handleSlidesComplete = () => {
+    setStep('auth');
+  };
+
+  const handleAuthSuccess = (type: string, identifier?: string) => {
+    if (identifier) setAuthIdentifier(identifier);
+    
+    if (type === 'signup') {
+      // For signup, go to OTP
+      setStep('otp');
+    } else {
+      // For signin, if profile incomplete go to profile, else success
+      if (!profile?.username) {
+        setStep('profile');
+      } else {
+        setStep('success');
+      }
     }
   };
 
-  const handleAuthSuccess = async (type: string) => {
-    if (type === 'signup') {
-      setAccountType('merchant');
-      setLocalMode('merchant');
-      await advanceStage('merchant_setup');
-    } else {
-      setLocalMode('success');
-      await advanceStage('completed');
-    }
+  const handleOTPVerified = async () => {
+    setStep('profile');
+  };
+
+  const handleProfileComplete = () => {
+    setStep('success');
   };
 
   return (
     <OnboardingLayout>
-      {localMode === 'welcome' && (
-        <WelcomeScreen onNext={handleWelcomeAction} />
+      {step === 'slides' && (
+        <OnboardingSlides onComplete={handleSlidesComplete} />
       )}
-      {localMode === 'auth' && (
+      {step === 'auth' && (
         <AuthScreen 
           initialMode={authIntent} 
-          onBack={() => setLocalMode('welcome')} 
-          onSuccess={handleAuthSuccess}
+          onBack={() => setStep('slides')} 
+          onSuccess={(type, ident) => handleAuthSuccess(type, ident)}
         />
       )}
-      {localMode === 'merchant' && (
-        <MerchantSetup onSuccess={() => setLocalMode('success')} />
+      {step === 'otp' && (
+        <OTPVerification 
+          identifier={authIdentifier || userIdentifier || ''}
+          type={authIdentifier?.includes('@') ? 'email' : 'phone'}
+          onSuccess={handleOTPVerified}
+          onBack={() => setStep('auth')}
+        />
       )}
-      {localMode === 'success' && (
+      {step === 'profile' && (
+        <ProfileSetup onSuccess={handleProfileComplete} />
+      )}
+      {step === 'merchant' && (
+        <MerchantSetup onSuccess={() => setStep('success')} />
+      )}
+      {step === 'success' && (
         <SuccessTransition onComplete={onComplete} />
       )}
     </OnboardingLayout>

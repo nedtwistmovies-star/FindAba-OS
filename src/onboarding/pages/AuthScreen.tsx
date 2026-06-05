@@ -8,7 +8,7 @@ import { onboardingService } from '../services/onboardingService';
 
 interface AuthScreenProps {
   onBack: () => void;
-  onSuccess: (type: string) => void;
+  onSuccess: (type: string, identifier?: string) => void;
   initialMode: 'signin' | 'signup';
 }
 
@@ -44,14 +44,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onSuccess, initi
 
         if (error) throw error;
         addToast("Handshake Initiated: Check your email.", "success");
-        onSuccess('signup');
+        onSuccess('signup', email);
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         
         await onboardingService.trackEvent('auth_signin_attempt', { mode: 'signin', status: error ? 'error' : 'success' });
 
         if (error) throw error;
-        onSuccess('signin');
+        onSuccess('signin', email);
       }
     } catch (err: any) {
       addToast(err.message || "Credential Rejection.", "error");
