@@ -21,6 +21,10 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
     const envRepo = (typeof process !== 'undefined' && process.env) ? process.env.GITHUB_REPO : '';
     return saved !== null ? saved : (envRepo || '');
   });
+  const [gitBranch, setGitBranch] = useState(() => {
+    const saved = localStorage.getItem('findaba_git_branch');
+    return saved !== null ? saved : 'main';
+  });
 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -30,12 +34,12 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS' && event.data?.provider === 'github') {
-        syncGit(gitRepo);
+        syncGit(gitRepo, gitBranch);
       }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [gitRepo, syncGit]);
+  }, [gitRepo, gitBranch, syncGit]);
 
   const handleGitHubLogin = async () => {
     setIsLoggingIn(true);
@@ -95,7 +99,8 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
     }
 
     localStorage.setItem('findaba_git_repo', gitRepo);
-    await syncGit(gitRepo);
+    localStorage.setItem('findaba_git_branch', gitBranch);
+    await syncGit(gitRepo, gitBranch);
     setStep('payment');
   };
 
@@ -228,6 +233,22 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                           <X size={12} />
                         </button>
                       )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[8px] text-white/50 uppercase tracking-widest leading-relaxed">
+                      4. Target Branch:
+                    </p>
+                    <div className="flex items-center gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
+                      <Zap size={14} className="text-aba-gold" />
+                      <input 
+                        type="text" 
+                        placeholder="main" 
+                        className="bg-transparent border-none outline-none text-[10px] font-mono text-white/80 w-full"
+                        value={gitBranch}
+                        onChange={e => setGitBranch(e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>

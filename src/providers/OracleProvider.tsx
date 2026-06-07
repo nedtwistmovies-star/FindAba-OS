@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { ViewState } from '../types';
+import { useAuth } from './AuthProvider';
+import { PROTECTED_VIEWS } from '../constants/auth';
 
 interface OracleContextType {
   isOracleOpen: boolean;
@@ -9,12 +11,19 @@ interface OracleContextType {
   setView: (v: ViewState) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
+  isAuthModalOpen: boolean;
+  setIsAuthModalOpen: (open: boolean) => void;
+  authModalMode: 'signin' | 'signup';
+  setAuthModalMode: (mode: 'signin' | 'signup') => void;
 }
 
 const OracleContext = createContext<OracleContextType | undefined>(undefined);
 
 export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuth } = useAuth();
   const [isOracleOpen, setIsOracleOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setViewState] = useState<ViewState>(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -25,16 +34,40 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const setView = (v: ViewState) => {
+    if (!isAuth && PROTECTED_VIEWS.includes(v)) {
+      setAuthModalMode('signin');
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    if (!isAuth && (v === 'login' || v === 'signup')) {
+      setAuthModalMode(v === 'signup' ? 'signup' : 'signin');
+      setIsAuthModalOpen(true);
+      return;
+    }
+
     if (v === 'oracle') {
       setIsOracleOpen(true);
       return;
     }
+
     setViewState(v);
     localStorage.setItem('findaba_current_view', v);
   };
 
   return (
-    <OracleContext.Provider value={{ isOracleOpen, setIsOracleOpen, view, setView, searchQuery, setSearchQuery }}>
+    <OracleContext.Provider value={{ 
+      isOracleOpen, 
+      setIsOracleOpen, 
+      view, 
+      setView, 
+      searchQuery, 
+      setSearchQuery,
+      isAuthModalOpen,
+      setIsAuthModalOpen,
+      authModalMode,
+      setAuthModalMode
+    }}>
       {children}
     </OracleContext.Provider>
   );

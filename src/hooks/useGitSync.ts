@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 export interface GitSyncStatus {
   connected: boolean;
   repo?: string;
+  branch?: string;
   lastUpdated?: string;
   data?: any;
   error?: string;
@@ -13,38 +14,45 @@ export const useGitSync = () => {
   const [status, setStatus] = useState<GitSyncStatus>({ connected: false });
   const [loading, setLoading] = useState(false);
 
-  const sync = async (manualRepo?: string) => {
+  const sync = async (manualRepo?: string, manualBranch?: string) => {
     setLoading(true);
     try {
       const savedRepo = localStorage.getItem('findaba_git_repo');
-      const targetRepo = manualRepo !== undefined ? manualRepo : (savedRepo || '');
+      const savedBranch = localStorage.getItem('findaba_git_branch');
       
-      if (manualRepo === '' && !savedRepo) {
-        // Explicitly clearing
-        setStatus({ connected: false });
+      const targetRepo = manualRepo !== undefined ? manualRepo : (savedRepo || '');
+      const targetBranch = manualBranch !== undefined ? manualBranch : (savedBranch || '');
+      
+      let url = '/api/git/sync';
+      const params = new URLSearchParams();
+      if (targetRepo) params.append('repo', targetRepo);
+      if (targetBranch) params.append('branch', targetBranch);
+      
+      const queryString = params.toString();
+      if (queryString) url += `?${queryString}`;
+
+      const response = await fetch(url);
+      const text = await response.text();
+      
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        console.error("[GitSync] Failed to parse JSON response:", text);
+        setStatus({ connected: false, error: `Invalid Server Response: ${response.status}` });
         return;
       }
-
-      const url = targetRepo ? `/api/git/sync?repo=${encodeURIComponent(targetRepo)}` : '/api/git/sync';
-      const response = await fetch(url);
-      const contentType = response.headers.get("content-type");
       
-      if (contentType && contentType.includes("application/json")) {
-        const result = await response.json();
-        if (response.ok) {
-          setStatus({
-            connected: true,
-            repo: result.repo,
-            lastUpdated: result.lastUpdated,
-            data: result.data
-          });
-        } else {
-          setStatus({ connected: false, error: result.error || 'Sync Failed' });
-        }
+      if (response.ok) {
+        setStatus({
+          connected: true,
+          repo: result.repo,
+          branch: targetBranch || 'main',
+          lastUpdated: result.lastUpdated,
+          data: result.data
+        });
       } else {
-        const text = await response.text();
-        console.error("[GitSync] Non-JSON response:", text);
-        setStatus({ connected: false, error: `Server Error: ${response.status}` });
+        setStatus({ connected: false, error: result.error || 'Sync Failed' });
       }
     } catch (err) {
       console.warn("Registry sync failed, using fallback state");
@@ -58,24 +66,35 @@ export const useGitSync = () => {
     setLoading(true);
     try {
       const repo = localStorage.getItem('findaba_git_repo') || '';
-      const response = await fetch(`/api/git/commit?repo=${encodeURIComponent(repo)}`, {
+      const branch = localStorage.getItem('findaba_git_branch') || '';
+      
+      let url = `/api/git/commit`;
+      const params = new URLSearchParams();
+      if (repo) params.append('repo', repo);
+      if (branch) params.append('branch', branch);
+      
+      const queryString = params.toString();
+      if (queryString) url += `?${queryString}`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ files, message })
       });
       
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const result = await response.json();
-        if (response.ok) {
-          return { success: true, commit: result.commit };
-        } else {
-          return { success: false, error: result.details || result.error || 'Commit Failed' };
-        }
-      } else {
-        const text = await response.text();
-        console.error("[GitSync] Commit Non-JSON response:", text);
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        console.error("[GitSync] Commit Failed Parse JSON:", text);
         return { success: false, error: `Server Error: ${response.status}` };
+      }
+
+      if (response.ok) {
+        return { success: true, commit: result.commit };
+      } else {
+        return { success: false, error: result.details || result.error || 'Commit Failed' };
       }
     } catch (err: any) {
       console.error('Commit Error:', err);
@@ -100,7 +119,17 @@ export const useGitSync = () => {
 
     try {
       const repo = localStorage.getItem('findaba_git_repo') || '';
-      const response = await fetch(`/api/git/sync-full?repo=${encodeURIComponent(repo)}`, {
+      const branch = localStorage.getItem('findaba_git_branch') || '';
+      
+      let url = `/api/git/sync-full`;
+      const params = new URLSearchParams();
+      if (repo) params.append('repo', repo);
+      if (branch) params.append('branch', branch);
+      
+      const queryString = params.toString();
+      if (queryString) url += `?${queryString}`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message }),
@@ -109,18 +138,19 @@ export const useGitSync = () => {
       
       clearTimeout(timeoutId);
       
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const result = await response.json();
-        if (response.ok) {
-          return { success: true, commit: result.commit, warning: result.warning };
-        } else {
-          return { success: false, error: result.details || result.error || 'Full Sync Failed' };
-        }
-      } else {
-        const text = await response.text();
-        console.error("[GitSync] Full Sync Non-JSON response:", text);
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        console.error("[GitSync] Full Sync Failed Parse JSON:", text);
         return { success: false, error: `Server Error: ${response.status}` };
+      }
+
+      if (response.ok) {
+        return { success: true, commit: result.commit, warning: result.warning };
+      } else {
+        return { success: false, error: result.details || result.error || 'Full Sync Failed' };
       }
     } catch (err: any) {
       clearTimeout(timeoutId);

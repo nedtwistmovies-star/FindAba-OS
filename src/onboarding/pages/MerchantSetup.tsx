@@ -40,10 +40,10 @@ export const MerchantSetup: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
         verification_level: 'Listed'
       });
 
-      addToast("Industrial Node Established: Registry Updated.", "success");
+      addToast("Business profile created successfully.", "success");
       onSuccess();
     } catch (err: any) {
-      addToast(err.message || "Registration Fault.", "error");
+      addToast(err.message || "Failed to register business.", "error");
     } finally {
       setLoading(false);
     }
@@ -54,61 +54,54 @@ export const MerchantSetup: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
-      className="h-full w-full flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto"
+      className="h-full w-full flex flex-col items-center justify-center p-4 md:p-8"
     >
-      <div className="w-full max-w-2xl bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-8 md:p-16 space-y-12 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] my-12">
-        <div className="space-y-4 text-center">
-          <div className="relative inline-block">
-             <motion.div
-               animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-               transition={{ duration: 3, repeat: Infinity }}
-               className="absolute inset-0 bg-aba-gold blur-2xl rounded-full"
-             />
-             <div className="w-20 h-20 bg-aba-deep border-2 border-aba-gold/30 rounded-3xl flex items-center justify-center text-aba-gold relative z-10 transform rotate-6">
-                <Briefcase size={40} />
-             </div>
+      <div className="w-full max-w-2xl bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-8 md:p-12 space-y-10 shadow-2xl my-8">
+        <div className="space-y-3 text-center">
+          <div className="w-16 h-16 bg-white/5 border border-aba-gold/30 rounded-2xl flex items-center justify-center text-aba-gold mx-auto mb-4">
+             <Briefcase size={32} />
           </div>
-          <h2 className="text-4xl font-black tracking-tighter uppercase italic text-white leading-none">Hub Specifications</h2>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em] italic">Industrial Enrollment Protocol v2.4</p>
+          <h2 className="text-3xl font-bold tracking-tight text-white">Business Profile</h2>
+          <p className="text-white/40 text-sm italic">Tell us about your business or workshop</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <InputField 
-               label="Workshop Name" 
-               icon={<Briefcase size={20} />} 
+               label="Business Name" 
+               icon={<Briefcase size={18} />} 
                value={formData.name} 
                onChange={(v: string) => setFormData({...formData, name: v})}
                placeholder="e.g. Aba Leather Works"
             />
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4 italic">Industrial Category</label>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-aba-gold uppercase tracking-wider ml-1">Trade Category</label>
               <div className="relative">
-                <Globe className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20" size={20} />
+                <Globe className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20" size={18} />
                 <select 
                   value={formData.category}
                   onChange={e => setFormData({...formData, category: e.target.value as Category})}
-                  className="w-full p-6 pl-16 bg-white/5 border border-white/10 rounded-2xl text-white appearance-none focus:border-aba-gold/50 transition-all outline-none text-sm font-bold uppercase tracking-tight italic"
+                  className="w-full p-5 pl-16 bg-white/5 border border-white/10 rounded-2xl text-white appearance-none focus:border-aba-gold/50 transition-all outline-none text-sm font-medium"
                 >
                   {CATEGORIES.map(c => <option key={c} value={c} className="bg-aba-deep">{c}</option>)}
                 </select>
               </div>
             </div>
             <InputField 
-               label="WhatsApp Signal" 
-               icon={<Phone size={20} />} 
+               label="WhatsApp Number" 
+               icon={<Phone size={18} />} 
                value={formData.phone_whatsapp} 
                onChange={(v: string) => setFormData({...formData, phone_whatsapp: v})}
                placeholder="+234..."
             />
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4 italic">Industrial Area</label>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-aba-gold uppercase tracking-wider ml-1">Business Area</label>
               <div className="relative">
-                <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20" size={20} />
+                <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20" size={18} />
                 <select 
                   value={formData.area}
                   onChange={e => setFormData({...formData, area: e.target.value})}
-                  className="w-full p-6 pl-16 bg-white/5 border border-white/10 rounded-2xl text-white appearance-none focus:border-aba-gold/50 transition-all outline-none text-sm font-bold uppercase tracking-tight italic"
+                  className="w-full p-5 pl-16 bg-white/5 border border-white/10 rounded-2xl text-white appearance-none focus:border-aba-gold/50 transition-all outline-none text-sm font-medium"
                 >
                   {ABA_AREAS.map(a => <option key={a} value={a} className="bg-aba-deep">{a}</option>)}
                 </select>
@@ -116,43 +109,38 @@ export const MerchantSetup: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4 italic">Capability Statement (Description)</label>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-aba-gold uppercase tracking-wider ml-1">About Your Business</label>
             <textarea 
               required
               rows={3}
               value={formData.description}
               onChange={e => setFormData({...formData, description: e.target.value})}
-              placeholder="Describe your manufacturing capacity..."
-              className="w-full p-8 bg-white/5 border border-white/10 rounded-[2.5rem] text-white placeholder:text-white/10 focus:border-aba-gold/50 transition-all outline-none text-sm font-bold italic"
+              placeholder="Briefly describe what you manufacture or sell..."
+              className="w-full p-6 bg-white/5 border border-white/10 rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 transition-all outline-none text-sm font-medium resize-none text-center"
             />
           </div>
 
           <button 
             disabled={loading}
-            className="w-full py-8 bg-white text-aba-deep rounded-full font-black uppercase text-xs tracking-[0.4em] flex items-center justify-center gap-4 hover:bg-aba-gold transition-all active:scale-95 disabled:opacity-30 group shadow-2xl"
+            className="w-full py-5 bg-white text-aba-deep rounded-2xl font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-aba-gold transition-all active:scale-95 disabled:opacity-30 group shadow-xl"
           >
             {loading ? <Loader2 className="animate-spin" /> : (
               <>
-                COMMIT HUB TO REGISTRY
-                <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+                PUBLISH PROFILE
+                <ArrowRight size={18} />
               </>
             )}
           </button>
         </form>
-
-        <div className="flex items-center justify-center gap-3 opacity-30">
-           <Sparkles size={14} className="text-aba-gold" />
-           <p className="text-[9px] font-bold uppercase tracking-[0.4em]">Elder Kalu AI: Validating Input Matrix...</p>
-        </div>
       </div>
     </motion.div>
   );
 };
 
 const InputField = ({ label, icon, value, onChange, placeholder }: any) => (
-  <div className="space-y-2">
-    <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4 italic">{label}</label>
+  <div className="space-y-1">
+    <label className="text-xs font-semibold text-aba-gold uppercase tracking-wider ml-1">{label}</label>
     <div className="relative">
       <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20">
         {icon}
@@ -162,7 +150,7 @@ const InputField = ({ label, icon, value, onChange, placeholder }: any) => (
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full p-6 pl-16 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-white/10 focus:border-aba-gold/50 transition-all outline-none text-sm font-bold uppercase tracking-tight italic"
+        className="w-full p-5 pl-16 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-white/10 focus:border-aba-gold/50 transition-all outline-none text-sm font-medium"
       />
     </div>
   </div>

@@ -1,7 +1,6 @@
 
 import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
 import { Business } from "../types";
-import { resetSupabaseInstance } from "./supabaseService";
 import { getOpenRouterStream } from "./openRouterService";
 
 const getAI = () => {
@@ -256,17 +255,32 @@ export const getOracleStream = async (
 ) => {
   const { getSupabase } = await import('./supabaseService');
   const sb = getSupabase();
-  if (!sb) throw new Error("Registry Signal Offline. Oracle connection terminated.");
-  const { data: { session } } = await sb.auth.getSession();
+  let session = null;
+  if (sb) {
+    try {
+      const sessionResult = await sb.auth.getSession();
+      session = sessionResult?.data?.session || null;
+    } catch (e) {
+      console.warn("Oracle guest proxy mode engaged.");
+    }
+  }
 
-  if (!session) throw new Error("Oracle Authentication Required. Identity signal lost.");
+  const localKey = (typeof localStorage !== 'undefined') ? (localStorage.getItem('findaba_gemini_key') || '') : '';
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json"
+  };
+
+  if (session?.access_token) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
+  }
+  if (localKey) {
+    headers["x-gemini-key"] = localKey;
+  }
 
   const response = await fetch("/api/oracle", {
     method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${session.access_token}`
-    },
+    headers,
     body: JSON.stringify({ 
       prompt, 
       history, 

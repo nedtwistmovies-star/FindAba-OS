@@ -1,12 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Mail, Lock, ShieldCheck, ChevronRight, ArrowLeft, Loader2, Sparkles, Globe, User, Fingerprint, Zap, Wand2, Phone } from 'lucide-react';
-import { useAuth, useOracle } from '../../providers';
-import { sendOTP, verifyOTP, loginWithEmail, loginWithGoogle, sendMagicLink, loginWithUsername, signUpWithUsername } from '../../services/authService';
-import { sendWelcomeEmail } from '../../services/emailService';
+import React, { useState } from 'react';
+import { motion } from 'motion/react';
+import { Mail, Lock, ShieldCheck, ArrowRight, Loader2, Globe } from 'lucide-react';
+import { useAuth } from '../../providers';
+import { loginWithUsername, signUpWithUsername, sendMagicLink, loginWithGoogle } from '../../services/authService';
 import { useToast } from '../../providers/ToastProvider';
-import Logo from '../../components/Logo';
 import { ViewState } from '../../types';
 
 interface LoginProps {
@@ -16,183 +14,151 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   const { handleAuthSuccess } = useAuth();
-  const { view } = useOracle();
   const { addToast } = useToast();
   
-  const [method, setMethod] = useState<'email' | 'phone'>('email');
-  const [step, setStep] = useState<'request' | 'otp' | 'forgot' | 'reset' | 'signup'>(view === 'signup' ? 'signup' : 'request');
-  const [useMagicLink, setUseMagicLink] = useState(false);
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [loading, setLoading] = useState(false);
+  const [useMagicLink, setUseMagicLink] = useState(false);
   
   // Form State
-  const [identifier, setIdentifier] = useState(''); // Unified Email/Phone/Username
+  const [identifier, setIdentifier] = useState('');
   const [username, setUsername] = useState('');
-  const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
-  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [keepSignedIn, setKeepSignedIn] = useState(true);
-  const [newPassword, setNewPassword] = useState('');
 
-  // Password Strength Logic
-  const calculateStrength = (pass: string) => {
-    let score = 0;
-    if (!pass) return 0;
-    if (pass.length > 6) score += 1;
-    if (pass.length >= 10) score += 1;
-    if (/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score += 1;
-    if (/[0-9]/.test(pass) || /[^A-Za-z0-9]/.test(pass)) score += 1;
-    return score;
+  const passwordValid = password.length >= 6;
+  const validationRuleFailed = password.length > 0 && !passwordValid ? 'Password too short (<6 chars)' : 'NONE';
+
+  const [diagnostics, setDiagnostics] = useState<any>({
+    status: 'IDLE',
+    step: 'NONE',
+    email: '',
+    passwordLength: 0,
+    validationResult: 'PENDING',
+    validationError: '',
+    authRequestSent: false,
+    authResponse: null,
+    supabaseError: null,
+    supabaseErrorCode: '',
+    supabaseErrorMessage: '',
+    supabaseErrorStatus: ''
+  });
+
+  React.useEffect(() => {
+    (window as any).__LOGIN_STATUS = 'IDLE';
+    (window as any).__LOGIN_STEP = 'NONE';
+    (window as any).__VALIDATION_RESULT = 'PENDING';
+    (window as any).__AUTH_RESPONSE = null;
+    (window as any).__SUPABASE_ERROR = null;
+  }, []);
+
+  const updateDiagnostics = (updates: any) => {
+    setDiagnostics((prev: any) => {
+      const next = { ...prev, ...updates };
+      // Also expose to window
+      (window as any).__LOGIN_STATUS = next.status;
+      (window as any).__LOGIN_STEP = next.step;
+      (window as any).__VALIDATION_RESULT = next.validationResult;
+      (window as any).__AUTH_RESPONSE = next.authResponse;
+      (window as any).__SUPABASE_ERROR = next.supabaseError;
+      return next;
+    });
   };
 
-  const strength = calculateStrength(password);
-  const newStrength = calculateStrength(newPassword);
-  const strengthLabels = ['WEAK', 'FAIR', 'GOOD', 'STRONG', 'ELITE'];
-  const strengthColors = ['bg-red-500/20', 'bg-orange-500/40', 'bg-yellow-500/60', 'bg-emerald-500/80', 'bg-aba-gold shadow-[0_0_10px_rgba(200,168,75,0.5)]'];
-  const strengthTextColors = ['text-red-400', 'text-orange-400', 'text-yellow-400', 'text-emerald-400', 'text-aba-gold'];
-
-  useEffect(() => {
-    // Detect password recovery mode from URL (crucial for redirect links)
-    if (window.location.search.includes('type=recovery') || window.location.hash.includes('type=recovery')) {
-      setStep('reset');
-    } else if (view === 'signup') {
-      setStep('signup');
-    } else if (view === 'login') {
-      setStep('request');
-    }
-  }, [view]);
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!identifier) return;
-    setLoading(true);
-    try {
-      const { resetPasswordForEmail } = await import('../../services/authService');
-      await resetPasswordForEmail(identifier);
-      addToast("Reset signal dispatched. Check your inbox.", "success");
-      setStep('request'); // Back to login
-    } catch (err: any) {
-      addToast(err.message || "Failed to send reset link", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      addToast("Protocol key must be at least 6 characters", "error");
-      return;
-    }
-    setLoading(true);
-    try {
-      const { updatePassword } = await import('../../services/authService');
-      await updatePassword(newPassword);
-      addToast("Industrial key updated successfully", "success");
-      setStep('request'); // Back to login
-      // Clear URL params
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } catch (err: any) {
-      addToast(err.message || "Failed to update protocol key", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePhoneLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!identifier) return;
-    setLoading(true);
-    try {
-      await sendOTP(identifier);
-      addToast("Validation token dispatched to WhatsApp/SMS.", "success");
-      setStep('otp');
-    } catch (err: any) {
-      addToast("Failed to dispatch token.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOTPVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const token = otpCode.join('');
-    if (token.length < 6) return;
-    setLoading(true);
-    try {
-      const result = await verifyOTP(identifier, token);
-      if (result.session?.user) {
-        const user = result.session.user;
-        handleAuthSuccess(identifier, user.user_metadata?.full_name || 'Citizen', 'registered', user.id);
-        addToast("Industrial Link Authorized.", "success");
-        onAuthSuccess(identifier, user.user_metadata?.full_name || 'Citizen', 'registered', user.id);
-        setView('home');
-      }
-    } catch (err: any) {
-      addToast("Validation Failure.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const email = identifier.trim();
+    const passLen = password.length;
+
+    updateDiagnostics({
+      status: 'LOGIN_CLICKED',
+      step: 'START',
+      email: email,
+      passwordLength: passLen,
+      validationResult: 'STARTED',
+      validationError: '',
+      authRequestSent: false,
+      authResponse: null,
+      supabaseError: null,
+      supabaseErrorCode: '',
+      supabaseErrorMessage: ''
+    });
+
+    // Validation
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    
+    console.log('PASSWORD_LENGTH:', passLen);
+    console.log('PASSWORD_MIN_REQUIRED:', 6);
+    console.log('VALIDATION_FAILURE_REASON:', validationRuleFailed);
+
+    if (!isEmailValid) {
+       updateDiagnostics({ 
+         status: 'VALIDATION_FAILED', 
+         step: 'VALIDATION',
+         validationResult: 'FAILED', 
+         validationError: 'Invalid Email Format' 
+       });
+       addToast("Please enter a valid email address.", "error");
+       setLoading(false);
+       return;
+    }
+
+    if (passLen < 6 && mode === 'signup') {
+       updateDiagnostics({ 
+         status: 'VALIDATION_FAILED', 
+         step: 'VALIDATION',
+         validationResult: 'FAILED', 
+         validationError: 'Password too short' 
+       });
+       addToast("Password must be at least 6 characters.", "error");
+       setLoading(false);
+       return;
+    }
+
+    updateDiagnostics({ 
+      status: 'VALIDATION_PASSED', 
+      step: 'AUTH_REQUEST_START',
+      validationResult: 'PASSED',
+      authRequestSent: true
+    });
+
     try {
-      if (useMagicLink) {
-        await sendMagicLink(identifier);
-        addToast("Magic signal dispatched. Check your inbox.", "success");
+      if (mode === 'signup') {
+        const user = await signUpWithUsername(username.toLowerCase().trim(), email, password, username, "");
+        updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'SIGNUP_DONE', authResponse: { user_id: user?.id } });
+        if (user) {
+          addToast("Account created. Please sign in.", "success");
+          setMode('signin');
+        }
       } else {
-        const session = await loginWithUsername(identifier.trim(), password, keepSignedIn);
-        if (session?.user) {
-          const user = session.user;
-          const role = localStorage.getItem('findaba_user_role') || 'registered';
-          handleAuthSuccess(user.email || user.user_metadata.username || '', user.user_metadata.full_name || 'Citizen', role, user.id);
-          addToast("Neural link established.", "success");
-          onAuthSuccess(user.email || user.user_metadata.username || '', user.user_metadata.full_name || 'Citizen', role, user.id);
-          
-          setView('home');
+        if (useMagicLink) {
+          await sendMagicLink(email);
+          updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'MAGIC_LINK_SENT' });
+          addToast("Check your email for the login link.", "success");
+        } else {
+          const session = await loginWithUsername(identifier.trim(), password, true);
+          updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'SIGNIN_DONE', authResponse: { session_id: session?.access_token ? 'REDACTED' : 'FAILED' } });
+          if (session?.user) {
+            const user = session.user;
+            handleAuthSuccess(user.email || '', user.user_metadata.full_name || 'User', 'registered', user.id);
+            addToast("Sign in successful.", "success");
+            onAuthSuccess(user.email || '', user.user_metadata.full_name || 'User', 'registered', user.id);
+            setView('home');
+          }
         }
       }
     } catch (err: any) {
+      console.error("DIAGNOSTIC ERROR CAPTURE:", err);
+      updateDiagnostics({ 
+        status: 'AUTH_REQUEST_ERROR', 
+        step: 'ERROR',
+        supabaseError: err,
+        supabaseErrorCode: err.code || 'N/A',
+        supabaseErrorMessage: err.message || 'Unknown Supabase Error',
+        supabaseErrorStatus: err.status || 'N/A'
+      });
       addToast(err.message || "Authentication failed", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      addToast("Keys do not match in parity.", "error");
-      return;
-    }
-    if (password.length < 6) {
-      addToast("Key must be 6+ characters for security.", "error");
-      return;
-    }
-    if (!username || !identifier) {
-      addToast("All fields required for registration.", "error");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const user = await signUpWithUsername(username.toLowerCase().trim(), identifier.trim(), password);
-      if (user) {
-        // Send Welcome Email
-        try {
-          const referralLink = `${window.location.origin}?ref=${username}`;
-          await sendWelcomeEmail(identifier.trim(), username, referralLink);
-        } catch (e) {
-          console.warn("[Auth] Welcome email protocol fault:", e);
-        }
-
-        addToast("Industrial ID generated. Please login.", "success");
-        setStep('request'); // Switch to login after signup
-      }
-    } catch (err: any) {
-      addToast(err.message || "Signup failed", "error");
     } finally {
       setLoading(false);
     }
@@ -203,469 +169,208 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
       setLoading(true);
       await loginWithGoogle();
     } catch (err: any) {
-      addToast("OAuth Protocol Failure.", "error");
+      addToast("Failed to sign in with Google.", "error");
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-aba-deep flex flex-col items-center justify-center p-6 sm:p-24 relative overflow-hidden">
-      {/* Dynamic Background */}
-      <div className="absolute inset-0 atmosphere opacity-30 select-none pointer-events-none" />
+    <div className="min-h-screen bg-[#0b100e] flex flex-col items-center justify-center p-6 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-aba-gold/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-aba-green/5 rounded-full blur-[120px]" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-aba-gold/5 rounded-full blur-[120px]" />
       
-      <header className="fixed top-0 left-0 right-0 p-6 flex items-center justify-between z-50">
-        <button onClick={() => setView('home')} className="p-4 bg-white/5 rounded-2xl border border-white/10 active:scale-95 transition-all text-white/40 hover:text-white backdrop-blur-md">
-           <ArrowLeft size={24} />
-        </button>
-        <Logo size={40} className="border-2 border-aba-gold/10 shadow-2xl" />
-      </header>
-
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-white/5 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-10 sm:p-14 shadow-2xl relative z-10"
+        className="w-full max-w-md bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-10 shadow-2xl relative z-10"
       >
         <div className="text-center mb-10">
-           <motion.div 
-             initial={{ scale: 0.8, rotate: -10 }}
-             animate={{ scale: 1, rotate: 0 }}
-             className="w-16 h-16 rounded-[2rem] bg-aba-gold/10 border border-aba-gold/30 flex items-center justify-center text-aba-gold mb-6 shadow-glow mx-auto"
-           >
+           <div className="w-16 h-16 rounded-2xl bg-aba-gold/10 border border-aba-gold/30 flex items-center justify-center text-aba-gold mb-6 mx-auto">
               <ShieldCheck size={32} />
-           </motion.div>
-           <h2 className="text-3xl font-black tracking-tighter text-white mb-2 uppercase tracking-wide">
-             NODE <span className="text-aba-gold">ACCESS.</span>
+           </div>
+           <h2 className="text-3xl font-bold tracking-tight text-white mb-2 uppercase">
+             {mode === 'signin' ? 'Sign In' : 'Sign Up'}
            </h2>
-           <p className="text-[10px] font-black uppercase text-slate-500 tracking-[0.4em] leading-relaxed">
-             FindAba Industrial Operating System
+           <p className="text-xs font-medium text-white/40 uppercase tracking-widest">
+             {mode === 'signin' ? 'Welcome back to the community' : 'Create your account to get started'}
            </p>
         </div>
 
-        {step === 'request' && (
-          <div className="flex gap-4 mb-8">
-            <button 
-              onClick={() => setMethod('email')}
-              className={`flex-1 py-3 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all ${method === 'email' ? 'bg-white/10 text-white border border-white/20' : 'text-white/20 hover:text-white/40'}`}
-            >
-              Email Protocol
-            </button>
-            <button 
-              onClick={() => setMethod('phone')}
-              className={`flex-1 py-3 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all ${method === 'phone' ? 'bg-white/10 text-white border border-white/20' : 'text-white/20 hover:text-white/40'}`}
-            >
-              Phone Signal
-            </button>
+        <form onSubmit={handleAuth} className="space-y-6">
+          {mode === 'signup' && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-aba-gold tracking-widest ml-1">Username</label>
+              <input 
+                type="text" 
+                placeholder="USERNAME" 
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-aba-gold/50 transition-all"
+                required
+              />
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase text-aba-gold tracking-widest ml-1">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+              <input 
+                type="email" 
+                placeholder="EMAIL ADDRESS" 
+                value={identifier}
+                onChange={e => setIdentifier(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-aba-gold/50 transition-all"
+                required
+              />
+            </div>
           </div>
-        )}
-
-        <div className="space-y-8">
-            <AnimatePresence mode="wait">
-              {step === 'otp' ? (
-                <motion.form 
-                  key="otp-form"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  onSubmit={handleOTPVerify}
-                  className="space-y-6"
-                >
-                   <div className="text-center mb-4">
-                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Verify Industrial Signal</p>
-                     <p className="text-[8px] text-white/40 mt-1 uppercase tracking-widest">Sent to {identifier}</p>
-                   </div>
-                   
-                   <div className="flex justify-between gap-2">
-                     {otpCode.map((digit, i) => (
-                       <input
-                         key={i}
-                         type="text"
-                         maxLength={1}
-                         value={digit}
-                         onChange={e => {
-                           const newOtp = [...otpCode];
-                           newOtp[i] = e.target.value.slice(-1);
-                           setOtpCode(newOtp);
-                           if (e.target.value && i < 5) (e.target.nextSibling as HTMLInputElement)?.focus();
-                         }}
-                         className="w-12 h-14 bg-white/5 border border-white/10 rounded-xl text-center text-white font-black outline-none focus:border-aba-gold/50"
-                       />
-                     ))}
-                   </div>
-                   
-                   <button 
-                     type="submit"
-                     disabled={loading || otpCode.join('').length < 6}
-                     className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 disabled:opacity-50"
-                   >
-                     {loading ? <Loader2 className="animate-spin" size={20} /> : "AUTHORIZE ACCESS"}
-                   </button>
-                </motion.form>
-              ) : step === 'signup' ? (
-                <motion.form 
-                  key="signup-form"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  onSubmit={handleSignup}
-                  className="space-y-6"
-                >
-                   <div className="text-center mb-4">
-                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Generate Industrial ID</p>
-                   </div>
-                   
-                   <div className="space-y-4">
-                     <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
-                       <div className="flex items-center">
-                         <div className="p-4"><User className="text-white/20" size={18} /></div>
-                         <input 
-                           type="text" 
-                           placeholder="UNIQUE USERNAME" 
-                           value={username}
-                           onChange={e => setUsername(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
-                           required
-                         />
-                       </div>
-                     </div>
-
-                     <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
-                       <div className="flex items-center">
-                         <div className="p-4"><Mail className="text-white/20" size={18} /></div>
-                         <input 
-                           type="email" 
-                           placeholder="EMAIL ADDRESS" 
-                           value={identifier}
-                           onChange={e => setIdentifier(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
-                           required
-                         />
-                       </div>
-                     </div>
-
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
-                          <div className="flex items-center">
-                            <div className="p-4"><Lock className="text-aba-gold/50" size={18} /></div>
-                            <input 
-                              type="password" 
-                              placeholder="KEY" 
-                              value={password}
-                              onChange={e => setPassword(e.target.value)}
-                              className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
-                          <div className="flex items-center">
-                            <div className="p-4"><ShieldCheck className="text-aba-gold" size={18} /></div>
-                            <input 
-                              type="password" 
-                              placeholder="CONFIRM" 
-                              value={confirmPassword}
-                              onChange={e => setConfirmPassword(e.target.value)}
-                              className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
-                              required
-                            />
-                          </div>
-                        </div>
-                     </div>
-
-                     {/* Password Strength Indicator */}
-                     {password && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="space-y-3 px-4 py-2"
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Protocol Strength</span>
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${strengthTextColors[strength]}`}>
-                              {strengthLabels[strength]}
-                            </span>
-                          </div>
-                          <div className="flex gap-1.5 h-1">
-                            {[0, 1, 2, 3, 4].map((i) => (
-                              <div 
-                                key={i}
-                                className={`flex-1 rounded-full transition-all duration-500 ${i <= strength ? strengthColors[strength] : 'bg-white/5'}`}
-                              />
-                            ))}
-                          </div>
-                          <p className="text-[8px] font-bold text-white/20 uppercase tracking-[0.2em] leading-relaxed italic text-center">
-                            Use 10+ characters with symbols and mixed casing for maximum fidelity.
-                          </p>
-                        </motion.div>
-                      )}
-                   </div>
-                   
-                   <button 
-                     type="submit"
-                     disabled={loading}
-                     className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-                   >
-                      {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>COMMIT NEW IDENTITY</>
-                      )}
-                   </button>
-
-                   <button 
-                     type="button"
-                     onClick={() => { setStep('request'); setView('login'); }}
-                     className="w-full text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors py-2"
-                   >
-                     Already have a node? Login
-                   </button>
-                </motion.form>
-              ) : step === 'forgot' ? (
-                <motion.form 
-                  key="forgot-form"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  onSubmit={handleForgotPassword}
-                  className="space-y-6"
-                >
-                   <div className="text-center mb-4">
-                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Protocol Recovery</p>
-                   </div>
-                   <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
-                     <div className="flex items-center">
-                       <div className="p-4"><Mail className="text-white/20" size={18} /></div>
-                       <input 
-                         type="email" 
-                         placeholder="RECOVERY EMAIL" 
-                         value={identifier}
-                         onChange={e => setIdentifier(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
-                         required
-                       />
-                     </div>
-                   </div>
-                   
-                   <button 
-                     type="submit"
-                     disabled={loading}
-                     className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-                   >
-                      {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>RESET PROTOCOL KEY</>
-                      )}
-                   </button>
-
-                   <button 
-                     type="button"
-                     onClick={() => setStep('request')}
-                     className="w-full text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors py-2"
-                   >
-                     Return to Login
-                   </button>
-                </motion.form>
-              ) : step === 'reset' ? (
-                <motion.form 
-                  key="reset-form"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  onSubmit={handleUpdatePassword}
-                  className="space-y-6"
-                >
-                   <div className="text-center mb-4">
-                     <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Establish New Protocol Key</p>
-                   </div>
-                   <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
-                     <div className="flex items-center">
-                       <div className="p-4"><Lock className="text-aba-gold" size={18} /></div>
-                       <input 
-                         type="password" 
-                         placeholder="NEW PROTOCOL KEY" 
-                         value={newPassword}
-                         onChange={e => setNewPassword(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
-                         required
-                       />
-                     </div>
-                   </div>
-
-                   {/* New Password Strength Indicator */}
-                    {newPassword && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-3 px-2 mt-2"
-                      >
-                         <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">New Link Security</span>
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${strengthTextColors[newStrength]}`}>
-                              {strengthLabels[newStrength]}
-                            </span>
-                          </div>
-                          <div className="flex gap-1.5 h-1">
-                            {[0, 1, 2, 3, 4].map((i) => (
-                              <div 
-                                key={i}
-                                className={`flex-1 rounded-full transition-all duration-500 ${i <= newStrength ? strengthColors[newStrength] : 'bg-white/5'}`}
-                              />
-                            ))}
-                          </div>
-                      </motion.div>
-                    )}
-                   
-                   <button 
-                     type="submit"
-                     disabled={loading}
-                     className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-                   >
-                      {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>UPDATE INDUSTRIAL KEY</>
-                      )}
-                   </button>
-
-                   <button 
-                     type="button"
-                     onClick={() => { setStep('request'); window.history.replaceState({}, document.title, window.location.pathname); }}
-                     className="w-full text-[9px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors py-2"
-                   >
-                     Cancel
-                   </button>
-                </motion.form>
-              ) : (
-                <motion.form 
-                  key="login-form"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  onSubmit={method === 'email' ? handleLogin : handlePhoneLogin}
-                  className="space-y-6"
-                >
-                   <div className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2">
-                     <div className="flex items-center">
-                       <div className="p-4">{method === 'email' ? <Fingerprint className="text-white/20" size={18} /> : <Phone className="text-white/20" size={18} />}</div>
-                       <input 
-                         type={method === 'email' ? "text" : "tel"} 
-                         placeholder={method === 'email' ? "USERNAME OR EMAIL" : "PHONE NUMBER (+234...)"}
-                         value={identifier}
-                         onChange={e => setIdentifier(e.target.value)}
-                         className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
-                         required
-                       />
-                     </div>
-                   </div>
-                   
-                   {method === 'email' && !useMagicLink && (
-                     <motion.div 
-                       initial={{ opacity: 0, height: 0 }}
-                       animate={{ opacity: 1, height: 'auto' }}
-                       className="relative group bg-white/5 rounded-2xl border border-white/10 p-1 md:p-2"
-                     >
-                       <div className="flex items-center">
-                         <div className="p-4"><Lock className="text-aba-gold" size={18} /></div>
-                         <input 
-                           type="password" 
-                           placeholder="PROTOCOL KEY" 
-                           value={password}
-                           onChange={e => setPassword(e.target.value)}
-                           className="flex-1 bg-transparent py-4 text-xs font-black uppercase tracking-widest placeholder:text-white/20 outline-none"
-                           required={!useMagicLink}
-                         />
-                       </div>
-                     </motion.div>
-                   )}
-
-                   <div className="flex justify-between items-center px-2">
-                     <label className="flex items-center gap-3 cursor-pointer group">
-                       <input 
-                         type="checkbox" 
-                         checked={keepSignedIn}
-                         onChange={e => setKeepSignedIn(e.target.checked)}
-                         className="hidden"
-                       />
-                       <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${keepSignedIn ? 'bg-aba-gold border-aba-gold' : 'border-white/20 bg-white/5'}`}>
-                         {keepSignedIn && <ShieldCheck size={12} className="text-aba-deep" />}
-                       </div>
-                       <span className="text-[9px] font-black uppercase tracking-widest text-white/40 group-hover:text-white transition-colors">Keep me signed in</span>
-                     </label>
-                     
-                     <div className="flex items-center gap-4">
-                       {method === 'email' && (
-                         <>
-                            <button 
-                              type="button"
-                              onClick={() => setStep('forgot')}
-                              className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors"
-                            >
-                              Forgot Key?
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={() => setUseMagicLink(!useMagicLink)}
-                              className="text-[9px] font-black uppercase tracking-widest text-white/30 hover:text-aba-gold transition-colors flex items-center gap-2"
-                            >
-                              <Wand2 size={12} />
-                              {useMagicLink ? "Password" : "Magic Link"}
-                            </button>
-                         </>
-                       )}
-                     </div>
-                   </div>
-
-                   <button 
-                     type="submit"
-                     disabled={loading}
-                     className="w-full py-6 bg-white text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl hover:bg-aba-gold transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-                   >
-                      {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                        <>{method === 'phone' ? "DISPATCH TOKEN" : (useMagicLink ? "Dispatch Magic Node" : "Initialize Link")}</>
-                      )}
-                   </button>
-                </motion.form>
-              )}
-            </AnimatePresence>
-
-           <div className="relative py-4">
-              <div className="absolute inset-0 flex items-center">
-                 <div className="w-full border-t border-white/5" />
+          
+          {!useMagicLink && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-aba-gold tracking-widest ml-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+                <input 
+                  type="password" 
+                  placeholder="PASSWORD" 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-aba-gold/50 transition-all"
+                  required={!useMagicLink}
+                />
               </div>
-              <div className="relative flex justify-center text-[8px] font-black uppercase tracking-[0.4em] text-slate-500">
-                 <span className="bg-[#0b100e] px-4">Social Mesh Gateway</span>
-              </div>
-           </div>
+            </div>
+          )}
 
+          <button 
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 bg-white text-aba-deep rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-aba-gold transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl"
+          >
+            {loading ? <Loader2 className="animate-spin" size={20} /> : (
+              <>
+                {mode === 'signup' ? 'Create Account' : (useMagicLink ? 'Send Magic Link' : 'Sign In')}
+                <ArrowRight size={18} />
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 space-y-4">
+          <div className="relative flex items-center">
+            <div className="flex-grow border-t border-white/5"></div>
+            <span className="flex-shrink mx-4 text-[10px] font-bold text-white/20 uppercase tracking-widest">Or continue with</span>
+            <div className="flex-grow border-t border-white/5"></div>
+          </div>
+
+          <button 
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full py-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
+          >
+            <Globe size={18} className="text-aba-gold" />
+            <span className="text-xs font-bold uppercase tracking-widest text-white/60">Google Account</span>
+          </button>
+        </div>
+
+        <div className="mt-8 text-center pt-6 border-t border-white/5">
            <button 
-             onClick={handleGoogleLogin}
-             disabled={loading}
-             className="w-full py-5 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center gap-3 hover:bg-white/10 transition-standard group disabled:opacity-50"
+             onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
+             className="text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors"
            >
-              <Globe size={20} className="text-white/40 group-hover:text-white transition-standard" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white">Google Hub Login</span>
+              {mode === 'signup' ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
            </button>
         </div>
-
-        <div className="mt-12 text-center">
-           {step === 'signup' ? (
-             <button 
-               onClick={() => { setStep('request'); setView('login'); }}
-               className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-aba-gold transition-colors"
-             >
-                Already have a node? <span className="text-white">Login Now</span>
-             </button>
-           ) : (
-             <button 
-               onClick={() => { setStep('signup'); setView('signup'); }}
-               className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-aba-gold transition-colors"
-             >
-                Don't have a node? <span className="text-white">Create Account</span>
-             </button>
-           )}
-        </div>
       </motion.div>
-      
-      <footer className="p-12 text-center opacity-30 select-none grayscale blur-[0.5px]">
-         <span className="text-[16px] font-black uppercase tracking-[1em]">SANDALSroyalle</span>
-         <p className="text-[8px] font-black uppercase tracking-widest mt-4">Fidelity Mesh v19.2</p>
-      </footer>
+
+      {/* LOGIN_DIAGNOSTICS PANEL */}
+      <div className="mt-12 w-full max-w-2xl bg-black/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md relative z-10 font-mono">
+        <h3 className="text-aba-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+          <ShieldCheck size={14} />
+          System Login Diagnostics
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-4 text-[10px] text-white/60">
+          <div className="space-y-2">
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>STATUS:</span>
+               <span className="text-white font-bold">{diagnostics.status}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>STEP:</span>
+               <span className="text-aba-gold">{diagnostics.step}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>EMAIL:</span>
+               <span>{diagnostics.email || 'N/A'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>PASSWORD_LENGTH:</span>
+               <span>{password.length}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>PASSWORD_MIN_REQUIRED:</span>
+               <span>6</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>PASSWORD_VALID:</span>
+               <span className={passwordValid ? 'text-green-400' : 'text-red-400'}>{passwordValid ? 'YES' : 'NO'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>VALIDATION_RULE_FAILED:</span>
+               <span className="text-red-400">{validationRuleFailed}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>VALIDATION_FAILURE_REASON:</span>
+               <span className="text-red-400">{validationRuleFailed}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>VALIDATION_RESULT:</span>
+               <span className={diagnostics.validationResult === 'FAILED' ? 'text-red-400' : 'text-green-400'}>{diagnostics.validationResult}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>VALIDATION_ERROR:</span>
+               <span className="text-red-400">{diagnostics.validationError || 'NONE'}</span>
+             </div>
+          </div>
+
+          <div className="space-y-2">
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>AUTH_REQUEST_SENT:</span>
+               <span>{diagnostics.authRequestSent ? 'YES' : 'NO'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>AUTH_RESPONSE:</span>
+               <span>{diagnostics.authResponse ? 'RECEIVED' : 'PENDING'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>SUPABASE_ERROR:</span>
+               <span className={diagnostics.supabaseError ? 'text-red-400' : 'text-white/20'}>{diagnostics.supabaseError ? 'DETECTED' : 'NONE'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>ERROR_CODE:</span>
+               <span className="text-red-400">{diagnostics.supabaseErrorCode || 'N/A'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>ERROR_STATUS:</span>
+               <span className="text-red-400">{diagnostics.supabaseErrorStatus || 'N/A'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>ERROR_MESSAGE:</span>
+               <span className="text-red-400 text-[9px] line-clamp-1 truncate max-w-[150px]" title={diagnostics.supabaseErrorMessage}>
+                 {diagnostics.supabaseErrorMessage || 'N/A'}
+               </span>
+             </div>
+          </div>
+        </div>
+        
+        {diagnostics.supabaseError && (
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-[9px] text-red-400 whitespace-pre-wrap overflow-auto max-h-24">
+            {JSON.stringify(diagnostics.supabaseError, null, 2)}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

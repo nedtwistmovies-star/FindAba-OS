@@ -7,8 +7,6 @@ import { MessageInput as ChatInput } from './ChatInput';
 import ErrorBoundary from './ErrorBoundary';
 import FeedbackToast from './FeedbackToast';
 import ImageCarousel from './ImageCarousel';
-import { GitHubSync } from './GitHubSync';
-import { SupabaseSync } from './SupabaseSync';
 import { ImageUpload, MultiImageUpload } from './ImageUpload';
 import IndustrialButton from './IndustrialButton';
 import Layout from './Layout';
@@ -26,8 +24,7 @@ import SectionHeader from './SectionHeader';
 import StatCard from './StatCard';
 import { VideoUpload, MultiVideoUpload } from './VideoUpload';
 import { BusinessCardSkeleton, FeedSkeleton, HeroSkeleton } from './SkeletonLoader';
-import { DiagnosticRegistryView } from './diagnostic/DiagnosticRegistryView';
-
+import { AuthModal } from './AuthModal';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -35,8 +32,6 @@ export {
   ChatInput,
   ErrorBoundary,
   FeedbackToast,
-  GitHubSync,
-  SupabaseSync,
   ImageCarousel,
   ImageUpload, MultiImageUpload,
   IndustrialButton,
@@ -55,5 +50,5 @@ export {
   StatCard,
   VideoUpload, MultiVideoUpload,
   BusinessCardSkeleton, FeedSkeleton, HeroSkeleton,
-  DiagnosticRegistryView
+  AuthModal
 };

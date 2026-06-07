@@ -22,16 +22,16 @@ export const OnboardingRouter: React.FC<{ onComplete: () => void; setView?: (v: 
   // Handle existing auth state
   useEffect(() => {
     if (isAuth && profile) {
-      const stage = profile.onboarding_stage;
+      const onboardingStage = profile.onboarding_stage;
       
-      if (stage === 'completed') {
+      if (onboardingStage === 'completed') {
         setStep('success');
-      } else if (stage === 'identity_unverified') {
+      } else if (onboardingStage === 'identity_unverified') {
         setStep('otp');
-      } else if (stage === 'profile_setup' || !profile.username) {
+      } else if (!profile.username || onboardingStage === 'profile_setup') {
         setStep('profile');
-      } else if (stage === 'merchant_setup') {
-        setStep('merchant');
+      } else {
+        setStep('success');
       }
     }
   }, [isAuth, profile]);
@@ -45,11 +45,10 @@ export const OnboardingRouter: React.FC<{ onComplete: () => void; setView?: (v: 
     if (identifier) setAuthIdentifier(identifier);
     
     if (type === 'signup') {
-      // For signup, go to OTP
       setStep('otp');
     } else {
-      // For signin, if profile incomplete go to profile, else success
-      if (!profile?.username || profile?.onboarding_stage !== 'completed') {
+      // For signin, check if profile exists
+      if (!profile?.username) {
         setStep('profile');
       } else {
         setStep('success');
@@ -66,13 +65,8 @@ export const OnboardingRouter: React.FC<{ onComplete: () => void; setView?: (v: 
   };
 
   const handleFinalComplete = () => {
-    console.log("[OnboardingRouter] Final transition triggered.");
     if (onComplete) onComplete();
-    if (setView) {
-      const target = !isAuth ? 'onboarding' : (profile?.onboarding_stage !== 'completed' ? 'onboarding' : 'home');
-      console.log(`[OnboardingRouter] setView to ${target}`);
-      setView(target);
-    }
+    if (setView) setView('home');
   };
 
   return (

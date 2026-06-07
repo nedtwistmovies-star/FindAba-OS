@@ -6,15 +6,15 @@ import {
   Home, Compass, UserCircle, Search, Menu, X, Globe, Building2, Zap, ShieldCheck,
   MessageCircle, BookOpen, Map as MapIcon, Layers, Sparkles, Radio, Info, Loader2, Cpu,
   Rss, Users, Lock, Unlock, Bell, Car, Key, Truck, Wallet, Plus, Landmark,
-  Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft, RefreshCw
+  Facebook, Instagram, Twitter, Music, Send, Mail, LifeBuoy, ChevronRight, ArrowLeft, RefreshCw,
+  Github, Database
 } from 'lucide-react';
 import Logo from './Logo';
-import { GitHubSync } from './GitHubSync';
-import { SupabaseSync } from './SupabaseSync';
 import { generateWelcomeMessage } from '../services/geminiService';
 import { getSupabase, fetchNotifications, markNotificationAsRead } from '../services/supabaseService';
 import { useAuth } from '../providers/AuthProvider';
 import { useBusiness } from '../providers/BusinessProvider';
+import { useGitSync } from '../hooks/useGitSync';
 import { SANDALS_BRAND } from '../constants';
 import NotificationCenter from './NotificationCenter';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../services/signalService';
@@ -46,40 +46,20 @@ const SystemClock: React.FC = () => {
     <div className="flex flex-col items-end px-4 border-x border-white/10">
       <div className="flex items-center gap-2">
         <span className="text-[10px] sm:text-[11px] font-bold text-aba-gold uppercase tracking-wider">{dateStr}</span>
-        <span className="text-[10px] sm:text-[11px] font-bold text-aba-green uppercase tracking-wider border-l border-white/10 pl-2">{marketDay}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className="text-sm font-bold text-white tracking-tight">{timeStr}</span>
-        {weather && (
-          <span className="text-[10px] sm:text-[11px] font-medium text-white/40 uppercase tracking-wider border-l border-white/10 pl-2 hidden sm:block">
-            {weather.temp.length < 20 ? weather.temp : 'Syncing...'}
-          </span>
-        )}
       </div>
     </div>
   );
 };
 
-export const BrandSignature: React.FC<{ light?: boolean; className?: string }> = ({ light = false, className = "" }) => (
+export const BrandSignature: React.FC<{ className?: string }> = ({ className = "" }) => (
   <div className={`py-12 flex flex-col items-center justify-center gap-4 select-none w-full text-center px-4 ${className}`}>
-    <div className={`flex items-center gap-4 opacity-20 ${light ? 'text-white' : 'text-aba-deep'}`}>
-      <div className="h-px w-8 bg-current" />
-      <span className="text-[10px] font-bold uppercase tracking-[0.3em]">
-        FindAba OS v6.0
-      </span>
-      <div className="h-px w-8 bg-current" />
-    </div>
-    
     <div className="flex flex-col items-center">
       <span className="text-lg font-bold uppercase tracking-[0.4em] text-aba-gold">
-        SANDALSroyalle
+        FindAba
       </span>
-    </div>
-
-    <div className={`px-4 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${
-      light ? 'bg-white/5 border-white/10 text-white/40' : 'bg-aba-green/5 border-aba-green/10 text-aba-green/60'
-    }`}>
-      Official Industrial Signal
     </div>
   </div>
 );
@@ -140,9 +120,10 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo, oracleAvatar, socialLinks }) => {
   const { addToast } = useToast();
-  const { userIdentifier, userName, isAuth, profile } = useAuth();
+  const { userIdentifier, userName, isAuth, profile, userRole } = useAuth();
   const safeProfile = profile || {};
-  const { searchQuery, setSearchQuery, searchResults, isSearching, setSelectedBusiness } = useBusiness();
+  const { searchQuery, setSearchQuery, searchResults, isSearching, setSelectedBusiness, commitAll } = useBusiness();
+  const { status: gitStatus, loading: gitLoading, fullSync } = useGitSync();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRegistryActive, setIsRegistryActive] = useState(false);
   const [isSignalHealthy, setIsSignalHealthy] = useState(true);
@@ -225,7 +206,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
     { label: 'Creative Lab', icon: <Sparkles size={20} />, view: 'lab' as ViewState },
     { label: 'Hardware Audit', icon: <ShieldCheck size={20} />, view: 'hardware-audit' as ViewState },
     { label: 'Aba History', icon: <BookOpen size={20} />, view: 'about-aba' as ViewState },
-    { label: 'City Registry', icon: <Layers size={20} />, view: 'industrial-directory' as ViewState },
+    { label: 'City Registry', icon: <Layers size={20} />, view: 'explore' as ViewState },
     { label: 'Oracle Hub', icon: <Cpu size={20} />, view: 'oracle' as ViewState },
     { id: 'home', label: 'Home Node', icon: <Home size={20} />, view: 'home' as ViewState },
   ];
@@ -250,11 +231,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
   const SidebarItem = ({ item }: { item: typeof menuItems[0] }) => (
     <button 
       onClick={() => {
-        if (!isAuth && item.view !== 'about' && item.view !== 'support') {
-          addToast("Authentication required to access this node.", "info");
-          setView('login');
-          return;
-        }
         setView(item.view);
       }}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-standard group ${
@@ -291,15 +267,30 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
           {menuItems.map((item, i) => (
             <SidebarItem key={i} item={item} />
           ))}
-        </div>
 
-        <div className="p-4 border-t border-white/5 space-y-2">
-          {!isSidebarCollapsed && (
-            <div className="grid grid-cols-1 gap-2 mb-2">
-              <SupabaseSync />
-              <GitHubSync />
+          {userRole === 'admin' && (
+            <div className="pt-6 pb-2 space-y-2">
+              <div className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Industrial Control</div>
+              <button 
+                onClick={() => fullSync("Manual Sidebar Sync")}
+                disabled={gitLoading}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-standard hover:bg-white/5 text-white/60 hover:text-white disabled:opacity-50 group"
+              >
+                <Github size={20} className="text-aba-gold group-hover:scale-110 transition-transform" />
+                {!isSidebarCollapsed && <span className="truncate tracking-tight">GitHub Sync</span>}
+              </button>
+              <button 
+                onClick={commitAll}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-standard hover:bg-white/5 text-white/60 hover:text-white group"
+              >
+                <Database size={20} className="text-aba-gold group-hover:scale-110 transition-transform" />
+                {!isSidebarCollapsed && <span className="truncate tracking-tight">Supabase Commit</span>}
+              </button>
             </div>
           )}
+        </div>
+
+        <div className="p-4 border-t border-white/5">
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className="w-full p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 flex items-center justify-center transition-standard"
@@ -408,12 +399,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             <div className="lg:hidden flex items-center gap-1">
               <button 
                 onClick={() => {
-                  if (!isAuth) {
-                    addToast("Search requires established link.", "info");
-                    setView('login');
-                    return;
-                  }
-                  setView('industrial-directory');
+                  setView('explore');
                 }}
                 className="p-2.5 text-white/40 hover:text-aba-gold transition-standard hover:bg-white/5 rounded-xl border border-transparent active:border-white/10"
               >
@@ -616,7 +602,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             </p>
           </div>
 
-          <BrandSignature light={isDarkThemeActive} />
+          <BrandSignature className={isDarkThemeActive ? 'text-white' : 'text-aba-deep'} />
           <AIWelcomeSection light={isDarkThemeActive} />
           <div className="h-20 w-full" />
         </footer>
@@ -673,11 +659,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                >
                  <Plus size={16} /> Add Listing
                </button>
-               
-               <div className="grid grid-cols-1 gap-3 pt-2">
-                 <SupabaseSync />
-                 <GitHubSync />
-               </div>
             </div>
             <div className="flex-1 p-8 space-y-3 overflow-y-auto scrollbar-hide">
                {menuItems.map((item, i) => (
@@ -690,6 +671,29 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
                      {item.label}
                   </button>
                ))}
+
+               {userRole === 'admin' && (
+                 <div className="pt-8 space-y-4">
+                   <div className="px-6 text-[10px] font-black uppercase tracking-[0.3em] text-white/20">Industrial Handshake</div>
+                   <div className="grid grid-cols-2 gap-4">
+                     <button 
+                       onClick={() => { fullSync("Mobile Menu Sync"); setIsMenuOpen(false); }}
+                       disabled={gitLoading}
+                       className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95 disabled:opacity-50"
+                     >
+                       <Github size={24} className="text-aba-gold" />
+                       <span className="text-[8px] font-black uppercase tracking-widest">Git Sync</span>
+                     </button>
+                     <button 
+                       onClick={() => { commitAll(); setIsMenuOpen(false); }}
+                       className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95"
+                     >
+                       <Database size={24} className="text-aba-gold" />
+                       <span className="text-[8px] font-black uppercase tracking-widest">Commit SB</span>
+                     </button>
+                   </div>
+                 </div>
+               )}
             </div>
             <div className="p-8 border-t border-aba-white/5">
                <div className="p-6 bg-aba-white/5 rounded-[2.5rem] border border-aba-white/5 text-center flex flex-col gap-2">

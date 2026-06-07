@@ -138,7 +138,6 @@ export const triggerWebhook = async (
 
       if (response.ok) {
         status = 'success';
-        console.debug(`[Automation] Webhook signal sent successfully: ${event}`);
         await logAutomationEvent(standardizedData, status, responseText);
         return true;
       } else {

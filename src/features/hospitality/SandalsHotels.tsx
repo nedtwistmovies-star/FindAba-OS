@@ -85,6 +85,11 @@ const SandalsHotels: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   };
 
   const handleInitiateStay = (room: Room) => {
+    if (!userId) {
+      addToast("Authentication required to reserve a room.", "info");
+      setView('login');
+      return;
+    }
     setPendingRoom(room);
     setShowRegForm(true);
   };

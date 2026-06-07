@@ -7,25 +7,25 @@ const SLIDES = [
   {
     icon: <Globe className="w-12 h-12 text-aba-gold" />,
     title: "Discover Aba",
-    description: "Welcome to the central nervous system of Aba's commerce. Connect with verified artisans, manufacturers, and wholesalers in real-time.",
+    description: "Welcome to the central marketplace for Aba's commerce. Connect with verified artisans, manufacturers, and wholesalers.",
     bg: "bg-blue-900/20"
   },
   {
     icon: <Users className="w-12 h-12 text-aba-green" />,
-    title: "Connect with Businesses",
-    description: "Every participant is vetted through our physical verification protocol. Trust is the currency of FindAba.",
+    title: "Vetted Businesses",
+    description: "Trust is the core of our community. Every merchant is vetted to ensure quality and reliability.",
     bg: "bg-emerald-900/20"
   },
   {
     icon: <ShieldCheck className="w-12 h-12 text-aba-gold" />,
-    title: "Save Collectively with Isusu",
-    description: "Participate in secure, transparent rotating savings and credit circles. Built for industrial growth and resilience.",
+    title: "Secure Savings",
+    description: "Join transparent savings and credit circles designed to power your business growth.",
     bg: "bg-orange-900/20"
   },
   {
     icon: <TrendingUp className="w-12 h-12 text-blue-400" />,
-    title: "Power Your Growth",
-    description: "Integrated logistics and financial tools ensure your industrial output moves seamlessly from Aba to the global market.",
+    title: "Grow Together",
+    description: "Access modern logistics and financial tools to take your products from Aba to the world.",
     bg: "bg-indigo-900/20"
   }
 ];
@@ -107,24 +107,24 @@ export const OnboardingSlides: React.FC<{ onComplete: (mode: 'signin' | 'signup'
           <div className="flex gap-4 w-full ml-4">
              <button 
                onClick={() => onComplete('signup')}
-               className="flex-1 bg-white text-aba-deep py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest hover:bg-aba-gold transition-all active:scale-95"
+               className="flex-1 bg-white text-aba-deep py-5 rounded-2xl font-bold uppercase text-[11px] tracking-widest hover:bg-aba-gold transition-all active:scale-95 shadow-lg"
              >
-               CREATE ACCOUNT
+               Get Started
              </button>
              <button 
                onClick={() => onComplete('signin')}
-               className="flex-1 bg-white/5 border border-white/10 text-white py-5 rounded-[2rem] font-black uppercase text-[10px] tracking-widest hover:bg-white/10 transition-all active:scale-95"
+               className="flex-1 bg-white/5 border border-white/10 text-white py-5 rounded-2xl font-bold uppercase text-[11px] tracking-widest hover:bg-white/10 transition-all active:scale-95"
              >
-               LOGIN
+               Sign In
              </button>
           </div>
         ) : (
           <button 
             onClick={next}
-            className="group flex items-center gap-4 bg-white text-aba-deep px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-aba-gold transition-all active:scale-95"
+            className="group flex items-center gap-4 bg-white text-aba-deep px-12 py-5 rounded-2xl font-bold uppercase text-xs tracking-widest hover:bg-aba-gold transition-all active:scale-95 shadow-xl"
           >
-            Next Protocol
-            <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+            Continue
+            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </button>
         )}
       </div>

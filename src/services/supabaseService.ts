@@ -22,14 +22,6 @@ let _supabaseInstance: SupabaseClient | null = null;
 let _currentUrl: string | null = null;
 let _currentKey: string | null = null;
 
-export const resetSupabaseInstance = (force = false) => {
-  if (force) {
-    _supabaseInstance = null;
-    _currentUrl = null;
-    _currentKey = null;
-  }
-};
-
 export const getSupabase = (): SupabaseClient | null => {
   const env: any = (typeof process !== 'undefined' && process.env) ? process.env : {};
   const meta: any = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
@@ -62,7 +54,6 @@ export const getSupabase = (): SupabaseClient | null => {
   }
 
   try {
-    console.log(`[Registry] 🚀 INITIALIZING_CLIENT_V6.1 (Source: ${source})`);
     _supabaseInstance = createClient(url, key, { 
       auth: { 
         persistSession: true,
@@ -89,15 +80,11 @@ export const isRegistryConfigured = () => {
 };
 
 export const ensureAuth = async () => {
-  console.log("[SupabaseService] ensureAuth check start");
   const sb = getSupabase();
   if (!sb) {
-    console.error("[SupabaseService] ensureAuth: Registry Offline");
     throw new Error("Registry Offline");
   }
-  console.log("[SupabaseService] ensureAuth: getSession start");
   const { data: { session }, error } = await sb.auth.getSession();
-  console.log("[SupabaseService] ensureAuth: getSession complete", { hasSession: !!session, error });
   if (!session) throw new Error('Authentication required');
   return session;
 };
@@ -544,6 +531,8 @@ export const createEscrowOrder = async (order: Partial<Order>, business: Busines
   // Create order in PENDING status (Escrow flow starts here)
   const finalOrder = { 
     ...order, 
+    seller_id: order.seller_id || business.user_id,
+    merchant_id: business.id,
     commission_deducted: commission, 
     merchant_payout, 
     status: OrderStatus.PENDING, 
@@ -1012,12 +1001,6 @@ export const createThriftAccount = async (email: string, cycle: 'daily' | 'weekl
   // Get current user ID for RLS stabilization
   const { data: { user }, error: authError } = await client.auth.getUser();
   
-  console.log('========== THRIFT RLS DEBUG ==========');
-  console.log('AUTH ERROR:', authError);
-  console.log('AUTH USER:', user);
-  console.log('AUTH USER ID:', user?.id);
-  console.log('AUTH EMAIL:', user?.email);
-
   if (!user) throw new Error("Authentication signal required to activate protocol.");
 
   // Arrangement: 3.5% management fee
@@ -1044,12 +1027,7 @@ export const createThriftAccount = async (email: string, cycle: 'daily' | 'weekl
     protocol_type: 'FIDELITY_SAVINGS'
   };
 
-  console.log('INSERT PAYLOAD:', payload);
-
   const result = await client.from('thrift_accounts').insert(payload).select();
-  
-  console.log('INSERT RESULT:', result);
-  console.log('====================================');
   
   if (result.error) {
     throw result.error;

@@ -48,7 +48,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
     setMessage(null);
 
     try {
-      const user = await signUpWithUsername(formData.username.toLowerCase().trim(), formData.email, formData.password);
+      const user = await signUpWithUsername(formData.username.toLowerCase().trim(), formData.email, formData.password, formData.name, "");
       
       if (user) {
         // ✅ INSERT WELCOME NOTIFICATION HERE

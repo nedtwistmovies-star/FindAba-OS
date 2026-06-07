@@ -64,7 +64,7 @@ export async function getAbaWeather(): Promise<WeatherData> {
   } catch (error: any) {
     // Only log actual errors, not aborts or common network failures in dev
     if (error.name !== 'AbortError') {
-      console.debug('Weather sync bypassed, using local atmospheric fallback.');
+      // Silence log
     }
     return defaultWeather;
   }

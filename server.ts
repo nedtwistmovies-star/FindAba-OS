@@ -39,9 +39,11 @@ try {
 const resendKey = process.env.RESEND_API_KEY || 're_placeholder';
 const resend = new Resend(resendKey);
 
-const getAI = () => {
-  const key = process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY not configured on server.");
+const getAI = (customKey?: string) => {
+  const key = customKey || process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY;
+  if (!key) {
+    throw new Error("ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN THE SYSTEM CONSOLE (ADMIN).");
+  }
   return new GoogleGenAI({
     apiKey: key,
     httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
@@ -111,6 +113,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     supabaseKey,
     paystackKey,
     githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '',
+    githubBranch: process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main',
     makeWebhookUrl: process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || ''
   };
 
@@ -118,10 +121,11 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
 });
 
 // Gemini Proxy
-app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
+app.post("/api/oracle", async (req, res) => {
   try {
     const { prompt, history = [], catalog = [], type = 'search' } = req.body;
-    const ai = getAI();
+    const customKey = req.headers['x-gemini-key'] as string;
+    const ai = getAI(customKey);
     
     if (type === 'search') {
       const businessContext = catalog.slice(0, 50).map((b: any) => ({
@@ -498,6 +502,7 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
   // Automatic Git Repo Connection
   app.get("/api/git/sync", async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
+    const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main';
     const token = process.env.GITHUB_TOKEN || req.cookies.github_token;
 
     if (!repo) {
@@ -517,8 +522,9 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
       }
 
       try {
+        const url = `https://api.github.com/repos/${owner}/${name}/contents/registry.json?ref=${branch}`;
         const response = await axios.get(
-          `https://api.github.com/repos/${owner}/${name}/contents/registry.json`,
+          url,
           {
             headers: token ? { 
               Authorization: `Bearer ${token}`,
@@ -563,6 +569,7 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
   // Full System Sync (Server-side)
   app.post("/api/git/sync-full", async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
+    const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || ''; // If empty, will fetch default branch
     const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
     const { message = "Full System Sync via FindAba City OS" } = req.body;
 
@@ -660,12 +667,12 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
 
       // 3. GitHub Commit Logic - Split into batches if needed
       const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
-      const defaultBranch = repoInfo.data.default_branch;
+      const targetBranch = branch || repoInfo.data.default_branch;
       let latestCommitSha: string | null = null;
       let baseTreeSha: string | null = null;
       
       try {
-        const branchRes = await gitClient.get(`https://api.github.com/repos/${owner}/${name}/branches/${defaultBranch}`);
+        const branchRes = await gitClient.get(`https://api.github.com/repos/${owner}/${name}/branches/${targetBranch}`);
         latestCommitSha = branchRes.data.commit.sha;
         baseTreeSha = branchRes.data.commit.commit.tree.sha;
       } catch (e) {}
@@ -701,7 +708,7 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
       });
 
       console.log(`[GitSync] Commit created: ${commitRes.data.sha}. Updating ref...`);
-      await gitClient.patch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${defaultBranch}`, {
+      await gitClient.patch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${targetBranch}`, {
         sha: commitRes.data.sha
       });
 
@@ -788,6 +795,7 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
   // Commit to Git Repo (Atomic Multi-file Commit)
   app.post("/api/git/commit", async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
+    const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || '';
     const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
     const { files, message = "Update via FindAba City OS" } = req.body;
 
@@ -823,9 +831,9 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
         timeout: 60000 // 60 seconds
       });
 
-      // 1. Get the default branch
+      // 1. Get the target branch
       const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
-      const defaultBranch = repoInfo.data.default_branch;
+      const targetBranch = branch || repoInfo.data.default_branch;
 
       // 2. Get the latest commit SHA of the default branch
       let latestCommitSha: string | null = null;
@@ -833,7 +841,7 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
       
       try {
         const branchRes = await gitClient.get(
-          `https://api.github.com/repos/${owner}/${name}/branches/${defaultBranch}`
+          `https://api.github.com/repos/${owner}/${name}/branches/${targetBranch}`
         );
         latestCommitSha = branchRes.data.commit.sha;
         baseTreeSha = branchRes.data.commit.commit.tree.sha;
@@ -880,7 +888,7 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
       // 5. Update the branch reference
       if (latestCommitSha) {
         await gitClient.patch(
-          `https://api.github.com/repos/${owner}/${name}/git/refs/heads/${defaultBranch}`,
+          `https://api.github.com/repos/${owner}/${name}/git/refs/heads/${targetBranch}`,
           { sha: newCommitSha }
         );
       } else {
@@ -888,7 +896,7 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
         await gitClient.post(
           `https://api.github.com/repos/${owner}/${name}/git/refs`,
           {
-            ref: `refs/heads/${defaultBranch}`,
+            ref: `refs/heads/${targetBranch}`,
             sha: newCommitSha
           }
         );
@@ -905,6 +913,50 @@ app.post("/api/oracle", ensureAuthenticated, async (req, res) => {
         error: "Failed to commit to GitHub", 
         details: error.response?.data?.message || error.message 
       });
+    }
+  });
+
+  // Create GitHub Branch
+  app.post("/api/git/branch", async (req, res) => {
+    let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
+    const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
+    const { branch, from } = req.body;
+
+    if (!repo || !token || !branch) {
+      return res.status(400).json({ error: "Missing parameters for branch creation" });
+    }
+
+    repo = repo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/$/, '');
+
+    try {
+      const [owner, name] = repo.split("/");
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+      };
+      const gitClient = axios.create({ headers });
+
+      // 1. Get 'from' branch SHA (defaults to default branch)
+      let sourceBranch = from;
+      if (!sourceBranch) {
+        const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
+        sourceBranch = repoInfo.data.default_branch;
+      }
+
+      console.log(`[GitBranch] Creating ${branch} from ${sourceBranch}`);
+      const branchRes = await gitClient.get(`https://api.github.com/repos/${owner}/${name}/branches/${sourceBranch}`);
+      const sha = branchRes.data.commit.sha;
+
+      // 2. Create the new ref
+      await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/refs`, {
+        ref: `refs/heads/${branch}`,
+        sha
+      });
+
+      res.json({ success: true, message: `Branch ${branch} created from ${sourceBranch}` });
+    } catch (error: any) {
+      console.error("Branch Creation Error:", error.response?.data || error.message);
+      res.status(500).json({ error: "Failed to create branch", details: error.response?.data?.message || error.message });
     }
   });
 

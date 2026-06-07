@@ -2,20 +2,21 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
-import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast } from '../components';
+import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal } from '../components';
 import { SplashScreen } from '../components/SplashScreen';
 import AuthLoadingScreen from '../components/AuthLoadingScreen';
-import ProtectedRoute from './ProtectedRoute';
 import { AuthErrorBoundary } from './AuthErrorBoundary';
 import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } from '../providers';
 import { ROUTE_MAP } from './router';
 import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
 import { syncGeminiConfig } from '../services/geminiService';
+import { PUBLIC_VIEWS } from '../constants/auth';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
+  console.log('STEP_1_APP_RENDER');
   // 1. All Context/Hooks First
-  const { isAuth, userRole, userIdentifier, user_id, profile, authLoading, currentStep, handleAuthSuccess = () => {} } = useAuth();
+  const { isAuth, userRole, userIdentifier, user_id, profile, authLoading, bootDiagnostics, handleAuthSuccess = () => {} } = useAuth();
   const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
   const { 
     businesses = [], 
@@ -30,45 +31,47 @@ const AppContent: React.FC = () => {
     setSelectedStory
   } = useBusiness();
   const { toasts = [], removeToast = () => {} } = useToast();
-  const { isOracleOpen, setIsOracleOpen, view, setView } = useOracle();
+  const { isOracleOpen, setIsOracleOpen, view, setView, isAuthModalOpen, setIsAuthModalOpen, authModalMode } = useOracle();
 
   // 2. State Declarations
   const [isBooted, setIsBooted] = useState(false);
 
   const handleBootComplete = React.useCallback(() => {
-    console.log("[AppContent] 🚀 handleBootComplete triggered");
     setIsBooted(true);
   }, []);
 
-  // 3. Effects (MUST be after all used variables are declared)
+  // 3. Effects
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      console.log("[AppContent] 🧩 STATUS_HEARTBEAT:", {
-        authLoading,
-        isBooted,
-        view,
-        isAuth,
-        hasProfile: !!profile,
-        currentStep
-      });
-      
-      // EMERGENCY GATE RELEASE: If auth finalized and we are stuck on splash
-      if (!authLoading && (view as string) === 'splash') {
-        console.warn("[AppContent] 🚨 AUTO_RELEASE: Stuck on splash detected. Navigating...");
-        const targetView = !isAuth ? 'onboarding' : (profile?.onboarding_stage !== 'completed' ? 'onboarding' : 'home');
-        
-        console.log(`[AppContent] 🧭 Navigating to: ${targetView}`);
-        window.dispatchEvent(new CustomEvent('NAVIGATE_EVENT', { detail: targetView }));
-        setView(targetView);
-        
-        // Hard release isBooted if it's blocking
-        if (!isBooted) setIsBooted(true);
-      }
-    }, 2000);
-    return () => clearInterval(intervalId);
-  }, [authLoading, isBooted, view, isAuth, profile, currentStep, setView]);
+    // Scroll to top on view change
+    window.scrollTo(0, 0);
+  }, [view]);
 
-  console.log("[AppContent] RENDER", { authLoading, isBooted, view, currentStep });
+  // 🔹 NAVIGATION AFTER BOOT
+  useEffect(() => {
+    if (isBooted) {
+      if (bootDiagnostics.routeBypassTriggered || bootDiagnostics.sessionCorruptionDetected) {
+        console.log('STEP_9_SET_VIEW', 'login');
+        setView('login');
+        return;
+      }
+
+      if ((view as string) === 'splash') {
+        console.log('STEP_9_SET_VIEW', 'home');
+        setView('home');
+      }
+    }
+  }, [isBooted, view, setView, bootDiagnostics.routeBypassTriggered, bootDiagnostics.sessionCorruptionDetected]);
+
+  useEffect(() => {
+    const initApp = async () => {
+      try {
+        await syncGeminiConfig();
+      } catch (e) {
+        console.error("Initialization error:", e);
+      }
+    };
+    initApp();
+  }, []);
 
   const handleBusinessClick = (b: any) => {
     setSelectedBusiness(b);
@@ -80,68 +83,11 @@ const AppContent: React.FC = () => {
     setView('editorial-detail');
   };
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [view]);
-
-  // 🔹 STRICT NAVIGATION PROTOCOL
-  const PROTECTED_VIEWS: ViewState[] = [
-    'home', 'faces', 'oracle', 'fidelity', 'profile', 'merchant-portal', 
-    'thrift-dashboard', 'industrial-directory', 'detail', 'explore', 'messages'
-  ];
-
-  const PUBLIC_VIEWS: ViewState[] = [
-    'splash', 'onboarding', 'login', 'signup', 'legal', 'support', 'about', 'about-aba'
-  ];
-
-  // Route Guard Logic
-  useEffect(() => {
-    if (authLoading || !isBooted || (view as string) === 'splash') return;
-
-    const isOnboardingComplete = profile?.onboarding_stage === 'completed' && profile?.full_name && profile?.username;
-
-    if (!isAuth) {
-      if (PROTECTED_VIEWS.includes(view as ViewState) || !PUBLIC_VIEWS.includes(view as ViewState)) {
-        setView('onboarding');
-      }
-    } else if (!isOnboardingComplete && view !== 'onboarding' && !PUBLIC_VIEWS.includes(view as ViewState)) {
-      setView('onboarding');
-    }
-  }, [isAuth, view, isBooted, profile, authLoading]);
-
-  useEffect(() => {
-    const initApp = async () => {
-      try {
-        await syncGeminiConfig();
-        // Background probe - don't block boot
-        checkDatabaseHealth().then(res => {
-          console.log("[AppContent] Database health probe result:", res);
-        });
-      } catch (e) {
-        console.error("Industrial sync fault:", e);
-      }
-    };
-    initApp();
-  }, []);
-
   const handleBack = () => {
-    if (view === 'detail') setView('industrial-directory');
-    else if (view === 'industrial-directory') setView('home');
+    if (view === 'detail') setView('explore');
+    else if (view === 'explore') setView('home');
     else setView('home');
   };
-
-  // 🔹 MANDATORY REDIRECT AFTER BOOT
-  useEffect(() => {
-    if (isBooted && (view as string) === 'splash') {
-      if (!isAuth) {
-        setView('onboarding');
-      } else if (profile?.onboarding_stage !== 'completed') {
-        setView('onboarding');
-      } else {
-        setView('home');
-      }
-    }
-  }, [isBooted, isAuth, profile, view, setView]);
 
   if (authLoading) {
     return <AuthLoadingScreen />;
@@ -152,19 +98,18 @@ const AppContent: React.FC = () => {
   }
 
   const handleOnboardingComplete = () => {
-    console.log("[AppContent] handleOnboardingComplete triggered");
     refreshData();
     setView('home');
   };
 
   const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || ROUTE_MAP['home'];
-
-  const isProtectedRoute = !PUBLIC_VIEWS.includes(view);
+  console.log('STEP_8_ROUTE_DECISION', view || 'home');
 
   const myBusiness = (businesses?.find ? businesses.find(b => b.user_id === user_id) : null) || null;
 
   const extraProps = view === 'onboarding' ? { onComplete: handleOnboardingComplete } : {};
 
+  console.log('STEP_10_RENDER_TARGET', view);
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -179,58 +124,38 @@ const AppContent: React.FC = () => {
         socialLinks={socialLinks}
       >
         <Suspense fallback={<LoadingScreen />}>
-          {isProtectedRoute ? (
-            <ProtectedRoute>
-              <RouteComponent 
-                setView={setView} 
-                onBack={handleBack}
-                {...extraProps}
-                businesses={businesses} 
-                heroImages={heroImages} 
-                heroVideos={heroVideos} 
-                business={selectedBusiness}
-                story={selectedStory}
-                advertorial={selectedAdvertorial}
-                myBusiness={myBusiness}
-                favorites={favorites}
-                onToggleFavorite={toggleFavorite}
-                onBusinessClick={handleBusinessClick}
-                onStoryClick={handleStoryClick}
-                onRegister={refreshData}
-                onRefresh={refreshData}
-                onAuthSuccess={handleAuthSuccess}
-                userEmail={userIdentifier}
-                userRole={userRole}
-                isRegistryLoading={businessLoading}
-              />
-            </ProtectedRoute>
-          ) : (
-            <RouteComponent 
-              setView={setView} 
-              onBack={handleBack}
-              {...extraProps}
-              businesses={businesses} 
-              heroImages={heroImages} 
-              heroVideos={heroVideos} 
-              business={selectedBusiness}
-              story={selectedStory}
-              advertorial={selectedAdvertorial}
-              myBusiness={myBusiness}
-              favorites={favorites}
-              onToggleFavorite={toggleFavorite}
-              onBusinessClick={handleBusinessClick}
-              onStoryClick={handleStoryClick}
-              onRegister={refreshData}
-              onRefresh={refreshData}
-              onAuthSuccess={handleAuthSuccess}
-              userEmail={userIdentifier}
-              userRole={userRole}
-              isRegistryLoading={businessLoading}
-            />
-          )}
+          <RouteComponent 
+            setView={setView} 
+            onBack={handleBack}
+            {...extraProps}
+            businesses={businesses} 
+            heroImages={heroImages} 
+            heroVideos={heroVideos} 
+            business={selectedBusiness}
+            story={selectedStory}
+            advertorial={selectedAdvertorial}
+            myBusiness={myBusiness}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            onBusinessClick={handleBusinessClick}
+            onStoryClick={handleStoryClick}
+            onRegister={refreshData}
+            onRefresh={refreshData}
+            onAuthSuccess={handleAuthSuccess}
+            userEmail={userIdentifier}
+            userRole={userRole}
+            isRegistryLoading={businessLoading}
+          />
         </Suspense>
 
         <FeedbackToast toasts={toasts} onRemove={removeToast} />
+
+        <AuthModal 
+          isOpen={isAuthModalOpen} 
+          onClose={() => setIsAuthModalOpen(false)} 
+          initialMode={authModalMode} 
+          setView={setView}
+        />
 
         {isOracleOpen && (
           <div className="fixed inset-0 z-[9999] animate-fade-in">

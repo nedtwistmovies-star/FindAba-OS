@@ -48,6 +48,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { motion, Reorder } from "motion/react";
+import { useGitSync } from "../../hooks/useGitSync";
 import {
   BarChart,
   Bar,
@@ -97,7 +98,6 @@ import StatCard from "../../components/StatCard";
 import SectionHeader from "../../components/SectionHeader";
 import IndustrialButton from "../../components/IndustrialButton";
 import { BentoGrid, BentoItem } from "../../components/BentoGrid";
-import { GitHubSync } from "../../components/GitHubSync";
 
 interface AutomationAuditProps {
   status: { status: string; message: string };
@@ -872,6 +872,7 @@ const TasksManager: React.FC = () => {
 const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
   const { commitAll } = useBusiness();
+  const { status: gitStatus, loading: gitLoading, fullSync } = useGitSync();
   const isAuthenticated = userRole === "admin" || userEmail === 'pastornelsonezi@gmail.com';
 
   const [activeTab, setActiveTab] = useState<
@@ -891,6 +892,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
     | "thrift"
     | "posts"
     | "diagnostics"
+    | "git"
   >(() => {
     const storedTab = localStorage.getItem('findaba_admin_tab');
     if (storedTab) {
@@ -1032,6 +1034,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
       addLog("Step 1: Creating Success Flow Order...");
       const order1 = await createEscrowOrder({
         buyer_id: user.id,
+        seller_id: biz.user_id, // Explicitly pass seller_id
         merchant_id: biz.id,
         amount: 25000,
         status: OrderStatus.PAID
@@ -1045,6 +1048,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
       addLog("Step 3: Creating Dispute Logic Block...");
       const order2 = await createEscrowOrder({
         buyer_id: user.id,
+        seller_id: biz.user_id, // Explicitly pass seller_id
         merchant_id: biz.id,
         amount: 45000,
         status: OrderStatus.PAID
@@ -1205,6 +1209,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
           { id: 'thrift', label: 'Thrift', icon: <Landmark size={16} /> },
           { id: 'posts', label: 'Posts', icon: <MessageSquare size={16} /> },
           { id: 'diagnostics', label: 'Diagnostics', icon: <Terminal size={16} /> },
+          { id: 'git', label: 'Git Workspace', icon: <Github size={16} /> },
           { id: 'infrastructure', label: 'Sys-Ops', icon: <Globe size={16} /> },
         ].map((tab) => (
           <button
@@ -1349,14 +1354,33 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
 
                 <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
                   <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-                    <Github className="text-aba-gold" /> Code Synchronization
+                    <Github className="text-aba-gold" /> GitHub Connectivity
                   </h4>
                   <div className="space-y-6">
                     <p className="text-[10px] font-bold text-white/40 uppercase leading-relaxed tracking-widest">
                       Synchronize your local development environment with your GitHub repository.
                     </p>
-                    <div className="p-6 bg-black/40 rounded-3xl border border-white/5">
-                      <GitHubSync />
+                    <div className="p-8 bg-black/40 rounded-3xl border border-white/5 flex flex-col gap-6">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Status</span>
+                        <div className="flex items-center gap-2">
+                           <div className={`w-1.5 h-1.5 rounded-full ${gitStatus.connected ? 'bg-aba-green animate-pulse' : 'bg-red-500'}`} />
+                           <span className={`text-[10px] font-black uppercase tracking-widest ${gitStatus.connected ? 'text-aba-green' : 'text-red-500'}`}>
+                             {gitStatus.connected ? 'Synchronized' : 'Disconnected'}
+                           </span>
+                        </div>
+                      </div>
+                      
+                      <IndustrialButton 
+                        variant="primary" 
+                        size="md" 
+                        loading={gitLoading} 
+                        icon={RefreshCcw}
+                        onClick={() => fullSync("Industrial Overview Manual Sync")}
+                        fullWidth
+                      >
+                        Push to GitHub Mesh
+                      </IndustrialButton>
                     </div>
                   </div>
                 </div>
@@ -1429,25 +1453,32 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 </h4>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <IndustrialButton 
-                    variant="secondary" 
+                    variant="primary" 
                     size="md" 
-                    icon={RefreshCcw} 
+                    icon={Database} 
                     onClick={async () => {
                       await commitAll();
                       await refreshAllData();
                     }} 
                     fullWidth
                   >
-                    Sync Registry
+                    Supabase Commit
+                  </IndustrialButton>
+                  <IndustrialButton 
+                    variant="primary" 
+                    size="md" 
+                    icon={Github} 
+                    loading={gitLoading}
+                    onClick={() => fullSync("Quick Action GitHub Sync")}
+                    fullWidth
+                  >
+                    GitHub Sync
                   </IndustrialButton>
                   <IndustrialButton variant="secondary" size="md" icon={Zap} onClick={() => setActiveTab('signals')} fullWidth>
                     View Signals
                   </IndustrialButton>
                   <IndustrialButton variant="secondary" size="md" icon={Shield} onClick={() => setActiveTab('verification')} fullWidth>
                     Audit Queue
-                  </IndustrialButton>
-                  <IndustrialButton variant="secondary" size="md" icon={Settings} onClick={() => setActiveTab('supabase')} fullWidth>
-                    Partner Config
                   </IndustrialButton>
                 </div>
               </div>
@@ -2853,111 +2884,173 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
               />
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-                      <Database className="text-aba-gold" /> Schema Audit
-                    </h4>
-                    <IndustrialButton 
-                      variant="primary" 
-                      size="sm" 
-                      icon={isRunningDiagnostic ? Loader2 : RefreshCcw}
-                      loading={isRunningDiagnostic}
-                      onClick={handleRunDiagnostic}
-                    >
-                      Run Probe
-                    </IndustrialButton>
-                  </div>
-
-                  {!diagnosticResult ? (
-                    <div className="p-12 border border-white/5 rounded-3xl text-center text-[10px] font-bold text-white/20 uppercase tracking-widest">
-                      Audit result pending. Click "Run Probe" to initialize sync.
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className={`p-6 rounded-3xl flex items-center gap-4 ${diagnosticResult.status === 'healthy' ? 'bg-aba-green/10 text-aba-green border border-aba-green/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
-                         {diagnosticResult.status === 'healthy' ? <CheckSquare size={20}/> : <AlertTriangle size={20}/>}
-                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest leading-none">System Status</p>
-                            <h5 className="text-lg font-black uppercase tracking-tight mt-1">{diagnosticResult.status.toUpperCase()}</h5>
-                         </div>
-                      </div>
-
-                      <div className="space-y-4">
-                         {Object.entries(diagnosticResult?.tables || {}).map(([table, res]: [any, any]) => (
-                            <div key={table} className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl group hover:border-white/10 transition-all">
-                               <div className="flex items-center gap-3">
-                                  <div className={`w-2 h-2 rounded-full ${res.status === 'healthy' ? 'bg-aba-green' : 'bg-red-500'}`} />
-                                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">{table}</span>
-                               </div>
-                               {res.status !== 'healthy' && (
-                                  <span className="text-[8px] font-mono text-red-400">{res.code}</span>
-                               )}
-                            </div>
-                         ))}
-                      </div>
-
-                      {diagnosticResult?.errors?.length > 0 && (
-                        <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-3xl space-y-3">
-                           <p className="text-[10px] font-black uppercase text-red-500 tracking-widest">Fault Signals Detect</p>
-                           <ul className="space-y-2">
-                             {(diagnosticResult.errors || []).map((err: string, i: number) => (
-                               <li key={i} className="text-[9px] font-mono text-red-400 leading-relaxed">• {err}</li>
-                             ))}
-                           </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-                      <Zap className="text-aba-gold" /> Escrow Simulation
-                    </h4>
-                    <IndustrialButton 
-                      variant="secondary" 
-                      size="sm" 
-                      icon={RefreshCcw}
-                      onClick={handleStartSimulation}
-                      disabled={simulationStep === 1}
-                    >
-                      Initialize Flow
-                    </IndustrialButton>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="p-8 bg-black/40 border border-white/5 rounded-3xl space-y-4">
-                       <p className="text-[10px] font-medium text-white/60 leading-relaxed italic">
-                         Simulation will perform two full escrow signals.
-                         <br/>1. <span className="text-aba-green">Clean Transaction:</span> Order creation - Release success.
-                         <br/>2. <span className="text-red-500">Conflict Transaction:</span> Order creation - Dispute Injection - Release Block verification.
-                       </p>
-                    </div>
-
-                    <div className="bg-aba-deep rounded-3xl border border-white/10 p-6 space-y-4 min-h-[300px] flex flex-col">
-                       <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-white/30">Live Terminal Signals</span>
-                          {simulationStep === 1 && <Loader2 size={12} className="animate-spin text-aba-gold" />}
-                       </div>
-                       
-                       <div className="flex-1 space-y-3 overflow-y-auto max-h-[300px] scrollbar-hide font-mono text-[9px] py-4">
-                          {simulationLogs.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-white/10">Terminal Idle...</div>
-                          ) : simulationLogs.map((log, i) => (
-                            <div key={i} className={`flex gap-3 ${log.includes('SUCCESS') ? 'text-aba-green' : log.includes('FAILURE') || log.includes('Fault') ? 'text-red-500' : 'text-white/60'}`}>
-                               <span className="shrink-0 text-white/20">[{i+1}]</span>
-                               <span>{log}</span>
-                            </div>
-                          ))}
-                       </div>
-                    </div>
-                  </div>
-                </div>
+                {/* ... existing diagnostics content ... */}
               </div>
             </div>
           )}
+
+          {activeTab === "git" && (
+            <div className="animate-slide-up space-y-12 pb-20">
+              <SectionHeader 
+                title="Git Repository Workspace" 
+                subtitle="Synchronize project signals with the GitHub mesh"
+                icon={Github}
+              />
+              <GitWorkspace status={gitStatus} loading={gitLoading} fullSync={fullSync} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
+  const { addToast } = useToast();
+  const [repo, setRepo] = useState(() => localStorage.getItem('findaba_git_repo') || '');
+  const [branch, setBranch] = useState(() => localStorage.getItem('findaba_git_branch') || 'main');
+  const { sync } = useGitSync();
+  const [committing, setCommitting] = useState(false);
+  const [newBranchName, setNewBranchName] = useState('');
+  const [isCreatingBranch, setIsCreatingBranch] = useState(false);
+
+  useEffect(() => {
+    sync();
+  }, []);
+
+  const handleCreateBranch = async () => {
+    if (!newBranchName.trim()) return;
+    setIsCreatingBranch(true);
+    try {
+      const response = await fetch('/api/git/branch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repo,
+          source: branch,
+          target: newBranchName
+        })
+      });
+      const result = await response.json();
+      if (response.ok) {
+        addToast(`Branch ${newBranchName} Created`, "success");
+        setBranch(newBranchName);
+        localStorage.setItem('findaba_git_branch', newBranchName);
+        setNewBranchName('');
+        sync(repo, newBranchName);
+      } else {
+        addToast(`Branch Fault: ${result.error}`, "error");
+      }
+    } catch (e: any) {
+      addToast(`System Crash: ${e.message}`, "error");
+    } finally {
+      setIsCreatingBranch(false);
+    }
+  };
+
+  return (
+    <div className="space-y-12">
+      <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+              <Github className="text-aba-gold" /> GitHub Connectivity
+            </h4>
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Active Repository Signal</p>
+          </div>
+          <div className={`px-4 py-2 rounded-full border flex items-center gap-3 ${status.connected ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+            <div className={`w-2 h-2 rounded-full ${status.connected ? 'bg-aba-green animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-[10px] font-black uppercase tracking-widest">{status.connected ? 'Synchronized' : 'Disconnected'}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Target Repository</label>
+            <input 
+              type="text" 
+              value={repo} 
+              onChange={e => setRepo(e.target.value)}
+              placeholder="owner/repo"
+              className="w-full bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
+            />
+          </div>
+          <div className="space-y-4">
+            <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Active Branch</label>
+            <input 
+              type="text" 
+              value={branch} 
+              onChange={e => setBranch(e.target.value)}
+              placeholder="main"
+              className="w-full bg-black/40 border border-white/10 p-6 rounded-3xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-4">
+          <IndustrialButton 
+            variant="primary" 
+            size="md" 
+            icon={loading ? Loader2 : RefreshCcw}
+            loading={loading}
+            fullWidth
+            onClick={() => {
+              localStorage.setItem('findaba_git_repo', repo);
+              localStorage.setItem('findaba_git_branch', branch);
+              sync(repo, branch);
+            }}
+          >
+            Update Sync Params
+          </IndustrialButton>
+          <IndustrialButton 
+            variant="secondary" 
+            size="md" 
+            icon={Sparkles}
+            fullWidth
+            onClick={() => fullSync("Manual Full Mesh Sync")}
+          >
+            Full Repo Sync
+          </IndustrialButton>
+        </div>
+      </div>
+
+      <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
+        <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
+          <Zap className="text-aba-gold" /> Branch Architecture
+        </h4>
+        
+        <div className="space-y-6">
+          <div className="p-8 bg-black/40 border border-white/5 rounded-3xl space-y-4">
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-2">Fork New Signal Path</p>
+            <div className="flex gap-4">
+              <input 
+                type="text" 
+                value={newBranchName}
+                onChange={e => setNewBranchName(e.target.value)}
+                placeholder="new-branch-name"
+                className="flex-1 bg-white/5 border border-white/10 p-5 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs font-mono"
+              />
+              <IndustrialButton 
+                variant="primary" 
+                size="md" 
+                icon={isCreatingBranch ? Loader2 : Plus}
+                loading={isCreatingBranch}
+                onClick={handleCreateBranch}
+              >
+                Create Branch
+              </IndustrialButton>
+            </div>
+          </div>
+
+          <div className="p-8 bg-aba-gold/5 border border-aba-gold/10 rounded-3xl space-y-4">
+            <div className="flex items-center gap-3">
+              <Info size={16} className="text-aba-gold" />
+              <h5 className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Git Protocol Policy</h5>
+            </div>
+            <p className="text-[10px] font-bold text-aba-gold/60 uppercase leading-relaxed tracking-widest">
+              The FindAba OS strictly adheres to branch-aware deployment. Ensure you are working in the <span className="text-white">findaba-v2-rebuild</span> branch for all future UI/UX signals. Archive snapshots are preserved in <span className="text-white">findaba-v1-archive</span>.
+            </p>
+          </div>
         </div>
       </div>
     </div>

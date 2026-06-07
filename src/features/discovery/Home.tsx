@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane } from 'lucide-react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Landmark, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
-import { Logo, IndustrialButton, SectionHeader, ImageCarousel, GitHubSync, SupabaseSync, BusinessCard } from '../../components';
+import { Logo, IndustrialButton, SectionHeader, ImageCarousel, BusinessCard } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
 import { checkDatabaseHealth } from '../../services/supabaseService';
@@ -271,7 +271,107 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         </div>
       </section>
 
-      <div className="h-32" /> {/* Spacer for category cards */}
+      {/* 🔹 HYBRID SIGNAL CTAs */}
+      {!userIdentifier && (
+         <section className="px-6 md:px-12 mb-24 max-w-7xl mx-auto w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Card 1: Join FindAba */}
+              <div className="p-8 bg-[#030705] border border-white/5 rounded-[2rem] flex flex-col justify-between space-y-6 relative overflow-hidden group shadow-lg">
+                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-aba-green/10 rounded-full blur-[40px]" />
+                <div className="space-y-4 relative z-10">
+                  <div className="w-12 h-12 bg-aba-green/10 rounded-2xl flex items-center justify-center text-aba-green">
+                    <Plus size={22} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Join FindAba</h3>
+                    <p className="text-[10px] font-bold text-aba-green uppercase tracking-wider mt-1">Direct Networking</p>
+                  </div>
+                  <p className="text-white/50 text-xs font-semibold leading-relaxed uppercase tracking-wide">
+                    Claim your business, customize profiles, and coordinate directly with local traders.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setView('signup')} 
+                  className="w-full py-3.5 bg-aba-green hover:bg-aba-gold hover:text-aba-deep text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all relative z-10 cursor-pointer"
+                >
+                  Create Free Account
+                </button>
+              </div>
+
+              {/* Card 2: Save with Isusu */}
+              <div className="p-8 bg-[#030705] border border-white/5 rounded-[2rem] flex flex-col justify-between space-y-6 relative overflow-hidden group shadow-lg">
+                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-aba-gold/5 rounded-full blur-[40px]" />
+                <div className="space-y-4 relative z-10">
+                  <div className="w-12 h-12 bg-aba-gold/10 rounded-2xl flex items-center justify-center text-aba-gold">
+                    <Wallet size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Save with Isusu</h3>
+                    <p className="text-[10px] font-bold text-aba-gold uppercase tracking-wider mt-1">Automatic Thrift</p>
+                  </div>
+                  <p className="text-white/50 text-xs font-semibold leading-relaxed uppercase tracking-wide">
+                    Participate in trust-backed contributor savings pools and build commercial signals.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setView('thrift-dashboard')} 
+                  className="w-full py-3.5 bg-white/5 hover:bg-aba-gold hover:text-aba-deep text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
+                >
+                  Access Savings Nodes
+                </button>
+              </div>
+
+              {/* Card 3: Open Fidelity Wallet */}
+              <div className="p-8 bg-[#030705] border border-white/5 rounded-[2rem] flex flex-col justify-between space-y-6 relative overflow-hidden group shadow-lg">
+                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-aba-gold/5 rounded-full blur-[40px]" />
+                <div className="space-y-4 relative z-10">
+                  <div className="w-12 h-12 bg-aba-gold/10 rounded-2xl flex items-center justify-center text-aba-gold">
+                    <Landmark size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Fidelity Wallet</h3>
+                    <p className="text-[10px] font-bold text-aba-gold uppercase tracking-wider mt-1">Consensus Ledgers</p>
+                  </div>
+                  <p className="text-white/50 text-xs font-semibold leading-relaxed uppercase tracking-wide">
+                    Establish secure Paystack settle vectors for room bookings and advertising tokens.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setView('wallet')} 
+                  className="w-full py-3.5 bg-white/5 hover:bg-aba-gold hover:text-aba-deep text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
+                >
+                  Unlock Wallet Node
+                </button>
+              </div>
+
+              {/* Card 4: Ask Oracle */}
+              <div className="p-8 bg-[#030705] border border-white/5 rounded-[2rem] flex flex-col justify-between space-y-6 relative overflow-hidden group shadow-lg">
+                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[40px]" />
+                <div className="space-y-4 relative z-10">
+                  <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400">
+                    <Cpu size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Ask Oracle</h3>
+                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mt-1">AI Consultations</p>
+                  </div>
+                  <p className="text-white/50 text-xs font-semibold leading-relaxed uppercase tracking-wide">
+                    Leverage decentralized model queries to find verified hardware, shops, and resources.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setView('oracle')} 
+                  className="w-full py-3.5 bg-white/5 hover:bg-blue-500 hover:text-white text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
+                >
+                  Activate AI Link
+                </button>
+              </div>
+            </div>
+         </section>
+      )}
+
+      {/* Spacer for category cards */}
+      <div className="h-16" />
       
       {/* 🔹 BUSINESS OF THE DAY */}
       {businessOfTheDay && (

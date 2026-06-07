@@ -2,89 +2,57 @@
 import { lazy } from 'react';
 import { ViewState } from '../types';
 
-/**
- * Enhanced lazy loader that automatically retries if a chunk fails to load.
- * This prevents the "Failed to fetch dynamically imported module" error 
- * when a new version of the app is deployed.
- */
-const lazyWithRetry = (componentImport: () => Promise<any>) => {
-  return lazy(async () => {
-    const pageHasBeenForceRefreshed = JSON.parse(
-      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
-    );
-
-    try {
-      const component = await componentImport();
-      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
-      return component;
-    } catch (error) {
-      if (!pageHasBeenForceRefreshed) {
-        // Logging the fault to the console
-        console.warn('Industrial Module Fault detected. Attempting synchronization...');
-        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
-        return window.location.reload();
-      }
-
-      // If we already refreshed and it still fails, let the error boundary handle it
-      throw error;
-    }
-  });
-};
-
 export const ROUTE_MAP: Record<ViewState, any> = {
-  home: lazyWithRetry(() => import('../features/discovery/Home')),
-  discover: lazyWithRetry(() => import('../features/discovery/Discover')),
-  explore: lazyWithRetry(() => import('../features/discovery/Explore')),
-  detail: lazyWithRetry(() => import('../features/discovery/BusinessDetail')),
-  editorial: lazyWithRetry(() => import('../features/discovery/AdvertorialFeed')),
-  'editorial-detail': lazyWithRetry(() => import('../features/discovery/AdvertorialDetail')),
-  faces: lazyWithRetry(() => import('../features/faces/FacesFeed')),
-  'merchant-portal': lazyWithRetry(() => import('../features/merchant/MerchantPortal')),
-  register: lazyWithRetry(() => import('../features/merchant/Register')),
-  pricing: lazyWithRetry(() => import('../features/merchant/Pricing')),
-  'ad-checkout': lazyWithRetry(() => import('../features/discovery/AdCheckout')),
-  'business-verification': lazyWithRetry(() => import('../features/merchant/BusinessVerification')),
-  oracle: lazyWithRetry(() => import('../features/oracle/Oracle')),
-  about: lazyWithRetry(() => import('../features/info/About')),
-  'about-aba': lazyWithRetry(() => import('../features/info/AboutAba')),
-  legal: lazyWithRetry(() => import('../features/info/Legal')),
-  support: lazyWithRetry(() => import('../features/support/SupportCenter')),
-  orders: lazyWithRetry(() => import('../features/finance/BuyerOrdersView')),
-  'dispute-center': lazyWithRetry(() => import('../features/merchant/MerchantPortal')),
-  
-  // Fillers for other types to avoid exhaustive errors if needed
-  lab: lazyWithRetry(() => import('../features/creative/CreativeLab')),
-  cargo: lazyWithRetry(() => import('../features/logistics/Logistics')),
-  profile: lazyWithRetry(() => import('../features/auth/Profile')),
-  messages: lazyWithRetry(() => import('../features/oracle/ChatView')),
-  admin: lazyWithRetry(() => import('../features/admin/Admin')),
-  'thrift-dashboard': lazyWithRetry(() => import('../features/finance/ThriftDashboard')),
-  'buyer-portal': lazyWithRetry(() => import('../features/finance/BuyerPortal')),
-  'ad-manager': lazyWithRetry(() => import('../features/merchant/AdManager')),
-  'registry-setup': lazyWithRetry(() => import('../features/tech/RegistrySetup')),
-  'fidelity': lazyWithRetry(() => import('../features/hospitality/SandalsHotels')),
-  wallet: lazyWithRetry(() => import('../features/finance/WalletView')),
-  contact: lazyWithRetry(() => import('../features/info/Contact')),
-  'audio-heritage': lazyWithRetry(() => import('../features/creative/AudioHeritage')),
-  'srts-office': lazyWithRetry(() => import('../features/admin/SandalsOffice')),
-  'booking-ledger': lazyWithRetry(() => import('../features/hospitality/HotelLedger')),
-  'hotel-detail': lazyWithRetry(() => import('../features/hospitality/SandalsHotels')),
-  'hotel-partner-control': lazyWithRetry(() => import('../features/hospitality/HotelPartnerControl')),
-  'about-who': lazyWithRetry(() => import('../features/info/About')),
-  'about-vision': lazyWithRetry(() => import('../features/info/About')),
-  'about-mission': lazyWithRetry(() => import('../features/info/About')),
-  login: lazyWithRetry(() => import('../features/auth/Login')),
-  signup: lazyWithRetry(() => import('../features/auth/Login')),
-  'carry-me': lazyWithRetry(() => import('../features/logistics/CarryMe')),
-  'driver-registry': lazyWithRetry(() => import('../features/logistics/DriverRegistry')),
-  'purple-fleet': lazyWithRetry(() => import('../features/logistics/PurpleFleet')),
-  'driver-console': lazyWithRetry(() => import('../features/logistics/DriverConsole')),
-  'fleet-admin': lazyWithRetry(() => import('../features/logistics/FleetAdmin')),
-  'hardware-audit': lazyWithRetry(() => import('../features/tech/HardwareAudit')),
-  'carry-go-dash': lazyWithRetry(() => import('../features/logistics/CarryGoDash')),
-  onboarding: lazyWithRetry(() => import('../onboarding/components/OnboardingRouter').then(m => ({ default: m.OnboardingRouter }))),
-  'terminal': lazyWithRetry(() => import('../features/merchant/TerminalTab')),
-  'terminal-pay': lazyWithRetry(() => import('../features/merchant/TerminalPay')),
-  'splash': lazyWithRetry(() => import('../components/SplashScreen').then(m => ({ default: m.SplashScreen }))),
-  'industrial-directory': lazyWithRetry(() => import('../features/discovery/Explore'))
+  home: lazy(() => import('../features/discovery/Home')),
+  discover: lazy(() => import('../features/discovery/Discover')),
+  explore: lazy(() => import('../features/discovery/Explore')),
+  detail: lazy(() => import('../features/discovery/BusinessDetail')),
+  editorial: lazy(() => import('../features/discovery/AdvertorialFeed')),
+  'editorial-detail': lazy(() => import('../features/discovery/AdvertorialDetail')),
+  faces: lazy(() => import('../features/faces/FacesFeed')),
+  'merchant-portal': lazy(() => import('../features/merchant/MerchantPortal')),
+  register: lazy(() => import('../features/merchant/Register')),
+  pricing: lazy(() => import('../features/merchant/Pricing')),
+  'ad-checkout': lazy(() => import('../features/discovery/AdCheckout')),
+  'business-verification': lazy(() => import('../features/merchant/BusinessVerification')),
+  oracle: lazy(() => import('../features/oracle/Oracle')),
+  about: lazy(() => import('../features/info/About')),
+  'about-aba': lazy(() => import('../features/info/AboutAba')),
+  legal: lazy(() => import('../features/info/Legal')),
+  support: lazy(() => import('../features/support/SupportCenter')),
+  orders: lazy(() => import('../features/finance/BuyerOrdersView')),
+  'dispute-center': lazy(() => import('../features/merchant/MerchantPortal')),
+  lab: lazy(() => import('../features/creative/CreativeLab')),
+  cargo: lazy(() => import('../features/logistics/Logistics')),
+  profile: lazy(() => import('../features/auth/Profile')),
+  messages: lazy(() => import('../features/oracle/ChatView')),
+  admin: lazy(() => import('../features/admin/Admin')),
+  'thrift-dashboard': lazy(() => import('../features/finance/ThriftDashboard')),
+  'buyer-portal': lazy(() => import('../features/finance/BuyerPortal')),
+  'ad-manager': lazy(() => import('../features/merchant/AdManager')),
+  'registry-setup': lazy(() => import('../features/tech/RegistrySetup')),
+  'fidelity': lazy(() => import('../features/hospitality/SandalsHotels')),
+  wallet: lazy(() => import('../features/finance/WalletView')),
+  contact: lazy(() => import('../features/info/Contact')),
+  'audio-heritage': lazy(() => import('../features/creative/AudioHeritage')),
+  'srts-office': lazy(() => import('../features/admin/SandalsOffice')),
+  'booking-ledger': lazy(() => import('../features/hospitality/HotelLedger')),
+  'hotel-detail': lazy(() => import('../features/hospitality/SandalsHotels')),
+  'hotel-partner-control': lazy(() => import('../features/hospitality/HotelPartnerControl')),
+  'about-who': lazy(() => import('../features/info/About')),
+  'about-vision': lazy(() => import('../features/info/About')),
+  'about-mission': lazy(() => import('../features/info/About')),
+  login: lazy(() => import('../features/auth/Login')),
+  signup: lazy(() => import('../features/auth/Login')),
+  'carry-me': lazy(() => import('../features/logistics/CarryMe')),
+  'driver-registry': lazy(() => import('../features/logistics/DriverRegistry')),
+  'purple-fleet': lazy(() => import('../features/logistics/PurpleFleet')),
+  'driver-console': lazy(() => import('../features/logistics/DriverConsole')),
+  'fleet-admin': lazy(() => import('../features/logistics/FleetAdmin')),
+  'hardware-audit': lazy(() => import('../features/tech/HardwareAudit')),
+  'carry-go-dash': lazy(() => import('../features/logistics/CarryGoDash')),
+  onboarding: lazy(() => import('../onboarding/components/OnboardingRouter').then(m => ({ default: m.OnboardingRouter }))),
+  'terminal': lazy(() => import('../features/merchant/TerminalTab')),
+  'terminal-pay': lazy(() => import('../features/merchant/TerminalPay')),
+  'splash': lazy(() => import('../components/SplashScreen').then(m => ({ default: m.SplashScreen })))
 };

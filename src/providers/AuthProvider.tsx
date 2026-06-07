@@ -12,16 +12,35 @@ interface AuthContextType {
   hasSession: boolean;
   isAuth: boolean;
   authLoading: boolean;
-  currentStep: string;
-  lastStep: string;
   handleAuthSuccess: (identifier: string, name: string, role?: string, uuid?: string) => void;
   logout: () => void;
+  bootDiagnostics: BootDiagnostics;
+}
+
+export interface BootDiagnostics {
+  sessionExists: boolean;
+  sessionUserExists: boolean;
+  sessionUserId: string;
+  sessionEmail: string;
+  authEvent: string;
+  authListenerActive: boolean;
+  rawSession: any;
+  rawUser: any;
+  rawGetSessionData: any;
+  getSessionKeys: string[];
+  authStateChangeEvent: string;
+  sessionCorruptionDetected: boolean;
+  sessionCorruptionConfirmed: boolean;
+  sessionCorruptionSource: string;
+  corruptionMetadata: string;
+  routeBypassTriggered: boolean;
+  finalRouteDecision: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [bootId] = useState(() => Math.random().toString(36).substring(7));
+  console.log('STEP_2_AUTH_PROVIDER_RENDER');
   const [userIdentifier, setUserIdentifier] = useState<string | null>(null);
   const [user_id, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
@@ -30,179 +49,181 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [hasSession, setHasSession] = useState<boolean>(false);
   const [isAuth, setIsAuth] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
-  const [currentStep, setCurrentStep] = useState<string>('booting');
-  const [lastStep, setLastStep] = useState<string>('INIT');
 
-  const updateWatchdog = useCallback((step: string) => {
-    (window as any).__BOOT_STEP = step;
-    (window as any).__BOOT_TIME = Date.now();
-    (window as any).__BOOT_TRACE = [...((window as any).__BOOT_TRACE || []), `${new Date().toLocaleTimeString()}: ${step}`].slice(-10);
-    setCurrentStep(step);
-    setLastStep(prev => (step.includes('error') || step === 'finalized' || step === 'success') ? prev : step);
-    console.log(`[WATCHDOG] 🚀 STEP_CHANGE: ${step}`);
+  const [bootDiagnostics, setBootDiagnostics] = useState<BootDiagnostics>({
+    sessionExists: false,
+    sessionUserExists: false,
+    sessionUserId: 'NULL',
+    sessionEmail: 'NULL',
+    authEvent: 'INIT',
+    authListenerActive: false,
+    rawSession: null,
+    rawUser: null,
+    rawGetSessionData: null,
+    getSessionKeys: [],
+    authStateChangeEvent: 'NONE',
+    sessionCorruptionDetected: false,
+    sessionCorruptionConfirmed: false,
+    sessionCorruptionSource: '',
+    corruptionMetadata: '',
+    routeBypassTriggered: false,
+    finalRouteDecision: 'PENDING'
+  });
+
+  const updateBootDiagnostics = (updates: Partial<BootDiagnostics>) => {
+    setBootDiagnostics(prev => ({ ...prev, ...updates }));
+  };
+
+  const handleAuthSuccess = useCallback((identifier: string, name: string, role: string = 'registered', uuid?: string) => {
+    if (uuid) setUserId(uuid);
+    setUserIdentifier(identifier);
+    setUserName(name);
+    setUserRole(role);
+    setIsAuth(true);
+    setAuthLoading(false);
+  }, []);
+
+  const logout = useCallback(async () => {
+    const sb = getSupabase();
+    if (sb) await sb.auth.signOut();
+    setUserIdentifier(null);
+    setUserId(null);
+    setUserName(null);
+    setUserRole(null);
+    setProfile(null);
+    setIsAuth(false);
   }, []);
 
   useEffect(() => {
-    console.log(`[AuthProvider] [${bootId}] MOUNTED`);
-    console.log('AUTH_PROVIDER_MOUNTED');
-    return () => console.log(`[AuthProvider] [${bootId}] UNMOUNTED`);
-  }, [bootId]);
-
-  useEffect(() => {
-    const handleForceRelease = () => {
-      console.warn(`[AuthProvider] [${bootId}] External Gate Release Triggered.`);
-      updateWatchdog('forced_release');
-      setAuthLoading(false);
-    };
-    window.addEventListener('FORCE_GATE_RELEASE', handleForceRelease);
-    return () => window.removeEventListener('FORCE_GATE_RELEASE', handleForceRelease);
-  }, [bootId, updateWatchdog]);
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      console.log("[AuthProvider] 🛡️ STATUS_HEARTBEAT:", {
-        authLoading,
-        isAuth,
-        hasUserId: !!user_id,
-        hasProfile: !!profile,
-        currentStep
-      });
-    }, 2000);
-    return () => clearInterval(intervalId);
-  }, [authLoading, isAuth, user_id, profile, currentStep]);
-
-  useEffect(() => {
     const initAuth = async () => {
-      const startTime = Date.now();
-      updateWatchdog('handshake_started');
       setAuthLoading(true);
-      
-      const timeoutId = setTimeout(() => {
-        const duration = Date.now() - startTime;
-        console.warn(`[AuthProvider] [${bootId}] ⚠️ HANDSHAKE_STALL_DETECTED at ${duration}ms. Forcing gate release.`);
-        updateWatchdog('timeout_fallback');
-        setAuthLoading(false);
-      }, 45000);
-
       try {
-        updateWatchdog('obtaining_client');
         const sb = getSupabase();
         if (!sb) {
-          updateWatchdog('client_offline');
-          setIsAuth(false);
           setAuthLoading(false);
-          clearTimeout(timeoutId);
+          updateBootDiagnostics({ authEvent: 'REGISTRY_OFFLINE' });
           return;
         }
 
-        console.time('getSession');
-        const getSessionStartTime = Date.now();
-        console.log(`[AuthProvider] [${new Date(getSessionStartTime).toISOString()}] GETSESSION_STARTED`);
-        updateWatchdog('fetching_session');
+        updateBootDiagnostics({ authListenerActive: true });
         
-        const result = await sb.auth.getSession();
-        const getSessionEndTime = Date.now();
-        console.log(`[AuthProvider] [${new Date(getSessionEndTime).toISOString()}] GETSESSION_RESOLVED`);
+        console.log('STEP_3_BEFORE_GET_SESSION');
         
-        const { data: { session }, error: sessionError } = result;
+        // 🔹 TIMEOUT_PROTECTED_GET_SESSION
+        const sessionResponse = await Promise.race([
+          sb.auth.getSession(),
+          new Promise((resolve) => 
+            setTimeout(() => resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } }), 5000)
+          )
+        ]) as any;
         
-        const forensics = {
-          SESSION_EXISTS: !!session,
-          USER_EXISTS: !!session?.user,
-          SESSION_EMAIL: session?.user?.email || 'NULL',
-          USER_EMAIL: session?.user?.email || 'NULL',
-          USER_ID: session?.user?.id || 'NULL',
-          SESSION_KEYS: Object.keys(session || {}),
-          USER_KEYS: Object.keys(session?.user || {}),
-          TIMELINE: {
-            GETSESSION_STARTED: new Date(getSessionStartTime).toLocaleTimeString(),
-            GETSESSION_RESOLVED: new Date(getSessionEndTime).toLocaleTimeString(),
-            GETSESSION_ERROR: sessionError ? sessionError.message : 'NONE'
-          }
+        console.log('STEP_4_AFTER_GET_SESSION');
+        const { data: { session }, error: sessionError } = sessionResponse;
+        
+        if (sessionError && sessionError.message === 'SESSION_TIMEOUT_EXCEEDED') {
+          console.warn("[AuthProvider] Session load timed out after 5s. Proceeding as unauthenticated.");
+          updateBootDiagnostics({ authEvent: 'TIMEOUT', corruptionMetadata: 'getSession timed out' });
+        }
+        
+        console.log('RAW_SESSION:', session);
+        console.log('RAW_USER:', session?.user);
+        console.log('SESSION_KEYS:', Object.keys(session || {}));
+        console.log('RAW_SESSION_EXISTS:', !!session);
+        console.log('RAW_SESSION_USER_EXISTS:', !!session?.user);
+        console.log('RAW_SESSION_USER_ID:', session?.user?.id || 'NULL');
+        console.log('RAW_SESSION_EMAIL:', session?.user?.email || 'NULL');
+
+        const diag: Partial<BootDiagnostics> = {
+          sessionExists: !!session,
+          sessionUserExists: !!session?.user,
+          sessionUserId: session?.user?.id || 'NULL',
+          sessionEmail: session?.user?.email || 'NULL',
+          rawSession: session,
+          rawUser: session?.user,
+          getSessionKeys: Object.keys(session || {}),
+          authEvent: 'SESSION_LOADED'
         };
-        (window as any).__AUTH_FORENSICS = forensics;
 
-        console.log("SESSION_RAW", session);
-        console.log("USER_RAW", session?.user);
-        console.log("SESSION_KEYS", forensics.SESSION_KEYS);
-        console.log("USER_KEYS", forensics.USER_KEYS);
-        console.log("SESSION_EXISTS", forensics.SESSION_EXISTS);
-        console.log("USER_EXISTS", forensics.USER_EXISTS);
-        console.log("USER_ID", forensics.USER_ID);
-        console.log("SESSION_EMAIL", forensics.SESSION_EMAIL);
-
-        if (session && !session.user) {
-          console.error("🛑 AUTH_OBJECT_CORRUPTED: Session exists but user is missing!");
-          updateWatchdog('auth_object_corrupted');
-          setTimeout(() => {
-             console.warn("[AuthProvider] Forcing gate release due to corruption...");
-             setAuthLoading(false);
-          }, 5000);
+        // Corruption Detection
+        if (!!session && !session.user) {
+          diag.sessionCorruptionDetected = true;
+          diag.sessionCorruptionConfirmed = true;
+          diag.sessionCorruptionSource = 'supabase.auth.getSession() -> session is truthy but user is null';
+          diag.routeBypassTriggered = true;
+          diag.finalRouteDecision = 'LOGIN';
+          diag.corruptionMetadata = 'SESSION_FOUND = TRUE while SESSION_USER_EXISTS = FALSE | AuthProvider.tsx:101';
+          
+          console.error("SESSION_CORRUPTION_DETECTED: TRUE");
+          console.error("SESSION_CORRUPTION_CONFIRMED: TRUE");
+          console.error("SESSION_CORRUPTION_SOURCE:", diag.sessionCorruptionSource);
+          console.error("ROUTE_BYPASS_TRIGGERED: TRUE");
+          console.error("FORCE_NAVIGATE_LOGIN: TRUE");
+          console.error("FINAL_ROUTE_DECISION: LOGIN");
+          
+          updateBootDiagnostics(diag);
+          return; // Termination logic - finally will release gate
         }
 
-        console.timeEnd('getSession');
-        updateWatchdog('session_retrieved');
         setHasSession(!!session);
-        
-        if (sessionError) {
-          console.error(`[AuthProvider] [${bootId}] ❌ SESSION_FAULT:`, sessionError);
-          updateWatchdog('session_error');
-        }
 
         if (session?.user) {
-          updateWatchdog('syncing_profile');
-          const user = session.user;
+          console.log('STEP_5_BEFORE_PROFILE_SYNC');
           
-          try {
-            console.time('syncProfile');
-            // Allow more time for sync but don't hard-reject the whole boot if it fails
-            const prof = await syncProfile(user).catch(err => {
-              console.warn("[AuthProvider] Profile sync failed, proceeding with user only:", err);
-              return null;
-            });
-            console.timeEnd('syncProfile');
-            updateWatchdog('profile_synced');
-            setProfile(prof);
-            
-            const identifier = user.email || user.phone || '';
-            const name = (prof as any)?.full_name || user.user_metadata?.full_name || 'Verified Citizen';
-            const role = (prof as any)?.role || 'registered';
-            
-            updateWatchdog('success');
-            handleAuthSuccess(identifier, name, role, user.id);
-          } catch (profileError) {
-            console.error(`[AuthProvider] [${bootId}] ⚠️ PROFILE_SYNC_FAULT:`, profileError);
-            updateWatchdog('profile_sync_error');
-            handleAuthSuccess(user.email || '', 'Verified User', 'registered', user.id);
-          }
-        } else {
-          updateWatchdog('no_session');
-          setIsAuth(false);
+          // 🔹 TIMEOUT_PROTECTED_PROFILE_SYNC
+          const prof = await Promise.race([
+            syncProfile(session.user),
+            new Promise((resolve) => setTimeout(() => resolve(null), 5000))
+          ]).catch(() => null);
+          
+          console.log('STEP_6_AFTER_PROFILE_SYNC');
+          setProfile(prof);
+          
+          handleAuthSuccess(
+            session.user.email || '',
+            prof?.full_name || session.user.user_metadata?.full_name || 'User',
+            prof?.role || 'registered',
+            session.user.id
+          );
+        } else if (session && !session.user) {
+           // Bypassing profile sync if session resolves but user is null
+           diag.routeBypassTriggered = true;
+           console.log("ROUTE_BYPASS_TRIGGERED: getSession() resolved but session.user is null. Bypassing sync.");
         }
+
+        updateBootDiagnostics(diag);
+
       } catch (e) {
-        console.error(`[AuthProvider] [${bootId}] 🛑 CRITICAL_HANDSHAKE_FATAL:`, e);
-        updateWatchdog('critical_fatal');
-        setIsAuth(false);
+        console.error("[AuthProvider] Init error:", e);
+        updateBootDiagnostics({ authEvent: 'ERROR', corruptionMetadata: String(e) });
       } finally {
-        updateWatchdog('finalized');
-        clearTimeout(timeoutId);
+        console.log('STEP_7_RELEASING_GATE');
         setAuthLoading(false);
       }
     };
 
     initAuth();
 
-    // Listen for auth state changes
     const sb = getSupabase();
     if (sb) {
       const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
+        console.log('AUTH_STATE_CHANGE_EVENT:', event);
+        updateBootDiagnostics({ 
+          authStateChangeEvent: event,
+          sessionExists: !!session,
+          sessionUserExists: !!session?.user,
+          sessionUserId: session?.user?.id || 'NULL',
+          sessionEmail: session?.user?.email || 'NULL',
+          rawSession: session,
+          rawUser: session?.user
+        });
+
         if (event === 'SIGNED_IN' && session?.user) {
           setHasSession(true);
-          const prof = await syncProfile(session.user);
+          const prof = await syncProfile(session.user).catch(() => null);
           setProfile(prof);
           handleAuthSuccess(
-            session.user.email || session.user.phone || '',
-            prof?.full_name || session.user.user_metadata?.full_name || 'Verified Citizen',
+            session.user.email || '',
+            prof?.full_name || 'User',
             prof?.role || 'registered',
             session.user.id
           );
@@ -215,42 +236,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       return () => subscription.unsubscribe();
     }
-  }, []);
-
-  const handleAuthSuccess = useCallback((identifier: string, name: string, role: string = 'registered', uuid?: string) => {
-    // 🔹 Admin Bootstrap Protocol
-    let finalRole = role;
-    if (identifier === 'pastornelsonezi@gmail.com') {
-      finalRole = 'admin';
-    }
-
-    const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-
-    if (uuid && isUUID(uuid)) {
-      setUserId(uuid);
-    }
-    
-    setUserIdentifier(identifier);
-    setUserName(name);
-    setUserRole(finalRole);
-    setIsAuth(true);
-    setAuthLoading(false);
-  }, []);
-
-  const logout = useCallback(async () => {
-    const sb = getSupabase();
-    if (sb) await sb.auth.signOut();
-
-    setUserIdentifier(null);
-    setUserId(null);
-    setUserName(null);
-    setUserRole(null);
-    setProfile(null);
-    setIsAuth(false);
-  }, []);
+  }, [handleAuthSuccess]);
 
   return (
-    <AuthContext.Provider value={{ userIdentifier, user_id, userName, userRole, profile, hasSession, isAuth, authLoading, currentStep, lastStep, handleAuthSuccess, logout }}>
+    <AuthContext.Provider value={{ 
+      userIdentifier, 
+      user_id, 
+      userName, 
+      userRole, 
+      profile, 
+      hasSession, 
+      isAuth, 
+      authLoading,
+      handleAuthSuccess, 
+      logout,
+      bootDiagnostics
+    }}>
       {children}
     </AuthContext.Provider>
   );
