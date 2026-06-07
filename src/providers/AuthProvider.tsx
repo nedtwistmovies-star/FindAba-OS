@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sessionResponse = await Promise.race([
           sb.auth.getSession(),
           new Promise((resolve) => 
-            setTimeout(() => resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } }), 5000)
+            setTimeout(() => resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } }), 15000)
           )
         ]) as any;
         
@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error: sessionError } = sessionResponse;
         
         if (sessionError && sessionError.message === 'SESSION_TIMEOUT_EXCEEDED') {
-          console.warn("[AuthProvider] Session load timed out after 5s. Proceeding as unauthenticated.");
+          console.warn("[AuthProvider] Session load timed out after 15s. Proceeding as unauthenticated.");
           updateBootDiagnostics({ authEvent: 'TIMEOUT', corruptionMetadata: 'getSession timed out' });
         }
         
@@ -141,7 +141,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           rawSession: session,
           rawUser: session?.user,
           getSessionKeys: Object.keys(session || {}),
-          authEvent: 'SESSION_LOADED'
+          authEvent: 'SESSION_LOADED',
+          finalRouteDecision: session?.user ? 'AUTHORIZED' : 'GUEST_ACCESS'
         };
 
         // Corruption Detection
@@ -165,15 +166,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         setHasSession(!!session);
+        updateBootDiagnostics(diag);
 
         if (session?.user) {
           console.log('STEP_5_BEFORE_PROFILE_SYNC');
           
           // 🔹 TIMEOUT_PROTECTED_PROFILE_SYNC
-          const prof = await Promise.race([
-            syncProfile(session.user),
-            new Promise((resolve) => setTimeout(() => resolve(null), 5000))
-          ]).catch(() => null);
+          const prof = await syncProfile(session.user).catch(() => null);
           
           console.log('STEP_6_AFTER_PROFILE_SYNC');
           setProfile(prof);
@@ -184,13 +183,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             prof?.role || 'registered',
             session.user.id
           );
+          
+          // Final Sync Update
+          updateBootDiagnostics({ authEvent: 'PROFILE_SYNCED' });
         } else if (session && !session.user) {
            // Bypassing profile sync if session resolves but user is null
-           diag.routeBypassTriggered = true;
            console.log("ROUTE_BYPASS_TRIGGERED: getSession() resolved but session.user is null. Bypassing sync.");
+           updateBootDiagnostics({ routeBypassTriggered: true, finalRouteDecision: 'GUEST_ACCESS' });
         }
-
-        updateBootDiagnostics(diag);
 
       } catch (e) {
         console.error("[AuthProvider] Init error:", e);

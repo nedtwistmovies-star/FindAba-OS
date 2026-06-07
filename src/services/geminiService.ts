@@ -196,6 +196,9 @@ export const parseFlyerSignal = async (base64: string, mimeType: string = 'image
     return JSON.parse(cleanJSON(response.text || '{}'));
   } catch (e: any) {
     console.error("[Oracle] Flyer Parse Fault:", e);
+    if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
+      throw new Error("Oracle energy depleted. Check AI Studio credits.");
+    }
     throw e;
   }
 };
@@ -215,7 +218,10 @@ export const analyzeHardwareSignal = async (base64: string) => {
       config: { responseMimeType: "application/json" }
     });
     return JSON.parse(cleanJSON(response.text || '{}'));
-  } catch (e) {
+  } catch (e: any) {
+    if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
+      return { verdict: "Unknown", wisdom: "Oracle energy depleted. The signal is offline." };
+    }
     return { verdict: "Unknown", wisdom: "Oracle signal interrupted. Signal sync required." };
   }
 };
@@ -240,7 +246,10 @@ export const analyzeHardwareTextSignal = async (text: string) => {
       config: { responseMimeType: "application/json" }
     });
     return JSON.parse(cleanJSON(response.text || '{}'));
-  } catch (e) {
+  } catch (e: any) {
+    if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
+      return { verdict: "Unknown", wisdom: "Oracle energy depleted. The signal is offline." };
+    }
     return { verdict: "Unknown", wisdom: "Oracle signal interrupted. Signal sync required." };
   }
 };
@@ -388,7 +397,12 @@ export const getSupportResponse = async (prompt: string, history: any[]) => {
       config: { systemInstruction: "You are FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Follow the rules: Be extremely precise and specific. Do NOT give generic area suggestions. Prioritize Aba, include nearby cities only if needed/asked, label them clearly, do NOT say 'God's Own State', do NOT roleplay, be practical and helpful, use a friendly Nigerian tone." }
     });
     return response.text;
-  } catch (e) { return "Signal weak."; }
+  } catch (e: any) {
+    if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
+      return "Oracle energy depleted. The signal is offline.";
+    }
+    return "Signal weak.";
+  }
 };
 
 export const generateImageCaption = async (base64: string, mimeType: string) => {
@@ -442,8 +456,11 @@ export const findArtisansAI = async (query: string, businesses: Business[]) => {
     });
 
     return JSON.parse(cleanJSON(response.text || '{}'));
-  } catch (e) {
+  } catch (e: any) {
     console.error("[Oracle] Discovery Fault:", e);
+    if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
+      return { recommendations: [], oracle_wisdom: "Oracle energy depleted. Trade signals are offline." };
+    }
     return { recommendations: [], oracle_wisdom: "The industrial signals are crossed. Try a different query." };
   }
 };

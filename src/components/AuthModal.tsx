@@ -122,10 +122,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       if (signInError) throw signInError;
 
-      const prof = await Promise.race([
-        syncProfile(signInData.user),
-        new Promise((resolve) => setTimeout(() => resolve(null), 10000))
-      ]).catch(() => null);
+      const prof = await syncProfile(signInData.user).catch(() => null);
 
       // Mark phone verified
       if (prof) {
@@ -195,10 +192,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (signInError) throw signInError;
 
       console.log("[AuthModal] signInWithPassword success. Syncing profile...");
-      const prof = await Promise.race([
-        syncProfile(data.user),
-        new Promise((resolve) => setTimeout(() => resolve(null), 10000))
-      ]).catch(() => null);
+      const prof = await syncProfile(data.user).catch(() => null);
       
       console.log("LOGIN_3_PROFILE_COMPLETE")
       

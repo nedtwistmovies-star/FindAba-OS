@@ -53,14 +53,14 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, className, interv
           <img 
             src={img} 
             alt={`Industrial Partner ${idx + 1}`}
-            className="w-full h-full object-cover select-none brightness-[0.7]"
+            className="w-full h-full object-cover select-none brightness-[0.9]"
             loading={idx === 0 ? "eager" : "lazy"}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.src = "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800"; // Fallback to industrial image
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-60" />
           {/* Subtle Industrial Scanline Effect */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.01),rgba(0,255,0,0.01),rgba(0,0,255,0.01))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-20" />
         </div>

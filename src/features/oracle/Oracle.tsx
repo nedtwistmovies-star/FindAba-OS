@@ -341,8 +341,39 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       if (res.thoughtProcess) setShowThinkingId(modelMsg.id);
     } catch (e: any) {
       console.error("Oracle Fault:", e);
-      const msg = e.message || "INSTITUTIONAL SIGNAL LOST. THE ORACLE IS RECALIBRATING.";
-      const isQuota = msg.toLowerCase().includes("congestion") || msg.includes("429") || msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("overloaded");
+      let msg = e.message || "INSTITUTIONAL SIGNAL LOST. THE ORACLE IS RECALIBRATING.";
+      
+      // Attempt to parse JSON error if detected
+      if (msg.includes('{') && msg.includes('}')) {
+        try {
+          const start = msg.indexOf('{');
+          const end = msg.lastIndexOf('}') + 1;
+          const jsonStr = msg.substring(start, end);
+          const parsed = JSON.parse(jsonStr);
+          
+          // Deep extraction of error message from typical API structures
+          const potentialMsg = 
+            parsed.error?.message || 
+            (typeof parsed.error === 'string' ? parsed.error : null) ||
+            parsed.message || 
+            parsed.details || 
+            parsed.error_description;
+
+          if (potentialMsg) {
+            msg = potentialMsg;
+          }
+        } catch (err) {
+          // Fallback to original message if parsing fails
+        }
+      }
+
+      const isQuota = 
+        msg.toLowerCase().includes("congestion") || 
+        msg.includes("429") || 
+        msg.toLowerCase().includes("quota") || 
+        msg.toLowerCase().includes("overloaded") ||
+        msg.toLowerCase().includes("depleted") ||
+        msg.toLowerCase().includes("exhausted");
       
       setIsQuotaError(isQuota);
       setErrorNode(msg);

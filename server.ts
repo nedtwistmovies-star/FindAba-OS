@@ -172,6 +172,15 @@ app.post("/api/oracle", async (req, res) => {
     res.status(400).json({ error: "Invalid oracle type" });
   } catch (err: any) {
     console.error("[Server] Oracle Fault:", err);
+    
+    // 🔹 Handle Quota/Billing errors specifically
+    if (err.message?.includes("429") || err.message?.includes("RESOURCE_EXHAUSTED")) {
+      return res.status(429).json({ 
+        error: "Oracle energy depleted. The industrial signal requires a credit injection (AI Studio Billing).",
+        details: "429: Resource Exhausted"
+      });
+    }
+
     res.status(500).json({ error: err.message });
   }
 });
@@ -918,9 +927,9 @@ app.post("/api/oracle", async (req, res) => {
 
   // Create GitHub Branch
   app.post("/api/git/branch", async (req, res) => {
-    let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
+    const { branch, from, repo: bodyRepo } = req.body;
+    let repo = (req.query.repo as string) || bodyRepo || process.env.GITHUB_REPO;
     const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
-    const { branch, from } = req.body;
 
     if (!repo || !token || !branch) {
       return res.status(400).json({ error: "Missing parameters for branch creation" });

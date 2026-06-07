@@ -176,12 +176,12 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="absolute inset-0 z-0">
           <ImageCarousel 
             images={heroImages.length > 0 ? heroImages : DEFAULT_HERO_IMAGES} 
-            className="h-full w-full opacity-40 group-hover:opacity-50 transition-opacity duration-1000"
+            className="h-full w-full opacity-60 group-hover:opacity-70 transition-opacity duration-1000"
             interval={10000}
           />
-          <div className="absolute inset-0 bg-aba-deep/85 backdrop-blur-[4px]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-aba-deep/40 via-transparent to-aba-deep" />
-          <div className="absolute inset-0 shadow-[inset_0_0_200px_rgba(0,0,0,0.8)]" />
+          <div className="absolute inset-0 bg-aba-deep/60 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-aba-deep/20 via-transparent to-aba-deep" />
+          <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.6)]" />
         </motion.div>
         
         <motion.div style={{ y: textY }} className="relative z-10 w-full max-w-6xl flex flex-col items-center text-center space-y-8 sm:space-y-12">

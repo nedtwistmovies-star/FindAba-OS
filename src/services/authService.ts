@@ -226,7 +226,7 @@ export const getCurrentUser = async () => {
   return user;
 };
 
-export const syncProfile = async (user: any) => {
+export const syncProfile = async (user: any): Promise<any> => {
   if (!user) return null;
 
   try {
@@ -237,7 +237,7 @@ export const syncProfile = async (user: any) => {
         .select('*')
         .eq('id', user.id)
         .single(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_SYNC_TIMEOUT")), 10000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_SYNC_TIMEOUT")), 8000))
     ]) as any;
 
     const { data: profile, error } = profileResponse;
@@ -262,9 +262,10 @@ export const syncProfile = async (user: any) => {
       return newProfile;
     }
 
+    if (error) throw error;
     return profile;
   } catch (err: any) {
-    console.error("[AuthService] syncProfile failure:", err);
+    console.error(`[AuthService] syncProfile failure:`, err);
     return null;
   }
 };

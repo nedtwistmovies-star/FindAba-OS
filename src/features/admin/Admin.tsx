@@ -2927,8 +2927,8 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           repo,
-          source: branch,
-          target: newBranchName
+          from: branch,
+          branch: newBranchName
         })
       });
       const result = await response.json();
