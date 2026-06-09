@@ -1894,6 +1894,37 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                         >
                           Test Business Alerter
                         </button>
+
+                        <button
+                          type="button"
+                          disabled={isTestingWa || !testPhone}
+                          onClick={async () => {
+                            setIsTestingWa(true);
+                            setWaTestLog(null);
+                            try {
+                              const res = await fetch('/api/whatsapp/test', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ phone: testPhone })
+                              });
+                              const data = await res.json();
+                              setWaTestLog(data);
+                              if (data.success) {
+                                addToast("Raw Text Test Dispatched!", "success");
+                              } else {
+                                addToast("Meta Transmission Refused", "error");
+                              }
+                            } catch (e: any) {
+                              setWaTestLog({ success: false, error: e.message });
+                              addToast("Local Dispatch Error", "error");
+                            } finally {
+                              setIsTestingWa(false);
+                            }
+                          }}
+                          className="px-5 py-3 bg-aba-gold/20 hover:bg-aba-gold text-white border border-aba-gold/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30"
+                        >
+                          Send Test WhatsApp
+                        </button>
                       </div>
 
                       {/* Display Logs */}

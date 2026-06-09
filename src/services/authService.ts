@@ -230,46 +230,63 @@ export const getCurrentUser = async () => {
   return user;
 };
 
-export const syncProfile = async (user: any): Promise<any> => {
+export const syncProfile = async (user: any, attempts: number = 3): Promise<any> => {
   if (!user) return null;
 
-  try {
-    // 🔹 TIMEOUT_PROTECTED_PROFILE_FETCH
-    const profileResponse = await Promise.race([
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_SYNC_TIMEOUT")), 30000))
-    ]) as any;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      console.log(`[AuthService] Profile sync attempt ${i + 1}/${attempts} for ${user.id}`);
+      
+      // 🔹 TIMEOUT_PROTECTED_PROFILE_FETCH
+      const profileResponse = await Promise.race([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_SYNC_TIMEOUT")), 25000))
+      ]) as any;
 
-    const { data: profile, error } = profileResponse;
+      const { data: profile, error } = profileResponse;
 
-    if (error && error.code === 'PGRST116') {
-      // Profile doesn't exist, create it
-      const { data: newProfile, error: createError } = await supabase
-        .from('profiles')
-        .insert({
-          id: user.id,
-          email: user.email || '',
-          phone: user.user_metadata?.phone || user.phone || '',
-          username: user.user_metadata?.username || null,
-          full_name: user.user_metadata?.full_name || 'User',
-          phone_verified: false,
-          merchant_status: 'inactive',
-        })
-        .select()
-        .single();
+      if (error && error.code === 'PGRST116') {
+        console.log(`[AuthService] Profile missing for ${user.id}, initiating creation...`);
+        // Profile doesn't exist, create it
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email || '',
+            phone: user.user_metadata?.phone || user.phone || '',
+            username: user.user_metadata?.username || null,
+            full_name: user.user_metadata?.full_name || 'User',
+            phone_verified: false,
+            merchant_status: 'inactive',
+          })
+          .select()
+          .single();
 
-      if (createError) throw createError;
-      return newProfile;
+        if (createError) throw createError;
+        return newProfile;
+      }
+
+      if (error) throw error;
+      console.log(`[AuthService] Profile retrieved successfully for ${user.id}`);
+      return profile;
+    } catch (err: any) {
+      const isTimeout = err.message === "PROFILE_SYNC_TIMEOUT";
+      console.error(`[AuthService] attempt ${i + 1} failure:`, err.message);
+      
+      if (i < attempts - 1) {
+        const delay = isTimeout ? 2000 : 1000;
+        console.log(`[AuthService] Retrying sync in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      console.error(`[AuthService] All ${attempts} profile sync attempts failed.`);
+      return null;
     }
-
-    if (error) throw error;
-    return profile;
-  } catch (err: any) {
-    console.error(`[AuthService] syncProfile failure:`, err);
-    return null;
   }
+  return null;
 };

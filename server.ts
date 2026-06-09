@@ -497,6 +497,16 @@ app.post("/api/oracle", async (req, res) => {
     res.json(result);
   });
 
+  // 5. Developer Test: Raw Text Message
+  app.post("/api/whatsapp/test", async (req, res) => {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ success: false, error: "Missing phone number" });
+    
+    console.log(`[WhatsApp] Dispatching DEV TEST MESSAGE to ${phone}`);
+    const result = await WhatsApp.sendTextMessage(phone, "FindAba Meta WhatsApp Test Successful");
+    res.json(result);
+  });
+
   // Paystack Webhook Handler
   app.post("/api/paystack-webhook", async (req, res) => {
     const secret = process.env.PAYSTACK_SECRET_KEY;

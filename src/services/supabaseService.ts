@@ -84,7 +84,17 @@ export const ensureAuth = async () => {
   if (!sb) {
     throw new Error("Registry Offline");
   }
-  const { data: { session }, error } = await sb.auth.getSession();
+  
+  // 🔹 TIMEOUT_PROTECTED_GET_SESSION
+  const sessionResponse = await Promise.race([
+    sb.auth.getSession(),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("AUTH_SESSION_TIMEOUT")), 15000)
+    )
+  ]) as any;
+
+  const { data: { session }, error } = sessionResponse;
+  if (error) throw error;
   if (!session) throw new Error('Authentication required');
   return session;
 };
