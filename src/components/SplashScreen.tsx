@@ -16,7 +16,7 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
         }
         return prev + 1;
       });
-    }, 40);
+    }, 15); // Faster progress for ≤ 2s total duration
     return () => clearInterval(timer);
   }, [onComplete]);
 

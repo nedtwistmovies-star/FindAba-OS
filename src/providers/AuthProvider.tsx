@@ -50,6 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuth, setIsAuth] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
+  const [bootStatus, setBootStatus] = useState<'BOOTING' | 'READY'>('BOOTING');
+
   const [bootDiagnostics, setBootDiagnostics] = useState<BootDiagnostics>({
     sessionExists: false,
     sessionUserExists: false,
@@ -69,6 +71,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     routeBypassTriggered: false,
     finalRouteDecision: 'PENDING'
   });
+
+  // 🔹 PROGRESSIVE BOOT: Release gate quickly
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (bootStatus === 'BOOTING') {
+        console.log("[Auth] Progressive boot triggered. Releasing gate.");
+        setAuthLoading(false);
+        setBootStatus('READY');
+      }
+    }, 1500); // 1.5s max wait for session before guest mode
+    return () => clearTimeout(timer);
+  }, [bootStatus]);
 
   const updateBootDiagnostics = (updates: Partial<BootDiagnostics>) => {
     setBootDiagnostics(prev => ({ ...prev, ...updates }));
@@ -97,10 +111,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       setAuthLoading(true);
+      setBootStatus('BOOTING');
       try {
         const sb = getSupabase();
         if (!sb) {
           setAuthLoading(false);
+          setBootStatus('READY');
           updateBootDiagnostics({ authEvent: 'REGISTRY_OFFLINE' });
           return;
         }
@@ -113,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sessionResponse = await Promise.race([
           sb.auth.getSession(),
           new Promise((resolve) => 
-            setTimeout(() => resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } }), 15000)
+            setTimeout(() => resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } }), 6000)
           )
         ]) as any;
         
@@ -121,18 +137,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error: sessionError } = sessionResponse;
         
         if (sessionError && sessionError.message === 'SESSION_TIMEOUT_EXCEEDED') {
-          console.warn("[AuthProvider] Session load timed out after 15s. Proceeding as unauthenticated.");
+          console.warn("[AuthProvider] Session load timed out after 6s. Proceeding as unauthenticated.");
           updateBootDiagnostics({ authEvent: 'TIMEOUT', corruptionMetadata: 'getSession timed out' });
         }
         
         console.log('RAW_SESSION:', session);
         console.log('RAW_USER:', session?.user);
-        console.log('SESSION_KEYS:', Object.keys(session || {}));
-        console.log('RAW_SESSION_EXISTS:', !!session);
-        console.log('RAW_SESSION_USER_EXISTS:', !!session?.user);
-        console.log('RAW_SESSION_USER_ID:', session?.user?.id || 'NULL');
-        console.log('RAW_SESSION_EMAIL:', session?.user?.email || 'NULL');
-
+        
         const diag: Partial<BootDiagnostics> = {
           sessionExists: !!session,
           sessionUserExists: !!session?.user,
@@ -142,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           rawUser: session?.user,
           getSessionKeys: Object.keys(session || {}),
           authEvent: 'SESSION_LOADED',
-          finalRouteDecision: session?.user ? 'AUTHORIZED' : 'GUEST_ACCESS'
+          finalRouteDecision: session?.user ? 'AUTHORIZED' : (session ? 'GUEST_ACCESS' : 'LOGIN')
         };
 
         // Corruption Detection
@@ -154,43 +165,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           diag.finalRouteDecision = 'LOGIN';
           diag.corruptionMetadata = 'SESSION_FOUND = TRUE while SESSION_USER_EXISTS = FALSE | AuthProvider.tsx:101';
           
-          console.error("SESSION_CORRUPTION_DETECTED: TRUE");
-          console.error("SESSION_CORRUPTION_CONFIRMED: TRUE");
-          console.error("SESSION_CORRUPTION_SOURCE:", diag.sessionCorruptionSource);
-          console.error("ROUTE_BYPASS_TRIGGERED: TRUE");
-          console.error("FORCE_NAVIGATE_LOGIN: TRUE");
-          console.error("FINAL_ROUTE_DECISION: LOGIN");
-          
           updateBootDiagnostics(diag);
-          return; // Termination logic - finally will release gate
+          return;
         }
 
         setHasSession(!!session);
         updateBootDiagnostics(diag);
 
+        // 🔹 ASYNCHRONOUS BACKGROUND ASSETS
         if (session?.user) {
-          console.log('STEP_5_BEFORE_PROFILE_SYNC');
-          
-          // 🔹 TIMEOUT_PROTECTED_PROFILE_SYNC
-          const prof = await syncProfile(session.user).catch(() => null);
-          
-          console.log('STEP_6_AFTER_PROFILE_SYNC');
-          setProfile(prof);
-          
+          // 1. Immediate optimistic auth success using session data
           handleAuthSuccess(
             session.user.email || '',
-            prof?.full_name || session.user.user_metadata?.full_name || 'User',
-            prof?.role || 'registered',
+            session.user.user_metadata?.full_name || 'User',
+            'registered',
             session.user.id
           );
-          
-          // Final Sync Update
-          updateBootDiagnostics({ authEvent: 'PROFILE_SYNCED' });
-        } else if (session && !session.user) {
-           // Bypassing profile sync if session resolves but user is null
-           console.log("ROUTE_BYPASS_TRIGGERED: getSession() resolved but session.user is null. Bypassing sync.");
-           updateBootDiagnostics({ routeBypassTriggered: true, finalRouteDecision: 'GUEST_ACCESS' });
+
+          // 2. Progressive profile sync in background
+          syncProfile(session.user)
+            .then(prof => {
+              if (prof) {
+                setProfile(prof);
+                handleAuthSuccess(
+                  session.user.email || '',
+                  prof.full_name || session.user.user_metadata?.full_name || 'User',
+                  prof.role || 'registered',
+                  session.user.id
+                );
+                updateBootDiagnostics({ authEvent: 'PROFILE_SYNCED' });
+              }
+            })
+            .catch(err => {
+              console.error("[AuthProvider] Background sync failed:", err);
+            });
         }
+        updateBootDiagnostics({ routeBypassTriggered: true, finalRouteDecision: 'GUEST_ACCESS' });
 
       } catch (e) {
         console.error("[AuthProvider] Init error:", e);
@@ -198,6 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } finally {
         console.log('STEP_7_RELEASING_GATE');
         setAuthLoading(false);
+        setBootStatus('READY');
       }
     };
 

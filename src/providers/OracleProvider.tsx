@@ -15,6 +15,12 @@ interface OracleContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   authModalMode: 'signin' | 'signup';
   setAuthModalMode: (mode: 'signin' | 'signup') => void;
+  isContactModalOpen: boolean;
+  setIsContactModalOpen: (open: boolean) => void;
+  contactBusinessId: string | null;
+  setContactBusinessId: (id: string | null) => void;
+  postAuthAction: { type: string; payload: any } | null;
+  setPostAuthAction: (action: { type: string; payload: any } | null) => void;
 }
 
 const OracleContext = createContext<OracleContextType | undefined>(undefined);
@@ -24,6 +30,9 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isOracleOpen, setIsOracleOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [contactBusinessId, setContactBusinessId] = useState<string | null>(null);
+  const [postAuthAction, setPostAuthAction] = useState<{ type: string; payload: any } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setViewState] = useState<ViewState>(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -66,7 +75,13 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       isAuthModalOpen,
       setIsAuthModalOpen,
       authModalMode,
-      setAuthModalMode
+      setAuthModalMode,
+      isContactModalOpen,
+      setIsContactModalOpen,
+      contactBusinessId,
+      setContactBusinessId,
+      postAuthAction,
+      setPostAuthAction
     }}>
       {children}
     </OracleContext.Provider>

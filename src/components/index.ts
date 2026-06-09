@@ -25,6 +25,7 @@ import StatCard from './StatCard';
 import { VideoUpload, MultiVideoUpload } from './VideoUpload';
 import { BusinessCardSkeleton, FeedSkeleton, HeroSkeleton } from './SkeletonLoader';
 import { AuthModal } from './AuthModal';
+import { ContactGateway } from './ContactGateway';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -50,5 +51,6 @@ export {
   StatCard,
   VideoUpload, MultiVideoUpload,
   BusinessCardSkeleton, FeedSkeleton, HeroSkeleton,
-  AuthModal
+  AuthModal,
+  ContactGateway
 };

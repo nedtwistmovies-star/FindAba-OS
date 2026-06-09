@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mail, Lock, User, Plus, LogIn, X, Loader2, Phone, ShieldCheck, Key } from 'lucide-react';
+import { Mail, Lock, User, Plus, LogIn, X, Loader2, Phone, ShieldCheck, Key, Globe } from 'lucide-react';
 import { getSupabase } from '../services/supabaseService';
 import { syncProfile, signUpWithUsername, sendOtp, verifyOTP } from '../services/authService';
 import { useAuth } from '../providers/AuthProvider';
@@ -397,6 +397,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 mode === 'signup' ? 'Initialize Verification' : 'Confirm Handshake'
               )}
             </button>
+
+            <div className="relative py-4 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/5"></div>
+              </div>
+              <span className="relative px-4 bg-[#0b100e] text-[8px] font-black uppercase text-white/20 tracking-widest">Or social consensus</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                type="button"
+                onClick={async () => {
+                  const { loginWithGoogle } = await import('../services/authService');
+                  loginWithGoogle();
+                }}
+                className="py-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 hover:bg-white/10 transition-all active:scale-95 text-[10px] font-bold text-white uppercase tracking-widest"
+              >
+                <Globe size={14} /> Google
+              </button>
+              <button 
+                type="button"
+                onClick={async () => {
+                  if (!email || !email.includes('@')) {
+                    addToast("Valid email required for magic link.", "error");
+                    return;
+                  }
+                  setLoading(true);
+                  const { sendMagicLink } = await import('../services/authService');
+                  await sendMagicLink(email);
+                  addToast("Check your email for the magic link.", "success");
+                  setLoading(false);
+                }}
+                className="py-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 hover:bg-white/10 transition-all active:scale-95 text-[10px] font-bold text-white uppercase tracking-widest"
+              >
+                <Mail size={14} /> Magic Link
+              </button>
+            </div>
           </form>
         )}
 

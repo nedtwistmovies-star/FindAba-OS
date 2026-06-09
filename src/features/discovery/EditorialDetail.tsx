@@ -5,18 +5,32 @@ import {
   ChevronRight, MessageCircle, Heart, Bookmark,
   Facebook, Twitter, Linkedin, Link as LinkIcon
 } from 'lucide-react';
-import { EditorialStory, ViewState } from '../../types';
+import { EditorialStory, ViewState, Business } from '../../types';
 import { IndustrialButton } from '../../components';
 import { useToast } from '../../providers/ToastProvider';
+import { useOracle } from '../../providers';
 
 interface EditorialDetailProps {
   story: EditorialStory;
   onBack: () => void;
   setView: (v: ViewState) => void;
+  businesses?: Business[];
 }
 
-const EditorialDetail: React.FC<EditorialDetailProps> = ({ story, onBack, setView }) => {
+const EditorialDetail: React.FC<EditorialDetailProps> = ({ story, onBack, setView, businesses = [] }) => {
   const { addToast } = useToast();
+  const { setIsContactModalOpen, setContactBusinessId } = useOracle();
+
+  const handleContact = () => {
+    if (story.linked_business_id) {
+       console.log("EDITORIAL_CONTACT_CLICKED", story.linked_business_id);
+       setContactBusinessId(story.linked_business_id);
+       setIsContactModalOpen(true);
+    } else {
+       addToast("Establish direct connection via the registry.", "info");
+    }
+  };
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -146,18 +160,22 @@ const EditorialDetail: React.FC<EditorialDetailProps> = ({ story, onBack, setVie
                         <MessageCircle size={32} />
                      </div>
                      <div>
-                        <h4 className="text-lg font-black text-white uppercase tracking-tight">Join the Discourse</h4>
-                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Connect with the community on Faces</p>
+                        <h4 className="text-lg font-black text-white uppercase tracking-tight">
+                          {story.linked_business_id ? 'Contact Featured Partner' : 'Join the Discourse'}
+                        </h4>
+                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                          {story.linked_business_id ? 'Establish direct communication channel' : 'Connect with the community on Faces'}
+                        </p>
                      </div>
                   </div>
                   <IndustrialButton
                      variant="primary"
                      size="lg"
                      icon={ChevronRight}
-                     onClick={() => setView('faces')}
+                     onClick={handleContact}
                      className="bg-white text-aba-deep hover:bg-aba-gold"
                   >
-                     Open Faces Feed
+                     {story.linked_business_id ? 'Contact Partner' : 'Open Faces Feed'}
                   </IndustrialButton>
                </div>
             </div>

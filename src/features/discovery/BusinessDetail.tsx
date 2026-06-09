@@ -12,7 +12,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Business, Product, ViewState, IntegrityGrade, VerificationLevel } from '../../types';
 import { ImageCarousel, PaystackOverlay, IndustrialButton, SectionHeader } from '../../components';
-import { useAuth } from '../../providers/AuthProvider';
+import { useAuth, useOracle } from '../../providers';
 import { BusinessClaimFlow } from '../merchant/BusinessClaimFlow';
 
 // Fix for Leaflet marker icons
@@ -34,6 +34,7 @@ interface BusinessDetailProps {
 
 const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onToggleFavorite, isFavorite, setView }) => {
   const { userIdentifier, user_id } = useAuth();
+  const { setIsContactModalOpen, setContactBusinessId } = useOracle();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [showClaimFlow, setShowClaimFlow] = useState(false);
@@ -78,6 +79,12 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
   const handlePurchase = (product: Product) => {
     setSelectedProduct(product);
     setShowPayment(true);
+  };
+
+  const handleContact = () => {
+    console.log("CONTACT_BUTTON_CLICKED", business.id);
+    setContactBusinessId(business.id);
+    setIsContactModalOpen(true);
   };
 
   const handleClaimSuccess = () => {
@@ -171,7 +178,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                        variant="primary"
                        size="lg"
                        icon={MessageCircle}
-                       onClick={() => setView('faces')}
+                       onClick={handleContact}
                        className="shadow-xl w-full sm:w-auto"
                     >
                        Contact Partner

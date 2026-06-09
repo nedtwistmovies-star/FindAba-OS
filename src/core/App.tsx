@@ -2,7 +2,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
-import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal } from '../components';
+import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal, ContactGateway } from '../components';
 import { SplashScreen } from '../components/SplashScreen';
 import AuthLoadingScreen from '../components/AuthLoadingScreen';
 import { AuthErrorBoundary } from './AuthErrorBoundary';
@@ -31,7 +31,41 @@ const AppContent: React.FC = () => {
     setSelectedStory
   } = useBusiness();
   const { toasts = [], removeToast = () => {} } = useToast();
-  const { isOracleOpen, setIsOracleOpen, view, setView, isAuthModalOpen, setIsAuthModalOpen, authModalMode } = useOracle();
+  const { 
+    isOracleOpen, 
+    setIsOracleOpen, 
+    view, 
+    setView, 
+    isAuthModalOpen, 
+    setIsAuthModalOpen, 
+    authModalMode,
+    isContactModalOpen,
+    setIsContactModalOpen,
+    contactBusinessId,
+    postAuthAction,
+    setPostAuthAction
+  } = useOracle();
+
+  // Handle Post-Auth Actions
+  useEffect(() => {
+    if (isAuth && postAuthAction) {
+      console.log("EXECUTING_POST_AUTH_ACTION", postAuthAction);
+      if (postAuthAction.type === 'CONTACT_BUSINESS') {
+        const bizId = postAuthAction.payload.businessId;
+        console.log("RESUMING_CONTACT", bizId);
+        setIsContactModalOpen(true);
+      } else if (postAuthAction.type === 'OPEN_CHAT') {
+        const bizId = postAuthAction.payload.businessId;
+        const biz = businesses.find(b => b.id === bizId);
+        if (biz) {
+          console.log("RESUMING_CHAT", biz.name);
+          setSelectedBusiness(biz);
+          setView('messages');
+        }
+      }
+      setPostAuthAction(null);
+    }
+  }, [isAuth, postAuthAction, setPostAuthAction, setIsContactModalOpen, businesses, setSelectedBusiness, setView]);
 
   // 2. State Declarations
   const [isBooted, setIsBooted] = useState(false);
@@ -42,6 +76,19 @@ const AppContent: React.FC = () => {
 
   // 3. Effects
   useEffect(() => {
+    const handleOpenChat = (e: any) => {
+      const bizId = e.detail.businessId;
+      const biz = businesses.find(b => b.id === bizId);
+      if (biz) {
+        setSelectedBusiness(biz);
+        setView('messages');
+      }
+    };
+    window.addEventListener('OPEN_BUSINESS_CHAT', handleOpenChat);
+    return () => window.removeEventListener('OPEN_BUSINESS_CHAT', handleOpenChat);
+  }, [businesses, setView, setSelectedBusiness]);
+
+  useEffect(() => {
     // Scroll to top on view change
     window.scrollTo(0, 0);
   }, [view]);
@@ -49,18 +96,20 @@ const AppContent: React.FC = () => {
   // 🔹 NAVIGATION AFTER BOOT
   useEffect(() => {
     if (isBooted) {
-      if (bootDiagnostics.routeBypassTriggered || bootDiagnostics.sessionCorruptionDetected) {
-        console.log('STEP_9_SET_VIEW', 'login');
-        setView('login');
-        return;
-      }
-
       if ((view as string) === 'splash') {
         console.log('STEP_9_SET_VIEW', 'home');
         setView('home');
       }
     }
-  }, [isBooted, view, setView, bootDiagnostics.routeBypassTriggered, bootDiagnostics.sessionCorruptionDetected]);
+  }, [isBooted, view, setView]);
+
+  // Handle corruption or bypass in background without blocking initial view
+  useEffect(() => {
+    if (isBooted && bootDiagnostics.sessionCorruptionDetected) {
+      console.warn("Session corruption detected. Redirecting to login.");
+      setView('login');
+    }
+  }, [isBooted, bootDiagnostics.sessionCorruptionDetected, setView]);
 
   useEffect(() => {
     const initApp = async () => {
@@ -89,9 +138,10 @@ const AppContent: React.FC = () => {
     else setView('home');
   };
 
-  if (authLoading) {
-    return <AuthLoadingScreen />;
-  }
+  // Releasing AuthLoading gate - we browse as guest if auth is slow
+  // if (authLoading) {
+  //   return <AuthLoadingScreen />;
+  // }
 
   if (!isBooted || (view as string) === 'splash') {
     return <SplashScreen onComplete={handleBootComplete} />;
@@ -132,6 +182,7 @@ const AppContent: React.FC = () => {
             heroImages={heroImages} 
             heroVideos={heroVideos} 
             business={selectedBusiness}
+            targetBusiness={selectedBusiness}
             story={selectedStory}
             advertorial={selectedAdvertorial}
             myBusiness={myBusiness}
@@ -155,6 +206,12 @@ const AppContent: React.FC = () => {
           onClose={() => setIsAuthModalOpen(false)} 
           initialMode={authModalMode} 
           setView={setView}
+        />
+
+        <ContactGateway 
+          isOpen={isContactModalOpen}
+          onClose={() => setIsContactModalOpen(false)}
+          business={businesses.find(b => b.id === contactBusinessId) || null}
         />
 
         {isOracleOpen && (

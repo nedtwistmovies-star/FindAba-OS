@@ -237,7 +237,7 @@ export const syncProfile = async (user: any): Promise<any> => {
         .select('*')
         .eq('id', user.id)
         .single(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_SYNC_TIMEOUT")), 8000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_SYNC_TIMEOUT")), 12000))
     ]) as any;
 
     const { data: profile, error } = profileResponse;

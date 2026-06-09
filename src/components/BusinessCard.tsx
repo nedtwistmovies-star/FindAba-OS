@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Star, Heart, Crown, ShieldCheck, Phone, MessageSquare, Map as MapIcon, Maximize2, X, Play, Sparkles, Loader2, Video, Zap, Activity, Award, Globe, ChevronRight, CheckCircle2, ShoppingBag, Landmark, CreditCard, Clock, AlertCircle } from 'lucide-react';
 import { SubscriptionTier, Business, VerificationStatus, VerificationLevel, IntegrityGrade, Order, OrderStatus } from '../types';
 import { BusinessCardSkeleton } from './SkeletonLoader';
+import { useAuth, useOracle } from '../providers';
 
 interface BusinessCardProps {
   business?: Business;
@@ -80,6 +81,24 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
       case OrderStatus.PROCESSING: return 'bg-aba-gold text-aba-dark';
       default: return 'bg-slate-500 text-white';
     }
+  };
+
+  const { isAuth } = useAuth();
+  const { setIsAuthModalOpen, setIsContactModalOpen, setContactBusinessId } = useOracle();
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAuth) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    onToggleFavorite?.(business.id);
+  };
+
+  const handleContact = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setContactBusinessId(business.id);
+    setIsContactModalOpen(true);
   };
 
   return (
@@ -179,7 +198,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
         </div>
 
         <button 
-          onClick={e => { e.stopPropagation(); onToggleFavorite?.(business.id); }} 
+          onClick={handleToggleFavorite} 
           className={`absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-md z-20 transition-standard border border-white/10 ${
             isFavorite ? 'bg-aba-red text-white' : 'bg-black/40 text-white hover:bg-aba-gold hover:text-aba-deep'
           }`}
@@ -239,10 +258,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
           </div>
           <div className="flex items-center gap-2">
              <button 
-               onClick={(e) => {
-                 e.stopPropagation();
-                 window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}`, '_blank');
-               }}
+               onClick={handleContact}
                className="w-9 h-9 flex items-center justify-center bg-white/5 rounded-xl hover:bg-aba-gold hover:text-aba-deep transition-standard border border-white/10 group/btn"
              >
                 <MessageSquare size={16} className="group-hover/btn:scale-110 transition-standard" />
