@@ -10,6 +10,7 @@ import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from 'resend';
 import { sendPaymentSuccessEmail } from './src/services/emailService.ts';
+import * as WhatsApp from './src/services/whatsappService.ts';
 
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -103,7 +104,9 @@ app.get("/api/health", (req, res) => {
 
   // Config Sync
 app.get(["/api/config", "/api/config/"], (req, res) => {
-  console.log(`[Server] Config sync requested from ${req.ip}`);
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  console.log(`[Server] Config sync requested from ${ip} at ${new Date().toISOString()}`);
+  
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co';
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxemprdnFtaGVybmdpc3B4bHp5Iiwicm9sZSI6InFub24iLCJpYXQiOjE3Njc0MjA3MjMsImV4cCI6MjA4Mjk5NjcyM30.Oa6ZXYw5-f3BOHHafFsLPtuBgmV4yOu5BMpulyDC-oc';
   const paystackKey = process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -402,6 +405,96 @@ app.post("/api/oracle", async (req, res) => {
       console.error("[Email] Critical Failure:", err.message);
       res.status(500).json({ error: "Internal server error during email transmission" });
     }
+  });
+
+  // Meta WhatsApp API Service Hub
+  // -----------------------------
+
+  // Custom Test Handshake for Make.com auto-schema detection
+  app.post("/api/whatsapp/test-webhook", async (req, res) => {
+    const { webhookUrl } = req.body;
+    if (!webhookUrl) {
+      return res.status(400).json({ success: false, error: "Missing 'webhookUrl' parameter" });
+    }
+
+    console.log(`[Make.com Setup] Dispatching schema initialization handshake to: ${webhookUrl}`);
+    try {
+      const response = await axios.post(webhookUrl, {
+        source: 'FindAba Hub Initialization Service',
+        type: 'whatsapp_intent',
+        businessId: 'test-business-abc-123',
+        businessName: 'Aba Integrated Tailors Collective',
+        targetPhone: '+2348039998888',
+        message: 'Pre-flight Initialization signal. Tap "Save" in Make.com. The data structure has been populated successfully.',
+        userName: 'Pastor Nelson (Platform Administrator)',
+        userEmail: 'pastornelsonezi@gmail.com',
+        timestamp: new Date().toISOString()
+      });
+      res.json({ success: true, status: response.status, data: response.data });
+    } catch (err: any) {
+      console.error("[Make.com Setup] Dispatch failed:", err.message);
+      res.status(500).json({ success: false, error: err.message, status: err.response?.status });
+    }
+  });
+
+  // 1. Business Inquiry (Integrated with Make.com sync + support for client-side configuration overrides)
+  app.post("/api/whatsapp/inquiry", async (req, res) => {
+    const { businessId, businessName, phone, message, userName, userEmail, makeWebhookUrlOverride } = req.body;
+    
+    console.log(`[WhatsApp] Processing inquiry for ${businessName} (${phone})`);
+
+    const results: any = { whatsapp: { success: false }, make: { success: false } };
+
+    // Capture in Make.com
+    const makeUrl = makeWebhookUrlOverride || process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
+    if (makeUrl) {
+      try {
+        await axios.post(makeUrl, {
+          source: 'FindAba Contact Gateway',
+          type: 'whatsapp_intent',
+          businessId,
+          businessName,
+          targetPhone: phone,
+          message,
+          userName,
+          userEmail,
+          timestamp: new Date().toISOString()
+        });
+        results.make.success = true;
+      } catch (err: any) {
+        console.error("[Make.com] Sync failure:", err.message);
+      }
+    }
+
+    // Trigger Meta Cloud API
+    const whatsappResult = await WhatsApp.sendBusinessInquiryMessage(phone, businessName, message, userName);
+    results.whatsapp = whatsappResult;
+
+    res.json(results);
+  });
+
+  // 2. Auth: OTP Transmission
+  app.post("/api/whatsapp/otp", async (req, res) => {
+    const { phone, code } = req.body;
+    console.log(`[WhatsApp] Transmitting OTP for ${phone}`);
+    const result = await WhatsApp.sendOTPMessage(phone, code);
+    res.json(result);
+  });
+
+  // 3. Auth: Welcome/Onboarding
+  app.post("/api/whatsapp/welcome", async (req, res) => {
+    const { phone, userName } = req.body;
+    console.log(`[WhatsApp] Transmitting Welcome Message for ${userName}`);
+    const result = await WhatsApp.sendWelcomeMessage(phone, userName);
+    res.json(result);
+  });
+
+  // 4. Notifications: Generic Order/Alert
+  app.post("/api/whatsapp/notify", async (req, res) => {
+    const { phone, template, parameters } = req.body;
+    console.log(`[WhatsApp] Transmitting Template [${template}] to ${phone}`);
+    const result = await WhatsApp.sendTemplateMessage(phone, template, 'en_US', parameters || []);
+    res.json(result);
   });
 
   // Paystack Webhook Handler

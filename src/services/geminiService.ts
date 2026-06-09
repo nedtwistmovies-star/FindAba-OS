@@ -58,13 +58,16 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
     console.log(`[Oracle] Syncing from: ${syncUrl}`);
     
     let response;
-    let retries = 3;
+    let retries = 10;
     while (retries > 0) {
       try {
-        console.log(`[Oracle] Sync Attempt ${4 - retries} to ${syncUrl}...`);
+        console.log(`[Oracle] Sync Attempt ${11 - retries} to ${syncUrl}...`);
         // Add a timeout to the fetch call
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => {
+          console.warn(`[Oracle] Sync Attempt ${11 - retries} TIMED OUT after 30s`);
+          controller.abort();
+        }, 30000);
         
         response = await fetch(syncUrl, { signal: controller.signal });
         clearTimeout(timeoutId);

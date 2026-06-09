@@ -53,6 +53,26 @@ export function useBookingFlow() {
 
           if (confirmedBooking) {
             triggerWebhook(WebhookEvent.NEW_BOOKING, confirmedBooking);
+            
+            // ✅ Meta WhatsApp Order Notification
+            if (user?.user_metadata?.phone || user?.phone) {
+              const userPhone = user.user_metadata?.phone || user.phone;
+              try {
+                await fetch('/api/whatsapp/notify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    phone: userPhone,
+                    template: 'order_confirmation_v2', // Production template name
+                    parameters: [
+                      { type: 'body', parameters: [{ type: 'text', text: confirmedBooking.id }] }
+                    ]
+                  })
+                });
+              } catch (waErr) {
+                console.error("[WhatsApp Notify] Notification failed:", waErr);
+              }
+            }
           }
         },
       });

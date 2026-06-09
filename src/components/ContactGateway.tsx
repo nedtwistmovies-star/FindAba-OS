@@ -7,7 +7,7 @@ import {
   Zap, MessageSquare 
 } from 'lucide-react';
 import { Business } from '../types';
-import { useOracle, useAuth } from '../providers';
+import { useOracle, useAuth, useToast } from '../providers';
 
 interface ContactGatewayProps {
   isOpen: boolean;
@@ -17,7 +17,8 @@ interface ContactGatewayProps {
 
 export const ContactGateway: React.FC<ContactGatewayProps> = ({ isOpen, onClose, business }) => {
   const { setIsAuthModalOpen, setAuthModalMode, setView, setPostAuthAction } = useOracle();
-  const { isAuth } = useAuth();
+  const { isAuth, userIdentifier, profile } = useAuth();
+  const { addToast } = useToast();
 
   if (!business) return null;
 
@@ -50,9 +51,59 @@ export const ContactGateway: React.FC<ContactGatewayProps> = ({ isOpen, onClose,
       desc: 'Connect via Meta Cloud API',
       icon: <MessageCircle size={20} />,
       color: 'bg-green-500',
-      action: () => {
+      action: async () => {
         console.log("CONTACT_METHOD_SELECTED", "WHATSAPP", business.id);
-        window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}`, '_blank');
+        
+        // 1. Immediate optimistic feedback
+        addToast(`Initiating Meta WhatsApp link with ${business.name}...`, 'info');
+
+        try {
+          // 2. Trigger Server-Side Meta API & Make.com Sync with LocalStorage webhook override if configured
+          const makeUrlOverride = localStorage.getItem('findaba_make_webhook_url') || undefined;
+          
+          const response = await fetch('/api/whatsapp/inquiry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              businessId: business.id,
+              businessName: business.name,
+              phone: business.phone_whatsapp,
+              message: `Inquiry from FindAba: Interested in ${business.name}`,
+              userName: profile?.full_name || userIdentifier || 'Anonymous Industrial Guest',
+              userEmail: userIdentifier,
+              makeWebhookUrlOverride: makeUrlOverride
+            })
+          });
+
+          const data = await response.json();
+          
+          if (data.make?.success) {
+            addToast(`Lead successfully synchronized with Make.com!`, 'success');
+          }
+
+          if (data.whatsapp?.success) {
+            addToast(`WhatsApp alert dispatched successfully via Meta API!`, 'success');
+          } else if (data.whatsapp?.error === 'CREDENTIALS_MISSING') {
+            addToast(`Meta API Credentials not yet configured in env. Launching direct wa.me chat link.`, 'info');
+          } else if (data.whatsapp?.error) {
+            const hint = data.whatsapp.details?.diagnosticHint || '';
+            const msg = `Meta API Integration Alert: ${data.whatsapp.error}. ${hint}`;
+            addToast(msg, 'error');
+          }
+
+          // 3. Always provide the direct wa.me fallback for the best CX
+          // The API call happens in the background to log/sync/send template
+          setTimeout(() => {
+            window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent("Hello! I found your business on FindAba and would like to inquire about your services.")}`, '_blank');
+          }, 500);
+
+        } catch (err) {
+          console.error("[WhatsApp] API Integration Error:", err);
+          // Fallback to direct link if server logic fails
+          window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}`, '_blank');
+        }
+        
+        onClose();
       }
     },
     {

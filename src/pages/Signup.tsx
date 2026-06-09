@@ -23,6 +23,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
+    phone: '',
     password: '',
     name: '',
     referral_code: ''
@@ -48,11 +49,24 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
     setMessage(null);
 
     try {
-      const user = await signUpWithUsername(formData.username.toLowerCase().trim(), formData.email, formData.password, formData.name, "");
+      const user = await signUpWithUsername(formData.username.toLowerCase().trim(), formData.email, formData.password, formData.name, formData.phone);
       
       if (user) {
         // ✅ INSERT WELCOME NOTIFICATION HERE
         await createWelcomeNotification(user.id);
+
+        // ✅ WhatsApp Welcome Message (Meta Cloud API Integration)
+        if (formData.phone) {
+          try {
+            await fetch('/api/whatsapp/welcome', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phone: formData.phone, userName: formData.name })
+            });
+          } catch (wErr) {
+            console.error("[WhatsApp Welcome] Failed:", wErr);
+          }
+        }
         
         setMessage("Account created successfully! Welcome to FindAba.");
         onAuthSuccess(formData.email, formData.name, 'registered', user.id);
@@ -135,7 +149,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                   </div>
                </div>
 
-               <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2">
+                <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2">
                   <div className="flex items-center">
                     <div className="p-4"><Mail className="text-white/20" size={20} /></div>
                     <input 
@@ -145,6 +159,20 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                        className="flex-1 bg-transparent py-4 pr-6 outline-none text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
                        value={formData.email}
                        onChange={e => setFormData({...formData, email: e.target.value})}
+                    />
+                  </div>
+               </div>
+
+               <div className="relative group bg-[#01301c] rounded-[1.5rem] border border-white/5 p-2">
+                  <div className="flex items-center">
+                    <div className="p-4"><Zap className="text-aba-gold" size={20} /></div>
+                    <input 
+                       required
+                       type="tel" 
+                       placeholder="WHATSAPP PHONE NUMBER" 
+                       className="flex-1 bg-transparent py-4 pr-6 outline-none text-xs font-black uppercase tracking-widest placeholder:text-white/20 text-white"
+                       value={formData.phone}
+                       onChange={e => setFormData({...formData, phone: e.target.value})}
                     />
                   </div>
                </div>

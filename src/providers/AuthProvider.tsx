@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sessionResponse = await Promise.race([
           sb.auth.getSession(),
           new Promise((resolve) => 
-            setTimeout(() => resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } }), 6000)
+            setTimeout(() => resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } }), 20000)
           )
         ]) as any;
         
@@ -137,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error: sessionError } = sessionResponse;
         
         if (sessionError && sessionError.message === 'SESSION_TIMEOUT_EXCEEDED') {
-          console.warn("[AuthProvider] Session load timed out after 6s. Proceeding as unauthenticated.");
+          console.warn("[AuthProvider] Session load timed out after 20s. Proceeding as unauthenticated.");
           updateBootDiagnostics({ authEvent: 'TIMEOUT', corruptionMetadata: 'getSession timed out' });
         }
         

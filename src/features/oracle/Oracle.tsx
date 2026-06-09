@@ -116,7 +116,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       const synced = await syncGeminiConfig();
       const { checkDatabaseHealth } = await import('../../services/supabaseService');
       const health = await checkDatabaseHealth();
-      setSignalLocked(synced && health.status === 'healthy');
+      setSignalLocked(synced.status === 'healthy' && health.status === 'healthy');
     };
     checkSignal();
     
@@ -154,7 +154,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
 
   useEffect(() => {
     syncGeminiConfig().then(synced => {
-      if (synced) setSignalLocked(true);
+      if (synced.status === 'healthy') setSignalLocked(true);
     });
   }, []);
 

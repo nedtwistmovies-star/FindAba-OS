@@ -918,6 +918,10 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   // Supabase Config State
   const [dbConfig, setDbConfig] = useState(getRegistryConfig());
   const [makeWebhookUrl, setMakeWebhookUrl] = useState(() => localStorage.getItem('findaba_make_webhook_url') || '');
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [waTestLog, setWaTestLog] = useState<any>(null);
+  const [isTestingWa, setIsTestingWa] = useState(false);
   const [dbHealth, setDbHealth] = useState<{
     status: "healthy" | "unhealthy" | "unknown";
     message?: string;
@@ -1726,6 +1730,203 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     <p className="text-[9px] font-bold text-white/20 uppercase leading-relaxed tracking-widest">
                       Configure the Make.com webhook for industrial automation signals.
                     </p>
+
+                    {/* Make.com Testing Console */}
+                    {makeWebhookUrl && (
+                      <div className="mt-4 p-5 bg-aba-deep border border-white/5 rounded-2xl space-y-4 font-sans">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-aba-gold animate-pulse" />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-aba-gold">Make.com Schema Initializer</span>
+                        </div>
+                        <p className="text-[10px] text-white/50 leading-relaxed font-bold">
+                          If Make.com shows the orange <span className="text-orange-400">"Data structure not determined yet"</span> alert, set your Scenario trigger to "Immediately as data arrives", click "Determine data structure" on Make.com, then click below to dispatch a fully structured pre-flight test payload.
+                        </p>
+                        <button
+                          type="button"
+                          disabled={isTestingWebhook}
+                          onClick={async () => {
+                            setIsTestingWebhook(true);
+                            try {
+                              const res = await fetch('/api/whatsapp/test-webhook', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ webhookUrl: makeWebhookUrl })
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                addToast("Test Handshake Successfully Transmitted!", "success");
+                              } else {
+                                addToast(`Handshake rejection: ${data.error}`, "error");
+                              }
+                            } catch (e: any) {
+                              addToast(`Connection error: ${e.message}`, "error");
+                            } finally {
+                              setIsTestingWebhook(false);
+                            }
+                          }}
+                          className="px-6 py-3 bg-aba-gold/10 hover:bg-aba-gold/20 text-aba-gold border border-aba-gold/20 hover:border-aba-gold/40 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
+                        >
+                          {isTestingWebhook ? "Transmitting..." : "Send Schema Handshake Ping"}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Meta WhatsApp Diagnostic Sandbox */}
+                    <div className="mt-8 p-6 bg-white/[0.02] border border-white/5 rounded-[2rem] space-y-6 font-sans">
+                      <div className="flex items-center gap-4">
+                        <MessageSquare className="text-aba-gold" size={20} />
+                        <div>
+                          <h5 className="text-xs font-black uppercase tracking-widest text-white">Meta WhatsApp Developer Sandbox</h5>
+                          <p className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Troubleshoot credentials, templates and API permissions</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <label className="text-[9px] font-black uppercase text-white/40 tracking-widest ml-1">Test Recipient Phone (with country code, e.g. 23480...)</label>
+                        <div className="flex gap-4">
+                          <input 
+                            type="text"
+                            value={testPhone}
+                            placeholder="e.g. 2348035552222"
+                            className="flex-1 bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold text-white outline-none focus:border-aba-gold/50 transition-all font-mono"
+                            onChange={(e) => setTestPhone(e.target.value.replace(/\D/g, ''))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          disabled={isTestingWa || !testPhone}
+                          onClick={async () => {
+                            setIsTestingWa(true);
+                            setWaTestLog(null);
+                            try {
+                              const res = await fetch('/api/whatsapp/otp', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ phone: testPhone, code: '123456' })
+                              });
+                              const data = await res.json();
+                              setWaTestLog(data);
+                              if (data.success) {
+                                addToast("OTP Test Message Dispatched!", "success");
+                              } else {
+                                addToast("Meta Transmission Refused", "error");
+                              }
+                            } catch (e: any) {
+                              setWaTestLog({ success: false, error: e.message });
+                              addToast("Local Dispatch Error", "error");
+                            } finally {
+                              setIsTestingWa(false);
+                            }
+                          }}
+                          className="px-5 py-3 bg-white/5 hover:bg-white/10 text-white hover:text-aba-gold border border-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:hover:text-white"
+                        >
+                          Test OTP Code
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isTestingWa || !testPhone}
+                          onClick={async () => {
+                            setIsTestingWa(true);
+                            setWaTestLog(null);
+                            try {
+                              const res = await fetch('/api/whatsapp/welcome', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ phone: testPhone, userName: 'Pastor Nelson' })
+                              });
+                              const data = await res.json();
+                              setWaTestLog(data);
+                              if (data.success) {
+                                addToast("Welcome Onboarding Test Dispatched!", "success");
+                              } else {
+                                addToast("Meta Transmission Refused", "error");
+                              }
+                            } catch (e: any) {
+                              setWaTestLog({ success: false, error: e.message });
+                              addToast("Local Dispatch Error", "error");
+                            } finally {
+                              setIsTestingWa(false);
+                            }
+                          }}
+                          className="px-5 py-3 bg-white/5 hover:bg-white/10 text-white hover:text-aba-gold border border-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:hover:text-white"
+                        >
+                          Test Onboarding
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isTestingWa || !testPhone}
+                          onClick={async () => {
+                            setIsTestingWa(true);
+                            setWaTestLog(null);
+                            try {
+                              const res = await fetch('/api/whatsapp/inquiry', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  phone: testPhone,
+                                  businessId: 'test-id',
+                                  businessName: 'FindAba Test Systems',
+                                  message: 'Simulated procuring alert check.',
+                                  userName: 'Institutional Auditor',
+                                  userEmail: 'pastornelsonezi@gmail.com'
+                                })
+                              });
+                              const data = await res.json();
+                              setWaTestLog(data);
+                              if (data.whatsapp?.success) {
+                                addToast("Business Alert Test Dispatched!", "success");
+                              } else {
+                                addToast("Meta Transmission Refused", "error");
+                              }
+                            } catch (e: any) {
+                              setWaTestLog({ success: false, error: e.message });
+                              addToast("Local Dispatch Error", "error");
+                            } finally {
+                              setIsTestingWa(false);
+                            }
+                          }}
+                          className="px-5 py-3 bg-white/5 hover:bg-white/10 text-white hover:text-aba-gold border border-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:hover:text-white"
+                        >
+                          Test Business Alerter
+                        </button>
+                      </div>
+
+                      {/* Display Logs */}
+                      {waTestLog !== null && (
+                        <div className="space-y-4 font-mono">
+                          <p className="text-[10px] font-black uppercase text-white/30 tracking-widest">Diagnostic Console Log</p>
+                          <div className="p-5 bg-black/40 border border-white/5 rounded-2xl text-[10px] leading-relaxed break-all overflow-x-auto max-h-[300px] overflow-y-auto space-y-3">
+                            {waTestLog.success || waTestLog.whatsapp?.success ? (
+                              <div className="space-y-1">
+                                <span className="px-2 py-0.5 bg-aba-green/10 text-aba-green font-black uppercase tracking-wider rounded text-[8px]">ONLINE (SUCCESS)</span>
+                                <p className="text-white/80">Message sent successfully!</p>
+                                <p className="text-white/40">Id: {waTestLog.messageId || waTestLog.whatsapp?.messageId}</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                <span className="px-2 py-0.5 bg-aba-red/10 text-aba-red font-black uppercase tracking-wider rounded text-[8px]">REJECTED (META EXCEPTION)</span>
+                                <p className="text-aba-red font-bold">Error: {waTestLog.error || waTestLog.whatsapp?.error || 'Unknown Error'}</p>
+                                
+                                {waTestLog.details?.diagnosticHint && (
+                                  <div className="p-3 bg-aba-gold/5 border border-aba-gold/10 rounded-xl space-y-1 text-aba-gold text-[9px] leading-normal font-sans">
+                                    <p className="font-extrabold uppercase tracking-wide">💡 Diagnosis & Suggested Fix:</p>
+                                    <p>{waTestLog.details.diagnosticHint}</p>
+                                  </div>
+                                )}
+
+                                <p className="text-[9px] uppercase tracking-widest text-white/30 mt-2 font-bold font-sans">Raw JSON Response Payload:</p>
+                                <pre className="text-white/40 whitespace-pre-wrap leading-normal text-[9px]">{JSON.stringify(waTestLog.details || waTestLog, null, 2)}</pre>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-4">
