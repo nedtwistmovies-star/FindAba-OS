@@ -6,6 +6,7 @@ import { BusinessProvider } from './BusinessProvider';
 import { ToastProvider } from './ToastProvider';
 import { OracleProvider } from './OracleProvider';
 import { ChatProvider } from './ChatProvider';
+import { LanguageProvider } from './LanguageProvider';
 export * from './ChatProvider';
 import { useAuth } from './AuthProvider';
 
@@ -25,17 +26,19 @@ const ChatProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children
 export const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <AuthProvider>
-      <ToastProvider>
-        <ConfigProvider>
-          <BusinessProvider>
-            <OracleProvider>
-              <ChatProviderWrapper>
-                {children}
-              </ChatProviderWrapper>
-            </OracleProvider>
-          </BusinessProvider>
-        </ConfigProvider>
-      </ToastProvider>
+      <LanguageProvider>
+        <ToastProvider>
+          <ConfigProvider>
+            <BusinessProvider>
+              <OracleProvider>
+                <ChatProviderWrapper>
+                  {children}
+                </ChatProviderWrapper>
+              </OracleProvider>
+            </BusinessProvider>
+          </ConfigProvider>
+        </ToastProvider>
+      </LanguageProvider>
     </AuthProvider>
   );
 };
@@ -45,3 +48,5 @@ export * from './ConfigProvider';
 export * from './BusinessProvider';
 export * from './ToastProvider';
 export * from './OracleProvider';
+export * from './LanguageProvider';
+

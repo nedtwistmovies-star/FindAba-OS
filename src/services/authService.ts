@@ -247,11 +247,12 @@ export const syncProfile = async (user: any, attempts: number = 3): Promise<any>
       console.log(`[AuthService] Profile sync attempt ${i + 1}/${attempts} for ${user.id}`);
       
       const startTime = Date.now();
-      const { data: profile, error } = await supabase
+      const { data: profile, error } = await (supabase
         .from('profiles')
-        .select('*', { abortSignal: controller.signal })
+        .select('*')
         .eq('id', user.id)
-        .single();
+        .single() as any)
+        .abortSignal(controller.signal);
       
       clearTimeout(timeoutId);
       const duration = Date.now() - startTime;

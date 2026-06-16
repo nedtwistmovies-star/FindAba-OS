@@ -44,6 +44,8 @@ import {
   RefreshCw,
   Github,
   Database,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import Logo from "./Logo";
 import { generateWelcomeMessage } from "../services/geminiService";
@@ -54,6 +56,7 @@ import {
 } from "../services/supabaseService";
 import { useAuth } from "../providers/AuthProvider";
 import { useBusiness } from "../providers/BusinessProvider";
+import { useLanguage } from "../providers/LanguageProvider";
 import { useGitSync } from "../hooks/useGitSync";
 import { SANDALS_BRAND } from "../constants";
 import NotificationCenter from "./NotificationCenter";
@@ -202,6 +205,7 @@ const Layout: React.FC<LayoutProps> = ({
   socialLinks,
 }) => {
   const { addToast } = useToast();
+  const { language, setLanguage, t } = useLanguage();
   const { userIdentifier, userName, isAuth, profile, userRole } = useAuth();
   const safeProfile = profile || {};
   const {
@@ -343,72 +347,82 @@ const Layout: React.FC<LayoutProps> = ({
 
   const menuItems = [
     {
-      label: "City Faces",
+      label: t("City Faces", "City Faces"),
       icon: <Users size={20} />,
       view: "faces" as ViewState,
     },
     {
-      label: "Fidelity Wallet",
+      label: t("Fidelity Wallet", "Fidelity Wallet"),
       icon: <Landmark size={20} />,
       view: "fidelity" as ViewState,
     },
     {
-      label: "Purple Fleet",
+      label: t("Purple Fleet", "Purple Fleet"),
       icon: <Car size={20} />,
       view: "purple-fleet" as ViewState,
     },
     {
-      label: "SANDALSroyalle Hotels & Suites",
+      label: t("SANDALSroyalle Hotels & Suites", "SANDALSroyalle Hotels & Suites"),
       icon: <Building2 size={20} />,
       view: "fidelity" as ViewState,
     },
     {
-      label: "Carry-Go Cargo",
+      label: t("Carry-Go Cargo", "Carry-Go Cargo"),
       icon: <Truck size={20} />,
       view: "cargo" as ViewState,
     },
     {
-      label: "Thrift Savings",
+      label: t("Thrift Savings", "Thrift Savings"),
       icon: <Wallet size={20} />,
       view: "thrift-dashboard" as ViewState,
     },
     {
-      label: "Audio Archive",
+      label: t("Audio Archive", "Audio Archive"),
       icon: <Radio size={20} />,
       view: "audio-heritage" as ViewState,
     },
     {
-      label: "Creative Lab",
+      label: t("Creative Lab", "Creative Lab"),
       icon: <Sparkles size={20} />,
       view: "lab" as ViewState,
     },
     {
-      label: "Hardware Audit",
+      label: t("Hardware Audit", "Hardware Audit"),
       icon: <ShieldCheck size={20} />,
       view: "hardware-audit" as ViewState,
     },
     {
-      label: "Aba History",
+      label: t("Aba History", "Aba History"),
       icon: <BookOpen size={20} />,
       view: "about-aba" as ViewState,
     },
     {
-      label: "City Registry",
+      label: t("City Registry", "City Registry"),
       icon: <Layers size={20} />,
       view: "explore" as ViewState,
     },
     {
-      label: "Oracle Hub",
+      label: t("Oracle Hub", "Oracle Hub"),
       icon: <Cpu size={20} />,
       view: "oracle" as ViewState,
     },
     {
       id: "home",
-      label: "Home Node",
+      label: t("Home Node", "Home Node"),
       icon: <Home size={20} />,
       view: "home" as ViewState,
     },
   ];
+
+  const visibleMenuItems = [...menuItems];
+  if (userRole === "admin") {
+    visibleMenuItems.unshift({
+      id: "admin",
+      label: t("Admin Console", "Admin Console"),
+      icon: <ShieldCheck size={20} />,
+      view: "admin" as ViewState,
+    });
+  }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -503,7 +517,7 @@ const Layout: React.FC<LayoutProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
-          {menuItems.map((item, i) => (
+          {visibleMenuItems.map((item, i) => (
             <SidebarItem key={i} item={item} />
           ))}
 
@@ -713,6 +727,22 @@ const Layout: React.FC<LayoutProps> = ({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Git Repository Sync Indicator */}
+            <div 
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold leading-none select-none cursor-help"
+              title={gitSynced ? `Repository In-Sync: ${liveRepo || "System Default"}` : `Repository Out of Sync! Current: ${liveRepo}`}
+              id="git-repo-indicator"
+            >
+              {gitSynced ? (
+                <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+              ) : (
+                <AlertTriangle size={13} className="text-amber-500 shrink-0 animate-pulse" />
+              )}
+              <span className={`text-[9px] uppercase tracking-wider font-extrabold ${gitSynced ? 'text-white/40' : 'text-amber-500'}`}>
+                {gitSynced ? 'Repo Match' : 'Repo Diff'}
+              </span>
             </div>
 
             <div className="hidden md:block">
@@ -1141,7 +1171,7 @@ const Layout: React.FC<LayoutProps> = ({
             </button>
           </div>
           <div className="flex-1 p-8 space-y-3 overflow-y-auto scrollbar-hide">
-            {menuItems.map((item, i) => (
+            {visibleMenuItems.map((item, i) => (
               <button
                 key={i}
                 onClick={() => {

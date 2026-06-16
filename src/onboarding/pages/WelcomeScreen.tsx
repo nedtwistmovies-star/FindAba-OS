@@ -10,7 +10,8 @@ const LANGUAGES = [
   { code: 'pi', name: 'Pidgin', greeting: 'Welcome' },
   { code: 'yo', name: 'Yoruba', greeting: 'E kaabo' },
   { code: 'ha', name: 'Hausa', greeting: 'Sannu da zuwa' },
-  { code: 'cn', name: 'Chinese', greeting: 'Huānyíng' }
+  { code: 'fr', name: 'French', greeting: 'Bienvenue' },
+  { code: 'zh', name: 'Chinese', greeting: 'Huānyíng' }
 ];
 
 export const WelcomeScreen: React.FC<{ onNext: (action: string) => void }> = ({ onNext }) => {

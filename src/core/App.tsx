@@ -2,7 +2,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
-import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal, ContactGateway } from '../components';
+import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal, ContactGateway, RepositoryManager } from '../components';
 import { SplashScreen } from '../components/SplashScreen';
 import AuthLoadingScreen from '../components/AuthLoadingScreen';
 import { AuthErrorBoundary } from './AuthErrorBoundary';
@@ -70,6 +70,7 @@ const AppContent: React.FC = () => {
 
   // 2. State Declarations
   const [isBooted, setIsBooted] = useState(false);
+  const [isRepoManagerOpen, setIsRepoManagerOpen] = useState(false);
 
   const handleBootComplete = React.useCallback(() => {
     setIsBooted(true);
@@ -93,6 +94,18 @@ const AppContent: React.FC = () => {
     // Scroll to top on view change
     window.scrollTo(0, 0);
   }, [view]);
+
+  // Global Keyboard shortcut listener for Ctrl+Shift+G
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        setIsRepoManagerOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // 🔹 INITIALIZE GIT REPOSITORY CONFIG FROM METADATA
   useEffect(() => {
@@ -231,6 +244,11 @@ const AppContent: React.FC = () => {
           isOpen={isContactModalOpen}
           onClose={() => setIsContactModalOpen(false)}
           business={businesses.find(b => b.id === contactBusinessId) || null}
+        />
+
+        <RepositoryManager 
+          isOpen={isRepoManagerOpen}
+          onClose={() => setIsRepoManagerOpen(false)}
         />
 
         {isOracleOpen && (

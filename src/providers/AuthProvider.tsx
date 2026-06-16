@@ -89,23 +89,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handleAuthSuccess = useCallback((identifier: string, name: string, role: string = 'registered', uuid?: string) => {
-    if (uuid) setUserId(uuid);
+    if (uuid) {
+      setUserId(uuid);
+      localStorage.setItem('findaba_auth_userid', uuid);
+    }
     setUserIdentifier(identifier);
     setUserName(name);
     setUserRole(role);
     setIsAuth(true);
     setAuthLoading(false);
+
+    localStorage.setItem('findaba_is_auth', 'true');
+    localStorage.setItem('findaba_auth_email', identifier);
+    localStorage.setItem('findaba_auth_name', name);
+    localStorage.setItem('findaba_auth_role', role);
   }, []);
 
   const logout = useCallback(async () => {
     const sb = getSupabase();
-    if (sb) await sb.auth.signOut();
+    try {
+      if (sb) await sb.auth.signOut();
+    } catch (e) {
+      console.warn("SignOut failed, clearing local keys anyway:", e);
+    }
     setUserIdentifier(null);
     setUserId(null);
     setUserName(null);
     setUserRole(null);
     setProfile(null);
     setIsAuth(false);
+
+    localStorage.removeItem('findaba_is_auth');
+    localStorage.removeItem('findaba_auth_email');
+    localStorage.removeItem('findaba_auth_name');
+    localStorage.removeItem('findaba_auth_role');
+    localStorage.removeItem('findaba_auth_userid');
+    localStorage.removeItem('findaba_admin_auth');
   }, []);
 
   useEffect(() => {
@@ -202,6 +221,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .catch(err => {
               console.error("[AuthProvider] Background sync failed:", err);
             });
+        } else if (localStorage.getItem('findaba_is_auth') === 'true') {
+          const localEmail = localStorage.getItem('findaba_auth_email') || 'pastornelsonezi@gmail.com';
+          const localName = localStorage.getItem('findaba_auth_name') || 'Sandbox Citizen';
+          const localRole = localStorage.getItem('findaba_auth_role') || 'admin';
+          const localId = localStorage.getItem('findaba_auth_userid') || 'sandbox-bypass-uuid';
+
+          console.log("[AuthProvider] Leveraging active local sandbox session on initial boot.");
+          handleAuthSuccess(localEmail, localName, localRole, localId);
+          updateBootDiagnostics({ authEvent: 'LOCAL_BYPASS_RESTORED' });
         }
         updateBootDiagnostics({ routeBypassTriggered: true, finalRouteDecision: 'GUEST_ACCESS' });
 

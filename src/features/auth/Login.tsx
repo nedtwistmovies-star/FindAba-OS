@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, ShieldCheck, ArrowRight, Loader2, Globe } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, ArrowRight, Loader2, Globe, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../providers';
 import { loginWithUsername, signUpWithUsername, sendMagicLink, loginWithGoogle } from '../../services/authService';
 import { useToast } from '../../providers/ToastProvider';
@@ -19,6 +19,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [loading, setLoading] = useState(false);
   const [useMagicLink, setUseMagicLink] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   // Form State
   const [identifier, setIdentifier] = useState('');
@@ -232,13 +233,20 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   placeholder="PASSWORD" 
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-aba-gold/50 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-12 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-aba-gold/50 transition-all"
                   required={!useMagicLink}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors focus:outline-none"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
           )}
