@@ -4,17 +4,17 @@
     "microphone",
     "geolocation"
   ],
-  "name": "Remix: FindAba OS • Industrial Operating System",
-  "short_name": "FindAba",
+  "name": "FindAba by SANDALSroyalle",
+  "short_name": "FindAba OS",
   "repository": {
     "type": "git",
     "url": "https://github.com/nedtwistmovies-star/FindAba-OS.git"
   },
-  "description": "FindAba OS is the definitive AI-centric industrial operating system for Abia State. Seamlessly integrating statewide intelligence, secure commerce, and precision logistics, we bridge the gap between local craft and global demand. From the markets of Aba to the hubs of Umuahia, we provide unprecedented signal reliability and expert AI orchestration for God\u0027s Own State.",
+  "description": "The unified digital ecosystem for Aba, connecting businesses, merchants, and the community. Explore Aba, find opportunities, and connect with global trade.",
   "theme_color": "#020617",
   "background_color": "#020617",
-  "contact_email": "inquiries@findaba.com",
-  "account_number": "0000000000",
+  "contact_email": "inquiries@findaba.com.ng",
+  "account_number": "802410140",
   "social_media_links": {
     "twitter": "https://twitter.com/findaba",
     "facebook": "https://facebook.com/findaba",
