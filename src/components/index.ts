@@ -26,6 +26,7 @@ import { VideoUpload, MultiVideoUpload } from './VideoUpload';
 import { BusinessCardSkeleton, FeedSkeleton, HeroSkeleton } from './SkeletonLoader';
 import { AuthModal } from './AuthModal';
 import { ContactGateway } from './ContactGateway';
+import SystemStatusIndicator from './SystemStatusIndicator';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -52,5 +53,6 @@ export {
   VideoUpload, MultiVideoUpload,
   BusinessCardSkeleton, FeedSkeleton, HeroSkeleton,
   AuthModal,
-  ContactGateway
+  ContactGateway,
+  SystemStatusIndicator
 };

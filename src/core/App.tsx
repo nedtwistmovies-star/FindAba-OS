@@ -143,9 +143,16 @@ const AppContent: React.FC = () => {
   //   return <AuthLoadingScreen />;
   // }
 
-  if (!isBooted || (view as string) === 'splash') {
-    return <SplashScreen onComplete={handleBootComplete} />;
-  }
+  // 🔹 DEFENSIVE BOOT TIMEOUT: Ensure we never hang on splash screen even if onComplete doesn't fire
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      if (!isBooted) {
+        console.warn("[AppContent] Safety boot triggering fallback. Bypassing potential initialization / data-fetch locks.");
+        setIsBooted(true);
+      }
+    }, 2500); // Max 2.5s wait to make sure the app shell renders immediately
+    return () => clearTimeout(safetyTimer);
+  }, [isBooted]);
 
   const handleOnboardingComplete = () => {
     refreshData();
@@ -173,31 +180,35 @@ const AppContent: React.FC = () => {
         oracleAvatar={oracleAvatar} 
         socialLinks={socialLinks}
       >
-        <Suspense fallback={<LoadingScreen />}>
-          <RouteComponent 
-            setView={setView} 
-            onBack={handleBack}
-            {...extraProps}
-            businesses={businesses} 
-            heroImages={heroImages} 
-            heroVideos={heroVideos} 
-            business={selectedBusiness}
-            targetBusiness={selectedBusiness}
-            story={selectedStory}
-            advertorial={selectedAdvertorial}
-            myBusiness={myBusiness}
-            favorites={favorites}
-            onToggleFavorite={toggleFavorite}
-            onBusinessClick={handleBusinessClick}
-            onStoryClick={handleStoryClick}
-            onRegister={refreshData}
-            onRefresh={refreshData}
-            onAuthSuccess={handleAuthSuccess}
-            userEmail={userIdentifier}
-            userRole={userRole}
-            isRegistryLoading={businessLoading}
-          />
-        </Suspense>
+        {!isBooted || (view as string) === 'splash' ? (
+          <SplashScreen onComplete={handleBootComplete} />
+        ) : (
+          <Suspense fallback={<LoadingScreen />}>
+            <RouteComponent 
+              setView={setView} 
+              onBack={handleBack}
+              {...extraProps}
+              businesses={businesses} 
+              heroImages={heroImages} 
+              heroVideos={heroVideos} 
+              business={selectedBusiness}
+              targetBusiness={selectedBusiness}
+              story={selectedStory}
+              advertorial={selectedAdvertorial}
+              myBusiness={myBusiness}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              onBusinessClick={handleBusinessClick}
+              onStoryClick={handleStoryClick}
+              onRegister={refreshData}
+              onRefresh={refreshData}
+              onAuthSuccess={handleAuthSuccess}
+              userEmail={userIdentifier}
+              userRole={userRole}
+              isRegistryLoading={businessLoading}
+            />
+          </Suspense>
+        )}
 
         <FeedbackToast toasts={toasts} onRemove={removeToast} />
 

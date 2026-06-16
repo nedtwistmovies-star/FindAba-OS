@@ -18,6 +18,7 @@ import { useGitSync } from '../hooks/useGitSync';
 import { SANDALS_BRAND } from '../constants';
 import NotificationCenter from './NotificationCenter';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../services/signalService';
+import SystemStatusIndicator from './SystemStatusIndicator';
 
 const SystemClock: React.FC = () => {
   const [time, setTime] = useState(new Date());
@@ -705,6 +706,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, appLogo
             </div>
          </div>
        </div>
+       <SystemStatusIndicator />
     </div>
   );
 };

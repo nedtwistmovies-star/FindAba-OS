@@ -34,6 +34,71 @@
       }
     </style>
     <script>
+      // GLOBAL DIAGNOSTIC RUNTIME ERROR TRACKER
+      (function() {
+        var logs = [];
+        window.addEventListener('error', function(e) {
+          showErrorOverlay('Unhandled Runtime Error: ' + e.message, e.filename, e.lineno, e.colno, e.error);
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+          var err = e.reason;
+          var msg = err ? (err.message || String(err)) : 'Unknown promise rejection';
+          showErrorOverlay('Unhandled Promise Rejection: ' + msg, '', 0, 0, err);
+        });
+
+        // Capture console messages for easier remote diagnosis
+        var _log = console.log;
+        var _warn = console.warn;
+        var _error = console.error;
+        console.log = function() {
+          _log.apply(console, arguments);
+          log('INFO', Array.from(arguments).join(' '));
+        };
+        console.warn = function() {
+          _warn.apply(console, arguments);
+          log('WARN', Array.from(arguments).join(' '));
+        };
+        console.error = function() {
+          _error.apply(console, arguments);
+          log('ERROR', Array.from(arguments).join(' '));
+        };
+
+        function log(lvl, msg) {
+          logs.push('[' + lvl + '] ' + msg);
+          if (logs.length > 100) logs.shift();
+        }
+
+        function showErrorOverlay(message, source, lineno, colno, error) {
+          var errDiv = document.getElementById('debug-error-overlay');
+          if (!errDiv) {
+            errDiv = document.createElement('div');
+            errDiv.id = 'debug-error-overlay';
+            errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#0d0606;color:#fca5a5;padding:32px;font-family:monospace;white-space:pre-wrap;z-index:999999;overflow-y:auto;font-size:13px;line-height:1.6;border:5px solid #ef4444;box-sizing:border-box;';
+            document.documentElement.appendChild(errDiv);
+          }
+          
+          var stack = error && error.stack ? error.stack : 'No stack trace available';
+          var escMsg = esc(message);
+          var escSource = esc(source || 'Unknown file');
+          var escStack = esc(stack);
+          var escLogs = esc(logs.join('\n'));
+
+          errDiv.innerHTML = '<h2 style="color:#ef4444;margin-top:0;font-size:20px;border-bottom:1px solid rgba(239,68,68,0.3);padding-bottom:12px;">🚨 Client Runtime Exception</h2>' +
+            '<p style="margin:16px 0;"><b>message:</b> <span style="background:rgba(239,68,68,0.1);padding:2px 6px;border-radius:4px;color:#f87171;">' + escMsg + '</span></p>' +
+            '<p style="margin:16px 0;"><b>source:</b> ' + escSource + ' (Line ' + lineno + ', Col ' + colno + ')</p>' +
+            '<p style="margin:16px 0;font-weight:bold;color:#fca5a5;">Stack Trace:</p>' +
+            '<pre style="background:rgba(255,255,255,0.05);padding:16px;border-radius:8px;overflow-x:auto;border:1px solid rgba(255,255,255,0.1);">' + escStack + '</pre>' +
+            '<p style="margin:24px 0 8px 0;font-weight:bold;color:#fca5a5;">Console Boot Stream Trace:</p>' +
+            '<pre style="background:rgba(0,0,0,0.3);padding:16px;border-radius:8px;overflow-x:auto;border:1px solid rgba(255,255,255,0.05);color:#e2e8f0;max-height:200px;overflow-y:auto;">' + (escLogs || 'No logs captured before crash') + '</pre>' +
+            '<div style="margin-top:32px;text-align:right;"><button onclick="window.location.reload(true)" style="background:#ef4444;color:white;border:none;padding:8px 24px;border-radius:6px;font-weight:bold;cursor:pointer;">FORCE REFRESH</button></div>';
+        }
+
+        function esc(str) {
+          if (!str) return '';
+          return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+      })();
+
       // CLEANUP STALE SERVICE WORKERS IN PREVIEW
       if ('serviceWorker' in navigator && window.location.hostname.includes('run.app')) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -45,22 +110,36 @@
 
       // FORCE ENABLE CONTEXT MENU & ENSURE ALL CLICKS WORK
       const ensureInteractions = () => {
-        window.oncontextmenu = null;
-        document.oncontextmenu = null;
-        document.body.oncontextmenu = null;
+        if (typeof window !== 'undefined') {
+          window.oncontextmenu = null;
+        }
+        if (typeof document !== 'undefined') {
+          document.oncontextmenu = null;
+          if (document.body) {
+            document.body.oncontextmenu = null;
+          } else {
+            document.addEventListener('DOMContentLoaded', () => {
+              if (document.body) {
+                document.body.oncontextmenu = null;
+              }
+            });
+          }
+        }
         
         // Explicitly allow context menu on right click
-        window.addEventListener('contextmenu', (e) => {
-          e.stopPropagation();
-          return true;
-        }, { capture: true });
-
-        // Ensure mouse events are not blocked
-        window.addEventListener('mousedown', (e) => {
-          if (e.button === 2) { // Right click
+        if (typeof window !== 'undefined') {
+          window.addEventListener('contextmenu', (e) => {
             e.stopPropagation();
-          }
-        }, { capture: true, passive: true });
+            return true;
+          }, { capture: true });
+
+          // Ensure mouse events are not blocked
+          window.addEventListener('mousedown', (e) => {
+            if (e.button === 2) { // Right click
+              e.stopPropagation();
+            }
+          }, { capture: true, passive: true });
+        }
       };
 
       ensureInteractions();

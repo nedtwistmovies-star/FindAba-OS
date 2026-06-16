@@ -491,7 +491,7 @@ const MerchantPortal: React.FC<{
                       />
                       <button onClick={() => {
                         const input = document.getElementById('new-skill-identity') as HTMLInputElement;
-                        if (input.value.trim()) {
+                        if (input && input.value.trim()) {
                           setBusiness({...business, skills: [...(business.skills || []), input.value.trim()]});
                           input.value = '';
                         }
