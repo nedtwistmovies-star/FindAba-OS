@@ -53,6 +53,17 @@ BEGIN
 END;
 $$;
 
+-- 5.1 PROFILE POLICIES (Fixing "Permission Denied" on Signup/Sync)
+ALTER TABLE IF EXISTS public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "profiles_insert_new" ON public.profiles;
+CREATE POLICY "profiles_insert_new" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "profiles_select_public" ON public.profiles;
+CREATE POLICY "profiles_select_public" ON public.profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
 -- Enable RLS (safeguard)
 ALTER TABLE IF EXISTS public.thrift_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.disputes ENABLE ROW LEVEL SECURITY;

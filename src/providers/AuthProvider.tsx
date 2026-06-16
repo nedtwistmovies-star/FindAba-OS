@@ -123,21 +123,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         updateBootDiagnostics({ authListenerActive: true });
         
+        // 🔹 TIMEOUT_PROTECTED_GET_SESSION
+        const SESSION_TIMEOUT = 10000;
         console.log('STEP_3_BEFORE_GET_SESSION');
         
-        // 🔹 TIMEOUT_PROTECTED_GET_SESSION
         const sessionResponse = await Promise.race([
           sb.auth.getSession(),
           new Promise((resolve) => 
-            setTimeout(() => resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } }), 20000)
+            setTimeout(() => {
+              console.warn(`[AuthProvider] SESSION_TIMEOUT_EXCEEDED | getSession exceeded ${SESSION_TIMEOUT}ms`);
+              resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } });
+            }, SESSION_TIMEOUT)
           )
         ]) as any;
         
-        console.log('STEP_4_AFTER_GET_SESSION');
         const { data: { session }, error: sessionError } = sessionResponse;
         
         if (sessionError && sessionError.message === 'SESSION_TIMEOUT_EXCEEDED') {
-          console.warn("[AuthProvider] Session load timed out after 20s. Proceeding as unauthenticated.");
+          console.warn("[AuthProvider] Session load timed out. Proceeding as guest.");
           updateBootDiagnostics({ authEvent: 'TIMEOUT', corruptionMetadata: 'getSession timed out' });
         }
         

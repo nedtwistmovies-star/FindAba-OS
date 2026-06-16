@@ -213,6 +213,15 @@ const Layout: React.FC<LayoutProps> = ({
     commitAll,
   } = useBusiness();
   const { status: gitStatus, loading: gitLoading, fullSync } = useGitSync();
+  const handleFullSync = async (reason: string) => {
+    addToast("Initiating GitHub synchronization...", "info");
+    const result = await fullSync(reason);
+    if (result && result.success) {
+      addToast("Repository synced successfully!", "success");
+    } else {
+      addToast(result?.error || "Synchronization completed with warning alerts or error status.", "error");
+    }
+  };
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRegistryActive, setIsRegistryActive] = useState(false);
   const [isSignalHealthy, setIsSignalHealthy] = useState(true);
@@ -504,7 +513,7 @@ const Layout: React.FC<LayoutProps> = ({
                 Industrial Control
               </div>
               <button
-                onClick={() => fullSync("Manual Sidebar Sync")}
+                onClick={() => handleFullSync("Manual Sidebar Sync")}
                 disabled={gitLoading}
                 className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-standard hover:bg-white/5 text-white/60 hover:text-white disabled:opacity-50 group"
               >
@@ -1158,7 +1167,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => {
-                      fullSync("Mobile Menu Sync");
+                      handleFullSync("Mobile Menu Sync");
                       setIsMenuOpen(false);
                     }}
                     disabled={gitLoading}

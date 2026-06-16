@@ -79,7 +79,7 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
       // Dispatch storage event to notify other components immediately
       window.dispatchEvent(new Event('storage'));
       
-      addToast('Repository settings applied successfully!', 'success');
+      addToast('repo synced successfully', 'success');
       
       if (onUpdate) {
         onUpdate(cleanedRepo);
@@ -99,7 +99,7 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
         if (onUpdate) {
           onUpdate(metadataDefault);
         }
-        addToast('Successfully reverted localStorage repository URL back to default metadata.json!', 'success');
+        addToast('repo synced successfully', 'success');
       } catch (err) {
         addToast('Reverted input display, but failed to write directly to localStorage', 'error');
       }

@@ -74,7 +74,7 @@ export const GitRepositorySyncModal: React.FC<GitRepositorySyncModalProps> = ({
       setLocalRepoValue(syncedRepo);
       setCustomUrlInput(syncedRepo);
       setIsSynced(true);
-      addToast('Local state successfully synchronized with metadata.json!', 'success');
+      addToast('repo synced successfully', 'success');
       if (onSuccess) onSuccess(syncedRepo);
     } catch (err: any) {
       addToast(`Synchronization failed: ${err.message}`, 'error');
@@ -111,7 +111,7 @@ export const GitRepositorySyncModal: React.FC<GitRepositorySyncModalProps> = ({
         setIsSynced(false);
       }
 
-      addToast(`Successfully updated local storage: ${cleanedRepo}`, 'success');
+      addToast('repo synced successfully', 'success');
       if (onSuccess) onSuccess(cleanedRepo);
     } catch (err: any) {
       addToast('Failed to write repository configuration to local storage', 'error');

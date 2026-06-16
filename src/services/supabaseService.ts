@@ -39,6 +39,9 @@ export const getSupabase = (): SupabaseClient | null => {
     return null;
   }
 
+  // 🔹 LOGGING_INIT_SUCCESS: Helpful for debugging environment variable issues
+  console.log(`[SupabaseService] Initializing. URL: ${url.substring(0, 15)}... Source: ${source}`);
+
   // If we already have an instance and the config hasn't changed, return it
   if (_supabaseInstance && _currentUrl === url && _currentKey === key) {
     return _supabaseInstance;
@@ -227,8 +230,28 @@ export const fetchUserProfile = async (userId: string) => {
   await ensureAuth();
   const sb = getSupabase();
   if (!sb) return null;
-  const { data } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
-  return data;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    console.warn(`[SupabaseService] fetchUserProfile TIMEOUT for ${userId}`);
+    controller.abort();
+  }, 10000);
+
+  try {
+    const { data, error } = await sb
+      .from('profiles')
+      .select('*', { abortSignal: controller.signal })
+      .eq('id', userId)
+      .maybeSingle();
+    
+    clearTimeout(timeoutId);
+    if (error) throw error;
+    return data;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    console.warn(`[SupabaseService] Profile fetch failed for ${userId}:`, err.message || err);
+    return null;
+  }
 };
 
 export const updateUserProfile = async (userId: string, updates: any) => {
@@ -365,7 +388,7 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
     const results = await Promise.all(criticalTables.map(async (table) => {
       try {
         console.log(`[SupabaseService] Probing table: ${table}`);
-        const { error } = await client!.from(table).select('id').limit(1).abortSignal(controller.signal);
+        const { error } = await client!.from(table).select('id', { abortSignal: controller.signal }).limit(1);
         if (error && error.code === '42P01') {
           console.warn(`[SupabaseService] Table ${table} missing`);
           return table;

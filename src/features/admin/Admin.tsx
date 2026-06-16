@@ -875,6 +875,15 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
   const { commitAll } = useBusiness();
   const { status: gitStatus, loading: gitLoading, fullSync } = useGitSync();
+  const handleFullSync = async (reason: string) => {
+    addToast("Initiating GitHub synchronization...", "info");
+    const result = await fullSync(reason);
+    if (result && result.success) {
+      addToast("Repository synced successfully!", "success");
+    } else {
+      addToast(result?.error || "Synchronization completed with warning alerts or error status.", "error");
+    }
+  };
   const isAuthenticated = userRole === "admin" || userEmail === 'pastornelsonezi@gmail.com';
 
   const [activeTab, setActiveTab] = useState<
@@ -1382,7 +1391,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                         size="md" 
                         loading={gitLoading} 
                         icon={RefreshCcw}
-                        onClick={() => fullSync("Industrial Overview Manual Sync")}
+                        onClick={() => handleFullSync("Industrial Overview Manual Sync")}
                         fullWidth
                       >
                         Push to GitHub Mesh
@@ -1475,7 +1484,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     size="md" 
                     icon={Github} 
                     loading={gitLoading}
-                    onClick={() => fullSync("Quick Action GitHub Sync")}
+                    onClick={() => handleFullSync("Quick Action GitHub Sync")}
                     fullWidth
                   >
                     GitHub Sync
@@ -3130,7 +3139,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                 subtitle="Synchronize project signals with the GitHub mesh"
                 icon={Github}
               />
-              <GitWorkspace status={gitStatus} loading={gitLoading} fullSync={fullSync} />
+              <GitWorkspace status={gitStatus} loading={gitLoading} fullSync={handleFullSync} />
             </div>
           )}
         </div>
@@ -3274,10 +3283,11 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
             icon={loading ? Loader2 : RefreshCcw}
             loading={loading}
             fullWidth
-            onClick={() => {
+            onClick={async () => {
               localStorage.setItem('findaba_git_repo', repo);
               localStorage.setItem('findaba_git_branch', branch);
-              sync(repo, branch);
+              await sync(repo, branch);
+              addToast('repo synced successfully', 'success');
             }}
           >
             Update Sync Params
@@ -3337,9 +3347,10 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
       <RepositoryManager 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onUpdate={(newRepo) => {
+        onUpdate={async (newRepo) => {
           setRepo(newRepo);
-          sync(newRepo, branch);
+          await sync(newRepo, branch);
+          addToast('repo synced successfully', 'success');
         }}
       />
     </div>
