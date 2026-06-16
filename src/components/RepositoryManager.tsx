@@ -101,7 +101,7 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
         }
         addToast('Successfully reverted localStorage repository URL back to default metadata.json!', 'success');
       } catch (err) {
-        addToast('Reverted input display, but failed to write directly to localStorage', 'warning');
+        addToast('Reverted input display, but failed to write directly to localStorage', 'error');
       }
     } else {
       addToast('No default metadata configuration loaded', 'error');
