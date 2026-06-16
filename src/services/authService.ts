@@ -171,7 +171,7 @@ export const loginWithGoogle = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin
+      redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
     }
   });
 
@@ -185,7 +185,7 @@ export const sendMagicLink = async (email: string) => {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: window.location.origin
+      emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
     }
   });
 
@@ -197,8 +197,9 @@ export const sendMagicLink = async (email: string) => {
 };
 
 export const resetPasswordForEmail = async (email: string) => {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    redirectTo: `${origin}/auth/callback?type=recovery`,
   });
 
   if (error) {
@@ -238,13 +239,14 @@ export const syncProfile = async (user: any, attempts: number = 3): Promise<any>
       console.log(`[AuthService] Profile sync attempt ${i + 1}/${attempts} for ${user.id}`);
       
       // 🔹 TIMEOUT_PROTECTED_PROFILE_FETCH
+      // Increased to 30s to accommodate potential cold-boot delays in Supabase
       const profileResponse = await Promise.race([
         supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_SYNC_TIMEOUT")), 25000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_SYNC_TIMEOUT")), 30000))
       ]) as any;
 
       const { data: profile, error } = profileResponse;
@@ -266,26 +268,44 @@ export const syncProfile = async (user: any, attempts: number = 3): Promise<any>
           .select()
           .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          console.error("[AuthService] Auto-creation failed:", createError.message);
+          throw createError;
+        }
         return newProfile;
       }
 
-      if (error) throw error;
+      if (error) {
+        console.error("[AuthService] Fetch error:", error.message);
+        throw error;
+      }
+      
       console.log(`[AuthService] Profile retrieved successfully for ${user.id}`);
       return profile;
     } catch (err: any) {
       const isTimeout = err.message === "PROFILE_SYNC_TIMEOUT";
-      console.error(`[AuthService] attempt ${i + 1} failure:`, err.message);
+      console.warn(`[AuthService] attempt ${i + 1} failure:`, err.message || err);
       
       if (i < attempts - 1) {
-        const delay = isTimeout ? 2000 : 1000;
-        console.log(`[AuthService] Retrying sync in ${delay}ms...`);
+        // Exponential backoff
+        const delay = Math.pow(2, i) * 1000 + (isTimeout ? 2000 : 0);
+        console.log(`[AuthService] Retrying sync in ${delay}ms... (Reason: ${err.message})`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
       
-      console.error(`[AuthService] All ${attempts} profile sync attempts failed.`);
-      return null;
+      console.error(`[AuthService] All ${attempts} profile sync attempts failed. Returning fallback identity.`);
+      
+      // FALLBACK IDENTITY PROTOCOL:
+      // We return a simulated profile based on Auth metadata so the app can still function.
+      return {
+        id: user.id,
+        email: user.email || '',
+        full_name: user.user_metadata?.full_name || 'User',
+        role: 'registered',
+        is_fallback: true,
+        created_at: new Date().toISOString()
+      };
     }
   }
   return null;

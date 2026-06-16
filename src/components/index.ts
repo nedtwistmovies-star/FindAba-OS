@@ -27,6 +27,8 @@ import { BusinessCardSkeleton, FeedSkeleton, HeroSkeleton } from './SkeletonLoad
 import { AuthModal } from './AuthModal';
 import { ContactGateway } from './ContactGateway';
 import SystemStatusIndicator from './SystemStatusIndicator';
+import { GitRepositorySyncModal } from './GitRepositorySyncModal';
+import { RepositoryManager } from './RepositoryManager';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -54,5 +56,7 @@ export {
   BusinessCardSkeleton, FeedSkeleton, HeroSkeleton,
   AuthModal,
   ContactGateway,
-  SystemStatusIndicator
+  SystemStatusIndicator,
+  GitRepositorySyncModal,
+  RepositoryManager
 };

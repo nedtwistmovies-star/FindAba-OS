@@ -110,35 +110,49 @@
 
       // FORCE ENABLE CONTEXT MENU & ENSURE ALL CLICKS WORK
       const ensureInteractions = () => {
-        if (typeof window !== 'undefined') {
-          window.oncontextmenu = null;
-        }
-        if (typeof document !== 'undefined') {
-          document.oncontextmenu = null;
-          if (document.body) {
-            document.body.oncontextmenu = null;
-          } else {
-            document.addEventListener('DOMContentLoaded', () => {
-              if (document.body) {
-                document.body.oncontextmenu = null;
-              }
-            });
+        try {
+          if (typeof window !== 'undefined' && window !== null) {
+            window.oncontextmenu = null;
           }
+          if (typeof document !== 'undefined' && document !== null) {
+            document.oncontextmenu = null;
+            // ONLY access body if it's available. In <head>, it won't be yet.
+            if (document.body) {
+              try {
+                document.body.oncontextmenu = null;
+              } catch (innerErr) {
+                // Ignore restricted property errors
+              }
+            } else {
+              // Register to run once body is available
+              document.addEventListener('DOMContentLoaded', () => {
+                if (document.body) {
+                  try { document.body.oncontextmenu = null; } catch (e) {}
+                }
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("[Registry OS] Interaction handshake failed but suppressed.");
         }
         
         // Explicitly allow context menu on right click
-        if (typeof window !== 'undefined') {
-          window.addEventListener('contextmenu', (e) => {
-            e.stopPropagation();
-            return true;
-          }, { capture: true });
+        try {
+          if (typeof window !== 'undefined') {
+            window.addEventListener('contextmenu', (e) => {
+              if (e && e.stopPropagation) e.stopPropagation();
+              return true;
+            }, { capture: true });
 
-          // Ensure mouse events are not blocked
-          window.addEventListener('mousedown', (e) => {
-            if (e.button === 2) { // Right click
-              e.stopPropagation();
-            }
-          }, { capture: true, passive: true });
+            // Ensure mouse events are not blocked
+            window.addEventListener('mousedown', (e) => {
+              if (e && e.button === 2 && e.stopPropagation) { // Right click
+                e.stopPropagation();
+              }
+            }, { capture: true, passive: true });
+          }
+        } catch (eventErr) {
+          // Event listener binding failed
         }
       };
 

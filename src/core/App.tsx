@@ -10,6 +10,7 @@ import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } fr
 import { ROUTE_MAP } from './router';
 import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
 import { syncGeminiConfig } from '../services/geminiService';
+import { initializeRepositoryConfig } from '../services/gitConfigService';
 import { PUBLIC_VIEWS } from '../constants/auth';
 import { ViewState } from '../types';
 
@@ -92,6 +93,13 @@ const AppContent: React.FC = () => {
     // Scroll to top on view change
     window.scrollTo(0, 0);
   }, [view]);
+
+  // 🔹 INITIALIZE GIT REPOSITORY CONFIG FROM METADATA
+  useEffect(() => {
+    initializeRepositoryConfig()
+      .then(repo => console.log('[App] Programmatic Git configuration synchronized successfully:', repo))
+      .catch(err => console.error('[App] Failed programmatically setting git repository config:', err));
+  }, []);
 
   // 🔹 NAVIGATION AFTER BOOT
   useEffect(() => {

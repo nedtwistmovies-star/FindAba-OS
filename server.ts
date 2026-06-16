@@ -115,7 +115,7 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
     supabaseUrl,
     supabaseKey,
     paystackKey,
-    githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || '',
+    githubRepo: process.env.VITE_GITHUB_REPO || process.env.GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS',
     githubBranch: process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main',
     makeWebhookUrl: process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL || ''
   };
@@ -613,7 +613,7 @@ app.post("/api/oracle", async (req, res) => {
 
   // Automatic Git Repo Connection
   app.get("/api/git/sync", async (req, res) => {
-    let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
+    let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main';
     const token = process.env.GITHUB_TOKEN || req.cookies.github_token;
 
@@ -680,7 +680,7 @@ app.post("/api/oracle", async (req, res) => {
 
   // Full System Sync (Server-side)
   app.post("/api/git/sync-full", async (req, res) => {
-    let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
+    let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || ''; // If empty, will fetch default branch
     const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
     const { message = "Full System Sync via FindAba City OS" } = req.body;
@@ -906,7 +906,7 @@ app.post("/api/oracle", async (req, res) => {
 
   // Commit to Git Repo (Atomic Multi-file Commit)
   app.post("/api/git/commit", async (req, res) => {
-    let repo = (req.query.repo as string) || process.env.GITHUB_REPO;
+    let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || '';
     const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
     const { files, message = "Update via FindAba City OS" } = req.body;
@@ -1031,7 +1031,7 @@ app.post("/api/oracle", async (req, res) => {
   // Create GitHub Branch
   app.post("/api/git/branch", async (req, res) => {
     const { branch, from, repo: bodyRepo } = req.body;
-    let repo = (req.query.repo as string) || bodyRepo || process.env.GITHUB_REPO;
+    let repo = (req.query.repo as string) || bodyRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
 
     if (!repo || !token || !branch) {

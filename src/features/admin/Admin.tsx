@@ -98,6 +98,8 @@ import StatCard from "../../components/StatCard";
 import SectionHeader from "../../components/SectionHeader";
 import IndustrialButton from "../../components/IndustrialButton";
 import { BentoGrid, BentoItem } from "../../components/BentoGrid";
+import { GitRepositorySyncModal, RepositoryManager } from "../../components";
+import { cleanRepositoryName } from "../../services/gitConfigService";
 
 interface AutomationAuditProps {
   status: { status: string; message: string };
@@ -3141,14 +3143,45 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
   const { addToast } = useToast();
   const [repo, setRepo] = useState(() => localStorage.getItem('findaba_git_repo') || '');
   const [branch, setBranch] = useState(() => localStorage.getItem('findaba_git_branch') || 'main');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { sync } = useGitSync();
   const [committing, setCommitting] = useState(false);
   const [newBranchName, setNewBranchName] = useState('');
   const [isCreatingBranch, setIsCreatingBranch] = useState(false);
+  const [isSyncedWithMetadata, setIsSyncedWithMetadata] = useState(true);
+
+  const checkSyncWithMetadata = async (currentRepo: string) => {
+    try {
+      const response = await fetch('/metadata.json');
+      if (response.ok) {
+        const metadata = await response.json();
+        if (metadata.repository && metadata.repository.url) {
+          const cleanedMeta = cleanRepositoryName(metadata.repository.url);
+          setIsSyncedWithMetadata(!currentRepo || cleanedMeta === currentRepo);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed checking metadata sync status in GitWorkspace:', e);
+    }
+  };
 
   useEffect(() => {
     sync();
+    checkSyncWithMetadata(repo);
+
+    // Keep state updated on storage events (e.g. if updated via RepositoryManager elsewhere)
+    const handleStorageUpdate = () => {
+      const updatedRepo = localStorage.getItem('findaba_git_repo') || '';
+      setRepo(updatedRepo);
+      checkSyncWithMetadata(updatedRepo);
+    };
+    window.addEventListener('storage', handleStorageUpdate);
+    return () => window.removeEventListener('storage', handleStorageUpdate);
   }, []);
+
+  useEffect(() => {
+    checkSyncWithMetadata(repo);
+  }, [repo]);
 
   const handleCreateBranch = async () => {
     if (!newBranchName.trim()) return;
@@ -3198,7 +3231,22 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-4">
-            <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Target Repository</label>
+            <div className="flex justify-between items-center ml-4 mr-1">
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest">Target Repository</label>
+                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[8px] font-bold uppercase tracking-widest ${isSyncedWithMetadata ? 'bg-aba-green/10 text-aba-green' : 'bg-amber-500/10 text-amber-500'}`}>
+                  <span className={`w-1 h-1 rounded-full ${isSyncedWithMetadata ? 'bg-aba-green' : 'bg-amber-500 animate-pulse'}`} />
+                  {isSyncedWithMetadata ? 'Synced' : 'Custom'}
+                </span>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="text-[9px] font-black uppercase text-aba-gold tracking-widest hover:underline flex items-center gap-1.5 transition-all"
+              >
+                <Settings size={10} /> Sync Metadata
+              </button>
+            </div>
             <input 
               type="text" 
               value={repo} 
@@ -3285,6 +3333,15 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
           </div>
         </div>
       </div>
+
+      <RepositoryManager 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onUpdate={(newRepo) => {
+          setRepo(newRepo);
+          sync(newRepo, branch);
+        }}
+      />
     </div>
   );
 };
