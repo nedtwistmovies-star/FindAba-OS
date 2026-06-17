@@ -226,6 +226,8 @@ const AppContent: React.FC = () => {
               onAuthSuccess={handleAuthSuccess}
               userEmail={userIdentifier}
               userRole={userRole}
+              profile={profile}
+              user_id={user_id}
               isRegistryLoading={businessLoading}
             />
           </Suspense>

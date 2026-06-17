@@ -51,6 +51,56 @@ const getAI = (customKey?: string) => {
   });
 };
 
+const getOpenRouterAI = async (prompt: string, history: any[], catalog: BusinessContextItem[], model: string = "google/gemini-2.0-flash-001") => {
+  const key = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+  if (!key) {
+    throw new Error("OPENROUTER_API_KEY_MISSING: The OpenRouter key is not configured on the server.");
+  }
+
+  const sys = `IDENTITY: FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. 
+               RULES: Prioritize Aba. Do NOT say 'God's Own State'. Use the registry: ${JSON.stringify(catalog)}`;
+
+  const messages = [
+    { role: "system", content: sys },
+    ...history.map(h => ({
+      role: h.role === 'user' ? 'user' : 'assistant',
+      content: typeof h.parts?.[0]?.text === 'string' ? h.parts[0].text : (h.parts?.[0] ? JSON.stringify(h.parts[0]) : '')
+    })),
+    { role: "user", content: prompt }
+  ];
+
+  const response = await axios.post(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      model: model,
+      messages: messages,
+      response_format: { type: "json_object" }
+    },
+    {
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+
+  const content = response.data.choices[0].message.content;
+  const result = JSON.parse(content);
+  return {
+    text: result.wisdom || result.text || "Signal lost.",
+    thoughtProcess: result.thought_process || result.thoughtProcess
+  };
+};
+
+interface BusinessContextItem {
+  name: string;
+  category: string;
+  product: string;
+  area: string;
+  address: string;
+  phone: string;
+}
+
 const ensureAuthenticated = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: "Missing identity signal (Auth Header)" });
@@ -126,20 +176,30 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
 // Gemini Proxy
 app.post("/api/oracle", async (req, res) => {
   try {
-    const { prompt, history = [], catalog = [], type = 'search' } = req.body;
+    const { prompt, history = [], catalog = [], type = 'search', provider = 'gemini' } = req.body;
+    
+    const businessContext = catalog.slice(0, 50).map((b: any) => ({
+      name: b.name,
+      category: b.category,
+      product: b.primary_product_or_service,
+      area: b.area,
+      address: b.address,
+      phone: b.phone_whatsapp
+    }));
+
+    if (provider === 'openrouter' && type === 'search' && typeof prompt === 'string') {
+      try {
+        const result = await getOpenRouterAI(prompt, history, businessContext);
+        return res.json(result);
+      } catch (orErr: any) {
+        console.warn("[Server] OpenRouter failed, falling back to Gemini:", orErr.message);
+      }
+    }
+
     const customKey = req.headers['x-gemini-key'] as string;
     const ai = getAI(customKey);
     
     if (type === 'search') {
-      const businessContext = catalog.slice(0, 50).map((b: any) => ({
-        name: b.name,
-        category: b.category,
-        product: b.primary_product_or_service,
-        area: b.area,
-        address: b.address,
-        phone: b.phone_whatsapp
-      }));
-
       const sys = `IDENTITY: FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. 
                    RULES: Prioritize Aba. Do NOT say 'God's Own State'. Use the registry: ${JSON.stringify(businessContext)}`;
       

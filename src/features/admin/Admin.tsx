@@ -871,7 +871,7 @@ const TasksManager: React.FC = () => {
   );
 };
 
-const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
+const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
   const { addToast } = useToast();
   const { commitAll } = useBusiness();
   const { status: gitStatus, loading: gitLoading, fullSync } = useGitSync();
@@ -884,7 +884,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
       addToast(result?.error || "Synchronization completed with warning alerts or error status.", "error");
     }
   };
-  const isAuthenticated = userRole === "admin" || userEmail === 'pastornelsonezi@gmail.com';
+  const isAuthenticated = userRole === "admin" || userEmail === 'pastornelsonezi@gmail.com' || (profile && (profile.role === 'admin' || profile.role === 'superadmin'));
 
   const [activeTab, setActiveTab] = useState<
     | "overview"
@@ -944,6 +944,36 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const [isRunningDiagnostic, setIsRunningDiagnostic] = useState(false);
   const [simulationStep, setSimulationStep] = useState(0);
   const [simulationLogs, setSimulationLogs] = useState<string[]>([]);
+
+  const [isRepairing, setIsRepairing] = useState(false);
+
+  const handleFullRepair = async () => {
+    setIsRepairing(true);
+    addToast("Initiating comprehensive system repair... (Full Handshake Re-Establishment)", "info");
+    try {
+      // 1. Re-sync Gemini
+      const gemini = await import("../../services/geminiService");
+      if (gemini?.syncGeminiConfig) await gemini.syncGeminiConfig();
+      
+      // 2. Refresh Auth Session
+      const { getSupabase } = await import("../../services/supabaseService");
+      const sb = getSupabase();
+      if (sb) await sb.auth.getSession();
+
+      // 3. Purge specific known volatile keys
+      localStorage.removeItem('findaba_registry_sealed');
+      sessionStorage.clear();
+
+      // 4. Refresh All Data
+      await refreshAllData();
+      
+      addToast("System Repair Complete. All signals successfully re-established.", "success");
+    } catch (err: any) {
+      addToast(`Repair Partial Failure: ${err.message}`, "error");
+    } finally {
+      setIsRepairing(false);
+    }
+  };
 
   const runAutomationAudit = async () => {
     setIsAuditing(true);
@@ -1706,7 +1736,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
                     <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Primary AI Provider</label>
                     <div className="flex gap-4">
                       <select 
-                        defaultValue={localStorage.getItem('findaba_primary_ai') || 'gemini'}
+                        defaultValue={localStorage.getItem('findaba_primary_ai') || 'openrouter'}
                         onChange={(e) => {
                           localStorage.setItem('findaba_primary_ai', e.target.value);
                           addToast(`Primary AI set to ${e.target.value.toUpperCase()}`, "success");
@@ -3118,12 +3148,34 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
             </div>
           )}
 
-          {activeTab === "diagnostics" && (
+           {activeTab === "diagnostics" && (
             <div className="animate-slide-up space-y-12 pb-20">
               <SectionHeader 
                 title="System Diagnostics" 
                 subtitle="Audit mission-critical schema, RLS policies, and financial flows"
                 icon={Terminal}
+                action={
+                  <div className="flex gap-4">
+                    <IndustrialButton
+                      variant="primary"
+                      size="sm"
+                      icon={isRunningDiagnostic ? Loader2 : RefreshCcw}
+                      loading={isRunningDiagnostic}
+                      onClick={handleRunDiagnostic}
+                    >
+                      Run Report
+                    </IndustrialButton>
+                    <IndustrialButton
+                      variant="danger"
+                      size="sm"
+                      icon={isRepairing ? Loader2 : Shield}
+                      loading={isRepairing}
+                      onClick={handleFullRepair}
+                    >
+                      Perform Full Repair
+                    </IndustrialButton>
+                  </div>
+                }
               />
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

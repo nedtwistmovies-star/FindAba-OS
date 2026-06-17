@@ -417,7 +417,7 @@ const Layout: React.FC<LayoutProps> = ({
   ];
 
   const visibleMenuItems = [...menuItems];
-  const isAdmin = (userRole === "admin" || userIdentifier === 'pastornelsonezi@gmail.com');
+  const isAdmin = (userRole === "admin" || userIdentifier === 'pastornelsonezi@gmail.com' || (profile && profile.role === 'admin'));
   if (isAdmin) {
     visibleMenuItems.unshift({
       id: "admin",
@@ -1102,12 +1102,13 @@ const Layout: React.FC<LayoutProps> = ({
           { id: "faces", icon: <Users size={18} />, label: "FACES" },
           { id: "oracle", icon: <Cpu size={18} />, label: "ORACLE" },
           { id: "fidelity", icon: <Landmark size={18} />, label: "Fidelity" },
+          isAdmin && { id: "admin", icon: <ShieldCheck size={18} />, label: "ADMIN" },
           { id: "profile", icon: <UserCircle size={18} />, label: "PROFILE" },
-        ].map((btn, i) => (
+        ].filter(Boolean).map((btn: any, i) => (
           <button
             key={i}
             onClick={() => {
-              if (!isAuth) {
+              if (!isAuth && btn.id !== 'home') {
                 addToast("Authentication required.", "info");
                 setView("login");
                 return;

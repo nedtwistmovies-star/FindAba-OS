@@ -161,12 +161,32 @@ export const sendTextMessage = async (to: string, text: string) => {
 };
 
 /**
+ * Enhanced execution engine with automatic fallback for missing templates.
+ */
+export const sendTemplateWithFallback = async (
+  to: string, 
+  templateName: string, 
+  fallbackText: string,
+  languageCode = 'en_US', 
+  components: any[] = []
+): Promise<WhatsAppResponse> => {
+  const result = await sendTemplateMessage(to, templateName, languageCode, components);
+  
+  // Error 132001: Template name does not exist in the translation
+  if (!result.success && result.details?.error?.code === 132001) {
+    log('WHATSAPP_FALLBACK_TRIGGERED', { reason: 'Template not found', templateName });
+    return sendTextMessage(to, fallbackText);
+  }
+  
+  return result;
+};
+
+/**
  * Standard Flow: OTP Verification
  */
 export const sendOTPMessage = async (to: string, code: string) => {
-  // Use a pre-approved template for OTP if available, otherwise fallback to text
-  // Template name is often 'auth_otp_code' or similar
-  return sendTemplateMessage(to, 'otp_verification', 'en_US', [
+  const fallback = `FindAba Verification Code: ${code}. Do not share this code with anyone.`;
+  return sendTemplateWithFallback(to, 'otp_verification', fallback, 'en_US', [
     {
       type: 'body',
       parameters: [{ type: 'text', text: code }],
@@ -184,7 +204,8 @@ export const sendOTPMessage = async (to: string, code: string) => {
  * Standard Flow: Welcome Message
  */
 export const sendWelcomeMessage = async (to: string, userName: string) => {
-  return sendTemplateMessage(to, 'welcome_onboarding', 'en_US', [
+  const fallback = `Welcome to FindAba, ${userName}! Your signal is now active in the industrial registry. Explore our network at findaba.com.ng`;
+  return sendTemplateWithFallback(to, 'welcome_onboarding', fallback, 'en_US', [
     {
       type: 'body',
       parameters: [{ type: 'text', text: userName }],
@@ -196,7 +217,8 @@ export const sendWelcomeMessage = async (to: string, userName: string) => {
  * Standard Flow: Business Inquiry
  */
 export const sendBusinessInquiryMessage = async (to: string, businessName: string, message: string, inquirerName: string) => {
-  return sendTemplateMessage(to, 'business_inquiry_alert', 'en_US', [
+  const fallback = `*FindAba Industrial Alert*\n\nBusiness: ${businessName}\nInquiry from: ${inquirerName}\n\nMessage: ${message}`;
+  return sendTemplateWithFallback(to, 'business_inquiry_alert', fallback, 'en_US', [
     {
       type: 'header',
       parameters: [{ type: 'text', text: businessName }],
