@@ -9,8 +9,8 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from 'resend';
-import { sendPaymentSuccessEmail } from './src/services/emailService.ts';
-import * as WhatsApp from './src/services/whatsappService.ts';
+import { sendPaymentSuccessEmail } from './src/services/emailService';
+import * as WhatsApp from './src/services/whatsappService';
 
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -106,6 +106,8 @@ const ensureAuthenticated = async (req: Request, res: Response, next: NextFuncti
   if (!authHeader) return res.status(401).json({ error: "Missing identity signal (Auth Header)" });
   
   const token = authHeader.replace('Bearer ', '');
+  if (!supabase) return res.status(503).json({ error: "Identity core offline (Missing configuration)" });
+  
   const { data: { user }, error } = await supabase.auth.getUser(token);
   
   if (error || !user) {
