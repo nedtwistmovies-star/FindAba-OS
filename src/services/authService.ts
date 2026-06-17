@@ -1,5 +1,7 @@
 
 import { supabase } from '../lib/supabaseClient';
+import { processReferral, generateReferralCode } from './supabaseService';
+import { sendWelcomeEmail } from './emailService';
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
 
@@ -106,7 +108,7 @@ export const loginWithUsername = async (username: string, password: string, pers
   return data.session;
 };
 
-export const signUpWithUsername = async (username: string, email: string, password: string, fullName: string, phone: string) => {
+export const signUpWithUsername = async (username: string, email: string, password: string, fullName: string, phone: string, referralCode?: string) => {
   // 1. Check if username exists
   const { data: existing } = await supabase
     .from('profiles')
@@ -118,15 +120,20 @@ export const signUpWithUsername = async (username: string, email: string, passwo
     throw new Error("Username already taken. Please choose another.");
   }
 
-  // 2. Sign up with Supabase
+  // 2. Generate a unique referral code for the new user
+  const myReferralCode = generateReferralCode(username);
+
+  // 3. Sign up with Supabase
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         username: username.toLowerCase().trim(),
-        full_name: fullName,
+        full_name: fullName || username,
         phone: phone,
+        referral_code: myReferralCode,
+        referred_by_code: referralCode || null
       }
     }
   });
@@ -134,6 +141,22 @@ export const signUpWithUsername = async (username: string, email: string, passwo
   if (error) {
     console.error("[Auth] Signup Error:", error.message);
     throw error;
+  }
+
+  // 4. Post-signup processing (Referral linking and Welcome Email)
+  if (data.user) {
+    // Attempt to link referral if provided
+    if (referralCode) {
+      processReferral(data.user.id, referralCode).catch(err => 
+        console.warn("[Auth] Referral processing deferred or failed:", err)
+      );
+    }
+
+    // Send Welcome Email
+    const referralLink = `${window.location.origin}/signup?ref=${myReferralCode}`;
+    sendWelcomeEmail(email, fullName || username, referralLink).catch((err: any) => 
+      console.warn("[Auth] Welcome email signal failed to broadcast:", err)
+    );
   }
 
   return data.user;

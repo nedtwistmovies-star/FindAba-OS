@@ -29,6 +29,7 @@ import { ContactGateway } from './ContactGateway';
 import SystemStatusIndicator from './SystemStatusIndicator';
 import { GitRepositorySyncModal } from './GitRepositorySyncModal';
 import { RepositoryManager } from './RepositoryManager';
+import { LanguageSelector } from './LanguageSelector';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -58,5 +59,6 @@ export {
   ContactGateway,
   SystemStatusIndicator,
   GitRepositorySyncModal,
-  RepositoryManager
+  RepositoryManager,
+  LanguageSelector
 };

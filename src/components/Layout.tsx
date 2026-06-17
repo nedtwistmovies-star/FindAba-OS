@@ -11,6 +11,7 @@ import {
   Globe,
   Building2,
   Zap,
+  Shield,
   ShieldCheck,
   MessageCircle,
   BookOpen,
@@ -60,6 +61,7 @@ import { useLanguage } from "../providers/LanguageProvider";
 import { useGitSync } from "../hooks/useGitSync";
 import { SANDALS_BRAND } from "../constants";
 import NotificationCenter from "./NotificationCenter";
+import { LanguageSelector } from "./LanguageSelector";
 import {
   getIgboMarketDay,
   getAbaWeather,
@@ -415,7 +417,8 @@ const Layout: React.FC<LayoutProps> = ({
   ];
 
   const visibleMenuItems = [...menuItems];
-  if (userRole === "admin") {
+  const isAdmin = (userRole === "admin" || userIdentifier === 'pastornelsonezi@gmail.com');
+  if (isAdmin) {
     visibleMenuItems.unshift({
       id: "admin",
       label: t("Admin Console", "Admin Console"),
@@ -521,7 +524,7 @@ const Layout: React.FC<LayoutProps> = ({
             <SidebarItem key={i} item={item} />
           ))}
 
-          {userRole === "admin" && (
+          {isAdmin && (
             <div className="pt-6 pb-2 space-y-2">
               <div className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white/20">
                 Industrial Control
@@ -750,6 +753,7 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             <div className="lg:hidden flex items-center gap-1">
+              <LanguageSelector />
               <button
                 onClick={() => {
                   setView("explore");
@@ -791,6 +795,7 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             <div className="hidden lg:flex items-center gap-4">
+              <LanguageSelector />
               <button
                 onClick={() => setView("register")}
                 className="flex items-center gap-2 px-4 py-2 bg-aba-green text-white rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm hover:bg-aba-green/90 transition-standard active:scale-95"
@@ -1189,12 +1194,24 @@ const Layout: React.FC<LayoutProps> = ({
               </button>
             ))}
 
-            {userRole === "admin" && (
+          {isAdmin && (
               <div className="pt-8 space-y-4">
                 <div className="px-6 text-[10px] font-black uppercase tracking-[0.3em] text-white/20">
                   Industrial Handshake
                 </div>
                 <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => {
+                      setView('admin');
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95"
+                  >
+                    <Shield size={24} className="text-aba-gold" />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-white">
+                      Admin
+                    </span>
+                  </button>
                   <button
                     onClick={() => {
                       handleFullSync("Mobile Menu Sync");
@@ -1204,25 +1221,8 @@ const Layout: React.FC<LayoutProps> = ({
                     className="relative flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95 disabled:opacity-50"
                   >
                     <Github size={24} className="text-aba-gold" />
-                    <span className="text-[8px] font-black uppercase tracking-widest">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-white">
                       Git Sync
-                    </span>
-                    <div className="absolute top-3 right-3 flex items-center pr-1" title={gitSynced ? `Repository In-Sync: ${liveRepo || 'System Default'}` : `Repository Out of Sync: ${liveRepo}`}>
-                      <span 
-                        className={`w-2 h-2 rounded-full ${gitSynced ? 'bg-aba-green shadow-[0_0_8px_#10b981]' : 'bg-amber-500 shadow-[0_0_8px_#f59e0b] animate-pulse'}`}
-                      />
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      commitAll();
-                      setIsMenuOpen(false);
-                    }}
-                    className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95"
-                  >
-                    <Database size={24} className="text-aba-gold" />
-                    <span className="text-[8px] font-black uppercase tracking-widest">
-                      Commit SB
                     </span>
                   </button>
                 </div>

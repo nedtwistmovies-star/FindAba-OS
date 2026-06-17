@@ -24,7 +24,7 @@ import { useLanguage, LanguageCode } from '../../providers/LanguageProvider';
 
 const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; userRole: string | null; myBusiness?: any }> = ({ setView, userEmail, userRole, myBusiness }) => {
   const isAuth = localStorage.getItem('findaba_is_auth') === 'true';
-  const isAdmin = userRole === 'admin' || localStorage.getItem('findaba_admin_auth') === 'true';
+  const isAdmin = userRole === 'admin' || userEmail === 'pastornelsonezi@gmail.com' || localStorage.getItem('findaba_admin_auth') === 'true';
   
   const { addToast } = useToast();
   const { language, setLanguage, t } = useLanguage();

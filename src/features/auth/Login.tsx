@@ -25,6 +25,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   const [identifier, setIdentifier] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
 
   const passwordValid = password.length >= 6;
   const validationRuleFailed = password.length > 0 && !passwordValid ? 'Password too short (<6 chars)' : 'NONE';
@@ -50,6 +51,19 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     (window as any).__VALIDATION_RESULT = 'PENDING';
     (window as any).__AUTH_RESPONSE = null;
     (window as any).__SUPABASE_ERROR = null;
+
+    // Extract referral code or signup mode from URL/View
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    const path = window.location.pathname.toLowerCase();
+    
+    if (ref) {
+      setReferralCode(ref);
+      setMode('signup');
+      console.log("[Auth] Referral detected:", ref);
+    } else if (path.includes('signup') || path.includes('register')) {
+      setMode('signup');
+    }
   }, []);
 
   const updateDiagnostics = (updates: any) => {
@@ -71,6 +85,15 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     const email = identifier.trim();
     const passLen = password.length;
+
+    // Safety timeout to ensure loading state is cleared
+    const authTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn("[Auth] Safety timeout reached. Forcing loading to false.");
+        setLoading(false);
+        addToast("Authentication is taking longer than expected. Please check your connection.", "info");
+      }
+    }, 15000); // 15s safety net
 
     updateDiagnostics({
       status: 'LOGIN_CLICKED',
@@ -126,7 +149,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     try {
       if (mode === 'signup') {
-        const user = await signUpWithUsername(username.toLowerCase().trim(), email, password, username, "");
+        const user = await signUpWithUsername(username.toLowerCase().trim(), email, password, username, "", referralCode);
         updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'SIGNUP_DONE', authResponse: { user_id: user?.id } });
         if (user) {
           addToast("Account created. Please sign in.", "success");
@@ -161,6 +184,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
       });
       addToast(err.message || "Authentication failed", "error");
     } finally {
+      clearTimeout(authTimeout);
       setLoading(false);
     }
   };
