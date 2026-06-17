@@ -734,17 +734,27 @@ const Layout: React.FC<LayoutProps> = ({
 
             {/* Git Repository Sync Indicator */}
             <div 
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold leading-none select-none cursor-help"
-              title={gitSynced ? `Repository In-Sync: ${liveRepo || "System Default"}` : `Repository Out of Sync! Current: ${liveRepo}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border text-xs font-bold leading-none select-none cursor-help transition-all ${
+                !gitStatus.connected ? 'border-red-500/30' : 'border-white/10'
+              }`}
+              title={
+                !gitStatus.connected 
+                  ? `Git Disconnected: Check Admin Hub` 
+                  : (gitSynced ? `Repository In-Sync: ${liveRepo || "System Default"}` : `Repository Out of Sync! Current: ${liveRepo}`)
+              }
               id="git-repo-indicator"
             >
-              {gitSynced ? (
+              {!gitStatus.connected ? (
+                <WifiOff size={13} className="text-rose-500 shrink-0 animate-pulse" />
+              ) : gitSynced ? (
                 <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
               ) : (
                 <AlertTriangle size={13} className="text-amber-500 shrink-0 animate-pulse" />
               )}
-              <span className={`text-[9px] uppercase tracking-wider font-extrabold ${gitSynced ? 'text-white/40' : 'text-amber-500'}`}>
-                {gitSynced ? 'Repo Match' : 'Repo Diff'}
+              <span className={`text-[9px] uppercase tracking-wider font-extrabold ${
+                !gitStatus.connected ? 'text-rose-500' : (gitSynced ? 'text-white/40' : 'text-amber-500')
+              }`}>
+                {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
               </span>
             </div>
 

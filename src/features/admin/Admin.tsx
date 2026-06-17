@@ -1044,11 +1044,23 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
     if (isAuthenticated) refreshAllData();
   }, [isAuthenticated, refreshAllData]);
 
+  const [gitDiagnostic, setGitDiagnostic] = useState<any>(null);
+
   const handleRunDiagnostic = async () => {
     setIsRunningDiagnostic(true);
     try {
       const report = await runDiagnosticReport();
       setDiagnosticResult(report);
+      
+      try {
+        const gitRes = await fetch('/api/git/diagnostic');
+        if (gitRes.ok) {
+          setGitDiagnostic(await gitRes.json());
+        }
+      } catch (ge) {
+        console.warn("Git diagnostic fetch failed", ge);
+      }
+
       if (report.status === 'healthy') {
         addToast("Industrial Grid Healthy: All mission-critical tables initialized.", "success");
       } else {
@@ -1917,12 +1929,20 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                   userEmail: 'pastornelsonezi@gmail.com'
                                 })
                               });
-                              const data = await res.json();
+                              
+                              let data;
+                              const text = await res.text();
+                              try {
+                                data = JSON.parse(text);
+                              } catch (parseErr) {
+                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
+                              }
+                              
                               setWaTestLog(data);
-                              if (data.whatsapp?.success) {
+                              if (data.whatsapp?.success || data.success) {
                                 addToast("Business Alert Test Dispatched!", "success");
                               } else {
-                                addToast("Meta Transmission Refused", "error");
+                                addToast(data.error || "Meta Transmission Refused", "error");
                               }
                             } catch (e: any) {
                               setWaTestLog({ success: false, error: e.message });
@@ -1948,12 +1968,19 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ phone: testPhone })
                               });
-                              const data = await res.json();
+                              let data;
+                              const text = await res.text();
+                              try {
+                                data = JSON.parse(text);
+                              } catch (parseErr) {
+                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
+                              }
+                              
                               setWaTestLog(data);
                               if (data.success) {
                                 addToast("Raw Text Test Dispatched!", "success");
                               } else {
-                                addToast("Meta Transmission Refused", "error");
+                                addToast(data.error || "Meta Transmission Refused", "error");
                               }
                             } catch (e: any) {
                               setWaTestLog({ success: false, error: e.message });
@@ -3210,6 +3237,14 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
   const [newBranchName, setNewBranchName] = useState('');
   const [isCreatingBranch, setIsCreatingBranch] = useState(false);
   const [isSyncedWithMetadata, setIsSyncedWithMetadata] = useState(true);
+  const [diagnostic, setDiagnostic] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/git/diagnostic')
+      .then(res => res.json())
+      .then(setDiagnostic)
+      .catch(err => console.warn("Git diagnostic failed:", err));
+  }, []);
 
   const checkSyncWithMetadata = async (currentRepo: string) => {
     try {
@@ -3284,9 +3319,17 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
             </h4>
             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Active Repository Signal</p>
           </div>
-          <div className={`px-4 py-2 rounded-full border flex items-center gap-3 ${status.connected ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
-            <div className={`w-2 h-2 rounded-full ${status.connected ? 'bg-aba-green animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-[10px] font-black uppercase tracking-widest">{status.connected ? 'Synchronized' : 'Disconnected'}</span>
+          <div className="flex items-center gap-4">
+            {diagnostic && !diagnostic.has_token && (
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg animate-pulse">
+                <AlertTriangle size={12} />
+                <span className="text-[9px] font-black uppercase tracking-widest">Token Missing: Rate Limits Active</span>
+              </div>
+            )}
+            <div className={`px-4 py-2 rounded-full border flex items-center gap-3 ${status.connected ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+              <div className={`w-2 h-2 rounded-full ${status.connected ? 'bg-aba-green animate-pulse' : 'bg-red-500'}`} />
+              <span className="text-[10px] font-black uppercase tracking-widest">{status.connected ? 'Synchronized' : 'Disconnected'}</span>
+            </div>
           </div>
         </div>
 

@@ -150,8 +150,43 @@ app.use(cookieParser());
 
 // API Routes
 app.get("/api/health", (req, res) => {
-  console.log(`[Server] Health check requested from ${req.ip}`);
-  res.json({ status: "ok" });
+  res.json({ 
+    status: "ok", 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    env: {
+      hasGithubToken: !!process.env.GITHUB_TOKEN,
+      hasGeminiKey: !!(process.env.GEMINI_API_KEY || process.env.API_KEY),
+      hasSupabase: !!supabase
+    }
+  });
+});
+
+app.get("/api/git/diagnostic", async (req, res) => {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
+  
+  const diagnostic: any = {
+    env_repo: repo,
+    has_token: !!token,
+    token_preview: token ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : 'missing',
+  };
+
+  if (token) {
+    try {
+      const response = await axios.get("https://api.github.com/user", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      diagnostic.github_api = { status: 'authenticated', user: response.data.login };
+    } catch (err: any) {
+      diagnostic.github_api = { status: 'auth_failed', error: err.message };
+    }
+  } else {
+    diagnostic.github_api = { status: 'public_only', warning: 'No GITHUB_TOKEN detected. Rate limits will apply.' };
+  }
+
+  res.json(diagnostic);
 });
 
   // Config Sync
@@ -680,35 +715,34 @@ app.post("/api/oracle", async (req, res) => {
     const token = process.env.GITHUB_TOKEN || req.cookies.github_token;
 
     if (!repo) {
-      return res.status(400).json({ error: "GITHUB_REPO not configured for automatic sync" });
+      return res.status(400).json({ success: false, error: "GITHUB_REPO not configured" });
     }
 
-    // Robustness: Strip URL prefix and .git suffix if provided
-    repo = repo.replace(/^https?:\/\/github\.com\//i, '')
-               .replace(/\.git$/i, '')
-               .replace(/\/$/, '');
+    // Robustness: Strip URL prefix and .git suffix
+    repo = repo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/$/, '');
 
     try {
-      // Fetch the repository content (specifically looking for registry.json or similar)
       const [owner, name] = repo.split("/");
-      if (!owner || !name) {
-        return res.status(400).json({ error: "Invalid GITHUB_REPO format. Use owner/repo" });
+      if (!owner || !name) throw new Error(`Invalid repo format: ${repo}. Use owner/repo`);
+
+      console.log(`[GitSync] Polling GitHub: ${owner}/${name} (${branch})`);
+      
+      const config = {
+        timeout: 10000,
+        headers: {
+          "Accept": "application/vnd.github.v3+json",
+          "User-Agent": "FindAba-City-OS"
+        }
+      } as any;
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
 
+      const url = `https://api.github.com/repos/${owner}/${name}/contents/registry.json?ref=${branch}`;
+      
       try {
-        const url = `https://api.github.com/repos/${owner}/${name}/contents/registry.json?ref=${branch}`;
-        const response = await axios.get(
-          url,
-          {
-            headers: token ? { 
-              Authorization: `Bearer ${token}`,
-              Accept: "application/vnd.github.v3+json"
-            } : {
-              Accept: "application/vnd.github.v3+json"
-            },
-          }
-        );
-
+        const response = await axios.get(url, config);
         const content = Buffer.from(response.data.content, "base64").toString("utf-8");
         const registry = JSON.parse(content);
 
@@ -719,23 +753,27 @@ app.post("/api/oracle", async (req, res) => {
           data: registry 
         });
       } catch (fileError: any) {
-        // If the file is missing (404), return a success with empty data instead of a 500 error
         if (fileError.response?.status === 404) {
           return res.json({ 
             success: true, 
             repo, 
             lastUpdated: null,
             data: null,
-            message: "Registry file not found in repository. Ready for first commit."
+            message: "Registry base signal not found. Ready for initialization."
           });
         }
         throw fileError;
       }
     } catch (error: any) {
-      console.error("Git Sync Error:", error.response?.data || error.message);
-      res.status(500).json({ 
-        error: "Failed to sync with Git repository", 
-        details: error.response?.data?.message || error.message 
+      const status = error.response?.status || 500;
+      const details = error.response?.data?.message || error.message;
+      console.error("[GitSync] Failed:", details);
+      
+      res.status(status).json({ 
+        success: false,
+        error: "GitHub Grid Sync Failed", 
+        details: status === 403 && !token ? "GitHub API Rate Limit Exceeded (Unauthenticated). Please configure a GITHUB_TOKEN in App Settings." : details,
+        status
       });
     }
   });
@@ -764,6 +802,7 @@ app.post("/api/oracle", async (req, res) => {
       const headers = {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3+json",
+        "User-Agent": "FindAba-City-OS"
       };
 
       const gitClient = axios.create({ headers, timeout: 600000 }); // 10 minutes
@@ -998,6 +1037,7 @@ app.post("/api/oracle", async (req, res) => {
       const headers = {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3+json",
+        "User-Agent": "FindAba-City-OS"
       };
 
       const gitClient = axios.create({
@@ -1154,6 +1194,19 @@ async function setupVite() {
     });
   }
 }
+
+// Global Error Handler for all routes - MUST BE LAST
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('[Server] FATAL ROUTE ERROR:', err.stack || err);
+  if (res.headersSent) return next(err);
+  
+  res.status(500).json({ 
+    success: false, 
+    error: "A critical server error occurred within the City OS mesh.",
+    details: err.message,
+    status: 500
+  });
+});
 
 // Start Server if not on Vercel
 if (!process.env.VERCEL) {
