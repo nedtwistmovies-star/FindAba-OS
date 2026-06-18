@@ -176,7 +176,11 @@ app.get("/api/git/diagnostic", async (req, res) => {
   if (token) {
     try {
       const response = await axios.get("https://api.github.com/user", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "FindAba-City-OS",
+          Accept: "application/vnd.github.v3+json"
+        }
       });
       diagnostic.github_api = { status: 'authenticated', user: response.data.login };
     } catch (err: any) {
@@ -1147,6 +1151,7 @@ app.post("/api/oracle", async (req, res) => {
       const headers = {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3+json",
+        "User-Agent": "FindAba-City-OS"
       };
       const gitClient = axios.create({ headers });
 

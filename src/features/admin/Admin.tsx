@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Shield,
+  ShieldCheck,
   Loader2,
   RefreshCcw,
   ArrowLeft,
@@ -1805,7 +1806,13 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ webhookUrl: makeWebhookUrl })
                               });
-                              const data = await res.json();
+                              let data;
+                              const text = await res.text();
+                              try {
+                                data = JSON.parse(text);
+                              } catch (parseErr) {
+                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
+                              }
                               if (data.success) {
                                 addToast("Test Handshake Successfully Transmitted!", "success");
                               } else {
@@ -1860,7 +1867,13 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ phone: testPhone, code: '123456' })
                               });
-                              const data = await res.json();
+                              let data;
+                              const text = await res.text();
+                              try {
+                                data = JSON.parse(text);
+                              } catch (parseErr) {
+                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
+                              }
                               setWaTestLog(data);
                               if (data.success) {
                                 addToast("OTP Test Message Dispatched!", "success");
@@ -1891,7 +1904,13 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ phone: testPhone, userName: 'Pastor Nelson' })
                               });
-                              const data = await res.json();
+                              let data;
+                              const text = await res.text();
+                              try {
+                                data = JSON.parse(text);
+                              } catch (parseErr) {
+                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
+                              }
                               setWaTestLog(data);
                               if (data.success) {
                                 addToast("Welcome Onboarding Test Dispatched!", "success");
@@ -3320,10 +3339,17 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Active Repository Signal</p>
           </div>
           <div className="flex items-center gap-4">
-            {diagnostic && !diagnostic.has_token && (
-              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg animate-pulse">
-                <AlertTriangle size={12} />
-                <span className="text-[9px] font-black uppercase tracking-widest">Token Missing: Rate Limits Active</span>
+            {diagnostic && (
+              <div className="hidden md:flex flex-col items-end gap-1">
+                <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${diagnostic.has_token ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-amber-500/10 border-amber-500/20 text-amber-500 animate-pulse'}`}>
+                  {diagnostic.has_token ? <ShieldCheck size={12} /> : <AlertTriangle size={12} />}
+                  <span className="text-[9px] font-black uppercase tracking-widest">
+                    {diagnostic.has_token ? `Authenticated: ${diagnostic.github_api?.user || 'Active'}` : 'Public Rate Limits (No Token)'}
+                  </span>
+                </div>
+                {diagnostic.github_api?.status === 'auth_failed' && (
+                  <span className="text-[8px] text-red-500 font-bold uppercase tracking-widest">Invalid Token Signature</span>
+                )}
               </div>
             )}
             <div className={`px-4 py-2 rounded-full border flex items-center gap-3 ${status.connected ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>

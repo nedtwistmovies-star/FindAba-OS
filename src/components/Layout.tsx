@@ -47,6 +47,7 @@ import {
   Database,
   CheckCircle2,
   AlertTriangle,
+  Activity,
 } from "lucide-react";
 import Logo from "./Logo";
 import { generateWelcomeMessage } from "../services/geminiService";
@@ -745,7 +746,7 @@ const Layout: React.FC<LayoutProps> = ({
               id="git-repo-indicator"
             >
               {!gitStatus.connected ? (
-                <WifiOff size={13} className="text-rose-500 shrink-0 animate-pulse" />
+                <Activity size={13} className="text-rose-500 shrink-0 animate-pulse" />
               ) : gitSynced ? (
                 <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
               ) : (

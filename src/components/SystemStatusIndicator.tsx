@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Wifi, WifiOff, Activity, RefreshCw, Server, AlertCircle 
+  Wifi, Activity, RefreshCw, Server, AlertCircle 
 } from 'lucide-react';
 
 export interface SystemStatus {
@@ -170,7 +170,7 @@ const SystemStatusIndicator: React.FC = () => {
                     ) : status === 'checking' ? (
                       <RefreshCw size={12} className="animate-spin text-amber-400" />
                     ) : (
-                      <WifiOff size={12} className="text-rose-400" />
+                      <Activity size={12} className="text-rose-400" />
                     )}
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${
                       status === 'connected' ? 'text-emerald-400' : status === 'checking' ? 'text-amber-400' : 'text-rose-400'
