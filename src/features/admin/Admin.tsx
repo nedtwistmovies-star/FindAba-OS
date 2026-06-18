@@ -99,8 +99,6 @@ import StatCard from "../../components/StatCard";
 import SectionHeader from "../../components/SectionHeader";
 import IndustrialButton from "../../components/IndustrialButton";
 import { BentoGrid, BentoItem } from "../../components/BentoGrid";
-import { GitRepositorySyncModal, RepositoryManager } from "../../components";
-import { cleanRepositoryName } from "../../services/gitConfigService";
 
 interface AutomationAuditProps {
   status: { status: string; message: string };
@@ -901,8 +899,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
     | "supabase"
     | "infrastructure"
     | "identity"
-    | "thrift"
-    | "posts"
     | "diagnostics"
     | "git"
   >(() => {
@@ -2996,162 +2992,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
               </div>
             </div>
           )}
-          {activeTab === "posts" && (
-            <div className="animate-slide-up space-y-8">
-              <SectionHeader 
-                title="Industrial Content Node" 
-                subtitle={`Analyzing ${adminPosts.length} broadcast signals`}
-                icon={MessageSquare}
-              />
-              
-              <div className="bg-white/5 rounded-[3rem] border border-white/5 p-8 space-y-6">
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-white/40">Manual Signal Injection (Test Snippet)</h3>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <input 
-                      type="text"
-                      value={testPostContent}
-                      onChange={(e) => setTestPostContent(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-xs font-bold focus:border-aba-gold transition-all"
-                      placeholder="Enter post content for testing..."
-                    />
-                    <IndustrialButton 
-                      variant="primary" 
-                      size="md" 
-                      icon={Send} 
-                      loading={isCreatingPost}
-                      onClick={async () => {
-                        setIsCreatingPost(true);
-                        try {
-                          const result = await createAdminTestPost(testPostContent);
-                          console.log("POST TEST RESULT:", result);
-                          if (result.error) {
-                            addToast(`Injection Fault: ${result.error.message}`, "error");
-                          } else {
-                            addToast("Signal injected successfully into the grid.", "success");
-                            const updated = await fetchAdminPosts();
-                            setAdminPosts(updated);
-                          }
-                        } catch (e: any) {
-                          addToast(`System Crash: ${e.message}`, "error");
-                        } finally {
-                          setIsCreatingPost(false);
-                        }
-                      }}
-                    >
-                      Inject Signal
-                    </IndustrialButton>
-                  </div>
-                  <p className="text-[8px] font-mono text-white/20 uppercase tracking-widest">
-                    Note: This executes the snippet: auth.getUser() &rarr; insert(payload) &rarr; log result.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-white/5 rounded-[3rem] border border-white/5 overflow-hidden">
-                 <table className="w-full text-left border-collapse">
-                    <thead>
-                       <tr className="border-b border-white/5">
-                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Timestamp</th>
-                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Author</th>
-                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Content</th>
-                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Action</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                       {adminPosts.length === 0 ? (
-                         <tr>
-                            <td colSpan={4} className="p-20 text-center opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">
-                               The broadcast channel is silent.
-                            </td>
-                         </tr>
-                       ) : (adminPosts || []).map(post => (
-                          <tr key={post.id} className="hover:bg-white/5 transition-all">
-                             <td className="p-8 text-[10px] font-mono text-white/40">
-                                {new Date(post.created_at).toLocaleString()}
-                             </td>
-                             <td className="p-8">
-                                <div className="flex items-center gap-3">
-                                   <div className="w-8 h-8 rounded-lg bg-aba-gold/10 flex items-center justify-center font-black text-[10px] text-aba-gold border border-aba-gold/20 overflow-hidden">
-                                      {post.author?.avatar_url ? (
-                                        <img src={post.author.avatar_url} className="w-full h-full object-cover" />
-                                      ) : (
-                                        post.user_id.substring(0, 2).toUpperCase()
-                                      )}
-                                   </div>
-                                   <p className="text-xs font-black text-white">{post.author?.email || 'System Account'}</p>
-                                </div>
-                             </td>
-                             <td className="p-8">
-                                <p className="text-xs text-white/60 line-clamp-2">{post.content}</p>
-                             </td>
-                             <td className="p-8">
-                                <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest bg-white/5 text-white/40`}>
-                                   {post.action_type}
-                                </span>
-                             </td>
-                          </tr>
-                       ))}
-                    </tbody>
-                 </table>
-              </div>
-            </div>
-          )}
-          {activeTab === "thrift" && (
-            <div className="animate-slide-up space-y-8">
-              <SectionHeader 
-                title="Industrial Thrift Units" 
-                subtitle={`Managing ${thriftAccounts.length} savings registries`}
-                icon={Landmark}
-              />
-              <div className="bg-white/5 rounded-[3rem] border border-white/5 overflow-hidden">
-                 <table className="w-full text-left border-collapse">
-                    <thead>
-                       <tr className="border-b border-white/5">
-                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Owner</th>
-                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Cycle</th>
-                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Total Saved</th>
-                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Status</th>
-                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Locked Until</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                       {thriftAccounts.length === 0 ? (
-                         <tr>
-                            <td colSpan={5} className="p-20 text-center opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">
-                               No thrift registries active in the grid.
-                            </td>
-                         </tr>
-                       ) : (thriftAccounts || []).map(acc => (
-                          <tr key={acc.id} className="hover:bg-white/5 transition-all">
-                             <td className="p-8">
-                                <p className="text-xs font-black text-white">{acc.user_email}</p>
-                             </td>
-                             <td className="p-8">
-                                <span className="text-[10px] font-black uppercase text-aba-gold">{acc.cycle}</span>
-                             </td>
-                             <td className="p-8 font-mono text-xs text-aba-green">
-                                ₦{(acc.total_saved || 0).toLocaleString()}
-                             </td>
-                             <td className="p-8">
-                                <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                                   acc.status === 'active' ? 'bg-aba-green/10 text-aba-green' :
-                                   acc.status === 'matured' ? 'bg-aba-gold/10 text-aba-gold' :
-                                   'bg-white/10 text-white/40'
-                                }`}>
-                                   {acc.status}
-                                </span>
-                             </td>
-                             <td className="p-8 text-[10px] font-mono text-white/40">
-                                {acc.locked_until ? new Date(acc.locked_until).toLocaleDateString() : 'N/A'}
-                             </td>
-                          </tr>
-                       ))}
-                    </tbody>
-                 </table>
-              </div>
-            </div>
-          )}
           {activeTab === "registry" && (
             <div className="animate-slide-up space-y-8">
               <SectionHeader 
@@ -3344,8 +3184,7 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
       if (response.ok) {
         const metadata = await response.json();
         if (metadata.repository && metadata.repository.url) {
-          const cleanedMeta = cleanRepositoryName(metadata.repository.url);
-          setIsSyncedWithMetadata(!currentRepo || cleanedMeta === currentRepo);
+          setIsSyncedWithMetadata(true);
         }
       }
     } catch (e) {
@@ -3538,15 +3377,6 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
         </div>
       </div>
 
-      <RepositoryManager 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onUpdate={async (newRepo) => {
-          setRepo(newRepo);
-          await sync(newRepo, branch);
-          addToast('repo synced successfully', 'success');
-        }}
-      />
     </div>
   );
 };

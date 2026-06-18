@@ -315,10 +315,10 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                   </p>
                 </div>
                 <button 
-                  onClick={() => setView('thrift-dashboard')} 
+                  onClick={() => setView('oracle')} 
                   className="w-full py-3.5 bg-white/5 hover:bg-aba-gold hover:text-aba-deep text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
                 >
-                  Access Savings Nodes
+                  Consult Smart Nodes
                 </button>
               </div>
 
@@ -338,10 +338,10 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                   </p>
                 </div>
                 <button 
-                  onClick={() => setView('wallet')} 
+                  onClick={() => setView('merchant-portal')} 
                   className="w-full py-3.5 bg-white/5 hover:bg-aba-gold hover:text-aba-deep text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
                 >
-                  Unlock Wallet Node
+                  Open Merchant Hub
                 </button>
               </div>
 

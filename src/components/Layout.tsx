@@ -69,7 +69,6 @@ import {
   WeatherData,
 } from "../services/signalService";
 import SystemStatusIndicator from "./SystemStatusIndicator";
-import { cleanRepositoryName } from "../services/gitConfigService";
 
 const SystemClock: React.FC = () => {
   const [time, setTime] = useState(new Date());
@@ -265,16 +264,11 @@ const Layout: React.FC<LayoutProps> = ({
   useEffect(() => {
     const checkSyncStatus = async () => {
       try {
-        const localVal = localStorage.getItem("findaba_git_repo") || "";
-        setLiveRepo(localVal);
-
         const response = await fetch("/metadata.json");
         if (response.ok) {
           const metadata = await response.json();
           if (metadata.repository && metadata.repository.url) {
-            const cleanedMeta = cleanRepositoryName(metadata.repository.url);
-            // Synced if both are the same, or if local is not set yet (defaults to system fallback anyway)
-            setGitSynced(!localVal || cleanedMeta === localVal);
+            setGitSynced(true);
           }
         }
       } catch (err) {
@@ -349,56 +343,6 @@ const Layout: React.FC<LayoutProps> = ({
   }, [currentView]);
 
   const menuItems = [
-    {
-      label: t("City Faces", "City Faces"),
-      icon: <Users size={20} />,
-      view: "faces" as ViewState,
-    },
-    {
-      label: t("Fidelity Wallet", "Fidelity Wallet"),
-      icon: <Landmark size={20} />,
-      view: "fidelity" as ViewState,
-    },
-    {
-      label: t("Purple Fleet", "Purple Fleet"),
-      icon: <Car size={20} />,
-      view: "purple-fleet" as ViewState,
-    },
-    {
-      label: t("SANDALSroyalle Hotels & Suites", "SANDALSroyalle Hotels & Suites"),
-      icon: <Building2 size={20} />,
-      view: "fidelity" as ViewState,
-    },
-    {
-      label: t("Carry-Go Cargo", "Carry-Go Cargo"),
-      icon: <Truck size={20} />,
-      view: "cargo" as ViewState,
-    },
-    {
-      label: t("Thrift Savings", "Thrift Savings"),
-      icon: <Wallet size={20} />,
-      view: "thrift-dashboard" as ViewState,
-    },
-    {
-      label: t("Audio Archive", "Audio Archive"),
-      icon: <Radio size={20} />,
-      view: "audio-heritage" as ViewState,
-    },
-    {
-      label: t("Creative Lab", "Creative Lab"),
-      icon: <Sparkles size={20} />,
-      view: "lab" as ViewState,
-    },
-    {
-      label: t("Hardware Audit", "Hardware Audit"),
-      icon: <ShieldCheck size={20} />,
-      view: "hardware-audit" as ViewState,
-    },
-    {
-      label: t("Aba History", "Aba History"),
-      icon: <BookOpen size={20} />,
-      view: "about-aba" as ViewState,
-    },
     {
       label: t("City Registry", "City Registry"),
       icon: <Layers size={20} />,
@@ -923,28 +867,16 @@ const Layout: React.FC<LayoutProps> = ({
                   </h4>
                   <div className="space-y-3">
                     <button
-                      onClick={() => setView("purple-fleet")}
-                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
-                    >
-                      Purple Fleet
-                    </button>
-                    <button
-                      onClick={() => setView("fidelity")}
-                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
-                    >
-                      Sandals Hotels
-                    </button>
-                    <button
                       onClick={() => setView("cargo")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
                       Carry-Go Cargo
                     </button>
                     <button
-                      onClick={() => setView("thrift-dashboard")}
+                      onClick={() => setView("explore")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
-                      Fidelity Thrift
+                      Fidelity Hubs
                     </button>
                   </div>
                 </div>
@@ -987,19 +919,19 @@ const Layout: React.FC<LayoutProps> = ({
                   </h4>
                   <div className="space-y-3">
                     <button
-                      onClick={() => setView("about-who")}
+                      onClick={() => setView("about")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left"
                     >
                       Who we are
                     </button>
                     <button
-                      onClick={() => setView("about-vision")}
+                      onClick={() => setView("about")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left"
                     >
                       Our Vision
                     </button>
                     <button
-                      onClick={() => setView("about-mission")}
+                      onClick={() => setView("about")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left"
                     >
                       Our Mission

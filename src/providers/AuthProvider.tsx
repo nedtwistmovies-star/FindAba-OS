@@ -221,15 +221,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .catch(err => {
               console.error("[AuthProvider] Background sync failed:", err);
             });
-        } else if (localStorage.getItem('findaba_is_auth') === 'true') {
-          const localEmail = localStorage.getItem('findaba_auth_email') || 'pastornelsonezi@gmail.com';
-          const localName = localStorage.getItem('findaba_auth_name') || 'Sandbox Citizen';
-          const localRole = localStorage.getItem('findaba_auth_role') || 'admin';
-          const localId = localStorage.getItem('findaba_auth_userid') || 'sandbox-bypass-uuid';
-
-          console.log("[AuthProvider] Leveraging active local sandbox session on initial boot.");
-          handleAuthSuccess(localEmail, localName, localRole, localId);
-          updateBootDiagnostics({ authEvent: 'LOCAL_BYPASS_RESTORED' });
+        } else if (localStorage.getItem('findaba_is_auth') === 'false') {
+          // Explicit cleanup
+          logout();
         }
         updateBootDiagnostics({ routeBypassTriggered: true, finalRouteDecision: 'GUEST_ACCESS' });
 

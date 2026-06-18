@@ -1,15 +1,19 @@
 
 export type ViewState = 
-  | 'discover' | 'home' | 'oracle' | 'lab' | 'cargo' | 'profile' | 'detail' 
+  | 'discover' | 'home' | 'oracle' | 'cargo' | 'profile' | 'detail' 
   | 'explore' | 'messages' | 'merchant-portal' 
-  | 'register' | 'admin' | 'thrift-dashboard' | 'editorial' | 'editorial-detail'
-  | 'buyer-portal' | 'ad-manager' | 'faces' | 'registry-setup' | 'fidelity' 
-  | 'wallet' | 'contact' | 'audio-heritage' | 'srts-office' | 'booking-ledger' 
-  | 'hotel-detail' | 'hotel-partner-control' | 'pricing' | 'ad-checkout' | 'about'
+  | 'register' | 'admin' | 'buyer-portal' | 'ad-manager' 
+  | 'pricing' | 'ad-checkout' | 'about'
+  /* 🔹 COMPATIBILITY KEYS (DEPRECATED - REMOVE FROM CALLERS) */
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
-  | 'orders' | 'dispute-center' | 'login' | 'signup' | 'carry-me' | 'driver-registry'
-  | 'purple-fleet' | 'driver-console' | 'fleet-admin' | 'legal' | 'hardware-audit' | 'business-verification'
-  | 'carry-go-dash' | 'onboarding' | 'support' | 'terminal' | 'terminal-pay' | 'splash';
+  | 'faces' | 'fidelity' | 'thrift-dashboard' | 'wallet' | 'purple-fleet'
+  | 'editorial' | 'editorial-detail' | 'registry-setup' | 'srts-office'
+  | 'booking-ledger' | 'hotel-detail' | 'hotel-partner-control'
+  | 'carry-me' | 'driver-registry' | 'driver-console' | 'fleet-admin'
+  | 'carry-go-dash' | 'terminal' | 'terminal-pay' | 'hardware-audit'
+  /* 🔹 END COMPATIBILITY KEYS */
+  | 'login' | 'signup' | 'legal' | 'business-verification'
+  | 'onboarding' | 'support' | 'splash';
 
 export type Language = 'en' | 'ig' | 'pcm' | 'ha' | 'yo' | 'fr' | 'zh';
 export type UserRole = 'visitor' | 'registered' | 'business_owner' | 'verified_business' | 'buyer' | 'editor' | 'admin' | 'driver' | 'fleet_commander';

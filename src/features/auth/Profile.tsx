@@ -264,21 +264,6 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   </button>
                 )}
 
-                <button 
-                  onClick={() => setView('hardware-audit')}
-                  className="w-full bg-white/5 backdrop-blur-xl p-8 rounded-[3rem] shadow-2xl border border-white/10 flex items-center justify-between group transition-all active:scale-[0.98] hover:border-aba-gold/30"
-                >
-                   <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center text-aba-gold shadow-2xl group-hover:scale-110 transition-transform">
-                        <Terminal size={32} />
-                      </div>
-                      <div className="text-left">
-                         <h4 className="text-xl font-black uppercase tracking-tight text-white leading-none group-hover:text-aba-gold transition-colors">Hardware Audit</h4>
-                         <p className="text-[9px] font-black text-aba-gold/60 uppercase tracking-[0.5em] mt-2">Analyze Migration Specs</p>
-                      </div>
-                   </div>
-                   <ChevronRight size={24} className="text-white/20 group-hover:text-aba-gold transition-all group-hover:translate-x-1" />
-                </button>
 
                 {isAdmin && (
                   <button 

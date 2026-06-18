@@ -127,8 +127,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         throw new Error(`A hub with the email "${formData.email}" is already enrolled as "${existingBiz.name}". Please use a unique business email.`);
       }
 
-      // 2. TIMEOUT PROTECTED REGISTRATION
-      const REGISTRATION_TIMEOUT = 15000;
+    const REGISTRATION_TIMEOUT = 15000;
       const registrationPromise = supabase
         .from('businesses')
         .insert([
@@ -156,12 +155,12 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
       const { data, error } = await Promise.race([
         registrationPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error("REGISTRY_UPDATE_TIMEOUT")), REGISTRATION_TIMEOUT))
+        new Promise((_, reject) => setTimeout(() => reject(new Error("We're having trouble saving your details. Please try again.")), REGISTRATION_TIMEOUT))
       ]) as any;
 
       if (error) {
         console.error('Business registration error:', error);
-        if (error.code === '23505') throw new Error("Duplicate Key: This email or hub identity is already committed to the registry.");
+        if (error.code === '23505') throw new Error("This email or business name is already registered.");
         throw error;
       }
 
@@ -169,12 +168,12 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         // 🔹 ASYNCHRONOUS BACKGROUND NOTIFICATION
         // Do not await this to prevent UI stalling on slow email services
         sendBusinessRegistrationEmail(data.email, data.name, data.subscription_tier || 'Free')
-          .catch(e => console.warn("[Registry] Email notification deferred or failed:", e));
+          .catch(e => console.warn("[FindAba] Email notification deferred or failed:", e));
 
         setRegisteredBusiness(data as any);
         setStep('success');
         onRegister(data as any);
-        addToast("Your business has been registered!", "success");
+        addToast("Your business has been registered successfully!", "success");
       }
     } catch (error: any) {
       console.error("Registration failed:", error);
@@ -190,9 +189,9 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         <PaystackOverlay 
           isOpen={showCheckout}
           amount={BUSINESS_PLANS.find(p => p.id === selectedPlan)?.monthlyAmount || 0}
-          email={userIdentifier || 'billing@sandalsroyalle.com'}
+          email={userIdentifier || 'billing@findaba.com'}
           userId={user_id || undefined}
-          label={`Hub Enrollment: ${BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name}`}
+          label={`Business Registration: ${BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name}`}
           onSuccess={handlePaymentSuccess}
           onCancel={() => setShowCheckout(false)}
         />
@@ -215,8 +214,8 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         <div className="max-w-6xl mx-auto space-y-12 md:space-y-20">
           <div className="flex justify-center">
             <div className="bg-white/5 p-1.5 rounded-2xl md:rounded-[2.5rem] border border-white/10 flex shadow-sm backdrop-blur-xl">
-              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>30 Day Hub</button>
-              <button onClick={() => setBillingCycle(BillingCycle.YEARLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard flex items-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>45 Day Cycle <span className="bg-aba-green text-white px-2 py-0.5 rounded text-[8px]">PRO</span></button>
+              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>30 Days</button>
+              <button onClick={() => setBillingCycle(BillingCycle.YEARLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard flex items-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>45 Days <span className="bg-aba-green text-white px-2 py-0.5 rounded text-[8px]">PRO</span></button>
             </div>
           </div>
 
@@ -241,9 +240,9 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                 </div>
                 <div className="mt-16 md:mt-20 space-y-8 md:space-y-10">
                   <div className="border-t border-white/10 pt-8 md:pt-10">
-                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-2">{billingCycle === BillingCycle.MONTHLY ? '30 Day Activation' : '45 Day Industrial Cycle'}</p>
+                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-2">{billingCycle === BillingCycle.MONTHLY ? '30 Day Activation' : '45 Day Growth Cycle'}</p>
                     <span className="text-3xl md:text-4xl font-bold text-white block">
-                      {plan.monthlyAmount === 0 ? 'Starter Hub' : `₦${(billingCycle === BillingCycle.MONTHLY ? plan.monthlyAmount : plan.yearlyAmount).toLocaleString()}`}
+                      {plan.monthlyAmount === 0 ? 'Basic' : `₦${(billingCycle === BillingCycle.MONTHLY ? plan.monthlyAmount : plan.yearlyAmount).toLocaleString()}`}
                     </span>
                   </div>
                   <button 
