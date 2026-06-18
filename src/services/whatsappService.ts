@@ -194,7 +194,7 @@ export const sendHelloWorld = async (to: string) => {
  * Standard Flow: OTP Verification
  */
 export const sendOTPMessage = async (to: string, code: string) => {
-  const fallback = `FindAba Verification Code: ${code}. Do not share this code with anyone.`;
+  const fallback = `FindAba Login Code: ${code}. Please do not share this code with anyone.`;
   return sendTemplateWithFallback(to, 'otp_verification', fallback, 'en_US', [
     {
       type: 'body',
@@ -213,7 +213,7 @@ export const sendOTPMessage = async (to: string, code: string) => {
  * Standard Flow: Welcome Message
  */
 export const sendWelcomeMessage = async (to: string, userName: string) => {
-  const fallback = `Welcome to FindAba, ${userName}! Your signal is now active in the industrial registry. Explore our network at findaba.com.ng`;
+  const fallback = `Welcome to FindAba, ${userName}! You're now part of the FindAba community. Start exploring at findaba.com.ng`;
   return sendTemplateWithFallback(to, 'welcome_onboarding', fallback, 'en_US', [
     {
       type: 'body',
@@ -226,7 +226,7 @@ export const sendWelcomeMessage = async (to: string, userName: string) => {
  * Standard Flow: Business Inquiry
  */
 export const sendBusinessInquiryMessage = async (to: string, businessName: string, message: string, inquirerName: string) => {
-  const fallback = `*FindAba Industrial Alert*\n\nBusiness: ${businessName}\nInquiry from: ${inquirerName}\n\nMessage: ${message}`;
+  const fallback = `*Message from FindAba*\n\nBusiness: ${businessName}\nFrom: ${inquirerName}\n\nMessage: ${message}`;
   return sendTemplateWithFallback(to, 'business_inquiry_alert', fallback, 'en_US', [
     {
       type: 'header',

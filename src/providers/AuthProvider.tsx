@@ -158,9 +158,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         const { data: { session }, error: sessionError } = sessionResponse;
         
-        if (sessionError && sessionError.message === 'SESSION_TIMEOUT_EXCEEDED') {
-          console.warn("[AuthProvider] Session load timed out. Proceeding as guest.");
-          updateBootDiagnostics({ authEvent: 'TIMEOUT', corruptionMetadata: 'getSession timed out' });
+        if (sessionError && sessionError.message === 'SIGN_IN_TIMEOUT') {
+          console.warn("[AuthProvider] Signing you in took longer than expected. Proceeding as guest.");
+          updateBootDiagnostics({ authEvent: 'TIMEOUT', corruptionMetadata: 'Your sign-in took longer than expected' });
         }
         
         console.log('RAW_SESSION:', session);
@@ -182,10 +182,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!!session && !session.user) {
           diag.sessionCorruptionDetected = true;
           diag.sessionCorruptionConfirmed = true;
-          diag.sessionCorruptionSource = 'supabase.auth.getSession() -> session is truthy but user is null';
+          diag.sessionCorruptionSource = 'supabase.auth.getSession() -> unexpected state';
           diag.routeBypassTriggered = true;
           diag.finalRouteDecision = 'LOGIN';
-          diag.corruptionMetadata = 'SESSION_FOUND = TRUE while SESSION_USER_EXISTS = FALSE | AuthProvider.tsx:101';
+          diag.corruptionMetadata = 'Authentication required | AuthProvider.tsx';
           
           updateBootDiagnostics(diag);
           return;

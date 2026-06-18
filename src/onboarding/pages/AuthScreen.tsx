@@ -46,7 +46,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onSuccess, initi
     
     const supabase = getSupabase();
     if (!supabase) {
-      addToast("Connection error. Please try again later.", "error");
+      addToast("Connection error. We're having trouble connecting. Please try again.", "error");
       setLoading(false);
       return;
     }
@@ -78,8 +78,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onSuccess, initi
         onSuccess('signin', email);
       }
     } catch (err: any) {
-      setError(err.message || "Failed to authenticate.");
-      addToast(err.message || "Authentication failed.", "error");
+      setError("We couldn't sign you in. Please check your email and password.");
+      addToast(err.message || "We couldn't sign you in.", "error");
       setShowBypass(true);
     } finally {
       setLoading(false);
@@ -102,7 +102,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onSuccess, initi
             {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
           </h2>
           <p className="text-white/40 text-sm">
-            {mode === 'signup' ? 'Join our community of merchants' : 'Enter your credentials to continue'}
+            {mode === 'signup' ? 'Join our community' : 'Enter your details to continue'}
           </p>
         </div>
 

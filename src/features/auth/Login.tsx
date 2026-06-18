@@ -28,7 +28,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   const [referralCode, setReferralCode] = useState('');
 
   const passwordValid = password.length >= 6;
-  const validationRuleFailed = password.length > 0 && !passwordValid ? 'Password too short (<6 chars)' : 'NONE';
+  const validationRuleFailed = password.length > 0 && !passwordValid ? 'Password needs to be at least 6 characters' : 'NONE';
 
   const [diagnostics, setDiagnostics] = useState<any>({
     status: 'IDLE',
@@ -91,9 +91,9 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
       if (loading) {
         console.warn("[Auth] Safety timeout reached. Forcing loading to false.");
         setLoading(false);
-        addToast("Authentication is taking longer than expected. Please check your connection.", "info");
+        addToast("Sign-in is taking longer than expected. Please check your connection.", "info");
       }
-    }, 15000); // 15s safety net
+    }, 15000); 
 
     updateDiagnostics({
       status: 'LOGIN_CLICKED',
@@ -118,10 +118,10 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     if (!isEmailValid) {
        updateDiagnostics({ 
-         status: 'VALIDATION_FAILED', 
-         step: 'VALIDATION',
-         validationResult: 'FAILED', 
-         validationError: 'Invalid Email Format' 
+         status: 'CHECK_EMAIL', 
+         step: 'EMAIL_CHECK',
+         validationResult: 'NOT_WORKING', 
+         validationError: 'Incorrect email format' 
        });
        addToast("Please enter a valid email address.", "error");
        setLoading(false);
@@ -152,21 +152,21 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
         const user = await signUpWithUsername(username.toLowerCase().trim(), email, password, username, "", referralCode);
         updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'SIGNUP_DONE', authResponse: { user_id: user?.id } });
         if (user) {
-          addToast("Account created. Please sign in.", "success");
+          addToast("Your account is ready. Please sign in.", "success");
           setMode('signin');
         }
       } else {
         if (useMagicLink) {
           await sendMagicLink(email);
-          updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'MAGIC_LINK_SENT' });
-          addToast("Check your email for the login link.", "success");
+          updateDiagnostics({ status: 'READY', step: 'LINK_SENT' });
+          addToast("We've sent a login link to your email. Please check your inbox.", "success");
         } else {
           const session = await loginWithUsername(identifier.trim(), password, true);
-          updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'SIGNIN_DONE', authResponse: { session_id: session?.access_token ? 'REDACTED' : 'FAILED' } });
+          updateDiagnostics({ status: 'READY', step: 'DONE', authResponse: { session_id: session?.access_token ? 'ACTIVE' : 'NONE' } });
           if (session?.user) {
             const user = session.user;
             handleAuthSuccess(user.email || '', user.user_metadata.full_name || 'User', 'registered', user.id);
-            addToast("Sign in successful.", "success");
+            addToast("Welcome back!", "success");
             onAuthSuccess(user.email || '', user.user_metadata.full_name || 'User', 'registered', user.id);
             setView('home');
           }
@@ -175,14 +175,14 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     } catch (err: any) {
       console.error("DIAGNOSTIC ERROR CAPTURE:", err);
       updateDiagnostics({ 
-        status: 'AUTH_REQUEST_ERROR', 
-        step: 'ERROR',
+        status: 'HELP_REQUIRED', 
+        step: 'ISSUE_DETECTED',
         supabaseError: err,
         supabaseErrorCode: err.code || 'N/A',
-        supabaseErrorMessage: err.message || 'Unknown Supabase Error',
+        supabaseErrorMessage: err.message || 'Connection trouble',
         supabaseErrorStatus: err.status || 'N/A'
       });
-      addToast(err.message || "Authentication failed", "error");
+      addToast("We couldn't sign you in. Please check your details and try again.", "error");
     } finally {
       clearTimeout(authTimeout);
       setLoading(false);
@@ -316,93 +316,28 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
         </div>
       </motion.div>
 
-      {/* LOGIN_DIAGNOSTICS PANEL */}
-      <div className="mt-12 w-full max-w-2xl bg-black/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md relative z-10 font-mono">
-        <h3 className="text-aba-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-          <ShieldCheck size={14} />
-          System Login Diagnostics
-        </h3>
-        
-        <div className="grid grid-cols-2 gap-4 text-[10px] text-white/60">
-          <div className="space-y-2">
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>STATUS:</span>
-               <span className="text-white font-bold">{diagnostics.status}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>STEP:</span>
-               <span className="text-aba-gold">{diagnostics.step}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>EMAIL:</span>
-               <span>{diagnostics.email || 'N/A'}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>PASSWORD_LENGTH:</span>
-               <span>{password.length}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>PASSWORD_MIN_REQUIRED:</span>
-               <span>6</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>PASSWORD_VALID:</span>
-               <span className={passwordValid ? 'text-green-400' : 'text-red-400'}>{passwordValid ? 'YES' : 'NO'}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>VALIDATION_RULE_FAILED:</span>
-               <span className="text-red-400">{validationRuleFailed}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>VALIDATION_FAILURE_REASON:</span>
-               <span className="text-red-400">{validationRuleFailed}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>VALIDATION_RESULT:</span>
-               <span className={diagnostics.validationResult === 'FAILED' ? 'text-red-400' : 'text-green-400'}>{diagnostics.validationResult}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>VALIDATION_ERROR:</span>
-               <span className="text-red-400">{diagnostics.validationError || 'NONE'}</span>
-             </div>
-          </div>
-
-          <div className="space-y-2">
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>AUTH_REQUEST_SENT:</span>
-               <span>{diagnostics.authRequestSent ? 'YES' : 'NO'}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>AUTH_RESPONSE:</span>
-               <span>{diagnostics.authResponse ? 'RECEIVED' : 'PENDING'}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>SUPABASE_ERROR:</span>
-               <span className={diagnostics.supabaseError ? 'text-red-400' : 'text-white/20'}>{diagnostics.supabaseError ? 'DETECTED' : 'NONE'}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>ERROR_CODE:</span>
-               <span className="text-red-400">{diagnostics.supabaseErrorCode || 'N/A'}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>ERROR_STATUS:</span>
-               <span className="text-red-400">{diagnostics.supabaseErrorStatus || 'N/A'}</span>
-             </div>
-             <div className="flex justify-between border-b border-white/5 pb-1">
-               <span>ERROR_MESSAGE:</span>
-               <span className="text-red-400 text-[9px] line-clamp-1 truncate max-w-[150px]" title={diagnostics.supabaseErrorMessage}>
-                 {diagnostics.supabaseErrorMessage || 'N/A'}
-               </span>
-             </div>
+      {/* Troubleshooting Panel (Hidden by default, shown for support) */}
+      {diagnostics.status !== 'IDLE' && diagnostics.status !== 'READY' && (
+        <div className="mt-12 w-full max-w-2xl bg-black/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md relative z-10 font-sans">
+          <h3 className="text-aba-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+            <ShieldCheck size={14} />
+            Connection Help
+          </h3>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[10px] text-white/60">
+            <div className="space-y-2">
+               <div className="flex justify-between border-b border-white/5 pb-1">
+                 <span>Status:</span>
+                 <span className="text-white font-bold">{diagnostics.status === 'HELP_REQUIRED' ? 'Needs Attention' : 'Working...'}</span>
+               </div>
+               <div className="flex justify-between border-b border-white/5 pb-1">
+                 <span>Issue:</span>
+                 <span className="text-red-400">{diagnostics.supabaseErrorMessage || 'None detected'}</span>
+               </div>
+            </div>
           </div>
         </div>
-        
-        {diagnostics.supabaseError && (
-          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-[9px] text-red-400 whitespace-pre-wrap overflow-auto max-h-24">
-            {JSON.stringify(diagnostics.supabaseError, null, 2)}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };
