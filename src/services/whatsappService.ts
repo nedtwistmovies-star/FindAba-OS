@@ -9,6 +9,7 @@ interface WhatsAppResponse {
   messageId?: string;
   error?: string;
   details?: any;
+  fallbackUsed?: boolean;
 }
 
 const API_VERSION = 'v23.0';
@@ -173,12 +174,20 @@ export const sendTemplateWithFallback = async (
   const result = await sendTemplateMessage(to, templateName, languageCode, components);
   
   // Error 132001: Template name does not exist in the translation
-  if (!result.success && result.details?.error?.code === 132001) {
+  if (!result.success && (result.details?.error?.code === 132001 || result.details?.error?.error_subcode === 2494001)) {
     log('WHATSAPP_FALLBACK_TRIGGERED', { reason: 'Template not found', templateName });
-    return sendTextMessage(to, fallbackText);
+    const fallbackResult = await sendTextMessage(to, fallbackText);
+    return {
+      ...fallbackResult,
+      fallbackUsed: true
+    };
   }
   
   return result;
+};
+
+export const sendHelloWorld = async (to: string) => {
+  return sendTemplateMessage(to, 'hello_world', 'en_US');
 };
 
 /**

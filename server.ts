@@ -599,6 +599,15 @@ app.post("/api/oracle", async (req, res) => {
   });
 
   // 5. Developer Test: Raw Text Message
+  app.post("/api/whatsapp/hello", async (req, res) => {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ success: false, error: "Missing phone number" });
+    
+    console.log(`[WhatsApp] Dispatching HELLO WORLD TEMPLATE to ${phone}`);
+    const result = await WhatsApp.sendHelloWorld(phone);
+    res.json(result);
+  });
+
   app.post("/api/whatsapp/test", async (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ success: false, error: "Missing phone number" });

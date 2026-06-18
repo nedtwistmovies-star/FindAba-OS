@@ -1982,6 +1982,44 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                             setIsTestingWa(true);
                             setWaTestLog(null);
                             try {
+                              const res = await fetch('/api/whatsapp/hello', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ phone: testPhone })
+                              });
+                              let data;
+                              const text = await res.text();
+                              try {
+                                data = JSON.parse(text);
+                              } catch (parseErr) {
+                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
+                              }
+                              
+                              setWaTestLog(data);
+                              if (data.success) {
+                                addToast("Hello World Template Dispatched!", "success");
+                              } else {
+                                addToast(data.error || "Meta Transmission Refused", "error");
+                              }
+                            } catch (e: any) {
+                              setWaTestLog({ success: false, error: e.message });
+                              addToast("Local Dispatch Error", "error");
+                            } finally {
+                              setIsTestingWa(false);
+                            }
+                          }}
+                          className="px-5 py-3 bg-aba-gold/10 hover:bg-aba-gold/30 text-aba-gold border border-aba-gold/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30"
+                        >
+                          Send Hello World (Sandbox)
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isTestingWa || !testPhone}
+                          onClick={async () => {
+                            setIsTestingWa(true);
+                            setWaTestLog(null);
+                            try {
                               const res = await fetch('/api/whatsapp/test', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -2024,6 +2062,42 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                 <span className="px-2 py-0.5 bg-aba-green/10 text-aba-green font-black uppercase tracking-wider rounded text-[8px]">ONLINE (SUCCESS)</span>
                                 <p className="text-white/80">Message sent successfully!</p>
                                 <p className="text-white/40">Id: {waTestLog.messageId || waTestLog.whatsapp?.messageId}</p>
+                                
+                                {waTestLog.fallbackUsed && (
+                                  <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-500 text-[9px] font-sans leading-normal">
+                                    <p className="font-extrabold uppercase tracking-widest flex items-center gap-2 mb-1">
+                                      <AlertTriangle size={12} /> Template Fallback Active
+                                    </p>
+                                    <p>The target template was not found in your Meta account. System automatically switched to a standard Text Message. Note: Text messages only deliver in Sandbox if the recipient has messaged you within 24 hours.</p>
+                                  </div>
+                                )}
+
+                                <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-xl space-y-3 font-sans">
+                                  <p className="text-aba-gold font-black uppercase text-[8px] tracking-[0.2em] mb-2">Sandbox Troubleshooting Guide</p>
+                                  <div className="space-y-4">
+                                    <div className="flex gap-3">
+                                      <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0 text-white font-black text-[9px]">1</div>
+                                      <div className="space-y-1">
+                                        <p className="text-[9px] font-black uppercase text-white/80 tracking-widest">Verify Recipient</p>
+                                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">In the Meta App Dashboard, go to <span className="text-white/60">WhatsApp &gt; API Setup</span> and ensure your phone number is added to the "To" field verified list.</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-3">
+                                      <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0 text-white font-black text-[9px]">2</div>
+                                      <div className="space-y-1">
+                                        <p className="text-[9px] font-black uppercase text-white/80 tracking-widest">Initialize Channel</p>
+                                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">Send any message (e.g. "Hello") from your phone TO the test number displayed in your Meta Dashboard to open the delivery window.</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-3">
+                                      <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0 text-white font-black text-[9px]">3</div>
+                                      <div className="space-y-1">
+                                        <p className="text-[9px] font-black uppercase text-white/80 tracking-widest">Test Template First</p>
+                                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">Try the <span className="text-white/60">"Send Hello World"</span> button first. It uses Meta's default approved template which usually bypasses the 24-hour window restriction.</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             ) : (
                               <div className="space-y-3">
