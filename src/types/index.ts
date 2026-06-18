@@ -6,7 +6,7 @@ export type ViewState =
   | 'pricing' | 'ad-checkout' | 'about'
   /* 🔹 COMPATIBILITY KEYS (DEPRECATED - REMOVE FROM CALLERS) */
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
-  | 'faces' | 'fidelity' | 'thrift-dashboard' | 'wallet' | 'purple-fleet'
+  | 'faces' | 'fidelity' | 'thrift-dashboard' | 'wallet' | 'purple-fleet' | 'contact'
   | 'editorial' | 'editorial-detail' | 'registry-setup' | 'srts-office'
   | 'booking-ledger' | 'hotel-detail' | 'hotel-partner-control'
   | 'carry-me' | 'driver-registry' | 'driver-console' | 'fleet-admin'

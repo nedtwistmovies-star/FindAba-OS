@@ -2434,6 +2434,38 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
 
           {activeTab === "supabase" && (
             <div className="animate-slide-up space-y-6 sm:space-y-12">
+              <div className="bg-white/5 p-6 sm:p-12 rounded-3xl sm:rounded-[4rem] border border-white/5 space-y-6 sm:space-y-10">
+                <SectionHeader 
+                  title="Master SQL Schema" 
+                  subtitle="Primary Industrial Database Definition"
+                  icon={Terminal} 
+                  className="mb-6"
+                  action={
+                    <IndustrialButton
+                      variant="secondary"
+                      size="sm"
+                      icon={Copy}
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/SUPABASE_SCHEMA.sql');
+                          const sql = await response.text();
+                          navigator.clipboard.writeText(sql);
+                          addToast("Master SQL Schema copied to clipboard.", "success");
+                        } catch (err) {
+                          addToast("Failed to load schema file.", "error");
+                        }
+                      }}
+                    >
+                      Copy Master SQL
+                    </IndustrialButton>
+                  }
+                />
+                <div className="bg-black p-8 rounded-3xl border border-white/5 font-mono text-[10px] text-aba-green/60 leading-relaxed overflow-x-auto">
+                  <pre>-- UNIFIED MASTER SCHEMA v31.0 --</pre>
+                  <p className="mt-4 text-white/20">Includes: Profiles, Businesses, Logistics (Full Stack), Thrift (Group & Individual), Content Vision, and Production Audit patches.</p>
+                </div>
+              </div>
+
               <SectionHeader 
                 title="Signal Registry Config" 
                 subtitle="Configure your Supabase Industrial Partner"
@@ -2614,61 +2646,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                   your Supabase Editor to initialize the 'findaba' bucket and
                   set public permissions.
                 </p>
-              </div>
-
-              <div className="bg-black/40 p-6 sm:p-12 rounded-3xl sm:rounded-[4rem] border border-white/5 space-y-6 sm:space-y-8">
-                <SectionHeader 
-                  title="Logistics System Update" 
-                  icon={Truck} 
-                  className="mb-6"
-                  action={
-                    <IndustrialButton
-                      variant="secondary"
-                      size="sm"
-                      icon={Copy}
-                      onClick={() => {
-                        const sql = `-- 1. ADD PICKUP NOTES TO RIDE BOOKINGS\nALTER TABLE ride_bookings ADD COLUMN IF NOT EXISTS pickup_notes TEXT;\n\n-- 2. CREATE RIDE RATINGS TABLE\nCREATE TABLE IF NOT EXISTS ride_ratings (\n  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n  ride_id TEXT NOT NULL,\n  rater_id TEXT NOT NULL,\n  rater_type TEXT CHECK (rater_type IN ('driver', 'passenger')),\n  target_id TEXT NOT NULL,\n  rating INTEGER CHECK (rating >= 1 AND rating <= 5),\n  feedback TEXT,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\n\n-- 3. RLS POLICIES FOR RATINGS\nALTER TABLE ride_ratings ENABLE ROW LEVEL SECURITY;\nCREATE POLICY "Anyone can read ratings" ON ride_ratings FOR SELECT USING (true);\nCREATE POLICY "Authenticated can insert ratings" ON ride_ratings FOR INSERT WITH CHECK (auth.role() = 'authenticated');`;
-                        navigator.clipboard.writeText(sql);
-                        addToast("Setup code copied", "success");
-                      }}
-                    >
-                      Copy Setup Code
-                    </IndustrialButton>
-                  }
-                />
-                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-relaxed">
-                  Use this to update the logistics tables and create ride ratings.
-                </p>
-              </div>
-
-              <div className="bg-black/40 p-6 sm:p-12 rounded-3xl sm:rounded-[4rem] border border-white/5 space-y-6 sm:space-y-8">
-                <SectionHeader 
-                  title="Database Setup Plan" 
-                  icon={Terminal} 
-                  className="mb-6"
-                  action={
-                    <IndustrialButton
-                      variant="secondary"
-                      size="sm"
-                      icon={Copy}
-                      onClick={async () => {
-                        try {
-                          const response = await fetch('/SUPABASE_SCHEMA.sql');
-                          const sql = await response.text();
-                          navigator.clipboard.writeText(sql);
-                          addToast("Database plan copied. You can now use this to set up your system.", "success");
-                        } catch (err) {
-                          addToast("We couldn't load the setup plan.", "error");
-                        }
-                      }}
-                    >
-                      Copy Setup Plan
-                    </IndustrialButton>
-                  }
-                />
-                <div className="bg-black p-8 rounded-3xl border border-white/5 font-mono text-[10px] text-aba-green/60 leading-relaxed overflow-x-auto">
-                  <pre>-- SEE SUPABASE_SCHEMA.sql IN ROOT DIRECTORY --</pre>
-                </div>
               </div>
             </div>
           )}

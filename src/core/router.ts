@@ -2,7 +2,7 @@
 import { lazy } from 'react';
 import { ViewState } from '../types';
 
-export const ROUTE_MAP: Record<ViewState, any> = {
+export const ROUTE_MAP: Partial<Record<ViewState, any>> = {
   home: lazy(() => import('../features/discovery/Home')),
   discover: lazy(() => import('../features/discovery/Discover')),
   explore: lazy(() => import('../features/discovery/Explore')),
