@@ -185,7 +185,8 @@ export const authSignUp = async (email: string, pass: string, name: string, refe
 
   // 🔹 Send Welcome Email
   if (data.user) {
-    const referralLink = `https://findaba.com.ng/signup?ref=${myReferralCode}`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://findaba.com.ng';
+    const referralLink = `${origin}/signup?ref=${myReferralCode}`;
     sendWelcomeEmail(normalizedEmail, name, referralLink).catch(err => 
       console.warn("[Email] Welcome email failed (likely due to missing API key):", err)
     );

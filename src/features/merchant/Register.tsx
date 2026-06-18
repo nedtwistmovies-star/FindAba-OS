@@ -112,12 +112,24 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
       }
 
       if (!activeUserId) {
-        throw new Error(
-          'Authentication session not found. Please login again.'
-        );
+        throw new Error('Authentication session not found. Please login again.');
       }
 
-      const { data, error } = await supabase
+      // 1. PRE-FLIGHT CHECK: Verify email uniqueness manually to provide better UI feedback 
+      // instead of raw database constraint errors.
+      const { data: existingBiz } = await supabase
+        .from('businesses')
+        .select('id, name')
+        .eq('email', formData.email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (existingBiz) {
+        throw new Error(`A hub with the email "${formData.email}" is already enrolled as "${existingBiz.name}". Please use a unique business email.`);
+      }
+
+      // 2. TIMEOUT PROTECTED REGISTRATION
+      const REGISTRATION_TIMEOUT = 15000;
+      const registrationPromise = supabase
         .from('businesses')
         .insert([
           {
@@ -142,18 +154,22 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         .select()
         .single();
 
+      const { data, error } = await Promise.race([
+        registrationPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("REGISTRY_UPDATE_TIMEOUT")), REGISTRATION_TIMEOUT))
+      ]) as any;
+
       if (error) {
         console.error('Business registration error:', error);
+        if (error.code === '23505') throw new Error("Duplicate Key: This email or hub identity is already committed to the registry.");
         throw error;
       }
 
       if (data) {
-        // Notify Merchant via Email
-        try {
-          await sendBusinessRegistrationEmail(data.email, data.name, data.subscription_tier || 'Free');
-        } catch (e) {
-          console.warn("[Registry] Email notification protocol failure:", e);
-        }
+        // 🔹 ASYNCHRONOUS BACKGROUND NOTIFICATION
+        // Do not await this to prevent UI stalling on slow email services
+        sendBusinessRegistrationEmail(data.email, data.name, data.subscription_tier || 'Free')
+          .catch(e => console.warn("[Registry] Email notification deferred or failed:", e));
 
         setRegisteredBusiness(data as any);
         setStep('success');

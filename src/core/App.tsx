@@ -70,6 +70,25 @@ const AppContent: React.FC = () => {
 
   // 2. State Declarations
   const [isBooted, setIsBooted] = useState(false);
+  // 🔹 DEEP LINKING & REFERRAL SIGNAL CAPTURED ON MOUNT
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const referralCode = params.get('ref');
+    const targetView = params.get('view') as ViewState;
+    
+    if (referralCode) {
+      console.log('[App] Referral signal intercepted:', referralCode);
+      localStorage.setItem('findaba_referral_code', referralCode);
+      // Auto-route to signup if a referral is detected to simplify the conversion funnel
+      setView('signup');
+    }
+    
+    if (targetView && ROUTE_MAP[targetView]) {
+      console.log('[App] Deep-link view signal processed:', targetView);
+      setView(targetView);
+    }
+  }, [setView]);
+
   const [isRepoManagerOpen, setIsRepoManagerOpen] = useState(false);
 
   const handleBootComplete = React.useCallback(() => {

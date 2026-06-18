@@ -143,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateBootDiagnostics({ authListenerActive: true });
         
         // 🔹 TIMEOUT_PROTECTED_GET_SESSION
-        const SESSION_TIMEOUT = 10000;
+        const SESSION_TIMEOUT = 30000;
         console.log('STEP_3_BEFORE_GET_SESSION');
         
         const sessionResponse = await Promise.race([
@@ -261,12 +261,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (event === 'SIGNED_IN' && session?.user) {
           setHasSession(true);
-          const prof = await syncProfile(session.user).catch(() => null);
-          setProfile(prof);
+          // 🔹 ASYNCHRONOUS BACKGROUND ASSET SYNC
+          // We no longer await this to prevent blocking the UI transition
+          syncProfile(session.user)
+            .then(prof => {
+              if (prof) {
+                setProfile(prof);
+                handleAuthSuccess(
+                  session.user?.email || '',
+                  prof.full_name || 'User',
+                  prof.role || 'registered',
+                  session.user?.id
+                );
+              }
+            })
+            .catch(err => console.error("[AuthProvider] StateChange sync failed:", err));
+          
+          // Optimistic success with available session data
           handleAuthSuccess(
             session.user.email || '',
-            prof?.full_name || 'User',
-            prof?.role || 'registered',
+            session.user.user_metadata?.full_name || 'User',
+            'registered',
             session.user.id
           );
         } else if (event === 'SIGNED_OUT') {

@@ -54,13 +54,13 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     // Extract referral code or signup mode from URL/View
     const urlParams = new URLSearchParams(window.location.search);
-    const ref = urlParams.get('ref');
+    const ref = urlParams.get('ref') || localStorage.getItem('findaba_referral_code');
     const path = window.location.pathname.toLowerCase();
     
     if (ref) {
       setReferralCode(ref);
       setMode('signup');
-      console.log("[Auth] Referral detected:", ref);
+      console.log("[Auth] Referral signal captured:", ref);
     } else if (path.includes('signup') || path.includes('register')) {
       setMode('signup');
     }
