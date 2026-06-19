@@ -246,6 +246,11 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'emergency_alerts') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.emergency_alerts;
   END IF;
+
+  -- Security Hardening: Fix for Supabase Advisor Critical Warning
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'otp_codes') THEN
+    ALTER TABLE public.otp_codes ENABLE ROW LEVEL SECURITY;
+  END IF;
 EXCEPTION WHEN OTHERS THEN
   -- Handle case where publication might not exist yet
   NULL;

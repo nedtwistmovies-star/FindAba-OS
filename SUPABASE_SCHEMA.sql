@@ -68,6 +68,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+CREATE INDEX IF NOT EXISTS idx_profiles_id ON public.profiles(id);
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
+
 -- =====================================================
 -- ADMIN CHECK
 -- =====================================================
@@ -80,13 +84,15 @@ SET search_path = public
 AS $$
 DECLARE
   is_admin BOOLEAN;
+  user_email TEXT;
 BEGIN
-  -- 1. Explicit Check for Root Owner
-  IF (SELECT email FROM auth.users WHERE id = auth.uid()) = 'pastornelsonezi@gmail.com' THEN
+  -- 1. Optimized Check using JWT email (fastest)
+  user_email := auth.jwt() ->> 'email';
+  IF user_email = 'pastornelsonezi@gmail.com' THEN
     RETURN TRUE;
   END IF;
 
-  -- 2. Role-based Check from Profile
+  -- 2. Role-based Check from Profile (cached in RLS if possible)
   SELECT (role = 'admin') INTO is_admin
   FROM public.profiles
   WHERE id = auth.uid();
@@ -123,7 +129,9 @@ DROP POLICY IF EXISTS "profiles_admin_all" ON public.profiles;
 CREATE POLICY "profiles_admin_all"
 ON public.profiles
 FOR ALL
-USING (public.check_is_admin());
+USING (
+  (auth.jwt() ->> 'email') = 'pastornelsonezi@gmail.com'
+);
 
 -- =====================================================
 -- 2. BUSINESSES
@@ -1259,9 +1267,10 @@ ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_claims ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.otp_codes ENABLE ROW LEVEL SECURITY;
 
 -- THRIFT POLICIES
-CREATE POLICY "thrift_acc_own" ON public.thrift_accounts FOR ALL USING (auth.uid() = user_id OR user_email = (SELECT email FROM auth.users WHERE id = auth.uid()));
+CREATE POLICY "thrift_acc_own" ON public.thrift_accounts FOR ALL USING (auth.uid() = user_id OR user_email = (auth.jwt() ->> 'email'));
 CREATE POLICY "thrift_contrib_own" ON public.thrift_contributions FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "thrift_groups_read" ON public.thrift_groups FOR SELECT USING (true);
 CREATE POLICY "thrift_members_read" ON public.thrift_group_members FOR SELECT USING (true);
@@ -1286,7 +1295,7 @@ CREATE POLICY "ride_bookings_own" ON public.ride_bookings FOR SELECT USING (auth
 CREATE POLICY "ride_ratings_read" ON public.ride_ratings FOR SELECT USING (true);
 CREATE POLICY "ride_ratings_insert" ON public.ride_ratings FOR INSERT WITH CHECK (auth.uid() = rater_id);
 CREATE POLICY "advertorials_read" ON public.advertorials FOR SELECT USING (true);
-CREATE POLICY "vision_history_own" ON public.vision_history FOR ALL USING (user_email = (SELECT email FROM auth.users WHERE id = auth.uid()));
+CREATE POLICY "vision_history_own" ON public.vision_history FOR ALL USING (user_email = (auth.jwt() ->> 'email'));
 
 -- =====================================================
 -- 28. PERFORMANCE INDEXES
