@@ -1,4 +1,4 @@
--- FINDABA INDUSTRIAL OS: UNIFIED MASTER SCHEMA v30.0
+-- FINDABA INDUSTRIAL OS: UNIFIED MASTER SCHEMA v31.0
 -- FINAL HARMONIZED VERSION - "INSTITUTIONAL GRADE" CONFIG
 -- Focus: Universal permissions, Admin resilience, and Comprehensive Industry Modules (Thrift, Logistics, Commerce, Disputes, Claims)
 

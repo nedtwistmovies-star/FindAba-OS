@@ -284,7 +284,7 @@ export const fetchUserProfile = async (userId: string) => {
   const timeoutId = setTimeout(() => {
     console.warn(`[SupabaseService] fetchUserProfile TIMEOUT for ${userId}`);
     controller.abort();
-  }, 10000);
+  }, 25000);
 
   try {
     const query: any = sb.from('profiles').select('*').eq('id', userId).maybeSingle();
@@ -423,11 +423,21 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
   const timeoutId = setTimeout(() => {
     console.warn("[SupabaseService] checkDatabaseHealth probe ABORTED by timeout");
     controller.abort();
-  }, 10000);
+  }, 25000);
   
   try {
     // Probe a subset of critical tables to ensure schema health
-    const criticalTables = ['businesses', 'profiles', 'platform_config'];
+    const criticalTables = [
+      'businesses', 
+      'profiles', 
+      'platform_config', 
+      'disputes', 
+      'tasks', 
+      'referrals', 
+      'ride_bookings', 
+      'driver_signals',
+      'thrift_contributions'
+    ];
     
     console.log("[SupabaseService] Probing critical tables:", criticalTables);
     // We check sequentially or with a shorter timeout to avoid hanging

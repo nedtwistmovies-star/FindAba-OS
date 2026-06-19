@@ -257,7 +257,7 @@ export const getCurrentUser = async () => {
 export const syncProfile = async (user: any, attempts: number = 3): Promise<any> => {
   if (!user) return null;
 
-  const PROFILE_SYNC_TIMEOUT = 10000; // 10s threshold
+  const PROFILE_SYNC_TIMEOUT = 25000; // Increased to 25s for resilience against cold starts
 
   for (let i = 0; i < attempts; i++) {
     const controller = new AbortController();
@@ -270,18 +270,28 @@ export const syncProfile = async (user: any, attempts: number = 3): Promise<any>
       console.log(`[AuthService] Profile sync attempt ${i + 1}/${attempts} for ${user.id}`);
       
       const startTime = Date.now();
+      
+      // Ensure we have a valid client from proxy
+      if (!supabase) {
+        throw new Error("Supabase client unreachable during sync");
+      }
+
       const { data: profile, error } = await (supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single() as any)
+        .maybeSingle() as any)
         .abortSignal(controller.signal);
       
       clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
       console.log(`[AuthService] Profile query completed in ${duration}ms`);
 
-      if (error && error.code === 'PGRST116') {
+      if (error) {
+        throw error;
+      }
+
+      if (!profile) {
         console.log(`[AuthService] Profile missing for ${user.id}, initiating upsert...`);
         // 🔹 RESILIENT_PROFILE_UPSERT
         const { data: newProfile, error: createError } = await supabase
@@ -290,14 +300,14 @@ export const syncProfile = async (user: any, attempts: number = 3): Promise<any>
             id: user.id,
             email: user.email || '',
             phone: user.user_metadata?.phone || user.phone || '',
-            username: user.user_metadata?.username || null,
+            username: user.user_metadata?.username || user.user_metadata?.email?.split('@')[0] || null,
             full_name: user.user_metadata?.full_name || 'User',
             phone_verified: !!(user.user_metadata?.phone_verified),
             role: user.email === 'pastornelsonezi@gmail.com' ? 'admin' : 'registered',
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' })
           .select()
-          .single();
+          .maybeSingle();
 
         if (createError) {
           console.error(`[AuthService] Profile sync/upsert failed for ${user.id}:`, createError.message, createError.code);
@@ -305,26 +315,22 @@ export const syncProfile = async (user: any, attempts: number = 3): Promise<any>
         }
         return newProfile;
       }
-
-      if (error) {
-        throw error;
-      }
       
       console.log(`[AuthService] Profile retrieved successfully for ${user.id}`);
       return profile;
     } catch (err: any) {
       clearTimeout(timeoutId);
-      const isAborted = err.name === 'AbortError' || err.code === '20';
+      const isAborted = err.name === 'AbortError' || err.code === '20' || err.message?.includes('aborted');
       
       if (isAborted) {
-        console.error(`[AuthService] PROFILE_SYNC_TIMEOUT | The profiles table query for ${user.id} was aborted due to timeout.`);
+        console.error(`[AuthService] PROFILE_SYNC_TIMEOUT | The profiles table query for ${user.id} was aborted after ${PROFILE_SYNC_TIMEOUT}ms.`);
       } else {
         console.warn(`[AuthService] Attempt ${i + 1} failure for ${user.id}:`, err.message || err);
       }
       
       if (i < attempts - 1) {
         // Exponential backoff
-        const delay = Math.pow(2, i) * 1000 + (isAborted ? 2000 : 0);
+        const delay = Math.pow(2, i) * 1500 + (isAborted ? 2000 : 0);
         console.log(`[AuthService] Retrying sync in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
