@@ -1,7 +1,5 @@
 
 import { supabase } from '../lib/supabaseClient';
-import { processReferral, generateReferralCode } from './supabaseService';
-import { sendWelcomeEmail } from './emailService';
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
 
@@ -108,7 +106,7 @@ export const loginWithUsername = async (username: string, password: string, pers
   return data.session;
 };
 
-export const signUpWithUsername = async (username: string, email: string, password: string, fullName: string, phone: string, referralCode?: string) => {
+export const signUpWithUsername = async (username: string, email: string, password: string, fullName: string, phone: string) => {
   // 1. Check if username exists
   const { data: existing } = await supabase
     .from('profiles')
@@ -120,20 +118,15 @@ export const signUpWithUsername = async (username: string, email: string, passwo
     throw new Error("Username already taken. Please choose another.");
   }
 
-  // 2. Generate a unique referral code for the new user
-  const myReferralCode = generateReferralCode(username);
-
-  // 3. Sign up with Supabase
+  // 2. Sign up with Supabase
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         username: username.toLowerCase().trim(),
-        full_name: fullName || username,
+        full_name: fullName,
         phone: phone,
-        referral_code: myReferralCode,
-        referred_by_code: referralCode || null
       }
     }
   });
@@ -141,22 +134,6 @@ export const signUpWithUsername = async (username: string, email: string, passwo
   if (error) {
     console.error("[Auth] Signup Error:", error.message);
     throw error;
-  }
-
-  // 4. Post-signup processing (Referral linking and Welcome Email)
-  if (data.user) {
-    // Attempt to link referral if provided
-    if (referralCode) {
-      processReferral(data.user.id, referralCode).catch(err => 
-        console.warn("[Auth] Referral processing deferred or failed:", err)
-      );
-    }
-
-    // Send Welcome Email
-    const referralLink = `${window.location.origin}/signup?ref=${myReferralCode}`;
-    sendWelcomeEmail(email, fullName || username, referralLink).catch((err: any) => 
-      console.warn("[Auth] Welcome email signal failed to broadcast:", err)
-    );
   }
 
   return data.user;
@@ -257,84 +234,82 @@ export const getCurrentUser = async () => {
 export const syncProfile = async (user: any, attempts: number = 3): Promise<any> => {
   if (!user) return null;
 
-  const PROFILE_SYNC_TIMEOUT = 35000; // Increased to 35s for high-latency environments
+  const PROFILE_SYNC_TIMEOUT = 10000; // 10s threshold
 
   for (let i = 0; i < attempts; i++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.warn(`[AuthService] PROFILE_SYNC_TIMEOUT | Query exceeded ${PROFILE_SYNC_TIMEOUT}ms for user ${user.id} (Attempt ${i + 1})`);
+      console.warn(`[AuthService] PROFILE_SYNC_TIMEOUT | Query exceeded ${PROFILE_SYNC_TIMEOUT}ms for user ${user.id}`);
       controller.abort();
     }, PROFILE_SYNC_TIMEOUT);
 
-    const startTime = Date.now();
     try {
       console.log(`[AuthService] Profile sync attempt ${i + 1}/${attempts} for ${user.id}`);
       
-      if (!supabase) {
-        throw new Error("Supabase client unreachable during sync");
-      }
-
-      // Simplified query to minimize overhead
-      const { data: profile, error } = await supabase
+      const startTime = Date.now();
+      const { data: profile, error } = await (supabase
         .from('profiles')
-        .select('id, email, full_name, role, username, avatar_url, subscription_status')
+        .select('*')
         .eq('id', user.id)
-        .maybeSingle()
+        .single() as any)
         .abortSignal(controller.signal);
       
       clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
-      console.log(`[AuthService] Profile query completed in ${duration}ms for ${user.id}`);
+      console.log(`[AuthService] Profile query completed in ${duration}ms`);
 
-      if (error) {
-        console.error(`[AuthService] Query error for ${user.id}:`, error.message, error.code);
-        throw error;
-      }
-
-      if (!profile) {
+      if (error && error.code === 'PGRST116') {
         console.log(`[AuthService] Profile missing for ${user.id}, initiating upsert...`);
+        // 🔹 RESILIENT_PROFILE_UPSERT
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .upsert({
             id: user.id,
             email: user.email || '',
             phone: user.user_metadata?.phone || user.phone || '',
-            username: user.user_metadata?.username || user.user_metadata?.email?.split('@')[0] || `user_${user.id.substring(0, 5)}`,
+            username: user.user_metadata?.username || null,
             full_name: user.user_metadata?.full_name || 'User',
             phone_verified: !!(user.user_metadata?.phone_verified),
             role: user.email === 'pastornelsonezi@gmail.com' ? 'admin' : 'registered',
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' })
           .select()
-          .maybeSingle();
+          .single();
 
         if (createError) {
-          console.error(`[AuthService] Profile upsert failed for ${user.id}:`, createError.message, createError.code);
+          console.error(`[AuthService] Profile sync/upsert failed for ${user.id}:`, createError.message, createError.code);
           throw createError;
         }
         return newProfile;
       }
+
+      if (error) {
+        throw error;
+      }
       
+      console.log(`[AuthService] Profile retrieved successfully for ${user.id}`);
       return profile;
     } catch (err: any) {
       clearTimeout(timeoutId);
-      const isAborted = err.name === 'AbortError' || err.code === '20' || err.message?.includes('aborted');
+      const isAborted = err.name === 'AbortError' || err.code === '20';
       
       if (isAborted) {
-        console.error(`[AuthService] PROFILE_SYNC_TIMEOUT | Query for ${user.id} was aborted after ${Date.now() - startTime}ms.`);
+        console.error(`[AuthService] PROFILE_SYNC_TIMEOUT | The profiles table query for ${user.id} was aborted due to timeout.`);
       } else {
         console.warn(`[AuthService] Attempt ${i + 1} failure for ${user.id}:`, err.message || err);
       }
       
       if (i < attempts - 1) {
-        const delay = Math.pow(2, i) * 2000 + (isAborted ? 3000 : 0);
+        // Exponential backoff
+        const delay = Math.pow(2, i) * 1000 + (isAborted ? 2000 : 0);
         console.log(`[AuthService] Retrying sync in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
       
-      console.error(`[AuthService] All ${attempts} profile sync attempts failed for ${user.id}. Returning fallback identity.`);
+      console.error(`[AuthService] All ${attempts} profile sync attempts failed for ${user.id}. Last error: ${err?.message || 'Unknown'}. Returning fallback identity.`);
       
+      // FALLBACK IDENTITY PROTOCOL:
       return {
         id: user.id,
         email: user.email || '',

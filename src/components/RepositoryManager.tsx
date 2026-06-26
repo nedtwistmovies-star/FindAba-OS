@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Github, X, Save, RefreshCw, FileCode, Check, AlertTriangle, Copy } from 'lucide-react';
+import { Github, X, Save, RefreshCw, FileCode, Check, AlertTriangle, Copy, Eye, EyeOff, Key } from 'lucide-react';
 import { useToast } from '../providers/ToastProvider';
 import { cleanRepositoryName, AppMetadata } from '../services/gitConfigService';
+import { useGitSync } from '../hooks/useGitSync';
 
 interface RepositoryManagerProps {
   isOpen: boolean;
@@ -25,8 +26,11 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
   onUpdate,
 }) => {
   const { addToast } = useToast();
+  const { status: gitStatus, sync: forceSyncGit } = useGitSync();
   const [loading, setLoading] = useState(false);
   const [repoUrl, setRepoUrl] = useState('');
+  const [gitToken, setGitToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
   const [metadataDefault, setMetadataDefault] = useState('');
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [syncEvents, setSyncEvents] = useState<SyncEvent[]>([]);
@@ -97,6 +101,8 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
     try {
       // 1. Get from localStorage
       const localValue = localStorage.getItem('findaba_git_repo') || '';
+      const localToken = localStorage.getItem('findaba_git_token') || '';
+      setGitToken(localToken);
       
       // 2. Load metadata default as fallback
       const response = await fetch('/metadata.json');
@@ -146,6 +152,11 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
     try {
       // Persist immediately to localStorage
       localStorage.setItem('findaba_git_repo', cleanedRepo);
+      if (gitToken.trim()) {
+        localStorage.setItem('findaba_git_token', gitToken.trim());
+      } else {
+        localStorage.removeItem('findaba_git_token');
+      }
       
       // Dispatch storage event to notify other components immediately
       window.dispatchEvent(new Event('storage'));
@@ -277,6 +288,182 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                 <div className="text-[10px] text-rose-400 font-bold uppercase mt-1.5 flex items-center gap-1.5 ml-1 animate-pulse">
                   <AlertTriangle size={12} />
                   Please enter a valid GitHub repository path (owner/repo) or URL.
+                </div>
+              )}
+            </div>
+
+            {/* GitHub Personal Access Token (PAT) Field */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center ml-1">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-white/50">
+                  GitHub Personal Access Token (PAT)
+                </label>
+                <span className="text-[9px] text-white/30 lowercase font-medium">optional for public, required for private</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
+                  <Key size={14} />
+                </span>
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  value={gitToken}
+                  onChange={(e) => setGitToken(e.target.value)}
+                  placeholder="e.g. ghp_xxxxxxxxxxxxxxxxxxxx"
+                  className="w-full bg-black/40 border border-white/10 pl-11 pr-12 p-4 rounded-xl outline-none focus:border-aba-gold/50 transition-all text-xs font-mono text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken(prev => !prev)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                >
+                  {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              
+              {/* System Credentials Info */}
+              {gitStatus.systemConfigured && (
+                <div className="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg border border-white/5 ml-1">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${gitStatus.systemHasToken ? 'bg-aba-gold shadow-[0_0_8px_#FFD700]' : 'bg-white/20'}`} />
+                    <span className="text-[9px] font-black uppercase tracking-wider text-white/60">
+                      Platform Credentials: {gitStatus.systemHasToken ? 'Detected' : 'None Found'}
+                    </span>
+                  </div>
+                  <span className="text-[8px] text-white/30 uppercase font-medium">Auto-fallback enabled</span>
+                </div>
+              )}
+            </div>
+
+            {/* Live Connection Status Banner */}
+            <div className={`p-4 rounded-2xl border text-xs space-y-2 ${gitStatus.connected ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'}`}>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${gitStatus.connected ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-rose-500 shadow-[0_0_8px_#f43f5e] animate-pulse'}`} />
+                  <span className="font-black uppercase tracking-wider text-[10px] text-white/90">
+                    Live Status: {gitStatus.connected ? 'Git Online' : 'Git Offline'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setLoading(true);
+                    addToast('Testing connection & syncing...', 'info');
+                    // Sync with current input states
+                    try {
+                      // Save temporarily to storage so sync uses them
+                      const prevRepo = localStorage.getItem('findaba_git_repo');
+                      const prevToken = localStorage.getItem('findaba_git_token');
+                      
+                      const cleaned = cleanRepositoryName(repoUrl.trim());
+                      if (cleaned) localStorage.setItem('findaba_git_repo', cleaned);
+                      if (gitToken.trim()) {
+                        localStorage.setItem('findaba_git_token', gitToken.trim());
+                      } else {
+                        localStorage.removeItem('findaba_git_token');
+                      }
+                      
+                      await forceSyncGit(cleaned || undefined);
+                      
+                      // Restore if not actually saved yet (they must press save to commit)
+                      if (prevRepo) localStorage.setItem('findaba_git_repo', prevRepo);
+                      else localStorage.removeItem('findaba_git_repo');
+                      if (prevToken) localStorage.setItem('findaba_git_token', prevToken);
+                      else localStorage.removeItem('findaba_git_token');
+                      
+                      addToast('Sync attempt completed', 'success');
+                      addSyncEvent(cleaned || 'system', 'success', 'Sync Test');
+                    } catch (e: any) {
+                      addToast('Sync failed', 'error');
+                      addSyncEvent(repoUrl, 'failed', 'Sync Test', e.message);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  className="flex items-center gap-1 text-[10px] font-black uppercase text-aba-gold hover:underline transition-all"
+                >
+                  <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> Test & Sync
+                </button>
+              </div>
+
+              {gitStatus.connected ? (
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-[11px] text-white/55 leading-relaxed">
+                      Successfully linked to <span className="font-mono text-emerald-400 font-bold">{gitStatus.repo}</span> on branch <span className="font-mono text-emerald-400 font-bold">{gitStatus.branch}</span>.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase rounded border border-emerald-500/20">
+                        {gitToken ? 'Local PAT Active' : (gitStatus.systemHasToken ? 'System Token Active' : 'Public Access')}
+                      </span>
+                      <span className="text-[9px] text-white/30">System-wide automatic commits are fully live.</span>
+                    </div>
+                  </div>
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm("Are you sure you want to purge all committed node_modules/ folders from the remote repository? This will construct a new clean commit on your GitHub branch.")) {
+                          return;
+                        }
+                        setLoading(true);
+                        addToast('Purging node_modules from GitHub...', 'info');
+                        try {
+                          const savedRepo = localStorage.getItem('findaba_git_repo') || '';
+                          const savedToken = localStorage.getItem('findaba_git_token') || '';
+                          const savedBranch = localStorage.getItem('findaba_git_branch') || '';
+                          
+                          let url = `/api/git/purge-node-modules`;
+                          const params = new URLSearchParams();
+                          if (savedRepo) params.set('repo', savedRepo);
+                          if (savedBranch) params.set('branch', savedBranch);
+                          const queryString = params.toString();
+                          if (queryString) url += `?${queryString}`;
+
+                          const headers: HeadersInit = { 'Content-Type': 'application/json' };
+                          if (savedToken) {
+                            headers['X-Git-Token'] = savedToken;
+                          }
+
+                          const res = await fetch(url, { method: 'POST', headers });
+                          const data = await res.json();
+                          
+                          if (res.ok && data.success) {
+                            addToast(data.message || 'Successfully purged node_modules', 'success');
+                            addSyncEvent(savedRepo, 'success', 'Purge node_modules');
+                            // Trigger sync to update live status
+                            forceSyncGit();
+                          } else {
+                            addToast(data.error || 'Failed to purge node_modules', 'error');
+                            addSyncEvent(savedRepo, 'failed', 'Purge node_modules', data.details || data.error);
+                          }
+                        } catch (e: any) {
+                          addToast('Purge operation failed', 'error');
+                          addSyncEvent('unknown', 'failed', 'Purge node_modules', e.message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/30 text-rose-400 font-black uppercase text-[9px] tracking-widest transition-all flex items-center gap-1.5"
+                    >
+                      <X size={12} /> Purge node_modules from GitHub
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] text-rose-400 font-semibold leading-relaxed">
+                    Repository offline: {gitStatus.error || 'Connection Failed'}
+                  </p>
+                  {gitStatus.details && (
+                    <p className="text-[10px] text-white/40 font-mono bg-black/20 p-2 rounded-lg border border-white/5 break-all max-h-[60px] overflow-y-auto leading-relaxed">
+                      Error details: {gitStatus.details}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-white/50 leading-relaxed">
+                    If this is a private repository or you are experiencing rate limiting, please generate and provide a <span className="text-aba-gold font-bold">Personal Access Token (PAT)</span> with repo scope above.
+                  </p>
                 </div>
               )}
             </div>

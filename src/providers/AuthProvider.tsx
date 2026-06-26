@@ -89,42 +89,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handleAuthSuccess = useCallback((identifier: string, name: string, role: string = 'registered', uuid?: string) => {
-    if (uuid) {
-      setUserId(uuid);
-      localStorage.setItem('findaba_auth_userid', uuid);
-    }
+    if (uuid) setUserId(uuid);
     setUserIdentifier(identifier);
     setUserName(name);
     setUserRole(role);
     setIsAuth(true);
     setAuthLoading(false);
-
-    localStorage.setItem('findaba_is_auth', 'true');
-    localStorage.setItem('findaba_auth_email', identifier);
-    localStorage.setItem('findaba_auth_name', name);
-    localStorage.setItem('findaba_auth_role', role);
   }, []);
 
   const logout = useCallback(async () => {
     const sb = getSupabase();
-    try {
-      if (sb) await sb.auth.signOut();
-    } catch (e) {
-      console.warn("SignOut failed, clearing local keys anyway:", e);
-    }
+    if (sb) await sb.auth.signOut();
     setUserIdentifier(null);
     setUserId(null);
     setUserName(null);
     setUserRole(null);
     setProfile(null);
     setIsAuth(false);
-
-    localStorage.removeItem('findaba_is_auth');
-    localStorage.removeItem('findaba_auth_email');
-    localStorage.removeItem('findaba_auth_name');
-    localStorage.removeItem('findaba_auth_role');
-    localStorage.removeItem('findaba_auth_userid');
-    localStorage.removeItem('findaba_admin_auth');
   }, []);
 
   useEffect(() => {
@@ -143,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateBootDiagnostics({ authListenerActive: true });
         
         // 🔹 TIMEOUT_PROTECTED_GET_SESSION
-        const SESSION_TIMEOUT = 30000;
+        const SESSION_TIMEOUT = 10000;
         console.log('STEP_3_BEFORE_GET_SESSION');
         
         const sessionResponse = await Promise.race([
@@ -158,9 +139,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         const { data: { session }, error: sessionError } = sessionResponse;
         
-        if (sessionError && sessionError.message === 'SIGN_IN_TIMEOUT') {
-          console.warn("[AuthProvider] Signing you in took longer than expected. Proceeding as guest.");
-          updateBootDiagnostics({ authEvent: 'TIMEOUT', corruptionMetadata: 'Your sign-in took longer than expected' });
+        if (sessionError && sessionError.message === 'SESSION_TIMEOUT_EXCEEDED') {
+          console.warn("[AuthProvider] Session load timed out. Proceeding as guest.");
+          updateBootDiagnostics({ authEvent: 'TIMEOUT', corruptionMetadata: 'getSession timed out' });
         }
         
         console.log('RAW_SESSION:', session);
@@ -182,10 +163,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!!session && !session.user) {
           diag.sessionCorruptionDetected = true;
           diag.sessionCorruptionConfirmed = true;
-          diag.sessionCorruptionSource = 'supabase.auth.getSession() -> unexpected state';
+          diag.sessionCorruptionSource = 'supabase.auth.getSession() -> session is truthy but user is null';
           diag.routeBypassTriggered = true;
           diag.finalRouteDecision = 'LOGIN';
-          diag.corruptionMetadata = 'Authentication required | AuthProvider.tsx';
+          diag.corruptionMetadata = 'SESSION_FOUND = TRUE while SESSION_USER_EXISTS = FALSE | AuthProvider.tsx:101';
           
           updateBootDiagnostics(diag);
           return;
@@ -221,9 +202,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .catch(err => {
               console.error("[AuthProvider] Background sync failed:", err);
             });
-        } else if (localStorage.getItem('findaba_is_auth') === 'false') {
-          // Explicit cleanup
-          logout();
         }
         updateBootDiagnostics({ routeBypassTriggered: true, finalRouteDecision: 'GUEST_ACCESS' });
 
@@ -255,27 +233,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (event === 'SIGNED_IN' && session?.user) {
           setHasSession(true);
-          // 🔹 ASYNCHRONOUS BACKGROUND ASSET SYNC
-          // We no longer await this to prevent blocking the UI transition
-          syncProfile(session.user)
-            .then(prof => {
-              if (prof) {
-                setProfile(prof);
-                handleAuthSuccess(
-                  session.user?.email || '',
-                  prof.full_name || 'User',
-                  prof.role || 'registered',
-                  session.user?.id
-                );
-              }
-            })
-            .catch(err => console.error("[AuthProvider] StateChange sync failed:", err));
-          
-          // Optimistic success with available session data
+          const prof = await syncProfile(session.user).catch(() => null);
+          setProfile(prof);
           handleAuthSuccess(
             session.user.email || '',
-            session.user.user_metadata?.full_name || 'User',
-            'registered',
+            prof?.full_name || 'User',
+            prof?.role || 'registered',
             session.user.id
           );
         } else if (event === 'SIGNED_OUT') {

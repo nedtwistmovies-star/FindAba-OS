@@ -265,16 +265,6 @@ export const getOracleStream = async (
   history: any[], 
   catalog: Business[]
 ) => {
-  const primaryProvider = (typeof localStorage !== 'undefined') ? (localStorage.getItem('findaba_primary_ai') || 'gemini') : 'gemini';
-
-  if (primaryProvider === 'openrouter' && typeof prompt === 'string') {
-    try {
-      return await getOpenRouterStream(prompt, history, catalog);
-    } catch (e) {
-      console.warn("[Oracle] OpenRouter primary signal failed, falling back to Gemini:", e);
-    }
-  }
-
   const { getSupabase } = await import('./supabaseService');
   const sb = getSupabase();
   let session = null;
@@ -307,8 +297,7 @@ export const getOracleStream = async (
       prompt, 
       history, 
       catalog,
-      type: typeof prompt === 'string' ? 'search' : 'flyer',
-      provider: primaryProvider
+      type: typeof prompt === 'string' ? 'search' : 'flyer' 
     }),
   });
 

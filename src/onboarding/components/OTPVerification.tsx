@@ -64,10 +64,10 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({ identifier, ty
         }
       }
 
-      addToast("Account verified successfully.", "success");
+      addToast("Industrial Identity Validated.", "success");
       onSuccess();
     } catch (err: any) {
-      addToast("That code didn't work. Please check and try again.", "error");
+      addToast(err.message || "Invalid Validation Token.", "error");
     } finally {
       setLoading(false);
     }
@@ -79,9 +79,9 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({ identifier, ty
     try {
       await sendOTP(identifier);
       setTimer(60);
-      addToast("A new code has been sent.", "success");
+      addToast("New validation token dispatched.", "success");
     } catch (err: any) {
-      addToast("We couldn't send a new code. Please try again soon.", "error");
+      addToast("Resend protocol failed.", "error");
     } finally {
       setResending(false);
     }
@@ -97,9 +97,9 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({ identifier, ty
         <div className="w-16 h-16 bg-aba-gold/10 border border-aba-gold/30 rounded-2xl flex items-center justify-center text-aba-gold mx-auto shadow-glow">
           <ShieldCheck size={32} />
         </div>
-        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Verification</h2>
+        <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Security Node</h2>
         <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em] italic leading-relaxed">
-          Check your messages for the code sent to <br />
+          Validation Token sent to <br />
           <span className="text-aba-gold">{identifier}</span>
         </p>
       </div>
@@ -127,7 +127,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({ identifier, ty
           className="w-full py-6 bg-aba-gold text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-30"
         >
           {loading ? <Loader2 className="animate-spin" size={20} /> : (
-            <>VERIFY ACCOUNT <ArrowRight size={18} /></>
+            <>AUTHORIZE PROTOCOL <ArrowRight size={18} /></>
           )}
         </button>
 
@@ -138,14 +138,14 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({ identifier, ty
             className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-colors disabled:opacity-20"
           >
             {resending ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
-            Resend Code {timer > 0 && `(Wait ${timer}s)`}
+            Resend Token {timer > 0 && `(Wait ${timer}s)`}
           </button>
           
           <button 
             onClick={onBack}
             className="text-[9px] font-black uppercase tracking-widest text-white/20 hover:text-aba-gold transition-colors"
           >
-            Use a different email or sign in
+            Switch Identity / Login
           </button>
         </div>
       </div>

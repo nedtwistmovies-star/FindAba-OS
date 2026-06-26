@@ -8,17 +8,39 @@ export interface GitSyncStatus {
   lastUpdated?: string;
   data?: any;
   error?: string;
+  details?: string;
+  systemConfigured?: boolean;
+  systemHasToken?: boolean;
 }
 
 export const useGitSync = () => {
   const [status, setStatus] = useState<GitSyncStatus>({ connected: false });
   const [loading, setLoading] = useState(false);
 
+  const checkSystemStatus = async () => {
+    try {
+      const res = await fetch('/api/git/status');
+      if (res.ok) {
+        const data = await res.json();
+        setStatus(prev => ({
+          ...prev,
+          systemConfigured: data.configured,
+          systemHasToken: data.hasToken
+        }));
+        return data;
+      }
+    } catch (e) {
+      console.warn('Failed to check Git system status');
+    }
+    return null;
+  };
+
   const sync = async (manualRepo?: string, manualBranch?: string) => {
     setLoading(true);
     try {
       const savedRepo = localStorage.getItem('findaba_git_repo');
       const savedBranch = localStorage.getItem('findaba_git_branch');
+      const savedToken = localStorage.getItem('findaba_git_token');
       
       const targetRepo = manualRepo !== undefined ? manualRepo : (savedRepo || '');
       const targetBranch = manualBranch !== undefined ? manualBranch : (savedBranch || '');
@@ -30,8 +52,13 @@ export const useGitSync = () => {
       
       const queryString = params.toString();
       if (queryString) url += `?${queryString}`;
+      
+      const headers: HeadersInit = {};
+      if (savedToken) {
+        headers['X-Git-Token'] = savedToken;
+      }
 
-      const response = await fetch(url);
+      const response = await fetch(url, { headers });
       const text = await response.text();
       
       let result;
@@ -52,7 +79,11 @@ export const useGitSync = () => {
           data: result.data
         });
       } else {
-        setStatus({ connected: false, error: result.error || 'Sync Failed' });
+        setStatus({ 
+          connected: false, 
+          error: result.error || 'Sync Failed',
+          details: result.details
+        });
       }
     } catch (err) {
       console.warn("Registry sync failed, using fallback state");
@@ -67,6 +98,7 @@ export const useGitSync = () => {
     try {
       const repo = localStorage.getItem('findaba_git_repo') || '';
       const branch = localStorage.getItem('findaba_git_branch') || '';
+      const savedToken = localStorage.getItem('findaba_git_token');
       
       let url = `/api/git/commit`;
       const params = new URLSearchParams();
@@ -76,9 +108,14 @@ export const useGitSync = () => {
       const queryString = params.toString();
       if (queryString) url += `?${queryString}`;
 
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (savedToken) {
+        headers['X-Git-Token'] = savedToken;
+      }
+
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ files, message })
       });
       
@@ -120,6 +157,7 @@ export const useGitSync = () => {
     try {
       const repo = localStorage.getItem('findaba_git_repo') || '';
       const branch = localStorage.getItem('findaba_git_branch') || '';
+      const savedToken = localStorage.getItem('findaba_git_token');
       
       let url = `/api/git/sync-full`;
       const params = new URLSearchParams();
@@ -129,9 +167,14 @@ export const useGitSync = () => {
       const queryString = params.toString();
       if (queryString) url += `?${queryString}`;
 
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (savedToken) {
+        headers['X-Git-Token'] = savedToken;
+      }
+
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ message }),
         signal: controller.signal
       });
@@ -177,8 +220,9 @@ export const useGitSync = () => {
 
   // Auto-sync on mount
   useEffect(() => {
+    checkSystemStatus();
     sync();
   }, []);
 
-  return { status, loading, sync, commit, fullSync };
+  return { status, loading, sync, commit, fullSync, checkSystemStatus };
 };

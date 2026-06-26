@@ -83,71 +83,23 @@ export const isRegistryConfigured = () => {
 };
 
 export const ensureAuth = async () => {
-  const isLocalBypassActive = typeof localStorage !== 'undefined' && localStorage.getItem('findaba_is_auth') === 'true';
-  const localBypassEmail = typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_auth_email') || 'pastornelsonezi@gmail.com' : 'pastornelsonezi@gmail.com';
-  const localBypassName = typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_auth_name') || 'Sandbox Citizen' : 'Sandbox Citizen';
-  const localBypassId = typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_auth_userid') || 'sandbox-bypass-uuid' : 'sandbox-bypass-uuid';
-
   const sb = getSupabase();
   if (!sb) {
-    if (isLocalBypassActive) {
-      return {
-        user: {
-          id: localBypassId,
-          email: localBypassEmail,
-          user_metadata: {
-            full_name: localBypassName,
-            role: 'admin'
-          }
-        }
-      };
-    }
     throw new Error("Registry Offline");
   }
   
-  try {
-    // 🔹 TIMEOUT_PROTECTED_GET_SESSION
-    const sessionResponse = await Promise.race([
-      sb.auth.getSession(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("AUTH_SESSION_TIMEOUT")), 12000)
-      )
-    ]) as any;
+  // 🔹 TIMEOUT_PROTECTED_GET_SESSION
+  const sessionResponse = await Promise.race([
+    sb.auth.getSession(),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("AUTH_SESSION_TIMEOUT")), 15000)
+    )
+  ]) as any;
 
-    const { data: { session }, error } = sessionResponse;
-    if (error) throw error;
-    if (!session) {
-      if (isLocalBypassActive) {
-        return {
-          user: {
-            id: localBypassId,
-            email: localBypassEmail,
-            user_metadata: {
-              full_name: localBypassName,
-              role: 'admin'
-            }
-          }
-        };
-      }
-      throw new Error('Authentication required');
-    }
-    return session;
-  } catch (err: any) {
-    if (isLocalBypassActive) {
-      console.warn("[ensureAuth] Database connection timed out. Proceeding securely with local sandbox bypass credentials.");
-      return {
-        user: {
-          id: localBypassId,
-          email: localBypassEmail,
-          user_metadata: {
-            full_name: localBypassName,
-            role: 'admin'
-          }
-        }
-      };
-    }
-    throw err;
-  }
+  const { data: { session }, error } = sessionResponse;
+  if (error) throw error;
+  if (!session) throw new Error('Authentication required');
+  return session;
 };
 
 const normalizeEmail = (email: string) => email.toLowerCase().trim();
@@ -185,8 +137,7 @@ export const authSignUp = async (email: string, pass: string, name: string, refe
 
   // 🔹 Send Welcome Email
   if (data.user) {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://findaba.com.ng';
-    const referralLink = `${origin}/signup?ref=${myReferralCode}`;
+    const referralLink = `https://findaba.com.ng/signup?ref=${myReferralCode}`;
     sendWelcomeEmail(normalizedEmail, name, referralLink).catch(err => 
       console.warn("[Email] Welcome email failed (likely due to missing API key):", err)
     );
@@ -284,7 +235,7 @@ export const fetchUserProfile = async (userId: string) => {
   const timeoutId = setTimeout(() => {
     console.warn(`[SupabaseService] fetchUserProfile TIMEOUT for ${userId}`);
     controller.abort();
-  }, 25000);
+  }, 10000);
 
   try {
     const query: any = sb.from('profiles').select('*').eq('id', userId).maybeSingle();
@@ -423,21 +374,11 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
   const timeoutId = setTimeout(() => {
     console.warn("[SupabaseService] checkDatabaseHealth probe ABORTED by timeout");
     controller.abort();
-  }, 25000);
+  }, 10000);
   
   try {
     // Probe a subset of critical tables to ensure schema health
-    const criticalTables = [
-      'businesses', 
-      'profiles', 
-      'platform_config', 
-      'disputes', 
-      'tasks', 
-      'referrals', 
-      'ride_bookings', 
-      'driver_signals',
-      'thrift_contributions'
-    ];
+    const criticalTables = ['businesses', 'profiles', 'platform_config'];
     
     console.log("[SupabaseService] Probing critical tables:", criticalTables);
     // We check sequentially or with a shorter timeout to avoid hanging

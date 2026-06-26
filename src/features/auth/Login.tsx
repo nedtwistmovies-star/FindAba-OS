@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, ShieldCheck, ArrowRight, Loader2, Globe, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, ArrowRight, Loader2, Globe } from 'lucide-react';
 import { useAuth } from '../../providers';
 import { loginWithUsername, signUpWithUsername, sendMagicLink, loginWithGoogle } from '../../services/authService';
 import { useToast } from '../../providers/ToastProvider';
@@ -19,16 +19,14 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [loading, setLoading] = useState(false);
   const [useMagicLink, setUseMagicLink] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   
   // Form State
   const [identifier, setIdentifier] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [referralCode, setReferralCode] = useState('');
 
   const passwordValid = password.length >= 6;
-  const validationRuleFailed = password.length > 0 && !passwordValid ? 'Password needs to be at least 6 characters' : 'NONE';
+  const validationRuleFailed = password.length > 0 && !passwordValid ? 'Password too short (<6 chars)' : 'NONE';
 
   const [diagnostics, setDiagnostics] = useState<any>({
     status: 'IDLE',
@@ -51,19 +49,6 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     (window as any).__VALIDATION_RESULT = 'PENDING';
     (window as any).__AUTH_RESPONSE = null;
     (window as any).__SUPABASE_ERROR = null;
-
-    // Extract referral code or signup mode from URL/View
-    const urlParams = new URLSearchParams(window.location.search);
-    const ref = urlParams.get('ref') || localStorage.getItem('findaba_referral_code');
-    const path = window.location.pathname.toLowerCase();
-    
-    if (ref) {
-      setReferralCode(ref);
-      setMode('signup');
-      console.log("[Auth] Referral signal captured:", ref);
-    } else if (path.includes('signup') || path.includes('register')) {
-      setMode('signup');
-    }
   }, []);
 
   const updateDiagnostics = (updates: any) => {
@@ -85,15 +70,6 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     const email = identifier.trim();
     const passLen = password.length;
-
-    // Safety timeout to ensure loading state is cleared
-    const authTimeout = setTimeout(() => {
-      if (loading) {
-        console.warn("[Auth] Safety timeout reached. Forcing loading to false.");
-        setLoading(false);
-        addToast("Sign-in is taking longer than expected. Please check your connection.", "info");
-      }
-    }, 15000); 
 
     updateDiagnostics({
       status: 'LOGIN_CLICKED',
@@ -118,10 +94,10 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     if (!isEmailValid) {
        updateDiagnostics({ 
-         status: 'CHECK_EMAIL', 
-         step: 'EMAIL_CHECK',
-         validationResult: 'NOT_WORKING', 
-         validationError: 'Incorrect email format' 
+         status: 'VALIDATION_FAILED', 
+         step: 'VALIDATION',
+         validationResult: 'FAILED', 
+         validationError: 'Invalid Email Format' 
        });
        addToast("Please enter a valid email address.", "error");
        setLoading(false);
@@ -149,24 +125,24 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
 
     try {
       if (mode === 'signup') {
-        const user = await signUpWithUsername(username.toLowerCase().trim(), email, password, username, "", referralCode);
+        const user = await signUpWithUsername(username.toLowerCase().trim(), email, password, username, "");
         updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'SIGNUP_DONE', authResponse: { user_id: user?.id } });
         if (user) {
-          addToast("Your account is ready. Please sign in.", "success");
+          addToast("Account created. Please sign in.", "success");
           setMode('signin');
         }
       } else {
         if (useMagicLink) {
           await sendMagicLink(email);
-          updateDiagnostics({ status: 'READY', step: 'LINK_SENT' });
-          addToast("We've sent a login link to your email. Please check your inbox.", "success");
+          updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'MAGIC_LINK_SENT' });
+          addToast("Check your email for the login link.", "success");
         } else {
           const session = await loginWithUsername(identifier.trim(), password, true);
-          updateDiagnostics({ status: 'READY', step: 'DONE', authResponse: { session_id: session?.access_token ? 'ACTIVE' : 'NONE' } });
+          updateDiagnostics({ status: 'AUTH_REQUEST_COMPLETE', step: 'SIGNIN_DONE', authResponse: { session_id: session?.access_token ? 'REDACTED' : 'FAILED' } });
           if (session?.user) {
             const user = session.user;
             handleAuthSuccess(user.email || '', user.user_metadata.full_name || 'User', 'registered', user.id);
-            addToast("Welcome back!", "success");
+            addToast("Sign in successful.", "success");
             onAuthSuccess(user.email || '', user.user_metadata.full_name || 'User', 'registered', user.id);
             setView('home');
           }
@@ -175,16 +151,15 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
     } catch (err: any) {
       console.error("DIAGNOSTIC ERROR CAPTURE:", err);
       updateDiagnostics({ 
-        status: 'HELP_REQUIRED', 
-        step: 'ISSUE_DETECTED',
+        status: 'AUTH_REQUEST_ERROR', 
+        step: 'ERROR',
         supabaseError: err,
         supabaseErrorCode: err.code || 'N/A',
-        supabaseErrorMessage: err.message || 'Connection trouble',
+        supabaseErrorMessage: err.message || 'Unknown Supabase Error',
         supabaseErrorStatus: err.status || 'N/A'
       });
-      addToast("We couldn't sign you in. Please check your details and try again.", "error");
+      addToast(err.message || "Authentication failed", "error");
     } finally {
-      clearTimeout(authTimeout);
       setLoading(false);
     }
   };
@@ -257,20 +232,13 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
                 <input 
-                  type={showPassword ? "text" : "password"} 
+                  type="password" 
                   placeholder="PASSWORD" 
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-12 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-aba-gold/50 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-aba-gold/50 transition-all"
                   required={!useMagicLink}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors focus:outline-none"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
               </div>
             </div>
           )}
@@ -316,28 +284,93 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
         </div>
       </motion.div>
 
-      {/* Troubleshooting Panel (Hidden by default, shown for support) */}
-      {diagnostics.status !== 'IDLE' && diagnostics.status !== 'READY' && (
-        <div className="mt-12 w-full max-w-2xl bg-black/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md relative z-10 font-sans">
-          <h3 className="text-aba-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-            <ShieldCheck size={14} />
-            Connection Help
-          </h3>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[10px] text-white/60">
-            <div className="space-y-2">
-               <div className="flex justify-between border-b border-white/5 pb-1">
-                 <span>Status:</span>
-                 <span className="text-white font-bold">{diagnostics.status === 'HELP_REQUIRED' ? 'Needs Attention' : 'Working...'}</span>
-               </div>
-               <div className="flex justify-between border-b border-white/5 pb-1">
-                 <span>Issue:</span>
-                 <span className="text-red-400">{diagnostics.supabaseErrorMessage || 'None detected'}</span>
-               </div>
-            </div>
+      {/* LOGIN_DIAGNOSTICS PANEL */}
+      <div className="mt-12 w-full max-w-2xl bg-black/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md relative z-10 font-mono">
+        <h3 className="text-aba-gold text-[10px] font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+          <ShieldCheck size={14} />
+          System Login Diagnostics
+        </h3>
+        
+        <div className="grid grid-cols-2 gap-4 text-[10px] text-white/60">
+          <div className="space-y-2">
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>STATUS:</span>
+               <span className="text-white font-bold">{diagnostics.status}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>STEP:</span>
+               <span className="text-aba-gold">{diagnostics.step}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>EMAIL:</span>
+               <span>{diagnostics.email || 'N/A'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>PASSWORD_LENGTH:</span>
+               <span>{password.length}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>PASSWORD_MIN_REQUIRED:</span>
+               <span>6</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>PASSWORD_VALID:</span>
+               <span className={passwordValid ? 'text-green-400' : 'text-red-400'}>{passwordValid ? 'YES' : 'NO'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>VALIDATION_RULE_FAILED:</span>
+               <span className="text-red-400">{validationRuleFailed}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>VALIDATION_FAILURE_REASON:</span>
+               <span className="text-red-400">{validationRuleFailed}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>VALIDATION_RESULT:</span>
+               <span className={diagnostics.validationResult === 'FAILED' ? 'text-red-400' : 'text-green-400'}>{diagnostics.validationResult}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>VALIDATION_ERROR:</span>
+               <span className="text-red-400">{diagnostics.validationError || 'NONE'}</span>
+             </div>
+          </div>
+
+          <div className="space-y-2">
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>AUTH_REQUEST_SENT:</span>
+               <span>{diagnostics.authRequestSent ? 'YES' : 'NO'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>AUTH_RESPONSE:</span>
+               <span>{diagnostics.authResponse ? 'RECEIVED' : 'PENDING'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>SUPABASE_ERROR:</span>
+               <span className={diagnostics.supabaseError ? 'text-red-400' : 'text-white/20'}>{diagnostics.supabaseError ? 'DETECTED' : 'NONE'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>ERROR_CODE:</span>
+               <span className="text-red-400">{diagnostics.supabaseErrorCode || 'N/A'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>ERROR_STATUS:</span>
+               <span className="text-red-400">{diagnostics.supabaseErrorStatus || 'N/A'}</span>
+             </div>
+             <div className="flex justify-between border-b border-white/5 pb-1">
+               <span>ERROR_MESSAGE:</span>
+               <span className="text-red-400 text-[9px] line-clamp-1 truncate max-w-[150px]" title={diagnostics.supabaseErrorMessage}>
+                 {diagnostics.supabaseErrorMessage || 'N/A'}
+               </span>
+             </div>
           </div>
         </div>
-      )}
+        
+        {diagnostics.supabaseError && (
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-[9px] text-red-400 whitespace-pre-wrap overflow-auto max-h-24">
+            {JSON.stringify(diagnostics.supabaseError, null, 2)}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

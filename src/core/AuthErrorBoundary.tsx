@@ -45,12 +45,12 @@ export class AuthErrorBoundary extends React.Component<Props, State> {
 
             <div className="space-y-4">
               <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">
-                {isAuthError ? "Sign-in trouble" : "Something went wrong"}
+                {isAuthError ? 'Handshake Failure' : 'System Anomaly'}
               </h2>
               <p className="text-xs font-medium text-white/40 leading-relaxed">
                 {isAuthError 
-                  ? "Your sign-in has expired or we're just checking things. Please sign in again to keep your account safe."
-                  : "We're having trouble connecting right now. Please check your internet connection and try again."}
+                  ? 'Authentication verification in progress or session has expired. Please re-authenticate to maintain industrial security.'
+                  : 'A critical error occurred while synchronizing your identity with the FindAba registry.'}
               </p>
             </div>
 
@@ -60,7 +60,7 @@ export class AuthErrorBoundary extends React.Component<Props, State> {
                 className="w-full py-6 bg-white text-aba-deep rounded-full font-black uppercase text-[11px] tracking-[0.3em] flex items-center justify-center gap-3 hover:bg-aba-gold transition-all active:scale-95"
               >
                 <RefreshCw size={18} />
-                Try Again
+                Refresh Registry
               </button>
               
               <button 
@@ -70,7 +70,7 @@ export class AuthErrorBoundary extends React.Component<Props, State> {
                 }}
                 className="text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-aba-gold transition-colors"
               >
-                Sign Out and Restart
+                Reset Connection State
               </button>
             </div>
           </motion.div>

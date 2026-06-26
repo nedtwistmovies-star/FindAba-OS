@@ -8,10 +8,6 @@ export const supabase = new Proxy({} as any, {
     if (!client) {
       throw new Error("Supabase client not initialized. Check your configuration.");
     }
-    const value = (client as any)[prop];
-    if (typeof value === 'function') {
-      return value.bind(client);
-    }
-    return value;
+    return (client as any)[prop];
   }
 });

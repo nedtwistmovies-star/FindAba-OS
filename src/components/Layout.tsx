@@ -11,7 +11,6 @@ import {
   Globe,
   Building2,
   Zap,
-  Shield,
   ShieldCheck,
   MessageCircle,
   BookOpen,
@@ -47,7 +46,6 @@ import {
   Database,
   CheckCircle2,
   AlertTriangle,
-  Activity,
 } from "lucide-react";
 import Logo from "./Logo";
 import { generateWelcomeMessage } from "../services/geminiService";
@@ -58,17 +56,16 @@ import {
 } from "../services/supabaseService";
 import { useAuth } from "../providers/AuthProvider";
 import { useBusiness } from "../providers/BusinessProvider";
-import { useLanguage } from "../providers/LanguageProvider";
 import { useGitSync } from "../hooks/useGitSync";
 import { SANDALS_BRAND } from "../constants";
 import NotificationCenter from "./NotificationCenter";
-import { LanguageSelector } from "./LanguageSelector";
 import {
   getIgboMarketDay,
   getAbaWeather,
   WeatherData,
 } from "../services/signalService";
 import SystemStatusIndicator from "./SystemStatusIndicator";
+import { cleanRepositoryName } from "../services/gitConfigService";
 
 const SystemClock: React.FC = () => {
   const [time, setTime] = useState(new Date());
@@ -207,7 +204,6 @@ const Layout: React.FC<LayoutProps> = ({
   socialLinks,
 }) => {
   const { addToast } = useToast();
-  const { language, setLanguage, t } = useLanguage();
   const { userIdentifier, userName, isAuth, profile, userRole } = useAuth();
   const safeProfile = profile || {};
   const {
@@ -264,11 +260,16 @@ const Layout: React.FC<LayoutProps> = ({
   useEffect(() => {
     const checkSyncStatus = async () => {
       try {
+        const localVal = localStorage.getItem("findaba_git_repo") || "";
+        setLiveRepo(localVal);
+
         const response = await fetch("/metadata.json");
         if (response.ok) {
           const metadata = await response.json();
           if (metadata.repository && metadata.repository.url) {
-            setGitSynced(true);
+            const cleanedMeta = cleanRepositoryName(metadata.repository.url);
+            // Synced if both are the same, or if local is not set yet (defaults to system fallback anyway)
+            setGitSynced(!localVal || cleanedMeta === localVal);
           }
         }
       } catch (err) {
@@ -344,33 +345,72 @@ const Layout: React.FC<LayoutProps> = ({
 
   const menuItems = [
     {
-      label: t("City Registry", "City Registry"),
+      label: "City Faces",
+      icon: <Users size={20} />,
+      view: "faces" as ViewState,
+    },
+    {
+      label: "Fidelity Wallet",
+      icon: <Landmark size={20} />,
+      view: "fidelity" as ViewState,
+    },
+    {
+      label: "Purple Fleet",
+      icon: <Car size={20} />,
+      view: "purple-fleet" as ViewState,
+    },
+    {
+      label: "SANDALSroyalle Hotels & Suites",
+      icon: <Building2 size={20} />,
+      view: "fidelity" as ViewState,
+    },
+    {
+      label: "Carry-Go Cargo",
+      icon: <Truck size={20} />,
+      view: "cargo" as ViewState,
+    },
+    {
+      label: "Thrift Savings",
+      icon: <Wallet size={20} />,
+      view: "thrift-dashboard" as ViewState,
+    },
+    {
+      label: "Audio Archive",
+      icon: <Radio size={20} />,
+      view: "audio-heritage" as ViewState,
+    },
+    {
+      label: "Creative Lab",
+      icon: <Sparkles size={20} />,
+      view: "lab" as ViewState,
+    },
+    {
+      label: "Hardware Audit",
+      icon: <ShieldCheck size={20} />,
+      view: "hardware-audit" as ViewState,
+    },
+    {
+      label: "Aba History",
+      icon: <BookOpen size={20} />,
+      view: "about-aba" as ViewState,
+    },
+    {
+      label: "City Registry",
       icon: <Layers size={20} />,
       view: "explore" as ViewState,
     },
     {
-      label: t("Oracle Hub", "Oracle Hub"),
+      label: "Oracle Hub",
       icon: <Cpu size={20} />,
       view: "oracle" as ViewState,
     },
     {
       id: "home",
-      label: t("Home Node", "Home Node"),
+      label: "Home Node",
       icon: <Home size={20} />,
       view: "home" as ViewState,
     },
   ];
-
-  const visibleMenuItems = [...menuItems];
-  const isAdmin = (userRole === "admin" || userIdentifier === 'pastornelsonezi@gmail.com' || (profile && profile.role === 'admin'));
-  if (isAdmin) {
-    visibleMenuItems.unshift({
-      id: "admin",
-      label: t("Admin Console", "Admin Console"),
-      icon: <ShieldCheck size={20} />,
-      view: "admin" as ViewState,
-    });
-  }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -465,11 +505,11 @@ const Layout: React.FC<LayoutProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-hide">
-          {visibleMenuItems.map((item, i) => (
+          {menuItems.map((item, i) => (
             <SidebarItem key={i} item={item} />
           ))}
 
-          {isAdmin && (
+          {userRole === "admin" && (
             <div className="pt-6 pb-2 space-y-2">
               <div className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white/20">
                 Industrial Control
@@ -679,27 +719,32 @@ const Layout: React.FC<LayoutProps> = ({
 
             {/* Git Repository Sync Indicator */}
             <div 
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border text-xs font-bold leading-none select-none cursor-help transition-all ${
-                !gitStatus.connected ? 'border-red-500/30' : 'border-white/10'
-              }`}
-              title={
-                !gitStatus.connected 
-                  ? `Git Disconnected: Check Admin Hub` 
-                  : (gitSynced ? `Repository In-Sync: ${liveRepo || "System Default"}` : `Repository Out of Sync! Current: ${liveRepo}`)
-              }
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-bold leading-none select-none cursor-help"
+              title={gitSynced ? `Repository In-Sync: ${liveRepo || "System Default"}` : `Repository Out of Sync! Current: ${liveRepo}`}
               id="git-repo-indicator"
             >
-              {!gitStatus.connected ? (
-                <Activity size={13} className="text-rose-500 shrink-0 animate-pulse" />
-              ) : gitSynced ? (
+              {gitSynced ? (
                 <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
               ) : (
                 <AlertTriangle size={13} className="text-amber-500 shrink-0 animate-pulse" />
               )}
-              <span className={`text-[9px] uppercase tracking-wider font-extrabold ${
-                !gitStatus.connected ? 'text-rose-500' : (gitSynced ? 'text-white/40' : 'text-amber-500')
-              }`}>
-                {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
+              <span className={`text-[9px] uppercase tracking-wider font-extrabold ${gitSynced ? 'text-white/40' : 'text-amber-500'}`}>
+                {gitSynced ? 'Repo Match' : 'Repo Diff'}
+              </span>
+            </div>
+
+            {/* Git Connection Status Indicator */}
+            <div 
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold leading-none select-none cursor-pointer hover:bg-white/5 transition-all ${gitStatus.connected ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-500' : 'bg-rose-500/5 border-rose-500/20 text-rose-500 animate-pulse'}`}
+              title={gitStatus.connected ? `GitHub Connected: ${gitStatus.repo || 'Online'}${gitStatus.systemHasToken ? ' (System Token Active)' : ''}` : `GitHub Offline! Reason: ${gitStatus.error || 'Connection Failed'}`}
+              id="git-connection-indicator"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('toggle-repo-manager'));
+              }}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${gitStatus.connected ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'}`} />
+              <span className="text-[9px] uppercase tracking-wider font-extrabold">
+                {gitStatus.connected ? 'Git Online' : 'Git Offline'}
               </span>
             </div>
 
@@ -708,7 +753,6 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             <div className="lg:hidden flex items-center gap-1">
-              <LanguageSelector />
               <button
                 onClick={() => {
                   setView("explore");
@@ -750,7 +794,6 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             <div className="hidden lg:flex items-center gap-4">
-              <LanguageSelector />
               <button
                 onClick={() => setView("register")}
                 className="flex items-center gap-2 px-4 py-2 bg-aba-green text-white rounded-lg font-bold uppercase text-[10px] tracking-widest shadow-sm hover:bg-aba-green/90 transition-standard active:scale-95"
@@ -867,16 +910,28 @@ const Layout: React.FC<LayoutProps> = ({
                   </h4>
                   <div className="space-y-3">
                     <button
+                      onClick={() => setView("purple-fleet")}
+                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
+                    >
+                      Purple Fleet
+                    </button>
+                    <button
+                      onClick={() => setView("fidelity")}
+                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
+                    >
+                      Sandals Hotels
+                    </button>
+                    <button
                       onClick={() => setView("cargo")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
                       Carry-Go Cargo
                     </button>
                     <button
-                      onClick={() => setView("explore")}
+                      onClick={() => setView("thrift-dashboard")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
-                      Fidelity Hubs
+                      Fidelity Thrift
                     </button>
                   </div>
                 </div>
@@ -919,19 +974,19 @@ const Layout: React.FC<LayoutProps> = ({
                   </h4>
                   <div className="space-y-3">
                     <button
-                      onClick={() => setView("about")}
+                      onClick={() => setView("about-who")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left"
                     >
                       Who we are
                     </button>
                     <button
-                      onClick={() => setView("about")}
+                      onClick={() => setView("about-vision")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left"
                     >
                       Our Vision
                     </button>
                     <button
-                      onClick={() => setView("about")}
+                      onClick={() => setView("about-mission")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left"
                     >
                       Our Mission
@@ -1045,13 +1100,12 @@ const Layout: React.FC<LayoutProps> = ({
           { id: "faces", icon: <Users size={18} />, label: "FACES" },
           { id: "oracle", icon: <Cpu size={18} />, label: "ORACLE" },
           { id: "fidelity", icon: <Landmark size={18} />, label: "Fidelity" },
-          isAdmin && { id: "admin", icon: <ShieldCheck size={18} />, label: "ADMIN" },
           { id: "profile", icon: <UserCircle size={18} />, label: "PROFILE" },
-        ].filter(Boolean).map((btn: any, i) => (
+        ].map((btn, i) => (
           <button
             key={i}
             onClick={() => {
-              if (!isAuth && btn.id !== 'home') {
+              if (!isAuth) {
                 addToast("Authentication required.", "info");
                 setView("login");
                 return;
@@ -1120,7 +1174,7 @@ const Layout: React.FC<LayoutProps> = ({
             </button>
           </div>
           <div className="flex-1 p-8 space-y-3 overflow-y-auto scrollbar-hide">
-            {visibleMenuItems.map((item, i) => (
+            {menuItems.map((item, i) => (
               <button
                 key={i}
                 onClick={() => {
@@ -1138,24 +1192,12 @@ const Layout: React.FC<LayoutProps> = ({
               </button>
             ))}
 
-          {isAdmin && (
+            {userRole === "admin" && (
               <div className="pt-8 space-y-4">
                 <div className="px-6 text-[10px] font-black uppercase tracking-[0.3em] text-white/20">
                   Industrial Handshake
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => {
-                      setView('admin');
-                      setIsMenuOpen(false);
-                    }}
-                    className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95"
-                  >
-                    <Shield size={24} className="text-aba-gold" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-white">
-                      Admin
-                    </span>
-                  </button>
                   <button
                     onClick={() => {
                       handleFullSync("Mobile Menu Sync");
@@ -1165,8 +1207,25 @@ const Layout: React.FC<LayoutProps> = ({
                     className="relative flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95 disabled:opacity-50"
                   >
                     <Github size={24} className="text-aba-gold" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-white">
+                    <span className="text-[8px] font-black uppercase tracking-widest">
                       Git Sync
+                    </span>
+                    <div className="absolute top-3 right-3 flex items-center pr-1" title={gitSynced ? `Repository In-Sync: ${liveRepo || 'System Default'}` : `Repository Out of Sync: ${liveRepo}`}>
+                      <span 
+                        className={`w-2 h-2 rounded-full ${gitSynced ? 'bg-aba-green shadow-[0_0_8px_#10b981]' : 'bg-amber-500 shadow-[0_0_8px_#f59e0b] animate-pulse'}`}
+                      />
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      commitAll();
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-aba-gold/30 transition-all active:scale-95"
+                  >
+                    <Database size={24} className="text-aba-gold" />
+                    <span className="text-[8px] font-black uppercase tracking-widest">
+                      Commit SB
                     </span>
                   </button>
                 </div>

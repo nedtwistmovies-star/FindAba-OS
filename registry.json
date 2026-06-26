@@ -1,6 +1,6 @@
 {
   "version": "v6.0",
-  "lastUpdated": "2026-06-19T23:04:50.350Z",
+  "lastUpdated": "2026-06-26T09:55:34.663Z",
   "businesses": [
     {
       "id": "7f01c0a9-1029-458d-b92e-b6c9e9586d48",
@@ -15,9 +15,9 @@
       "image_url": "https://pqzjkvqmherngispxlzy.supabase.co/storage/v1/object/public/findaba/1781778486884-file_00000000a0207243b5e2a8bbb3563260.png",
       "rating": 0,
       "review_count": 0,
-      "status": "pending",
+      "status": "active",
       "verification_status": "Unverified",
-      "verification_level": "Listed",
+      "verification_level": "None",
       "integrity_grade": "C",
       "is_export_ready": false,
       "capacity_indicator": null,

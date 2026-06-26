@@ -1,6 +1,6 @@
--- FINDABA INDUSTRIAL OS: UNIFIED MASTER SCHEMA v31.0
+-- FINDABA INDUSTRIAL OS: UNIFIED MASTER SCHEMA v27.0
 -- FINAL HARMONIZED VERSION - "INSTITUTIONAL GRADE" CONFIG
--- Focus: Universal permissions, Admin resilience, and Comprehensive Industry Modules (Thrift, Logistics, Commerce, Disputes, Claims)
+-- Focus: Universal permissions, Admin resilience, and Thrift integrations
 
 -- =====================================================
 -- 0. SYSTEM GLOBAL CONFIG
@@ -68,10 +68,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_profiles_id ON public.profiles(id);
-CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
-CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
-
 -- =====================================================
 -- ADMIN CHECK
 -- =====================================================
@@ -84,15 +80,13 @@ SET search_path = public
 AS $$
 DECLARE
   is_admin BOOLEAN;
-  user_email TEXT;
 BEGIN
-  -- 1. Optimized Check using JWT email (fastest)
-  user_email := auth.jwt() ->> 'email';
-  IF user_email = 'pastornelsonezi@gmail.com' THEN
+  -- 1. Explicit Check for Root Owner
+  IF (SELECT email FROM auth.users WHERE id = auth.uid()) = 'pastornelsonezi@gmail.com' THEN
     RETURN TRUE;
   END IF;
 
-  -- 2. Role-based Check from Profile (cached in RLS if possible)
+  -- 2. Role-based Check from Profile
   SELECT (role = 'admin') INTO is_admin
   FROM public.profiles
   WHERE id = auth.uid();
@@ -129,9 +123,7 @@ DROP POLICY IF EXISTS "profiles_admin_all" ON public.profiles;
 CREATE POLICY "profiles_admin_all"
 ON public.profiles
 FOR ALL
-USING (
-  (auth.jwt() ->> 'email') = 'pastornelsonezi@gmail.com'
-);
+USING (public.check_is_admin());
 
 -- =====================================================
 -- 2. BUSINESSES
@@ -185,26 +177,23 @@ CREATE TABLE IF NOT EXISTS public.businesses (
   business_type TEXT,
 
   is_verified BOOLEAN DEFAULT FALSE,
-  verification_status TEXT DEFAULT 'Unverified',
-  verification_level TEXT,
-  
+
   subscription_tier TEXT DEFAULT 'Free',
+
   catalog_images TEXT[],
+
   videos JSONB DEFAULT '[]',
-  
+
   bank_name TEXT,
   account_number TEXT,
   account_name TEXT,
 
   skills TEXT[],
+
   experience_years INTEGER,
+
   portfolio_images TEXT[],
 
-  is_hidden_gem BOOLEAN DEFAULT FALSE,
-  transformation_story JSONB DEFAULT '{}',
-  hub_tier TEXT DEFAULT 'Starter Hub',
-  commission_rate FLOAT,
-  settlement_frequency TEXT,
   slug TEXT UNIQUE,
   registry_number TEXT UNIQUE,
   onboarding_completed BOOLEAN DEFAULT FALSE,
@@ -436,12 +425,18 @@ CREATE TABLE IF NOT EXISTS public.orders (
   REFERENCES public.businesses(id)
   ON DELETE SET NULL,
 
-  amount NUMERIC NOT NULL CHECK (amount > 0),
-  commission_deducted NUMERIC DEFAULT 0,
-  merchant_payout NUMERIC DEFAULT 0,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'processing', 'shipped', 'delivered', 'disputed', 'released', 'completed', 'cancelled', 'refunded', 'reversed')),
+  amount INTEGER NOT NULL CHECK (amount > 0),
+
+  commission_deducted INTEGER DEFAULT 0,
+
+  merchant_payout INTEGER DEFAULT 0,
+
+  status TEXT DEFAULT 'pending',
+
   reference TEXT UNIQUE,
+
   tracking_id TEXT,
+
   escrow_release_at TIMESTAMPTZ,
 
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -963,15 +958,11 @@ SELECT public.enable_realtime_for('onboarding_events');
 
 CREATE TABLE IF NOT EXISTS public.thrift_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   user_email TEXT UNIQUE NOT NULL,
-  cycle TEXT DEFAULT 'daily' CHECK (cycle IN ('daily', 'weekly', 'monthly', 'quarterly', 'yearly')),
+  cycle TEXT DEFAULT 'daily',
   total_saved NUMERIC DEFAULT 0,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'settled', 'matured', 'withdrawn')),
+  status TEXT DEFAULT 'active',
   start_date TIMESTAMPTZ DEFAULT NOW(),
-  locked_until TIMESTAMPTZ,
-  service_fee_rate NUMERIC DEFAULT 0.035,
-  protocol_type TEXT DEFAULT 'FIDELITY_SAVINGS',
   bank_name TEXT,
   account_number TEXT,
   account_name TEXT,
@@ -979,166 +970,18 @@ CREATE TABLE IF NOT EXISTS public.thrift_accounts (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.thrift_contributions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  thrift_id UUID REFERENCES public.thrift_accounts(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id),
-  user_email TEXT NOT NULL,
-  amount NUMERIC NOT NULL CHECK (amount > 0),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+ALTER TABLE public.thrift_accounts ENABLE ROW LEVEL SECURITY;
 
-CREATE TABLE IF NOT EXISTS public.thrift_groups (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  description TEXT,
-  creator_id UUID REFERENCES auth.users(id),
-  contribution_amount NUMERIC NOT NULL CHECK (contribution_amount > 0),
-  cycle_length INTEGER NOT NULL,
-  max_members INTEGER NOT NULL,
-  payout_frequency TEXT CHECK (payout_frequency IN ('daily', 'weekly', 'monthly')),
-  visibility TEXT DEFAULT 'public' CHECK (visibility IN ('public', 'private')),
-  invite_code TEXT UNIQUE,
-  start_date TIMESTAMPTZ,
-  status TEXT DEFAULT 'forming' CHECK (status IN ('forming', 'active', 'completed')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+DROP POLICY IF EXISTS "thrift_accounts_self_view" ON public.thrift_accounts;
+CREATE POLICY "thrift_accounts_self_view" ON public.thrift_accounts
+  FOR SELECT USING (user_email = (SELECT email FROM auth.users WHERE id = auth.uid()));
 
-CREATE TABLE IF NOT EXISTS public.thrift_group_members (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id UUID REFERENCES public.thrift_groups(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id),
-  payout_position INTEGER,
-  has_received BOOLEAN DEFAULT FALSE,
-  joined_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(group_id, user_id)
-);
+DROP POLICY IF EXISTS "thrift_accounts_admin_all" ON public.thrift_accounts;
+CREATE POLICY "thrift_accounts_admin_all" ON public.thrift_accounts
+  FOR ALL USING (public.check_is_admin());
 
-CREATE TABLE IF NOT EXISTS public.thrift_group_contributions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id UUID REFERENCES public.thrift_groups(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id),
-  amount NUMERIC NOT NULL,
-  cycle_number INTEGER NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.thrift_payouts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id UUID REFERENCES public.thrift_groups(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id),
-  cycle_number INTEGER NOT NULL,
-  amount NUMERIC NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid')),
-  paid_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- REFERRALS & TASKS
 -- =====================================================
-
-CREATE TABLE IF NOT EXISTS public.referrals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  referrer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  referred_user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  reward_granted BOOLEAN DEFAULT FALSE,
-  reward_amount NUMERIC DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.tasks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  description TEXT,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed')),
-  due_date TIMESTAMPTZ,
-  priority INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.automation_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_type TEXT,
-  payload JSONB,
-  status TEXT,
-  response JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- TRANSPORTATION SIGNALS & LOGS
--- =====================================================
-
-CREATE TABLE IF NOT EXISTS public.driver_signals (
-  driver_id UUID PRIMARY KEY REFERENCES public.drivers(id) ON DELETE CASCADE,
-  vehicle_id UUID REFERENCES public.vehicles(id),
-  lat NUMERIC NOT NULL,
-  lng NUMERIC NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.ride_bookings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  passenger_email TEXT NOT NULL,
-  passenger_name TEXT,
-  passenger_rating NUMERIC DEFAULT 5.0,
-  driver_id UUID REFERENCES public.drivers(id),
-  vehicle_id UUID REFERENCES public.vehicles(id),
-  pickup_addr TEXT NOT NULL,
-  dropoff_addr TEXT NOT NULL,
-  pickup_notes TEXT,
-  amount NUMERIC NOT NULL,
-  driver_share NUMERIC,
-  platform_share NUMERIC,
-  status TEXT DEFAULT 'requested' CHECK (status IN ('requested', 'accepted', 'navigating_to_pickup', 'arrived_at_pickup', 'navigating_to_destination', 'completed', 'cancelled', 'emergency')),
-  tracking_session_id TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.emergency_alerts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ride_id UUID REFERENCES public.ride_bookings(id) ON DELETE CASCADE,
-  initiator TEXT CHECK (initiator IN ('passenger', 'driver')),
-  lat NUMERIC NOT NULL,
-  lng NUMERIC NOT NULL,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'resolved')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- CONTENT & VISION
--- =====================================================
-
-CREATE TABLE IF NOT EXISTS public.advertorials (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  featured_image TEXT,
-  author_name TEXT,
-  category TEXT,
-  views INTEGER DEFAULT 0,
-  grounding JSONB DEFAULT '[]',
-  published BOOLEAN DEFAULT TRUE,
-  published_date TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.vision_history (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_email TEXT NOT NULL,
-  prompt TEXT,
-  result_url TEXT,
-  mode TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.story_views (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  story_id UUID REFERENCES public.stories(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- SYSTEM LOGS & AUDIT TRAIL
+-- 24. SYSTEM LOGS & AUDIT TRAIL
 -- =====================================================
 
 CREATE TABLE IF NOT EXISTS public.platform_logs (
@@ -1232,152 +1075,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
-CREATE TABLE IF NOT EXISTS public.ride_ratings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ride_id UUID REFERENCES public.ride_bookings(id) ON DELETE CASCADE,
-  rater_id UUID REFERENCES public.profiles(id),
-  rater_type TEXT CHECK (rater_type IN ('driver', 'passenger')),
-  target_id UUID REFERENCES public.profiles(id),
-  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
-  feedback TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- SECURITY HARDENING (RLS & POLICIES)
 -- =====================================================
-
-ALTER TABLE public.thrift_accounts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_contributions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_groups ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_group_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_group_contributions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.thrift_payouts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.automation_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.driver_signals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.ride_bookings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.ride_ratings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.emergency_alerts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.advertorials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.vision_history ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.story_views ENABLE ROW LEVEL SECURITY;
-
-ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.business_claims ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.stories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.ai_conversations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.otp_codes ENABLE ROW LEVEL SECURITY;
-
--- THRIFT POLICIES
-CREATE POLICY "thrift_acc_own" ON public.thrift_accounts FOR ALL USING (auth.uid() = user_id OR user_email = (auth.jwt() ->> 'email'));
-CREATE POLICY "thrift_contrib_own" ON public.thrift_contributions FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "thrift_groups_read" ON public.thrift_groups FOR SELECT USING (true);
-CREATE POLICY "thrift_members_read" ON public.thrift_group_members FOR SELECT USING (true);
-CREATE POLICY "members_self_join" ON public.thrift_group_members FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "group_contrib_insert" ON public.thrift_group_contributions FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "ai_conversations_own" ON public.ai_conversations FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "stories_read" ON public.stories FOR SELECT USING (true);
-CREATE POLICY "stories_own" ON public.stories FOR ALL USING (auth.uid() = (SELECT id FROM profiles WHERE id = user_id));
-
--- DISPUTES & CLAIMS
-CREATE POLICY "disputes_involved" ON public.disputes FOR SELECT USING (auth.uid() = user_id OR public.check_is_admin() OR auth.uid() IN (SELECT buyer_id FROM public.orders WHERE id = order_id) OR auth.uid() IN (SELECT seller_id FROM public.orders WHERE id = order_id));
-CREATE POLICY "claims_own" ON public.business_claims FOR ALL USING (auth.uid() = user_id OR public.check_is_admin());
-
--- REFERRALS & TASKS
-CREATE POLICY "referrals_own" ON public.referrals FOR SELECT USING (auth.uid() = referrer_id OR auth.uid() = referred_user_id);
-CREATE POLICY "tasks_all" ON public.tasks FOR ALL USING (true); -- Public for sandbox mode
-
--- TRANSPORT & CONTENT
-CREATE POLICY "driver_signals_read" ON public.driver_signals FOR SELECT USING (true);
-CREATE POLICY "ride_bookings_own" ON public.ride_bookings FOR SELECT USING (auth.uid()::text IN (SELECT id::text FROM auth.users WHERE email = passenger_email) OR auth.uid() = driver_id);
-CREATE POLICY "ride_ratings_read" ON public.ride_ratings FOR SELECT USING (true);
-CREATE POLICY "ride_ratings_insert" ON public.ride_ratings FOR INSERT WITH CHECK (auth.uid() = rater_id);
-CREATE POLICY "advertorials_read" ON public.advertorials FOR SELECT USING (true);
-CREATE POLICY "vision_history_own" ON public.vision_history FOR ALL USING (user_email = (auth.jwt() ->> 'email'));
-
--- =====================================================
--- 28. PERFORMANCE INDEXES
--- =====================================================
-
-CREATE INDEX IF NOT EXISTS idx_ai_conversations_user_id ON public.ai_conversations(user_id);
-CREATE INDEX IF NOT EXISTS idx_disputes_order_id ON public.disputes(order_id);
-CREATE INDEX IF NOT EXISTS idx_business_claims_user_id ON public.business_claims(user_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_group_members_group_id ON public.thrift_group_members(group_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_group_contributions_group_id ON public.thrift_group_contributions(group_id);
-CREATE INDEX IF NOT EXISTS idx_thrift_payouts_group_id ON public.thrift_payouts(group_id);
-CREATE INDEX IF NOT EXISTS idx_ride_bookings_passenger ON public.ride_bookings(passenger_email);
-CREATE INDEX IF NOT EXISTS idx_ride_bookings_driver ON public.ride_bookings(driver_id);
-
--- 29. SYSTEM FUNCTIONS & TRIGGERS
--- =====================================================
-
-CREATE OR REPLACE FUNCTION public.log_system_event(p_type TEXT, p_severity TEXT, p_payload JSONB)
-RETURNS VOID AS $$
-BEGIN
-  INSERT INTO public.platform_logs (event_type, severity, payload, user_id)
-  VALUES (p_type, p_severity, p_payload, auth.uid());
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
--- RPC: Unified Release Escrow with Dispute Guard
-CREATE OR REPLACE FUNCTION public.release_escrow(p_order_id UUID, p_admin_id UUID DEFAULT NULL)
-RETURNS BOOLEAN AS $$
-DECLARE
-  v_order RECORD;
-  v_wallet_id UUID;
-  v_has_dispute BOOLEAN;
-BEGIN
-  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Order not found'; END IF;
-  IF v_order.status = 'completed' THEN RETURN TRUE; END IF;
-  
-  SELECT EXISTS (SELECT 1 FROM public.disputes WHERE order_id = p_order_id AND status != 'resolved') INTO v_has_dispute;
-  IF v_has_dispute AND p_admin_id IS NULL THEN RAISE EXCEPTION 'Escrow locked by active dispute'; END IF;
-
-  INSERT INTO public.wallets (user_id) VALUES (v_order.seller_id) ON CONFLICT (user_id) DO NOTHING;
-  SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = v_order.seller_id;
-  
-  UPDATE public.wallets SET balance = balance + v_order.merchant_payout, updated_at = NOW() WHERE id = v_wallet_id;
-  INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
-  VALUES (v_wallet_id, v_order.merchant_payout, 'credit', 'success', 'Order Payout', 'REL-' || p_order_id);
-  
-  UPDATE public.orders SET status = 'completed', escrow_release_at = NOW() WHERE id = p_order_id;
-  RETURN TRUE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
--- TRIGGER: Handle Verified Claim
-CREATE OR REPLACE FUNCTION public.handle_verified_claim()
-RETURNS trigger AS $$
-BEGIN
-  IF NEW.status = 'verified' AND OLD.status = 'pending' THEN
-    UPDATE public.businesses
-    SET user_id = NEW.user_id, is_verified = TRUE, verification_status = 'Verified', verification_level = 'Claimed'
-    WHERE id = NEW.business_id;
-    NEW.verified_at = NOW();
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
-DROP TRIGGER IF EXISTS on_claim_verified ON public.business_claims;
-CREATE TRIGGER on_claim_verified
-  BEFORE UPDATE ON public.business_claims
-  FOR EACH ROW WHEN (NEW.status = 'verified' AND OLD.status = 'pending')
-  EXECUTE FUNCTION public.handle_verified_claim();
-
--- =====================================================
--- 30. SYSTEM GRANTS
--- =====================================================
-
-GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, service_role, anon, authenticated;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, service_role, anon, authenticated;
-GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO postgres, service_role, anon, authenticated;
-
--- =====================================================
--- 30. STORAGE CONFIG
+-- 27. STORAGE CONFIG
 -- =====================================================
 
 -- Ensure storage schema exists and buckets are manageable
@@ -1386,29 +1085,6 @@ GRANT ALL ON SCHEMA storage TO postgres, service_role;
 -- Manually adding buckets if not existing via script logic
 -- NOTE: In some environments, this requires direct UI interaction or specialized extensions
 -- We define the intent here for the system console setup.
-
--- RPC: Refund Order
-CREATE OR REPLACE FUNCTION public.refund_order(p_order_id UUID, p_reason TEXT)
-RETURNS BOOLEAN AS $$
-DECLARE
-  v_order RECORD;
-BEGIN
-  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Order not found'; END IF;
-
-  IF v_order.status = 'paid' THEN
-    INSERT INTO public.wallets (user_id) VALUES (v_order.buyer_id) ON CONFLICT (user_id) DO NOTHING;
-    UPDATE public.wallets SET balance = balance + v_order.amount, updated_at = NOW() WHERE user_id = v_order.buyer_id;
-    
-    INSERT INTO public.transactions (wallet_id, amount, type, status, description, reference)
-    VALUES ((SELECT id FROM public.wallets WHERE user_id = v_order.buyer_id), v_order.amount, 'credit', 'success', 'Order Refund', 'REF-' || p_order_id);
-    
-    UPDATE public.orders SET status = 'reversed' WHERE id = p_order_id;
-    RETURN TRUE;
-  END IF;
-  RETURN FALSE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- INSERT INTO storage.buckets (id, name, public) VALUES ('business-media', 'business-media', true) ON CONFLICT (id) DO NOTHING;
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Shield,
-  ShieldCheck,
   Loader2,
   RefreshCcw,
   ArrowLeft,
@@ -99,6 +98,8 @@ import StatCard from "../../components/StatCard";
 import SectionHeader from "../../components/SectionHeader";
 import IndustrialButton from "../../components/IndustrialButton";
 import { BentoGrid, BentoItem } from "../../components/BentoGrid";
+import { GitRepositorySyncModal, RepositoryManager } from "../../components";
+import { cleanRepositoryName } from "../../services/gitConfigService";
 
 interface AutomationAuditProps {
   status: { status: string; message: string };
@@ -870,7 +871,7 @@ const TasksManager: React.FC = () => {
   );
 };
 
-const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
+const Admin: React.FC<any> = ({ setView, userRole, userEmail }) => {
   const { addToast } = useToast();
   const { commitAll } = useBusiness();
   const { status: gitStatus, loading: gitLoading, fullSync } = useGitSync();
@@ -883,7 +884,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
       addToast(result?.error || "Synchronization completed with warning alerts or error status.", "error");
     }
   };
-  const isAuthenticated = userRole === "admin" || userEmail === 'pastornelsonezi@gmail.com' || (profile && (profile.role === 'admin' || profile.role === 'superadmin'));
+  const isAuthenticated = userRole === "admin" || userEmail === 'pastornelsonezi@gmail.com';
 
   const [activeTab, setActiveTab] = useState<
     | "overview"
@@ -899,6 +900,8 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
     | "supabase"
     | "infrastructure"
     | "identity"
+    | "thrift"
+    | "posts"
     | "diagnostics"
     | "git"
   >(() => {
@@ -941,36 +944,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
   const [isRunningDiagnostic, setIsRunningDiagnostic] = useState(false);
   const [simulationStep, setSimulationStep] = useState(0);
   const [simulationLogs, setSimulationLogs] = useState<string[]>([]);
-
-  const [isRepairing, setIsRepairing] = useState(false);
-
-  const handleFullRepair = async () => {
-    setIsRepairing(true);
-    addToast("Initiating comprehensive system repair... (Full Handshake Re-Establishment)", "info");
-    try {
-      // 1. Re-sync Gemini
-      const gemini = await import("../../services/geminiService");
-      if (gemini?.syncGeminiConfig) await gemini.syncGeminiConfig();
-      
-      // 2. Refresh Auth Session
-      const { getSupabase } = await import("../../services/supabaseService");
-      const sb = getSupabase();
-      if (sb) await sb.auth.getSession();
-
-      // 3. Purge specific known volatile keys
-      localStorage.removeItem('findaba_registry_sealed');
-      sessionStorage.clear();
-
-      // 4. Refresh All Data
-      await refreshAllData();
-      
-      addToast("System Repair Complete. All signals successfully re-established.", "success");
-    } catch (err: any) {
-      addToast(`Repair Partial Failure: ${err.message}`, "error");
-    } finally {
-      setIsRepairing(false);
-    }
-  };
 
   const runAutomationAudit = async () => {
     setIsAuditing(true);
@@ -1041,23 +1014,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
     if (isAuthenticated) refreshAllData();
   }, [isAuthenticated, refreshAllData]);
 
-  const [gitDiagnostic, setGitDiagnostic] = useState<any>(null);
-
   const handleRunDiagnostic = async () => {
     setIsRunningDiagnostic(true);
     try {
       const report = await runDiagnosticReport();
       setDiagnosticResult(report);
-      
-      try {
-        const gitRes = await fetch('/api/git/diagnostic');
-        if (gitRes.ok) {
-          setGitDiagnostic(await gitRes.json());
-        }
-      } catch (ge) {
-        console.warn("Git diagnostic fetch failed", ge);
-      }
-
       if (report.status === 'healthy') {
         addToast("Industrial Grid Healthy: All mission-critical tables initialized.", "success");
       } else {
@@ -1745,7 +1706,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                     <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Primary AI Provider</label>
                     <div className="flex gap-4">
                       <select 
-                        defaultValue={localStorage.getItem('findaba_primary_ai') || 'openrouter'}
+                        defaultValue={localStorage.getItem('findaba_primary_ai') || 'gemini'}
                         onChange={(e) => {
                           localStorage.setItem('findaba_primary_ai', e.target.value);
                           addToast(`Primary AI set to ${e.target.value.toUpperCase()}`, "success");
@@ -1802,13 +1763,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ webhookUrl: makeWebhookUrl })
                               });
-                              let data;
-                              const text = await res.text();
-                              try {
-                                data = JSON.parse(text);
-                              } catch (parseErr) {
-                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
-                              }
+                              const data = await res.json();
                               if (data.success) {
                                 addToast("Test Handshake Successfully Transmitted!", "success");
                               } else {
@@ -1863,13 +1818,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ phone: testPhone, code: '123456' })
                               });
-                              let data;
-                              const text = await res.text();
-                              try {
-                                data = JSON.parse(text);
-                              } catch (parseErr) {
-                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
-                              }
+                              const data = await res.json();
                               setWaTestLog(data);
                               if (data.success) {
                                 addToast("OTP Test Message Dispatched!", "success");
@@ -1900,13 +1849,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ phone: testPhone, userName: 'Pastor Nelson' })
                               });
-                              let data;
-                              const text = await res.text();
-                              try {
-                                data = JSON.parse(text);
-                              } catch (parseErr) {
-                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
-                              }
+                              const data = await res.json();
                               setWaTestLog(data);
                               if (data.success) {
                                 addToast("Welcome Onboarding Test Dispatched!", "success");
@@ -1944,20 +1887,12 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                   userEmail: 'pastornelsonezi@gmail.com'
                                 })
                               });
-                              
-                              let data;
-                              const text = await res.text();
-                              try {
-                                data = JSON.parse(text);
-                              } catch (parseErr) {
-                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
-                              }
-                              
+                              const data = await res.json();
                               setWaTestLog(data);
-                              if (data.whatsapp?.success || data.success) {
+                              if (data.whatsapp?.success) {
                                 addToast("Business Alert Test Dispatched!", "success");
                               } else {
-                                addToast(data.error || "Meta Transmission Refused", "error");
+                                addToast("Meta Transmission Refused", "error");
                               }
                             } catch (e: any) {
                               setWaTestLog({ success: false, error: e.message });
@@ -1978,62 +1913,17 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                             setIsTestingWa(true);
                             setWaTestLog(null);
                             try {
-                              const res = await fetch('/api/whatsapp/hello', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ phone: testPhone })
-                              });
-                              let data;
-                              const text = await res.text();
-                              try {
-                                data = JSON.parse(text);
-                              } catch (parseErr) {
-                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
-                              }
-                              
-                              setWaTestLog(data);
-                              if (data.success) {
-                                addToast("Hello World Template Dispatched!", "success");
-                              } else {
-                                addToast(data.error || "Meta Transmission Refused", "error");
-                              }
-                            } catch (e: any) {
-                              setWaTestLog({ success: false, error: e.message });
-                              addToast("Local Dispatch Error", "error");
-                            } finally {
-                              setIsTestingWa(false);
-                            }
-                          }}
-                          className="px-5 py-3 bg-aba-gold/10 hover:bg-aba-gold/30 text-aba-gold border border-aba-gold/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-30"
-                        >
-                          Send Hello World (Sandbox)
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={isTestingWa || !testPhone}
-                          onClick={async () => {
-                            setIsTestingWa(true);
-                            setWaTestLog(null);
-                            try {
                               const res = await fetch('/api/whatsapp/test', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ phone: testPhone })
                               });
-                              let data;
-                              const text = await res.text();
-                              try {
-                                data = JSON.parse(text);
-                              } catch (parseErr) {
-                                data = { success: false, error: "Non-JSON response from server", details: text.substring(0, 100) };
-                              }
-                              
+                              const data = await res.json();
                               setWaTestLog(data);
                               if (data.success) {
                                 addToast("Raw Text Test Dispatched!", "success");
                               } else {
-                                addToast(data.error || "Meta Transmission Refused", "error");
+                                addToast("Meta Transmission Refused", "error");
                               }
                             } catch (e: any) {
                               setWaTestLog({ success: false, error: e.message });
@@ -2058,42 +1948,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                                 <span className="px-2 py-0.5 bg-aba-green/10 text-aba-green font-black uppercase tracking-wider rounded text-[8px]">ONLINE (SUCCESS)</span>
                                 <p className="text-white/80">Message sent successfully!</p>
                                 <p className="text-white/40">Id: {waTestLog.messageId || waTestLog.whatsapp?.messageId}</p>
-                                
-                                {waTestLog.fallbackUsed && (
-                                  <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-500 text-[9px] font-sans leading-normal">
-                                    <p className="font-extrabold uppercase tracking-widest flex items-center gap-2 mb-1">
-                                      <AlertTriangle size={12} /> Template Fallback Active
-                                    </p>
-                                    <p>The target template was not found in your Meta account. System automatically switched to a standard Text Message. Note: Text messages only deliver in Sandbox if the recipient has messaged you within 24 hours.</p>
-                                  </div>
-                                )}
-
-                                <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-xl space-y-3 font-sans">
-                                  <p className="text-aba-gold font-black uppercase text-[8px] tracking-[0.2em] mb-2">Sandbox Troubleshooting Guide</p>
-                                  <div className="space-y-4">
-                                    <div className="flex gap-3">
-                                      <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0 text-white font-black text-[9px]">1</div>
-                                      <div className="space-y-1">
-                                        <p className="text-[9px] font-black uppercase text-white/80 tracking-widest">Verify Recipient</p>
-                                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">In the Meta App Dashboard, go to <span className="text-white/60">WhatsApp &gt; API Setup</span> and ensure your phone number is added to the "To" field verified list.</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-3">
-                                      <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0 text-white font-black text-[9px]">2</div>
-                                      <div className="space-y-1">
-                                        <p className="text-[9px] font-black uppercase text-white/80 tracking-widest">Initialize Channel</p>
-                                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">Send any message (e.g. "Hello") from your phone TO the test number displayed in your Meta Dashboard to open the delivery window.</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-3">
-                                      <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0 text-white font-black text-[9px]">3</div>
-                                      <div className="space-y-1">
-                                        <p className="text-[9px] font-black uppercase text-white/80 tracking-widest">Test Template First</p>
-                                        <p className="text-[8px] font-bold text-white/30 uppercase leading-relaxed tracking-widest">Try the <span className="text-white/60">"Send Hello World"</span> button first. It uses Meta's default approved template which usually bypasses the 24-hour window restriction.</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
                               </div>
                             ) : (
                               <div className="space-y-3">
@@ -2434,38 +2288,6 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
 
           {activeTab === "supabase" && (
             <div className="animate-slide-up space-y-6 sm:space-y-12">
-              <div className="bg-white/5 p-6 sm:p-12 rounded-3xl sm:rounded-[4rem] border border-white/5 space-y-6 sm:space-y-10">
-                <SectionHeader 
-                  title="Master SQL Schema" 
-                  subtitle="Primary Industrial Database Definition"
-                  icon={Terminal} 
-                  className="mb-6"
-                  action={
-                    <IndustrialButton
-                      variant="secondary"
-                      size="sm"
-                      icon={Copy}
-                      onClick={async () => {
-                        try {
-                          const response = await fetch('/SUPABASE_SCHEMA.sql');
-                          const sql = await response.text();
-                          navigator.clipboard.writeText(sql);
-                          addToast("Master SQL Schema copied to clipboard.", "success");
-                        } catch (err) {
-                          addToast("Failed to load schema file.", "error");
-                        }
-                      }}
-                    >
-                      Copy Master SQL
-                    </IndustrialButton>
-                  }
-                />
-                <div className="bg-black p-8 rounded-3xl border border-white/5 font-mono text-[10px] text-aba-green/60 leading-relaxed overflow-x-auto">
-                  <pre>-- UNIFIED MASTER SCHEMA v31.0 --</pre>
-                  <p className="mt-4 text-white/20">Includes: Profiles, Businesses, Logistics (Full Stack), Thrift (Group & Individual), Content Vision, and Production Audit patches.</p>
-                </div>
-              </div>
-
               <SectionHeader 
                 title="Signal Registry Config" 
                 subtitle="Configure your Supabase Industrial Partner"
@@ -2646,6 +2468,62 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                   your Supabase Editor to initialize the 'findaba' bucket and
                   set public permissions.
                 </p>
+              </div>
+
+              <div className="bg-black/40 p-6 sm:p-12 rounded-3xl sm:rounded-[4rem] border border-white/5 space-y-6 sm:space-y-8">
+                <SectionHeader 
+                  title="Logistics Schema Update" 
+                  icon={Truck} 
+                  className="mb-6"
+                  action={
+                    <IndustrialButton
+                      variant="secondary"
+                      size="sm"
+                      icon={Copy}
+                      onClick={() => {
+                        const sql = `-- 1. ADD PICKUP NOTES TO RIDE BOOKINGS\nALTER TABLE ride_bookings ADD COLUMN IF NOT EXISTS pickup_notes TEXT;\n\n-- 2. CREATE RIDE RATINGS TABLE\nCREATE TABLE IF NOT EXISTS ride_ratings (\n  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n  ride_id TEXT NOT NULL,\n  rater_id TEXT NOT NULL,\n  rater_type TEXT CHECK (rater_type IN ('driver', 'passenger')),\n  target_id TEXT NOT NULL,\n  rating INTEGER CHECK (rating >= 1 AND rating <= 5),\n  feedback TEXT,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\n\n-- 3. RLS POLICIES FOR RATINGS\nALTER TABLE ride_ratings ENABLE ROW LEVEL SECURITY;\nCREATE POLICY "Anyone can read ratings" ON ride_ratings FOR SELECT USING (true);\nCREATE POLICY "Authenticated can insert ratings" ON ride_ratings FOR INSERT WITH CHECK (auth.role() = 'authenticated');`;
+                        navigator.clipboard.writeText(sql);
+                        addToast("Logistics SQL Copied", "success");
+                      }}
+                    >
+                      Copy Logistics SQL
+                    </IndustrialButton>
+                  }
+                />
+                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-relaxed">
+                  Run this SQL to add 'pickup_notes' to the ride_bookings table
+                  and create the 'ride_ratings' table for passenger feedback.
+                </p>
+              </div>
+
+              <div className="bg-black/40 p-6 sm:p-12 rounded-3xl sm:rounded-[4rem] border border-white/5 space-y-6 sm:space-y-8">
+                <SectionHeader 
+                  title="Master SQL Schema" 
+                  icon={Terminal} 
+                  className="mb-6"
+                  action={
+                    <IndustrialButton
+                      variant="secondary"
+                      size="sm"
+                      icon={Copy}
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/SUPABASE_SCHEMA.sql');
+                          const sql = await response.text();
+                          navigator.clipboard.writeText(sql);
+                          addToast("Master SQL Schema Copied! Run this in your Supabase SQL Editor.", "success");
+                        } catch (err) {
+                          addToast("Failed to load schema file. Check root directory.", "error");
+                        }
+                      }}
+                    >
+                      Copy Master SQL
+                    </IndustrialButton>
+                  }
+                />
+                <div className="bg-black p-8 rounded-3xl border border-white/5 font-mono text-[10px] text-aba-green/60 leading-relaxed overflow-x-auto">
+                  <pre>-- SEE SUPABASE_SCHEMA.sql IN ROOT DIRECTORY --</pre>
+                </div>
               </div>
             </div>
           )}
@@ -2969,6 +2847,162 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
               </div>
             </div>
           )}
+          {activeTab === "posts" && (
+            <div className="animate-slide-up space-y-8">
+              <SectionHeader 
+                title="Industrial Content Node" 
+                subtitle={`Analyzing ${adminPosts.length} broadcast signals`}
+                icon={MessageSquare}
+              />
+              
+              <div className="bg-white/5 rounded-[3rem] border border-white/5 p-8 space-y-6">
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-white/40">Manual Signal Injection (Test Snippet)</h3>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <input 
+                      type="text"
+                      value={testPostContent}
+                      onChange={(e) => setTestPostContent(e.target.value)}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-xs font-bold focus:border-aba-gold transition-all"
+                      placeholder="Enter post content for testing..."
+                    />
+                    <IndustrialButton 
+                      variant="primary" 
+                      size="md" 
+                      icon={Send} 
+                      loading={isCreatingPost}
+                      onClick={async () => {
+                        setIsCreatingPost(true);
+                        try {
+                          const result = await createAdminTestPost(testPostContent);
+                          console.log("POST TEST RESULT:", result);
+                          if (result.error) {
+                            addToast(`Injection Fault: ${result.error.message}`, "error");
+                          } else {
+                            addToast("Signal injected successfully into the grid.", "success");
+                            const updated = await fetchAdminPosts();
+                            setAdminPosts(updated);
+                          }
+                        } catch (e: any) {
+                          addToast(`System Crash: ${e.message}`, "error");
+                        } finally {
+                          setIsCreatingPost(false);
+                        }
+                      }}
+                    >
+                      Inject Signal
+                    </IndustrialButton>
+                  </div>
+                  <p className="text-[8px] font-mono text-white/20 uppercase tracking-widest">
+                    Note: This executes the snippet: auth.getUser() &rarr; insert(payload) &rarr; log result.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white/5 rounded-[3rem] border border-white/5 overflow-hidden">
+                 <table className="w-full text-left border-collapse">
+                    <thead>
+                       <tr className="border-b border-white/5">
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Timestamp</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Author</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Content</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Action</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                       {adminPosts.length === 0 ? (
+                         <tr>
+                            <td colSpan={4} className="p-20 text-center opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">
+                               The broadcast channel is silent.
+                            </td>
+                         </tr>
+                       ) : (adminPosts || []).map(post => (
+                          <tr key={post.id} className="hover:bg-white/5 transition-all">
+                             <td className="p-8 text-[10px] font-mono text-white/40">
+                                {new Date(post.created_at).toLocaleString()}
+                             </td>
+                             <td className="p-8">
+                                <div className="flex items-center gap-3">
+                                   <div className="w-8 h-8 rounded-lg bg-aba-gold/10 flex items-center justify-center font-black text-[10px] text-aba-gold border border-aba-gold/20 overflow-hidden">
+                                      {post.author?.avatar_url ? (
+                                        <img src={post.author.avatar_url} className="w-full h-full object-cover" />
+                                      ) : (
+                                        post.user_id.substring(0, 2).toUpperCase()
+                                      )}
+                                   </div>
+                                   <p className="text-xs font-black text-white">{post.author?.email || 'System Account'}</p>
+                                </div>
+                             </td>
+                             <td className="p-8">
+                                <p className="text-xs text-white/60 line-clamp-2">{post.content}</p>
+                             </td>
+                             <td className="p-8">
+                                <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest bg-white/5 text-white/40`}>
+                                   {post.action_type}
+                                </span>
+                             </td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
+            </div>
+          )}
+          {activeTab === "thrift" && (
+            <div className="animate-slide-up space-y-8">
+              <SectionHeader 
+                title="Industrial Thrift Units" 
+                subtitle={`Managing ${thriftAccounts.length} savings registries`}
+                icon={Landmark}
+              />
+              <div className="bg-white/5 rounded-[3rem] border border-white/5 overflow-hidden">
+                 <table className="w-full text-left border-collapse">
+                    <thead>
+                       <tr className="border-b border-white/5">
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Owner</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Cycle</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Total Saved</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Status</th>
+                          <th className="p-8 text-[10px] font-black uppercase tracking-widest text-white/40">Locked Until</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                       {thriftAccounts.length === 0 ? (
+                         <tr>
+                            <td colSpan={5} className="p-20 text-center opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">
+                               No thrift registries active in the grid.
+                            </td>
+                         </tr>
+                       ) : (thriftAccounts || []).map(acc => (
+                          <tr key={acc.id} className="hover:bg-white/5 transition-all">
+                             <td className="p-8">
+                                <p className="text-xs font-black text-white">{acc.user_email}</p>
+                             </td>
+                             <td className="p-8">
+                                <span className="text-[10px] font-black uppercase text-aba-gold">{acc.cycle}</span>
+                             </td>
+                             <td className="p-8 font-mono text-xs text-aba-green">
+                                ₦{(acc.total_saved || 0).toLocaleString()}
+                             </td>
+                             <td className="p-8">
+                                <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                                   acc.status === 'active' ? 'bg-aba-green/10 text-aba-green' :
+                                   acc.status === 'matured' ? 'bg-aba-gold/10 text-aba-gold' :
+                                   'bg-white/10 text-white/40'
+                                }`}>
+                                   {acc.status}
+                                </span>
+                             </td>
+                             <td className="p-8 text-[10px] font-mono text-white/40">
+                                {acc.locked_until ? new Date(acc.locked_until).toLocaleDateString() : 'N/A'}
+                             </td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
+            </div>
+          )}
           {activeTab === "registry" && (
             <div className="animate-slide-up space-y-8">
               <SectionHeader 
@@ -3084,34 +3118,12 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
             </div>
           )}
 
-           {activeTab === "diagnostics" && (
+          {activeTab === "diagnostics" && (
             <div className="animate-slide-up space-y-12 pb-20">
               <SectionHeader 
                 title="System Diagnostics" 
                 subtitle="Audit mission-critical schema, RLS policies, and financial flows"
                 icon={Terminal}
-                action={
-                  <div className="flex gap-4">
-                    <IndustrialButton
-                      variant="primary"
-                      size="sm"
-                      icon={isRunningDiagnostic ? Loader2 : RefreshCcw}
-                      loading={isRunningDiagnostic}
-                      onClick={handleRunDiagnostic}
-                    >
-                      Run Report
-                    </IndustrialButton>
-                    <IndustrialButton
-                      variant="danger"
-                      size="sm"
-                      icon={isRepairing ? Loader2 : Shield}
-                      loading={isRepairing}
-                      onClick={handleFullRepair}
-                    >
-                      Perform Full Repair
-                    </IndustrialButton>
-                  </div>
-                }
               />
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -3146,14 +3158,6 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
   const [newBranchName, setNewBranchName] = useState('');
   const [isCreatingBranch, setIsCreatingBranch] = useState(false);
   const [isSyncedWithMetadata, setIsSyncedWithMetadata] = useState(true);
-  const [diagnostic, setDiagnostic] = useState<any>(null);
-
-  useEffect(() => {
-    fetch('/api/git/diagnostic')
-      .then(res => res.json())
-      .then(setDiagnostic)
-      .catch(err => console.warn("Git diagnostic failed:", err));
-  }, []);
 
   const checkSyncWithMetadata = async (currentRepo: string) => {
     try {
@@ -3161,7 +3165,8 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
       if (response.ok) {
         const metadata = await response.json();
         if (metadata.repository && metadata.repository.url) {
-          setIsSyncedWithMetadata(true);
+          const cleanedMeta = cleanRepositoryName(metadata.repository.url);
+          setIsSyncedWithMetadata(!currentRepo || cleanedMeta === currentRepo);
         }
       }
     } catch (e) {
@@ -3227,24 +3232,9 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
             </h4>
             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Active Repository Signal</p>
           </div>
-          <div className="flex items-center gap-4">
-            {diagnostic && (
-              <div className="hidden md:flex flex-col items-end gap-1">
-                <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${diagnostic.has_token ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-amber-500/10 border-amber-500/20 text-amber-500 animate-pulse'}`}>
-                  {diagnostic.has_token ? <ShieldCheck size={12} /> : <AlertTriangle size={12} />}
-                  <span className="text-[9px] font-black uppercase tracking-widest">
-                    {diagnostic.has_token ? `Authenticated: ${diagnostic.github_api?.user || 'Active'}` : 'Public Rate Limits (No Token)'}
-                  </span>
-                </div>
-                {diagnostic.github_api?.status === 'auth_failed' && (
-                  <span className="text-[8px] text-red-500 font-bold uppercase tracking-widest">Invalid Token Signature</span>
-                )}
-              </div>
-            )}
-            <div className={`px-4 py-2 rounded-full border flex items-center gap-3 ${status.connected ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
-              <div className={`w-2 h-2 rounded-full ${status.connected ? 'bg-aba-green animate-pulse' : 'bg-red-500'}`} />
-              <span className="text-[10px] font-black uppercase tracking-widest">{status.connected ? 'Synchronized' : 'Disconnected'}</span>
-            </div>
+          <div className={`px-4 py-2 rounded-full border flex items-center gap-3 ${status.connected ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+            <div className={`w-2 h-2 rounded-full ${status.connected ? 'bg-aba-green animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-[10px] font-black uppercase tracking-widest">{status.connected ? 'Synchronized' : 'Disconnected'}</span>
           </div>
         </div>
 
@@ -3354,6 +3344,15 @@ const GitWorkspace: React.FC<any> = ({ status, loading, fullSync }) => {
         </div>
       </div>
 
+      <RepositoryManager 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onUpdate={async (newRepo) => {
+          setRepo(newRepo);
+          await sync(newRepo, branch);
+          addToast('repo synced successfully', 'success');
+        }}
+      />
     </div>
   );
 };

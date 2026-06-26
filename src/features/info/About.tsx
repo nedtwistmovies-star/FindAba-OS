@@ -9,7 +9,7 @@ import { SANDALS_BRAND } from '../../constants';
 import Logo from '../../components/Logo';
 
 const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void }> = ({ currentView, setView }) => {
-  const isSubView = false;
+  const isSubView = ['about-who', 'about-vision', 'about-mission'].includes(currentView);
   
   const protocols = [
     { 
@@ -94,7 +94,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
       <main className="max-w-5xl mx-auto px-8 py-24 space-y-32">
          
          {/* WHO WE ARE */}
-         {(currentView === 'about') && (
+         {(currentView === 'about' || currentView === 'about-who') && (
            <section id="who-we-are" className="space-y-12">
               <div className="flex items-center gap-4">
                  <div className="w-12 h-12 bg-aba-gold/10 rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20">
@@ -149,8 +149,8 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
 
          {/* VISION & MISSION */}
          <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {(currentView === 'about') && (
-              <div id="vision" className={`bg-aba-dark p-12 rounded-[4rem] border border-white/5 space-y-10 group hover:border-aba-gold/30 transition-all`}>
+            {(currentView === 'about' || currentView === 'about-vision') && (
+              <div id="vision" className={`bg-aba-dark p-12 rounded-[4rem] border border-white/5 space-y-10 group hover:border-aba-gold/30 transition-all ${currentView === 'about-vision' ? 'col-span-2' : ''}`}>
                  <div className="w-14 h-14 bg-aba-gold/10 rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20">
                     <Sparkles size={28} />
                  </div>
@@ -181,8 +181,8 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
               </div>
             )}
 
-            {(currentView === 'about') && (
-              <div id="mission" className={`bg-slate-50 dark:bg-white/5 p-12 rounded-[4rem] border border-slate-200 dark:border-white/10 space-y-10 group hover:border-aba-gold/30 transition-all`}>
+            {(currentView === 'about' || currentView === 'about-mission') && (
+              <div id="mission" className={`bg-slate-50 dark:bg-white/5 p-12 rounded-[4rem] border border-slate-200 dark:border-white/10 space-y-10 group hover:border-aba-gold/30 transition-all ${currentView === 'about-mission' ? 'col-span-2' : ''}`}>
                  <div className="w-14 h-14 bg-aba-green/10 rounded-2xl flex items-center justify-center text-aba-green border border-aba-green/20">
                     <Activity size={28} />
                  </div>

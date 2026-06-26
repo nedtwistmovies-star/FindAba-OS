@@ -2,7 +2,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
-import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal, ContactGateway } from '../components';
+import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal, ContactGateway, RepositoryManager } from '../components';
 import { SplashScreen } from '../components/SplashScreen';
 import AuthLoadingScreen from '../components/AuthLoadingScreen';
 import { AuthErrorBoundary } from './AuthErrorBoundary';
@@ -10,12 +10,14 @@ import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } fr
 import { ROUTE_MAP } from './router';
 import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
 import { syncGeminiConfig } from '../services/geminiService';
+import { initializeRepositoryConfig } from '../services/gitConfigService';
 import { PUBLIC_VIEWS } from '../constants/auth';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
+  console.log('STEP_1_APP_RENDER');
   // 1. All Context/Hooks First
-  const { isAuth, userRole, userIdentifier, user_id, profile, authLoading, handleAuthSuccess = () => {} } = useAuth();
+  const { isAuth, userRole, userIdentifier, user_id, profile, authLoading, bootDiagnostics, handleAuthSuccess = () => {} } = useAuth();
   const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
   const { 
     businesses = [], 
@@ -68,22 +70,7 @@ const AppContent: React.FC = () => {
 
   // 2. State Declarations
   const [isBooted, setIsBooted] = useState(false);
-  // 🔹 DEEP LINKING & REFERRAL SIGNAL CAPTURED ON MOUNT
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const referralCode = params.get('ref');
-    const targetView = params.get('view') as ViewState;
-    
-    if (referralCode) {
-      localStorage.setItem('findaba_referral_code', referralCode);
-      // Auto-route to signup if a referral is detected to simplify the conversion funnel
-      setView('signup');
-    }
-    
-    if (targetView && ROUTE_MAP[targetView]) {
-      setView(targetView);
-    }
-  }, [setView]);
+  const [isRepoManagerOpen, setIsRepoManagerOpen] = useState(false);
 
   const handleBootComplete = React.useCallback(() => {
     setIsBooted(true);
@@ -108,7 +95,50 @@ const AppContent: React.FC = () => {
     window.scrollTo(0, 0);
   }, [view]);
 
-  // 🔹 INITIALIZE CONFIG
+  // Global Keyboard shortcut listener for Ctrl+Shift+G
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        setIsRepoManagerOpen(prev => !prev);
+      }
+    };
+    const handleToggleRepoManager = () => {
+      setIsRepoManagerOpen(prev => !prev);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('toggle-repo-manager', handleToggleRepoManager);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('toggle-repo-manager', handleToggleRepoManager);
+    };
+  }, []);
+
+  // 🔹 INITIALIZE GIT REPOSITORY CONFIG FROM METADATA
+  useEffect(() => {
+    initializeRepositoryConfig()
+      .then(repo => console.log('[App] Programmatic Git configuration synchronized successfully:', repo))
+      .catch(err => console.error('[App] Failed programmatically setting git repository config:', err));
+  }, []);
+
+  // 🔹 NAVIGATION AFTER BOOT
+  useEffect(() => {
+    if (isBooted) {
+      if ((view as string) === 'splash') {
+        console.log('STEP_9_SET_VIEW', 'home');
+        setView('home');
+      }
+    }
+  }, [isBooted, view, setView]);
+
+  // Handle corruption or bypass in background without blocking initial view
+  useEffect(() => {
+    if (isBooted && bootDiagnostics.sessionCorruptionDetected) {
+      console.warn("Session corruption detected. Redirecting to login.");
+      setView('login');
+    }
+  }, [isBooted, bootDiagnostics.sessionCorruptionDetected, setView]);
+
   useEffect(() => {
     const initApp = async () => {
       try {
@@ -119,15 +149,6 @@ const AppContent: React.FC = () => {
     };
     initApp();
   }, []);
-
-  // 🔹 NAVIGATION AFTER BOOT
-  useEffect(() => {
-    if (isBooted) {
-      if ((view as string) === 'splash') {
-        setView('home');
-      }
-    }
-  }, [isBooted, view, setView]);
 
   const handleBusinessClick = (b: any) => {
     setSelectedBusiness(b);
@@ -212,8 +233,6 @@ const AppContent: React.FC = () => {
               onAuthSuccess={handleAuthSuccess}
               userEmail={userIdentifier}
               userRole={userRole}
-              profile={profile}
-              user_id={user_id}
               isRegistryLoading={businessLoading}
             />
           </Suspense>
@@ -232,6 +251,11 @@ const AppContent: React.FC = () => {
           isOpen={isContactModalOpen}
           onClose={() => setIsContactModalOpen(false)}
           business={businesses.find(b => b.id === contactBusinessId) || null}
+        />
+
+        <RepositoryManager 
+          isOpen={isRepoManagerOpen}
+          onClose={() => setIsRepoManagerOpen(false)}
         />
 
         {isOracleOpen && (

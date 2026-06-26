@@ -117,13 +117,13 @@ const Discover: React.FC<DiscoverProps> = ({ setView, onBusinessClick }) => {
               key={i} 
               onClick={() => {
                 if (cat.title === "About Aba") {
-                  setView('about');
+                  setView('about-aba');
                 } else if (cat.title === "Industries") {
                   setView('explore');
                 } else if (cat.title === "Success Stories") {
-                  setView('explore');
+                  setView('editorial');
                 } else if (cat.title === "Events") {
-                  setView('explore');
+                  setView('faces');
                 }
               }}
               className="group cursor-pointer relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/5 shadow-sm transition-standard hover:-translate-y-2 hover:border-aba-gold/30"

@@ -47,19 +47,19 @@ export const sendEmail = async (options: EmailOptions): Promise<{ success: boole
 export const sendWelcomeEmail = async (email: string, name: string, referralLink: string) => {
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h1 style="color: #004d2c;">Welcome to FindAba, ${name}!</h1>
-      <p>We're excited to have you as part of Aba's trade community.</p>
-      <p>Your account is ready. You can now explore the platform, chat with our AI assistant, and manage your business.</p>
+      <h1 style="color: #004d2c;">Welcome to FindAba City OS, ${name}!</h1>
+      <p>We're excited to have you as part of Enyimba's digital backbone.</p>
+      <p>Your account has been successfully initialized. You can now explore the registry, consult Kalu AI, and manage your industrial assets.</p>
       
       <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
         <h3 style="margin-top: 0;">Your Referral Link</h3>
-        <p>Share this link to earn rewards when others join:</p>
+        <p>Share this link to earn rewards when others join the registry:</p>
         <a href="${referralLink}" style="color: #d4af37; font-weight: bold; text-decoration: none;">${referralLink}</a>
       </div>
       
-      <p>If you have any questions, simply reply to this email.</p>
+      <p>If you have any questions, simply reply to this email or consult the Oracle in your dashboard.</p>
       <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #888;">FindAba • Aba, Nigeria</p>
+      <p style="font-size: 12px; color: #888;">FindAba City OS • Smart Logistics & Supply Chain • Aba, Nigeria</p>
     </div>
   `;
 
@@ -85,7 +85,7 @@ export const sendOrderReceivedEmail = async (email: string, orderId: string, amo
         <p style="margin: 5px 0;"><strong>Amount:</strong> ₦${amount.toLocaleString()}</p>
       </div>
       <p>We will notify you once your payment is confirmed and the order is finalized.</p>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba • Built for Trade</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Industrial Signal Secured</p>
     </div>
   `;
 
@@ -105,13 +105,13 @@ export const sendPaymentSuccessEmail = async (email: string, reference: string, 
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #d4af37; border-radius: 10px; background: #0f172a; color: #f8fafc;">
       <h1 style="color: #22c55e; border-bottom: 2px solid #334155; padding-bottom: 10px;">Payment Successful</h1>
       <p>Excellent news!</p>
-      <p>Payment successful. Your order is confirmed.</p>
+      <p>Payment successful. Your order is confirmed and the funds have been secured.</p>
       <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
         <p style="margin: 5px 0;"><strong>Transaction Ref:</strong> ${reference}</p>
         <p style="margin: 5px 0;"><strong>Amount Paid:</strong> ₦${amount.toLocaleString()}</p>
       </div>
-      <p>Your items are now being prepared for delivery.</p>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba • Payment Complete</p>
+      <p>Your industrial assets are now being prepared for fulfillment.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Financial Handshake Complete</p>
     </div>
   `;
 
@@ -137,7 +137,7 @@ export const sendAppointmentEmail = async (email: string, businessName: string, 
         <p style="margin: 5px 0;"><strong>Date/Time:</strong> ${dateTime}</p>
       </div>
       <p>Please ensure you arrive on time for your scheduled session.</p>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba • Appointment Scheduled</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Logistics Synchronized</p>
     </div>
   `;
 
@@ -163,8 +163,8 @@ export const sendMerchantNewOrderEmail = async (merchantEmail: string, orderId: 
         <p style="margin: 5px 0;"><strong>Customer:</strong> ${customerName}</p>
         <p style="margin: 5px 0;"><strong>Payout Value:</strong> ₦${amount.toLocaleString()}</p>
       </div>
-      <p>Please log in to your Merchant Dashboard to fulfill this request.</p>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba • Merchant Support</p>
+      <p>Please log in to your Merchant Dashboard to fulfill this request immediately.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Merchant Network Hub</p>
     </div>
   `;
 
@@ -184,15 +184,15 @@ export const sendOrderStatusUpdateEmail = async (email: string, status: string, 
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #d4af37; border-radius: 10px; background: #0f172a; color: #f8fafc;">
       <h1 style="color: #d4af37; border-bottom: 2px solid #334155; padding-bottom: 10px;">Order Status Update</h1>
       <p>Greetings artisan,</p>
-      <p>The status for your order has been updated to: <strong style="color: #22c55e;">${status.toUpperCase()}</strong></p>
+      <p>The signal for your order has been updated to: <strong style="color: #22c55e;">${status.toUpperCase()}</strong></p>
       
       <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 5px 0;"><strong>Tracking ID:</strong> ${trackingId}</p>
+        <p style="margin: 5px 0;"><strong>Tracking Signal:</strong> ${trackingId}</p>
         <p style="margin: 5px 0;"><strong>Value:</strong> ₦${amount.toLocaleString()}</p>
       </div>
 
-      <p>Your order is on the move. Check your dashboard for updates.</p>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba • Delivery Management</p>
+      <p>Your industrial cargo is moving through the network. Check your dashboard for real-time GIS tracking.</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Logistics & Cargo Management</p>
     </div>
   `;
 
@@ -238,19 +238,20 @@ export const sendProfileUpdateNotification = async (email: string, name: string)
 export const sendBusinessRegistrationEmail = async (email: string, businessName: string, tier: string) => {
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #d4af37; border-radius: 10px; background: #0f172a; color: #f8fafc;">
-      <h1 style="color: #d4af37; border-bottom: 2px solid #334155; padding-bottom: 10px;">Business Registration Successfully</h1>
-      <p>Hello,</p>
-      <p>Congratulations! Your business <strong>${businessName}</strong> has been successfully registered on FindAba.</p>
+      <h1 style="color: #d4af37; border-bottom: 2px solid #334155; padding-bottom: 10px;">Hub Enrollment Successful</h1>
+      <p>Greetings Artisan,</p>
+      <p>Congratulations! Your workshop <strong>${businessName}</strong> has been successfully enrolled in the FindAba Registry.</p>
       
       <div style="background: #1e293b; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 5px 0;"><strong>Business Name:</strong> ${businessName}</p>
-        <p style="margin: 5px 0;"><strong>Subscription Plan:</strong> ${tier}</p>
-        <p style="margin: 5px 0;"><strong>Status:</strong> Active on FindAba</p>
+        <p style="margin: 5px 0;"><strong>Workshop Name:</strong> ${businessName}</p>
+        <p style="margin: 5px 0;"><strong>Subscription Tier:</strong> ${tier}</p>
+        <p style="margin: 5px 0;"><strong>Hub Status:</strong> Pending Verification (Active on Registry)</p>
       </div>
       
-      <p>You can now manage your shop, list your products, and view your sales in the Merchant Dashboard.</p>
+      <p>You can now manage your catalog, respond to buyer signals, and view your trade analytics in the Merchant Portal.</p>
+      <p>Our verification team may contact you for physical site audit to upgrade your trust level to physically verified.</p>
       
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba • Merchant Support Team</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 30px;">FindAba City OS • Industrial Hub Network</p>
     </div>
   `;
 

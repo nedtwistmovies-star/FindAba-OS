@@ -43,7 +43,7 @@ export const SuccessTransition: React.FC<SuccessTransitionProps> = ({ onComplete
              transition={{ delay: 0.5 }}
              className="text-aba-gold text-xs font-bold uppercase tracking-[0.4em] opacity-80"
            >
-             You're all set
+             Authentication Successful
            </motion.p>
         </div>
       </div>
