@@ -148,6 +148,17 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cookieParser());
 
+// Mesh System Configuration Signal
+app.get("/api/config", (req, res) => {
+  res.json({
+    supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co',
+    supabaseKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
+    geminiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '',
+    openRouterKey: process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY || '',
+    paystackKey: process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || ''
+  });
+});
+
 // API Routes
 app.get("/api/health", (req, res) => {
   res.json({ 
@@ -162,6 +173,8 @@ app.get("/api/health", (req, res) => {
     }
   });
 });
+
+
 
 app.get("/api/git/diagnostic", async (req, res) => {
   const token = process.env.GITHUB_TOKEN;
@@ -723,6 +736,7 @@ app.post("/api/oracle", async (req, res) => {
 
   // Automatic Git Repo Connection
   app.get("/api/git/sync", async (req, res) => {
+    console.log(`[GitSync] Incoming Handshake Request | Origin: ${req.get('origin')} | Host: ${req.get('host')} | Cookie: ${req.cookies.github_token ? 'Present' : 'Missing'}`);
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main';
     const token = process.env.GITHUB_TOKEN || req.cookies.github_token;
@@ -1203,6 +1217,12 @@ app.post("/api/oracle", async (req, res) => {
       res.status(500).json({ error: "Failed to create branch", details: error.response?.data?.message || error.message });
     }
   });
+
+// Catch-all for unhandled API routes (MUST be after all other API routes, but before setupVite)
+app.all("/api/*", (req, res) => {
+  console.warn(`[Server] Unhandled API Request: ${req.method} ${req.url}`);
+  res.status(404).json({ error: `Mesh route not found: ${req.url}` });
+});
 
 // Setup Vite or Static Files
 async function setupVite() {

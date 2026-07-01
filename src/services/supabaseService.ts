@@ -336,6 +336,7 @@ export const fetchAutomationLogs = async () => {
 };
 
 export const fetchTasks = async () => {
+  await ensureAuth();
   const sb = getSupabase();
   if (!sb) return [];
   try {
@@ -347,6 +348,7 @@ export const fetchTasks = async () => {
 };
 
 export const createTaskLog = async (task: Partial<Task>) => {
+  await ensureAuth();
   const sb = getSupabase();
   if (!sb) throw new Error("Registry Offline");
   const { data, error } = await sb.from('tasks').insert([task]).select().single();
@@ -355,6 +357,7 @@ export const createTaskLog = async (task: Partial<Task>) => {
 };
 
 export const updateTaskItem = async (id: string, updates: Partial<Task>) => {
+  await ensureAuth();
   const sb = getSupabase();
   if (!sb) throw new Error("Registry Offline");
   const { data, error } = await sb.from('tasks').update(updates).eq('id', id).select().single();
@@ -363,6 +366,7 @@ export const updateTaskItem = async (id: string, updates: Partial<Task>) => {
 };
 
 export const deleteTaskItem = async (id: string) => {
+  await ensureAuth();
   const sb = getSupabase();
   if (!sb) throw new Error("Registry Offline");
   const { error } = await sb.from('tasks').delete().eq('id', id);
@@ -446,27 +450,41 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
         console.log(`[SupabaseService] Probing table: ${table}`);
         const query: any = client!.from(table).select('id').limit(1);
         const { error } = await query.abortSignal(controller.signal);
-        if (error && error.code === '42P01') {
-          console.warn(`[SupabaseService] Table ${table} missing`);
-          return table;
+        if (error) {
+          if (error.code === '42P01') {
+            console.warn(`[SupabaseService] Table ${table} missing`);
+            return { table, error: 'missing' };
+          }
+          if (error.code === '42501') {
+            console.warn(`[SupabaseService] Table ${table} permission denied (RLS)`);
+            return { table, error: 'permission_denied' };
+          }
         }
         console.log(`[SupabaseService] Table ${table} probe complete`);
         return null;
       } catch (e: any) {
         console.warn(`[SupabaseService] Table ${table} probe fail:`, e.message);
-        return null; // Ignore individual table fetch errors, possibly due to abort
+        return null; 
       }
     }));
 
     clearTimeout(timeoutId);
     console.log("[SupabaseService] checkDatabaseHealth probe finished");
 
-    const missingTables = results.filter(t => t !== null);
+    const missingTables = results.filter(r => r?.error === 'missing').map(r => r!.table);
+    const permissionIssues = results.filter(r => r?.error === 'permission_denied').map(r => r!.table);
     
     if (missingTables.length > 0) {
       return { 
         status: 'unhealthy' as const, 
         message: `Schema incomplete. Missing tables [${missingTables.join(', ')}].` 
+      };
+    }
+
+    if (permissionIssues.length > 0) {
+      return {
+        status: 'unhealthy' as const,
+        message: `Access restricted. Check RLS policies for [${permissionIssues.join(', ')}].`
       };
     }
     

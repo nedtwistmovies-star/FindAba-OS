@@ -842,6 +842,7 @@ export interface Task {
   status: 'pending' | 'completed';
   due_date?: string;
   priority: number;
+  assigned_to?: string;
   created_at: string;
   updated_at: string;
 }
