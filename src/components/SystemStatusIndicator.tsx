@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Wifi, WifiOff, Activity, RefreshCw, Server, AlertCircle 
+  Wifi, Activity, RefreshCw, Server, AlertCircle 
 } from 'lucide-react';
 
 export interface SystemStatus {
@@ -18,6 +18,8 @@ const SystemStatusIndicator: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  const [lastCheckError, setLastCheckError] = useState<string | null>(null);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -45,15 +47,19 @@ const SystemStatusIndicator: React.FC = () => {
         setLatency(duration);
         setStatus('connected');
         setLastChecked(new Date());
+        setLastCheckError(null);
       } else {
+        const errorText = await response.text().catch(() => 'No response body');
         setStatus('disconnected');
         setLatency(null);
+        setLastCheckError(`Server returned ${response.status}: ${errorText.slice(0, 50)}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       clearTimeout(timeoutId);
       console.warn('[SystemStatus] Periodic connectivity poll failed:', err);
       setStatus('disconnected');
       setLatency(null);
+      setLastCheckError(err.name === 'AbortError' ? 'Handshake Timeout (5s)' : `Network Fault: ${err.message}`);
     } finally {
       setIsSyncing(false);
     }
@@ -170,7 +176,7 @@ const SystemStatusIndicator: React.FC = () => {
                     ) : status === 'checking' ? (
                       <RefreshCw size={12} className="animate-spin text-amber-400" />
                     ) : (
-                      <WifiOff size={12} className="text-rose-400" />
+                      <Activity size={12} className="text-rose-400" />
                     )}
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${
                       status === 'connected' ? 'text-emerald-400' : status === 'checking' ? 'text-amber-400' : 'text-rose-400'
@@ -202,6 +208,11 @@ const SystemStatusIndicator: React.FC = () => {
                     <span>Last Verify: {lastChecked.toLocaleTimeString()}</span>
                   ) : (
                     <span>Awaiting handshake...</span>
+                  )}
+                  {lastCheckError && (
+                    <span className="block mt-1 text-rose-400 font-bold lowercase tracking-normal">
+                      Fault: {lastCheckError}
+                    </span>
                   )}
                   <span className="block mt-1">Host Node: Cloud Run Container</span>
                 </div>

@@ -35,22 +35,22 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
           <Lock size={40} />
         </div>
         <div className="space-y-3">
-          <h2 className="text-3xl font-bold text-white uppercase tracking-tighter">Authentication Required</h2>
+          <h2 className="text-3xl font-bold text-white uppercase tracking-tighter">Please Sign In</h2>
           <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.3em] max-w-xs mx-auto leading-relaxed">
-            Please establish a secure node connection to commit your hub to the registry.
+            Please sign in to your account to register your business.
           </p>
         </div>
         <button 
           onClick={() => setView('login')} 
           className="px-12 py-5 bg-aba-gold text-aba-deep rounded-2xl font-bold uppercase text-[10px] tracking-[0.3em] shadow-lg active:scale-95 transition-standard"
         >
-          Establish Handshake
+          Sign In
         </button>
         <button 
           onClick={() => setView('home')} 
           className="text-[9px] font-bold text-white/20 uppercase tracking-widest hover:text-white transition-colors"
         >
-          Return to Hub
+          Go Back
         </button>
       </div>
     );
@@ -94,7 +94,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
 
     const supabase = getSupabase();
     if (!supabase) {
-      addToast("Registry Offline: System signal weak.", "error");
+      addToast("We're having trouble connecting. Please check your internet.", "error");
       setLoading(false);
       return;
     }
@@ -112,12 +112,23 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
       }
 
       if (!activeUserId) {
-        throw new Error(
-          'Authentication session not found. Please login again.'
-        );
+        throw new Error('Authentication session not found. Please login again.');
       }
 
-      const { data, error } = await supabase
+      // 1. PRE-FLIGHT CHECK: Verify email uniqueness manually to provide better UI feedback 
+      // instead of raw database constraint errors.
+      const { data: existingBiz } = await supabase
+        .from('businesses')
+        .select('id, name')
+        .eq('email', formData.email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (existingBiz) {
+        throw new Error(`A hub with the email "${formData.email}" is already enrolled as "${existingBiz.name}". Please use a unique business email.`);
+      }
+
+    const REGISTRATION_TIMEOUT = 15000;
+      const registrationPromise = supabase
         .from('businesses')
         .insert([
           {
@@ -142,27 +153,31 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         .select()
         .single();
 
+      const { data, error } = await Promise.race([
+        registrationPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("We're having trouble saving your details. Please try again.")), REGISTRATION_TIMEOUT))
+      ]) as any;
+
       if (error) {
         console.error('Business registration error:', error);
+        if (error.code === '23505') throw new Error("This email or business name is already registered.");
         throw error;
       }
 
       if (data) {
-        // Notify Merchant via Email
-        try {
-          await sendBusinessRegistrationEmail(data.email, data.name, data.subscription_tier || 'Free');
-        } catch (e) {
-          console.warn("[Registry] Email notification protocol failure:", e);
-        }
+        // 🔹 ASYNCHRONOUS BACKGROUND NOTIFICATION
+        // Do not await this to prevent UI stalling on slow email services
+        sendBusinessRegistrationEmail(data.email, data.name, data.subscription_tier || 'Free')
+          .catch(e => console.warn("[FindAba] Email notification deferred or failed:", e));
 
         setRegisteredBusiness(data as any);
         setStep('success');
         onRegister(data as any);
-        addToast("Hub successfully committed to registry!", "success");
+        addToast("Your business has been registered successfully!", "success");
       }
     } catch (error: any) {
       console.error("Registration failed:", error);
-      addToast(`Registration failed: ${error.message || "Unknown error"}`, "error");
+      addToast(error.message || "Something went wrong during registration. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -174,9 +189,9 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         <PaystackOverlay 
           isOpen={showCheckout}
           amount={BUSINESS_PLANS.find(p => p.id === selectedPlan)?.monthlyAmount || 0}
-          email={userIdentifier || 'billing@sandalsroyalle.com'}
+          email={userIdentifier || 'billing@findaba.com'}
           userId={user_id || undefined}
-          label={`Hub Enrollment: ${BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name}`}
+          label={`Business Registration: ${BUSINESS_PLANS.find(p => p.id === selectedPlan)?.name}`}
           onSuccess={handlePaymentSuccess}
           onCancel={() => setShowCheckout(false)}
         />
@@ -186,7 +201,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
             <ArrowLeft size={20} className="md:w-6 md:h-6" />
           </button>
           <div className="text-center">
-            <h2 className="text-xl md:text-4xl font-bold text-white uppercase tracking-tighter">Hub Enrollment</h2>
+            <h2 className="text-xl md:text-4xl font-bold text-white uppercase tracking-tighter">Register Your Business</h2>
             <div className="flex items-center justify-center gap-2 mt-3">
                <div className="h-1 w-10 bg-aba-gold rounded-full" />
                <div className="h-1 w-2 bg-white/10 rounded-full" />
@@ -199,8 +214,8 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         <div className="max-w-6xl mx-auto space-y-12 md:space-y-20">
           <div className="flex justify-center">
             <div className="bg-white/5 p-1.5 rounded-2xl md:rounded-[2.5rem] border border-white/10 flex shadow-sm backdrop-blur-xl">
-              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>30 Day Hub</button>
-              <button onClick={() => setBillingCycle(BillingCycle.YEARLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard flex items-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>45 Day Cycle <span className="bg-aba-green text-white px-2 py-0.5 rounded text-[8px]">PRO</span></button>
+              <button onClick={() => setBillingCycle(BillingCycle.MONTHLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard ${billingCycle === BillingCycle.MONTHLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>30 Days</button>
+              <button onClick={() => setBillingCycle(BillingCycle.YEARLY)} className={`px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-[2rem] text-[10px] font-bold uppercase tracking-widest transition-standard flex items-center gap-2 ${billingCycle === BillingCycle.YEARLY ? 'bg-aba-gold text-aba-deep shadow-lg' : 'text-white/40'}`}>45 Days <span className="bg-aba-green text-white px-2 py-0.5 rounded text-[8px]">PRO</span></button>
             </div>
           </div>
 
@@ -225,16 +240,16 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                 </div>
                 <div className="mt-16 md:mt-20 space-y-8 md:space-y-10">
                   <div className="border-t border-white/10 pt-8 md:pt-10">
-                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-2">{billingCycle === BillingCycle.MONTHLY ? '30 Day Activation' : '45 Day Industrial Cycle'}</p>
+                    <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-2">{billingCycle === BillingCycle.MONTHLY ? '30 Day Activation' : '45 Day Growth Cycle'}</p>
                     <span className="text-3xl md:text-4xl font-bold text-white block">
-                      {plan.monthlyAmount === 0 ? 'Starter Hub' : `₦${(billingCycle === BillingCycle.MONTHLY ? plan.monthlyAmount : plan.yearlyAmount).toLocaleString()}`}
+                      {plan.monthlyAmount === 0 ? 'Basic' : `₦${(billingCycle === BillingCycle.MONTHLY ? plan.monthlyAmount : plan.yearlyAmount).toLocaleString()}`}
                     </span>
                   </div>
                   <button 
                     onClick={() => handlePlanSelect(plan.id)}
                     className={`w-full py-6 md:py-7 rounded-2xl md:rounded-[2rem] font-bold uppercase text-[10px] tracking-[0.3em] transition-standard shadow-lg ${selectedPlan === plan.id ? 'bg-aba-gold text-aba-deep' : 'bg-white/5 text-white/40 group-hover:bg-white group-hover:text-aba-deep'}`}
                   >
-                    Select Hub
+                    Select Plan
                   </button>
                 </div>
               </div>
@@ -246,9 +261,9 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                 <Shield size={32} className="md:w-10 md:h-10" />
              </div>
              <div className="space-y-3 md:space-y-4">
-                <h4 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Scale Protocol</h4>
+                <h4 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Scale Your Business</h4>
                 <p className="text-[10px] md:text-[11px] text-white/40 font-bold leading-relaxed uppercase tracking-widest">
-                  Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility within seconds of transfer commitment.
+                  Connect with customers everywhere. Register your business and start getting seen by thousands of traders and buyers online.
                 </p>
              </div>
           </div>
@@ -265,7 +280,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
             <ArrowLeft size={20} className="md:w-6 md:h-6" />
           </button>
           <div className="text-center">
-            <h2 className="text-xl md:text-4xl font-bold text-white uppercase tracking-tighter">Hub Specifications</h2>
+            <h2 className="text-xl md:text-4xl font-bold text-white uppercase tracking-tighter">Business Details</h2>
             <div className="flex items-center justify-center gap-2 mt-3">
                <div className="h-1 w-2 bg-aba-gold/20 rounded-full" />
                <div className="h-1 w-10 bg-aba-gold rounded-full" />
@@ -283,22 +298,22 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
                   <Store size={20} className="md:w-6 md:h-6" />
                 </div>
-                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Identity Matrix</h3>
+                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Business Information</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Workshop Name</label>
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Business Name</label>
                   <input 
                     required
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    placeholder="e.g. Master-Link Leather Hub"
+                    placeholder="e.g. Master-Link Sandals"
                     className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Industrial Category</label>
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">What do you do?</label>
                   <select 
                     value={formData.category}
                     onChange={e => setFormData({...formData, category: e.target.value as Category})}
@@ -316,23 +331,23 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
                   <Zap size={20} className="md:w-6 md:h-6" />
                 </div>
-                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Signal Protocol</h3>
+                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Contact Details</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Primary Email</label>
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Email Address</label>
                   <input 
                     required
                     type="email"
                     value={formData.email}
                     onChange={e => setFormData({...formData, email: e.target.value})}
-                    placeholder="master@hub.com"
+                    placeholder="support@yourbusiness.com"
                     className="w-full p-5 md:p-6 bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl text-white placeholder:text-white/10 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">WhatsApp Signal</label>
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">WhatsApp Number</label>
                   <input 
                     required
                     value={formData.phone_whatsapp}
@@ -350,12 +365,12 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
                   <MapPin size={20} className="md:w-6 md:h-6" />
                 </div>
-                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Logistics Grid</h3>
+                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Business Location</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Industrial Area</label>
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Area in Aba</label>
                   <select 
                     value={formData.area}
                     onChange={e => setFormData({...formData, area: e.target.value})}
@@ -365,7 +380,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                   </select>
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Physical Address</label>
+                  <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Street Address</label>
                   <input 
                     required
                     value={formData.address}
@@ -383,13 +398,13 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-aba-gold/10 rounded-xl md:rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20 shadow-inner">
                   <Camera size={20} className="md:w-6 md:h-6" />
                 </div>
-                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Visual Assets</h3>
+                <h3 className="text-lg md:text-xl font-bold uppercase tracking-tight text-white">Photos</h3>
               </div>
 
               <div className="space-y-6">
-                <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Workshop Hero Image</label>
+                <label className="text-[10px] font-bold text-white/20 uppercase tracking-widest ml-1">Featured Business Image</label>
                 <ImageUpload 
-                  label="Workshop Asset"
+                  label="Business Image"
                   onUpload={(url) => setFormData({...formData, image_url: url})} 
                   currentImage={formData.image_url}
                 />
@@ -405,10 +420,10 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
               disabled={loading}
               className="w-full py-8 text-sm tracking-[0.4em]"
             >
-              {loading ? <Loader2 className="animate-spin" /> : 'Commit Hub to Registry'}
+              {loading ? <Loader2 className="animate-spin" /> : 'Register Business'}
             </IndustrialButton>
             <p className="text-[10px] text-center text-white/20 font-bold uppercase tracking-widest">
-              By committing, you agree to the Enyimba Industrial Protocol and SANDALSroyalle Terms of Trade.
+              By continuing, you agree to our Terms of Service and Privacy Policy.
             </p>
           </div>
         </form>
@@ -431,9 +446,9 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
           </div>
 
           <div className="space-y-6 md:space-y-8">
-            <h2 className="text-3xl md:text-6xl font-bold text-white uppercase tracking-tighter leading-none">Signal Locked</h2>
+            <h2 className="text-3xl md:text-6xl font-bold text-white uppercase tracking-tighter leading-none">Welcome to FindAba!</h2>
             <p className="text-sm md:text-lg text-white/40 font-bold uppercase tracking-widest leading-relaxed max-w-lg mx-auto">
-              Your workshop has been successfully integrated into the FindAba Industrial Grid. Consensus reached.
+              Your business is now live. People can now find you and your products on FindAba.
             </p>
           </div>
 
@@ -442,15 +457,15 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                <div className="w-10 h-10 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold">
                   <LayoutGrid size={20} />
                </div>
-               <h4 className="text-sm font-bold text-white uppercase tracking-tight">Access Terminal</h4>
-               <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-relaxed">Manage your assets, products, and trade signals from your dedicated portal.</p>
+               <h4 className="text-sm font-bold text-white uppercase tracking-tight">Manage Business</h4>
+               <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-relaxed">Update your products, photos, and information anytime from your dashboard.</p>
             </div>
             <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 text-left space-y-4">
                <div className="w-10 h-10 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold">
                   <Globe size={20} />
                </div>
-               <h4 className="text-sm font-bold text-white uppercase tracking-tight">Global Visibility</h4>
-               <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-relaxed">Your hub is now visible to the global trade community. Prepare for incoming signals.</p>
+               <h4 className="text-sm font-bold text-white uppercase tracking-tight">Public Presence</h4>
+               <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-relaxed">Your profile is now visible to customers worldwide. Get ready for new orders!</p>
             </div>
           </div>
 
@@ -460,7 +475,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
             size="lg"
             className="w-full py-8 text-sm tracking-[0.4em]"
           >
-            Enter Control Center
+            Go to Dashboard
           </IndustrialButton>
         </div>
       </div>

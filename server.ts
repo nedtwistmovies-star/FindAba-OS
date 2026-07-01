@@ -9,8 +9,8 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from 'resend';
-import { sendPaymentSuccessEmail } from './src/services/emailService.ts';
-import * as WhatsApp from './src/services/whatsappService.ts';
+import { sendPaymentSuccessEmail } from './src/services/emailService';
+import * as WhatsApp from './src/services/whatsappService';
 
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -51,11 +51,63 @@ const getAI = (customKey?: string) => {
   });
 };
 
+const getOpenRouterAI = async (prompt: string, history: any[], catalog: BusinessContextItem[], model: string = "google/gemini-2.0-flash-001") => {
+  const key = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
+  if (!key) {
+    throw new Error("OPENROUTER_API_KEY_MISSING: The OpenRouter key is not configured on the server.");
+  }
+
+  const sys = `IDENTITY: FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. 
+               RULES: Prioritize Aba. Do NOT say 'God's Own State'. Use the registry: ${JSON.stringify(catalog)}`;
+
+  const messages = [
+    { role: "system", content: sys },
+    ...history.map(h => ({
+      role: h.role === 'user' ? 'user' : 'assistant',
+      content: typeof h.parts?.[0]?.text === 'string' ? h.parts[0].text : (h.parts?.[0] ? JSON.stringify(h.parts[0]) : '')
+    })),
+    { role: "user", content: prompt }
+  ];
+
+  const response = await axios.post(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      model: model,
+      messages: messages,
+      response_format: { type: "json_object" }
+    },
+    {
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+
+  const content = response.data.choices[0].message.content;
+  const result = JSON.parse(content);
+  return {
+    text: result.wisdom || result.text || "Signal lost.",
+    thoughtProcess: result.thought_process || result.thoughtProcess
+  };
+};
+
+interface BusinessContextItem {
+  name: string;
+  category: string;
+  product: string;
+  area: string;
+  address: string;
+  phone: string;
+}
+
 const ensureAuthenticated = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: "Missing identity signal (Auth Header)" });
   
   const token = authHeader.replace('Bearer ', '');
+  if (!supabase) return res.status(503).json({ error: "Identity core offline (Missing configuration)" });
+  
   const { data: { user }, error } = await supabase.auth.getUser(token);
   
   if (error || !user) {
@@ -98,8 +150,47 @@ app.use(cookieParser());
 
 // API Routes
 app.get("/api/health", (req, res) => {
-  console.log(`[Server] Health check requested from ${req.ip}`);
-  res.json({ status: "ok" });
+  res.json({ 
+    status: "ok", 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    env: {
+      hasGithubToken: !!process.env.GITHUB_TOKEN,
+      hasGeminiKey: !!(process.env.GEMINI_API_KEY || process.env.API_KEY),
+      hasSupabase: !!supabase
+    }
+  });
+});
+
+app.get("/api/git/diagnostic", async (req, res) => {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
+  
+  const diagnostic: any = {
+    env_repo: repo,
+    has_token: !!token,
+    token_preview: token ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : 'missing',
+  };
+
+  if (token) {
+    try {
+      const response = await axios.get("https://api.github.com/user", {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "FindAba-City-OS",
+          Accept: "application/vnd.github.v3+json"
+        }
+      });
+      diagnostic.github_api = { status: 'authenticated', user: response.data.login };
+    } catch (err: any) {
+      diagnostic.github_api = { status: 'auth_failed', error: err.message };
+    }
+  } else {
+    diagnostic.github_api = { status: 'public_only', warning: 'No GITHUB_TOKEN detected. Rate limits will apply.' };
+  }
+
+  res.json(diagnostic);
 });
 
   // Config Sync
@@ -126,20 +217,30 @@ app.get(["/api/config", "/api/config/"], (req, res) => {
 // Gemini Proxy
 app.post("/api/oracle", async (req, res) => {
   try {
-    const { prompt, history = [], catalog = [], type = 'search' } = req.body;
+    const { prompt, history = [], catalog = [], type = 'search', provider = 'gemini' } = req.body;
+    
+    const businessContext = catalog.slice(0, 50).map((b: any) => ({
+      name: b.name,
+      category: b.category,
+      product: b.primary_product_or_service,
+      area: b.area,
+      address: b.address,
+      phone: b.phone_whatsapp
+    }));
+
+    if (provider === 'openrouter' && type === 'search' && typeof prompt === 'string') {
+      try {
+        const result = await getOpenRouterAI(prompt, history, businessContext);
+        return res.json(result);
+      } catch (orErr: any) {
+        console.warn("[Server] OpenRouter failed, falling back to Gemini:", orErr.message);
+      }
+    }
+
     const customKey = req.headers['x-gemini-key'] as string;
     const ai = getAI(customKey);
     
     if (type === 'search') {
-      const businessContext = catalog.slice(0, 50).map((b: any) => ({
-        name: b.name,
-        category: b.category,
-        product: b.primary_product_or_service,
-        area: b.area,
-        address: b.address,
-        phone: b.phone_whatsapp
-      }));
-
       const sys = `IDENTITY: FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. 
                    RULES: Prioritize Aba. Do NOT say 'God's Own State'. Use the registry: ${JSON.stringify(businessContext)}`;
       
@@ -498,6 +599,15 @@ app.post("/api/oracle", async (req, res) => {
   });
 
   // 5. Developer Test: Raw Text Message
+  app.post("/api/whatsapp/hello", async (req, res) => {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ success: false, error: "Missing phone number" });
+    
+    console.log(`[WhatsApp] Dispatching HELLO WORLD TEMPLATE to ${phone}`);
+    const result = await WhatsApp.sendHelloWorld(phone);
+    res.json(result);
+  });
+
   app.post("/api/whatsapp/test", async (req, res) => {
     const { phone } = req.body;
     if (!phone) return res.status(400).json({ success: false, error: "Missing phone number" });
@@ -615,38 +725,37 @@ app.post("/api/oracle", async (req, res) => {
   app.get("/api/git/sync", async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main';
-    const token = req.headers["x-git-token"] || process.env.GITHUB_TOKEN || req.cookies.github_token;
+    const token = process.env.GITHUB_TOKEN || req.cookies.github_token;
 
     if (!repo) {
-      return res.status(400).json({ error: "GITHUB_REPO not configured for automatic sync" });
+      return res.status(400).json({ success: false, error: "GITHUB_REPO not configured" });
     }
 
-    // Robustness: Strip URL prefix and .git suffix if provided
-    repo = repo.replace(/^https?:\/\/github\.com\//i, '')
-               .replace(/\.git$/i, '')
-               .replace(/\/$/, '');
+    // Robustness: Strip URL prefix and .git suffix
+    repo = repo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/$/, '');
 
     try {
-      // Fetch the repository content (specifically looking for registry.json or similar)
       const [owner, name] = repo.split("/");
-      if (!owner || !name) {
-        return res.status(400).json({ error: "Invalid GITHUB_REPO format. Use owner/repo" });
+      if (!owner || !name) throw new Error(`Invalid repo format: ${repo}. Use owner/repo`);
+
+      console.log(`[GitSync] Polling GitHub: ${owner}/${name} (${branch}) | Auth: ${token ? 'Token Present' : 'Public/Cookie Only'}`);
+      
+      const config = {
+        timeout: 10000,
+        headers: {
+          "Accept": "application/vnd.github.v3+json",
+          "User-Agent": "FindAba-City-OS"
+        }
+      } as any;
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
 
+      const url = `https://api.github.com/repos/${owner}/${name}/contents/registry.json?ref=${branch}`;
+      
       try {
-        const url = `https://api.github.com/repos/${owner}/${name}/contents/registry.json?ref=${branch}`;
-        const response = await axios.get(
-          url,
-          {
-            headers: token ? { 
-              Authorization: `Bearer ${token}`,
-              Accept: "application/vnd.github.v3+json"
-            } : {
-              Accept: "application/vnd.github.v3+json"
-            },
-          }
-        );
-
+        const response = await axios.get(url, config);
         const content = Buffer.from(response.data.content, "base64").toString("utf-8");
         const registry = JSON.parse(content);
 
@@ -657,25 +766,43 @@ app.post("/api/oracle", async (req, res) => {
           data: registry 
         });
       } catch (fileError: any) {
-        // If the file is missing (404), return a success with empty data instead of a 500 error
         if (fileError.response?.status === 404) {
+          console.log(`[GitSync] Registry signal (registry.json) not found on branch ${branch}.`);
           return res.json({ 
             success: true, 
             repo, 
             lastUpdated: null,
             data: null,
-            message: "Registry file not found in repository. Ready for first commit."
+            message: "Registry base signal not found. Ready for initialization."
           });
         }
         throw fileError;
       }
     } catch (error: any) {
-      const errorData = error.response?.data || error.message;
-      const errorString = typeof errorData === 'object' ? JSON.stringify(errorData) : errorData;
-      console.error("Git Sync Error:", errorString);
-      res.status(500).json({ 
-        error: "Failed to sync with Git repository", 
-        details: errorString 
+      const status = error.response?.status || 500;
+      const details = error.response?.data?.message || error.message;
+      const isRateLimit = status === 403 && details.toLowerCase().includes('rate limit');
+      
+      console.error("[GitSync] Failed:", { status, details });
+      
+      let friendlyError = "GitHub Grid Sync Failed";
+      let suggestion = details;
+
+      if (status === 403 || status === 401) {
+        if (isRateLimit) {
+          suggestion = "GitHub API Rate Limit Exceeded. A GITHUB_TOKEN is required for high-traffic live apps. Set it in App Settings.";
+        } else if (!token) {
+          suggestion = "GitHub Handshake Denied. Please connect your GitHub account in the Control Room (Setup) or provide a GITHUB_TOKEN.";
+        }
+      } else if (status === 404) {
+        suggestion = `Repository '${repo}' not found or unreachable. Verify the GITHUB_REPO name.`;
+      }
+
+      res.status(status).json({ 
+        success: false,
+        error: friendlyError, 
+        details: suggestion,
+        status
       });
     }
   });
@@ -684,7 +811,7 @@ app.post("/api/oracle", async (req, res) => {
   app.post("/api/git/sync-full", async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || ''; // If empty, will fetch default branch
-    const token = req.headers["x-git-token"] || req.cookies.github_token || process.env.GITHUB_TOKEN;
+    const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
     const { message = "Full System Sync via FindAba City OS" } = req.body;
 
     if (!repo) {
@@ -704,6 +831,7 @@ app.post("/api/oracle", async (req, res) => {
       const headers = {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3+json",
+        "User-Agent": "FindAba-City-OS"
       };
 
       const gitClient = axios.create({ headers, timeout: 600000 }); // 10 minutes
@@ -829,10 +957,8 @@ app.post("/api/oracle", async (req, res) => {
       console.log(`[GitSync] Sync complete: ${commitRes.data.html_url}`);
       res.json({ success: true, commit: commitRes.data.html_url, warning });
     } catch (error: any) {
-      const errorData = error.response?.data || error.message;
-      const errorString = typeof errorData === 'object' ? JSON.stringify(errorData) : errorData;
-      console.error("Full Sync Error:", errorString);
-      res.status(500).json({ error: "Failed to perform full sync", details: errorString });
+      console.error("Full Sync Error:", error.response?.data || error.message);
+      res.status(500).json({ error: "Failed to perform full sync", details: error.response?.data?.message || error.message });
     }
   });
 
@@ -912,7 +1038,7 @@ app.post("/api/oracle", async (req, res) => {
   app.post("/api/git/commit", async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || '';
-    const token = req.headers["x-git-token"] || req.cookies.github_token || process.env.GITHUB_TOKEN;
+    const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
     const { files, message = "Update via FindAba City OS" } = req.body;
 
     if (!repo) {
@@ -940,6 +1066,7 @@ app.post("/api/oracle", async (req, res) => {
       const headers = {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3+json",
+        "User-Agent": "FindAba-City-OS"
       };
 
       const gitClient = axios.create({
@@ -1024,133 +1151,9 @@ app.post("/api/oracle", async (req, res) => {
         commit: `https://github.com/${owner}/${name}/commit/${newCommitSha}`
       });
     } catch (error: any) {
-      const errorData = error.response?.data || error.message;
-      const errorString = typeof errorData === 'object' ? JSON.stringify(errorData) : errorData;
-      console.error("Git Commit Error:", errorString);
+      console.error("Git Commit Error:", error.response?.data || error.message);
       res.status(500).json({ 
         error: "Failed to commit to GitHub", 
-        details: errorString 
-      });
-    }
-  });
-
-  // Check system Git configuration status
-  app.get("/api/git/status", async (req, res) => {
-    const envRepo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO;
-    const envToken = !!process.env.GITHUB_TOKEN;
-    const envBranch = process.env.GITHUB_BRANCH || 'main';
-
-    res.json({
-      configured: !!envRepo,
-      repo: envRepo || 'Not configured',
-      hasToken: envToken,
-      branch: envBranch,
-      node_env: process.env.NODE_ENV
-    });
-  });
-
-  // Purge node_modules from GitHub repository
-  app.post("/api/git/purge-node-modules", async (req, res) => {
-    let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
-    const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || '';
-    const token = req.headers["x-git-token"] || req.cookies.github_token || process.env.GITHUB_TOKEN;
-
-    if (!repo) {
-      return res.status(400).json({ error: "GITHUB_REPO not configured" });
-    }
-
-    repo = repo.replace(/^https?:\/\/github\.com\//i, '')
-               .replace(/\.git$/i, '')
-               .replace(/\/$/, '');
-
-    if (!token) {
-      return res.status(401).json({ error: "GitHub authentication required" });
-    }
-
-    try {
-      const [owner, name] = repo.split("/");
-      if (!owner || !name) {
-        return res.status(400).json({ error: "Invalid GITHUB_REPO format. Use owner/repo" });
-      }
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github.v3+json",
-      };
-      const gitClient = axios.create({ headers });
-
-      // 1. Get branch info & latest commit sha
-      const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
-      const targetBranch = branch || repoInfo.data.default_branch;
-      
-      const branchRes = await gitClient.get(`https://api.github.com/repos/${owner}/${name}/branches/${targetBranch}`);
-      const latestCommitSha = branchRes.data.commit.sha;
-      const baseTreeSha = branchRes.data.commit.commit.tree.sha;
-
-      // 2. Get recursive tree
-      console.log(`[GitPurge] Fetching recursive tree for tree SHA: ${baseTreeSha}`);
-      const treeRes = await gitClient.get(`https://api.github.com/repos/${owner}/${name}/git/trees/${baseTreeSha}?recursive=true`);
-      const allItems = treeRes.data.tree || [];
-
-      // 3. Filter out node_modules and keep only blob items to recreate clean tree
-      const matchedNodeModules = allItems.filter((item: any) => 
-        item.path.startsWith('node_modules/') || item.path.includes('/node_modules/')
-      );
-
-      if (matchedNodeModules.length === 0) {
-        return res.json({ 
-          success: true, 
-          message: "No node_modules files found in the remote repository. Your repository is already clean!" 
-        });
-      }
-
-      console.log(`[GitPurge] Found ${matchedNodeModules.length} node_modules items. Filtering them out...`);
-
-      // Only blobs should be in our final tree definition. Sub-directories are reconstructed.
-      const cleanTreeItems = allItems
-        .filter((item: any) => 
-          item.type === 'blob' && 
-          !item.path.startsWith('node_modules/') && 
-          !item.path.includes('/node_modules/')
-        )
-        .map((item: any) => ({
-          path: item.path,
-          mode: item.mode,
-          type: item.type,
-          sha: item.sha
-        }));
-
-      // 4. Create new tree (WITHOUT base_tree)
-      console.log(`[GitPurge] Re-creating tree with ${cleanTreeItems.length} files...`);
-      const newTreeRes = await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/trees`, {
-        tree: cleanTreeItems
-      });
-
-      // 5. Create commit
-      console.log(`[GitPurge] Creating commit...`);
-      const commitRes = await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/commits`, {
-        message: "Purge node_modules from repository",
-        tree: newTreeRes.data.sha,
-        parents: [latestCommitSha]
-      });
-
-      // 6. Update branch ref
-      console.log(`[GitPurge] Updating ref...`);
-      await gitClient.patch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${targetBranch}`, {
-        sha: commitRes.data.sha
-      });
-
-      console.log(`[GitPurge] Purge complete!`);
-      res.json({
-        success: true,
-        message: `Successfully purged ${matchedNodeModules.length} files from node_modules/ in your remote repository!`,
-        commit: commitRes.data.html_url
-      });
-
-    } catch (error: any) {
-      console.error("Purge node_modules Error:", error.response?.data || error.message);
-      res.status(500).json({ 
-        error: "Failed to purge node_modules from repository", 
         details: error.response?.data?.message || error.message 
       });
     }
@@ -1160,7 +1163,7 @@ app.post("/api/oracle", async (req, res) => {
   app.post("/api/git/branch", async (req, res) => {
     const { branch, from, repo: bodyRepo } = req.body;
     let repo = (req.query.repo as string) || bodyRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
-    const token = req.headers["x-git-token"] || req.cookies.github_token || process.env.GITHUB_TOKEN;
+    const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
 
     if (!repo || !token || !branch) {
       return res.status(400).json({ error: "Missing parameters for branch creation" });
@@ -1173,6 +1176,7 @@ app.post("/api/oracle", async (req, res) => {
       const headers = {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github.v3+json",
+        "User-Agent": "FindAba-City-OS"
       };
       const gitClient = axios.create({ headers });
 
@@ -1220,6 +1224,19 @@ async function setupVite() {
     });
   }
 }
+
+// Global Error Handler for all routes - MUST BE LAST
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('[Server] FATAL ROUTE ERROR:', err.stack || err);
+  if (res.headersSent) return next(err);
+  
+  res.status(500).json({ 
+    success: false, 
+    error: "A critical server error occurred within the City OS mesh.",
+    details: err.message,
+    status: 500
+  });
+});
 
 // Start Server if not on Vercel
 if (!process.env.VERCEL) {

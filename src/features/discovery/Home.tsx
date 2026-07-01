@@ -7,7 +7,7 @@ import { Logo, IndustrialButton, SectionHeader, ImageCarousel, BusinessCard } fr
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
 import { checkDatabaseHealth } from '../../services/supabaseService';
-import { useOracle, useAuth } from '../../providers';
+import { useOracle, useAuth, useLanguage } from '../../providers';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
 
 interface HomeProps {
@@ -19,6 +19,7 @@ interface HomeProps {
 }
 
 const CitySignals: React.FC = () => {
+  const { t } = useLanguage();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [marketDay, setMarketDay] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
@@ -48,7 +49,7 @@ const CitySignals: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wider">{currentDate}</span>
-          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest">{marketDay || '...'} Market Day</span>
+          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest">{marketDay || '...'} {t("Market Day", "Market Day")}</span>
         </div>
       </div>
 
@@ -62,7 +63,7 @@ const CitySignals: React.FC = () => {
           <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wider">
             {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
           </span>
-          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest leading-none">Aba Weather</span>
+          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest leading-none">{t("Aba Weather", "Aba Weather")}</span>
         </div>
       </div>
 
@@ -74,9 +75,9 @@ const CitySignals: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white leading-none">
-            {registryStatus === 'online' ? 'Registry Online' : 'Registry Offline'}
+            {registryStatus === 'online' ? t("Registry Online", "Registry Online") : t("Registry Offline", "Registry Offline")}
           </span>
-          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">System Status</span>
+          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">{t("System Status", "System Status")}</span>
         </div>
       </div>
     </div>
@@ -314,10 +315,10 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                   </p>
                 </div>
                 <button 
-                  onClick={() => setView('thrift-dashboard')} 
+                  onClick={() => setView('oracle')} 
                   className="w-full py-3.5 bg-white/5 hover:bg-aba-gold hover:text-aba-deep text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
                 >
-                  Access Savings Nodes
+                  Consult Smart Nodes
                 </button>
               </div>
 
@@ -337,10 +338,10 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                   </p>
                 </div>
                 <button 
-                  onClick={() => setView('wallet')} 
+                  onClick={() => setView('merchant-portal')} 
                   className="w-full py-3.5 bg-white/5 hover:bg-aba-gold hover:text-aba-deep text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
                 >
-                  Unlock Wallet Node
+                  Open Merchant Hub
                 </button>
               </div>
 

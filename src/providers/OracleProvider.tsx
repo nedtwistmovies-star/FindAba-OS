@@ -35,9 +35,20 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [postAuthAction, setPostAuthAction] = useState<{ type: string; payload: any } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setViewState] = useState<ViewState>(() => {
+    // 1. Check for URL parameters (?view=xxx)
     const urlParams = new URLSearchParams(window.location.search);
     const viewParam = urlParams.get('view');
     if (viewParam) return viewParam as ViewState;
+
+    // 2. Check for Path-based routing (/signup, /login)
+    const path = window.location.pathname.toLowerCase().slice(1);
+    if (path === 'signup' || path === 'login' || path === 'register') {
+      return path === 'register' ? 'register' : (path as ViewState);
+    }
+
+    // 3. Fallback to storage or splash
+    const saved = localStorage.getItem('findaba_current_view');
+    if (saved && saved !== 'splash') return saved as ViewState;
 
     return 'splash';
   });

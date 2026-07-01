@@ -82,7 +82,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
     const newId = `conv-${Date.now()}`;
     const newConv: Conversation = {
       id: newId,
-      title: 'New Signal',
+      title: 'New Chat',
       messages: [],
       lastUpdated: new Date().toISOString()
     };
@@ -106,7 +106,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
 
   const switchToOpenRouter = () => {
     localStorage.setItem('findaba_primary_ai', 'openrouter');
-    addToast("Primary Signal switched to OpenRouter Relay.", "info");
+    addToast("Switched to secondary connection.", "info");
     setErrorNode(null);
     setIsQuotaError(false);
   };
@@ -222,7 +222,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
     setIsRefining(true);
     try {
       const refinedText = await getSupportResponse(
-        `Rewrite this industrial trade query to be more professional, sophisticated, and technically clear for a master artisan context. Keep it concise. TEXT: "${input}"`,
+        `Rewrite this question to be clearer and easier to understand. Keep it simple. TEXT: "${input}"`,
         []
       );
       if (refinedText) setInput(refinedText.replace(/["']/g, '').trim());
@@ -265,7 +265,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       const newId = `conv-${Date.now()}`;
       const newConv: Conversation = {
         id: newId,
-        title: val.slice(0, 30) || 'New Conversation',
+        title: val.slice(0, 30) || 'New Chat',
         messages: [],
         lastUpdated: new Date().toISOString()
       };
@@ -278,7 +278,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       const userMsg: OracleMessage = { 
         id: `u-${Date.now()}`, 
         role: 'user', 
-        text: val || (pendingImage ? "Audit this hardware node spec." : ""), 
+        text: val || (pendingImage ? "Check this image." : ""), 
         imageData: pendingImage || undefined,
         timestamp: new Date().toISOString() 
       };
@@ -341,7 +341,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       if (res.thoughtProcess) setShowThinkingId(modelMsg.id);
     } catch (e: any) {
       console.error("Oracle Fault:", e);
-      let msg = e.message || "INSTITUTIONAL SIGNAL LOST. THE ORACLE IS RECALIBRATING.";
+      let msg = e.message || "Something went wrong. Let me try that again.";
       
       // Attempt to parse JSON error if detected
       if (msg.includes('{') && msg.includes('}')) {
@@ -457,7 +457,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
         <div className="absolute inset-0 z-[100] flex">
           <div className="w-72 bg-[#171717]/80 backdrop-blur-2xl h-full flex flex-col border-r border-white/5 animate-slide-right">
             <div className="p-4 flex items-center justify-between border-b border-white/5">
-              <h4 className="text-[12px] font-black uppercase tracking-widest text-white/40">Conversation Registry</h4>
+              <h4 className="text-[12px] font-black uppercase tracking-widest text-white/40">Chat History</h4>
               <button onClick={() => setIsSidebarOpen(false)} className="p-2 text-white/60 hover:text-white">
                 <X size={18} />
               </button>
@@ -504,7 +504,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
           <div className="flex items-center gap-2">
             <div className={`w-1.5 h-1.5 rounded-full ${signalLocked ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse'}`} />
             <span className="text-[12px] sm:text-[15px] font-black uppercase tracking-widest text-white/90 truncate">
-              FindAba Oracle v6.0
+              FindAba Assistant
             </span>
           </div>
           <div className="flex items-center gap-2 opacity-30 mt-0.5">
@@ -545,13 +545,13 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                 onClick={() => { setConversations([]); setCurrentConvId(null); setShowOptionsMenu(false); }}
                 className="w-full px-5 py-4 text-left text-[11px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 flex items-center gap-3 border-b border-white/5"
               >
-                <Trash2 size={16} /> Purge History
+                <Trash2 size={16} /> Delete All Chats
               </button>
               <button 
                 onClick={() => { onBack(); setShowOptionsMenu(false); }}
                 className="w-full px-5 py-4 text-left text-[11px] font-black uppercase tracking-widest text-white/80 hover:bg-white/5 flex items-center gap-3"
               >
-                <ArrowLeft size={16} /> Exit Oracle
+                <ArrowLeft size={16} /> Go Back
               </button>
             </div>
           )}
@@ -573,7 +573,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
 
             <div className="space-y-6">
               <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Select Voice Partner</label>
+                <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-1">Select Voice</label>
                 <div className="grid grid-cols-2 gap-3">
                   {(['Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'] as const).map(v => (
                     <button 
@@ -637,9 +637,9 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                 <Cpu size={32} />
               </div>
               <div className="text-center space-y-3">
-                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">Identity: Kalu v6</h2>
+                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">Kalu is here to help</h2>
                 <p className="text-[10px] sm:text-xs text-white/40 font-black uppercase tracking-[0.3em] max-w-xs mx-auto leading-relaxed">
-                  The primary industrial interface for Aba, Abia State.
+                  Your helpful assistant for all things Aba.
                 </p>
               </div>
               <div className="flex flex-wrap justify-center gap-2 max-w-md pt-4">
@@ -680,7 +680,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                     {m.thoughtProcess && (
                       <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/5 rounded-full">
                         <Activity size={10} className="text-aba-gold" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-aba-gold/60">Registry Logic</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-aba-gold/60">Thinking...</span>
                         <button 
                           onClick={() => setShowThinkingId(showThinkingId === m.id ? null : m.id)}
                           className="ml-1 opacity-40 hover:opacity-100 transition-all"
@@ -726,7 +726,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   <div className="w-1.5 h-1.5 bg-aba-gold rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <div className="w-1.5 h-1.5 bg-aba-gold rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Consulting the Registry...</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Searching for answers...</span>
               </div>
             </div>
           )}
@@ -738,7 +738,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   <AlertTriangle className={isQuotaError ? 'text-aba-gold' : 'text-aba-red'} size={24} />
                 </div>
                 <div>
-                  <h4 className="text-[12px] font-black uppercase tracking-widest opacity-40 mb-1">Signal Interrupted</h4>
+                  <h4 className="text-[12px] font-black uppercase tracking-widest opacity-40 mb-1">Connection Troubled</h4>
                   <p className="text-sm font-bold text-white/90">{errorNode}</p>
                 </div>
               </div>
@@ -757,7 +757,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   }}
                   fullWidth
                 >
-                  {isReconnecting ? 'Reconnecting...' : 'Reconnect Signal'}
+                  {isReconnecting ? 'Retrying...' : 'Try Again'}
                 </IndustrialButton>
                 <IndustrialButton 
                   variant="secondary" 
@@ -766,7 +766,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   onClick={switchToOpenRouter}
                   fullWidth
                 >
-                  Switch to OpenRouter
+                  Try secondary connection
                 </IndustrialButton>
                 <IndustrialButton 
                   variant="secondary" 
@@ -784,7 +784,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   onClick={onBack}
                   fullWidth
                 >
-                  Return to Hub
+                  Go Back
                 </IndustrialButton>
               </div>
             </div>
@@ -868,7 +868,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
             </div>
           </div>
           <p className="text-[10px] text-center mt-4 text-white/20 font-black uppercase tracking-[0.2em]">
-            Institutional Oracle Partner • FindAba City OS v6.0
+            FindAba Community Partner • FindAba
           </p>
         </div>
       </footer>

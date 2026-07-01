@@ -43,17 +43,29 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
 
   const handleGitHubLogin = async () => {
     setIsLoggingIn(true);
+    setErrorMessage(null);
     try {
-      const response = await fetch(`/api/auth/github/url?origin=${encodeURIComponent(window.location.origin)}`);
+      const response = await fetch(`/api/auth/github/url?origin=${encodeURIComponent(window.location.origin)}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server Error: ${response.status}`);
+      }
+      
       const { url } = await response.json();
       if (url) {
         const popup = window.open(url, 'github_oauth', 'width=600,height=700');
         if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-          setErrorMessage("Popup Blocked: Please allow popups for this site.");
+          setErrorMessage("Popup Blocked: Please allow popups for this site to authenticate.");
         }
+      } else {
+        throw new Error("Handshake signal incomplete (Missing URL).");
       }
-    } catch (err) {
-      setErrorMessage("Failed to initiate GitHub handshake.");
+    } catch (err: any) {
+      console.error("[SetupConnection] GitHub Handshake Failure:", err);
+      setErrorMessage(`GitHub Handshake Failure: ${err.message}`);
     } finally {
       setIsLoggingIn(false);
     }
@@ -182,38 +194,46 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
               <div className="space-y-4">
                 <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4">
                   <div className="space-y-2">
-                    <p className="text-[8px] text-white/50 uppercase tracking-widest leading-relaxed">
-                      1. Configure GitHub OAuth Callback URL:
+                    <p className="text-[10px] text-white/50 uppercase tracking-widest font-black flex items-center gap-2">
+                       GitHub Mesh Connectivity
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-white/30">
+                      Configure your OAuth callback in the GitHub Developer Console to synchronize this local station with established repos.
                     </p>
                     <div className="flex items-center gap-2 p-3 bg-black/40 rounded-xl border border-white/5">
                       <input 
                         readOnly
                         type="text" 
                         value={callbackUrl}
-                        className="bg-transparent border-none outline-none text-[8px] font-mono text-white/40 w-full truncate"
+                        className="bg-transparent border-none outline-none text-[9px] font-mono text-aba-gold w-full truncate"
                       />
-                      <button onClick={copyToClipboard} className="text-aba-gold hover:text-white transition-colors">
-                        {copied ? <Check size={14} /> : <Copy size={14} />}
+                      <button onClick={copyToClipboard} className="text-aba-gold hover:text-white transition-colors p-1" title="Copy Signal Redirect">
+                        {copied ? <Check size={14} /> : <Copy size={12} />}
                       </button>
                     </div>
-                    <p className="text-[7px] text-aba-gold/50 uppercase tracking-widest leading-relaxed italic">
-                      * Permanent Fix: If you see "Invalid Redirect URI", copy this URL and update your GitHub App settings.
-                    </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="text-[8px] text-white/50 uppercase tracking-widest leading-relaxed">
-                      2. Authenticate Industrial Partner:
-                    </p>
+                  <div className="space-y-3">
                     <button 
                       onClick={handleGitHubLogin}
                       disabled={isLoggingIn}
-                      className={`w-full py-4 rounded-xl font-black uppercase text-[9px] flex items-center justify-center gap-2 transition-all ${gitStatus.connected ? 'bg-aba-green/20 text-aba-green border border-aba-green/40' : 'bg-white/10 text-white border border-white/10 hover:bg-white/20'}`}
+                      className={`w-full py-4 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all ${
+                        gitStatus.connected 
+                        ? 'bg-aba-green/20 text-aba-green border border-aba-green/40 shadow-[0_0_15px_rgba(34,197,94,0.1)]' 
+                        : 'bg-aba-gold text-aba-dark border border-aba-gold hover:scale-[1.02]'
+                      }`}
                     >
                       {isLoggingIn ? <Loader2 className="animate-spin" size={14} /> : <Github size={14} />}
-                      {gitStatus.connected ? 'GitHub Connected' : 'Connect GitHub Account'}
+                      {gitStatus.connected ? 'GitHub Connected' : 'Initiate Handshake'}
                     </button>
+                    
+                    {errorMessage && (
+                      <div className="p-3 bg-aba-red/10 border border-aba-red/20 rounded-lg">
+                        <p className="text-[9px] font-black uppercase text-aba-red text-center tracking-wider">{errorMessage}</p>
+                      </div>
+                    )}
                   </div>
+                </div>
 
                   <div className="space-y-2">
                     <p className="text-[8px] text-white/50 uppercase tracking-widest leading-relaxed">
@@ -261,22 +281,21 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                     </div>
                   </div>
                 )}
+              
+                {errorMessage && <p className="text-[9px] font-black uppercase text-aba-red text-center">{errorMessage}</p>}
+              
+                <button 
+                  onClick={handleGitConnect} 
+                  disabled={gitLoading} 
+                  className="w-full bg-white text-aba-dark py-5 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
+                >
+                  {gitLoading ? <Loader2 className="animate-spin" size={16} /> : 'Verify Git Connection'}
+                </button>
+              
+                <button type="button" onClick={() => setStep('payment')} className="w-full text-white/30 py-2 font-black uppercase text-[8px] tracking-widest hover:text-white transition-colors">
+                  Skip Git Sync
+                </button>
               </div>
-              
-              {errorMessage && <p className="text-[9px] font-black uppercase text-aba-red text-center">{errorMessage}</p>}
-              
-              <button 
-                onClick={handleGitConnect} 
-                disabled={gitLoading} 
-                className="w-full bg-white text-aba-dark py-5 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
-              >
-                {gitLoading ? <Loader2 className="animate-spin" size={16} /> : 'Verify Git Connection'}
-              </button>
-              
-              <button type="button" onClick={() => setStep('payment')} className="w-full text-white/30 py-2 font-black uppercase text-[8px] tracking-widest hover:text-white transition-colors">
-                Skip Git Sync
-              </button>
-            </div>
           )}
 
           {step === 'payment' && (

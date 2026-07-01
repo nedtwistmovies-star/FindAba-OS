@@ -20,12 +20,14 @@ import { BentoGrid } from '../../components/BentoGrid';
 import { ImageUpload, MultiImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
 import { useToast } from '../../providers/ToastProvider';
+import { useLanguage, LanguageCode } from '../../providers/LanguageProvider';
 
 const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; userRole: string | null; myBusiness?: any }> = ({ setView, userEmail, userRole, myBusiness }) => {
   const isAuth = localStorage.getItem('findaba_is_auth') === 'true';
-  const isAdmin = userRole === 'admin' || localStorage.getItem('findaba_admin_auth') === 'true';
+  const isAdmin = userRole === 'admin' || userEmail === 'pastornelsonezi@gmail.com' || localStorage.getItem('findaba_admin_auth') === 'true';
   
   const { addToast } = useToast();
+  const { language, setLanguage, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'overview' | 'identity' | 'verification' | 'settings'>('overview');
   const [loading, setLoading] = useState(false);
   const [platformConfig, setPlatformConfig] = useState<PlatformConfig | null>(null);
@@ -262,21 +264,6 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   </button>
                 )}
 
-                <button 
-                  onClick={() => setView('hardware-audit')}
-                  className="w-full bg-white/5 backdrop-blur-xl p-8 rounded-[3rem] shadow-2xl border border-white/10 flex items-center justify-between group transition-all active:scale-[0.98] hover:border-aba-gold/30"
-                >
-                   <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center text-aba-gold shadow-2xl group-hover:scale-110 transition-transform">
-                        <Terminal size={32} />
-                      </div>
-                      <div className="text-left">
-                         <h4 className="text-xl font-black uppercase tracking-tight text-white leading-none group-hover:text-aba-gold transition-colors">Hardware Audit</h4>
-                         <p className="text-[9px] font-black text-aba-gold/60 uppercase tracking-[0.5em] mt-2">Analyze Migration Specs</p>
-                      </div>
-                   </div>
-                   <ChevronRight size={24} className="text-white/20 group-hover:text-aba-gold transition-all group-hover:translate-x-1" />
-                </button>
 
                 {isAdmin && (
                   <button 
@@ -443,39 +430,43 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
 
           {activeTab === 'settings' && (
             <div className="animate-slide-up space-y-12">
-              <SectionHeader title="System Settings" icon={Settings} />
+              <SectionHeader title={t("System Settings", "System Settings")} icon={Settings} />
               
               <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-10">
-                <SectionHeader title="User Preferences" icon={User} subtitle="Custom protocol parameters" />
+                <SectionHeader title={t("User Preferences", "User Preferences")} icon={User} subtitle="Custom protocol parameters" />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Preferred Dialect</label>
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">{t("Preferred Dialect", "Preferred Dialect")}</label>
                     <select 
-                      value={profile?.preferred_language || 'en'}
+                      value={language}
                       onChange={async (e) => {
-                        const lang = e.target.value;
-                        if (!profile) return;
+                        const lang = e.target.value as LanguageCode;
                         setLoading(true);
                         try {
-                          await updateUserProfile(profile.id, { preferred_language: lang });
-                          addToast("Linguistic preference synced", "success");
+                          await setLanguage(lang);
+                          if (profile) {
+                            await updateUserProfile(profile.id, { preferred_language: lang });
+                            // Notify via Resend
+                            sendProfileUpdateNotification(profile.email, profile.full_name || 'Citizen').catch(console.error);
+                          }
+                          addToast(t("Linguistic preference synced", "Linguistic preference synced"), "success");
                           await refreshData();
-                          // Notify via Resend
-                          sendProfileUpdateNotification(profile.email, profile.full_name || 'Citizen').catch(console.error);
                         } catch (err) {
-                          addToast("Sync fault in preferences", "error");
+                          addToast(t("Sync fault in preferences", "Sync fault in preferences"), "error");
                         } finally {
                           setLoading(false);
                         }
                       }}
                       className="w-full bg-black/40 border border-white/10 p-5 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs text-white uppercase font-black tracking-widest cursor-pointer"
                     >
-                      <option value="en">English (Official)</option>
-                      <option value="ig">Igbo (Zonal)</option>
-                      <option value="pcm">Pidgin (Regional)</option>
-                      <option value="yo">Yoruba</option>
-                      <option value="ha">Hausa</option>
+                      <option value="en">{t("English (Official)", "English (Official)")}</option>
+                      <option value="ig">{t("Igbo (Zonal)", "Igbo (Zonal)")}</option>
+                      <option value="pcm">{t("Pidgin (Regional)", "Pidgin (Regional)")}</option>
+                      <option value="yo">{t("Yoruba", "Yoruba")}</option>
+                      <option value="ha">{t("Hausa", "Hausa")}</option>
+                      <option value="fr">{t("French", "French")}</option>
+                      <option value="zh">{t("Chinese", "Chinese")}</option>
                     </select>
                   </div>
 
