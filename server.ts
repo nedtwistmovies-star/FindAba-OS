@@ -51,7 +51,7 @@ const getAI = (customKey?: string) => {
   });
 };
 
-const getOpenRouterAI = async (prompt: string, history: any[], catalog: BusinessContextItem[], model: string = "google/gemini-2.0-flash-001") => {
+const getOpenRouterAI = async (prompt: string, history: any[], catalog: BusinessContextItem[], model: string = "google/gemini-2.0-flash-exp:free") => {
   const key = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY;
   if (!key) {
     throw new Error("OPENROUTER_API_KEY_MISSING: The OpenRouter key is not configured on the server.");
@@ -69,27 +69,57 @@ const getOpenRouterAI = async (prompt: string, history: any[], catalog: Business
     { role: "user", content: prompt }
   ];
 
-  const response = await axios.post(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      model: model,
-      messages: messages,
-      response_format: { type: "json_object" }
-    },
-    {
-      headers: {
-        "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/json"
+  try {
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: model,
+        messages: messages,
+        response_format: { type: "json_object" }
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://ai.studio/build",
+          "X-Title": "FindAba City OS"
+        }
       }
-    }
-  );
+    );
 
-  const content = response.data.choices[0].message.content;
-  const result = JSON.parse(content);
-  return {
-    text: result.wisdom || result.text || "Signal lost.",
-    thoughtProcess: result.thought_process || result.thoughtProcess
-  };
+    const content = response.data.choices[0].message.content;
+    const result = JSON.parse(content);
+    return {
+      text: result.wisdom || result.text || "Signal lost.",
+      thoughtProcess: result.thought_process || result.thoughtProcess
+    };
+  } catch (err: any) {
+    if (err.response?.status === 404) {
+      console.warn(`[Server] OpenRouter model ${model} not found, retrying with fallback...`);
+      // Retry once with a more generic model if 404
+      const retryResponse = await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          model: "google/gemini-flash-1.5",
+          messages: messages,
+          response_format: { type: "json_object" }
+        },
+        {
+          headers: {
+            "Authorization": `Bearer ${key}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+      const content = retryResponse.data.choices[0].message.content;
+      const result = JSON.parse(content);
+      return {
+        text: result.wisdom || result.text || "Signal lost.",
+        thoughtProcess: result.thought_process || result.thoughtProcess
+      };
+    }
+    throw err;
+  }
 };
 
 interface BusinessContextItem {
@@ -291,10 +321,10 @@ app.post("/api/oracle", async (req, res) => {
     console.error("[Server] Oracle Fault:", err);
     
     // 🔹 Handle Quota/Billing errors specifically
-    if (err.message?.includes("429") || err.message?.includes("RESOURCE_EXHAUSTED")) {
+    if (err.message?.includes("429") || err.message?.includes("RESOURCE_EXHAUSTED") || err.status === 429) {
       return res.status(429).json({ 
         error: "Oracle energy depleted. The industrial signal requires a credit injection (AI Studio Billing).",
-        details: "429: Resource Exhausted"
+        details: "429: Resource Exhausted. Please open the 'Settings' menu (top right) -> 'Secrets' tab, and select a valid key for GEMINI_API_KEY."
       });
     }
 

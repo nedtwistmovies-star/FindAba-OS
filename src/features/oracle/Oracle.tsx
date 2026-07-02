@@ -740,6 +740,17 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                 <div>
                   <h4 className="text-[12px] font-black uppercase tracking-widest opacity-40 mb-1">Connection Troubled</h4>
                   <p className="text-sm font-bold text-white/90">{errorNode}</p>
+                  {isQuotaError && (
+                    <div className="mt-4 p-4 bg-aba-gold/10 border border-aba-gold/20 rounded-2xl">
+                      <p className="text-[11px] font-medium text-aba-gold leading-relaxed">
+                        <span className="font-black uppercase mr-2">Tip:</span>
+                        Your current API key has hit its limit. To fix this, open the 
+                        <span className="font-black mx-1">Settings</span> menu at the top right of AI Studio, 
+                        go to the <span className="font-black mx-1">Secrets</span> tab, 
+                        and select a valid key for <span className="font-black">GEMINI_API_KEY</span>.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

@@ -21,7 +21,7 @@ export const getOpenRouterStream = async (
   prompt: string,
   history: any[],
   catalog: Business[],
-  model: string = "google/gemini-2.0-flash-001"
+  model: string = "google/gemini-2.0-flash-exp:free"
 ) => {
   const key = getOpenRouterKey();
   if (!key) {
