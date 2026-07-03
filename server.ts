@@ -9,8 +9,8 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from 'resend';
-import { sendPaymentSuccessEmail } from './src/services/emailService';
-import * as WhatsApp from './src/services/whatsappService';
+import { sendPaymentSuccessEmail } from './src/services/emailService.server.js';
+import * as WhatsApp from './src/services/whatsappService.js';
 
 import { GoogleGenAI, Type } from "@google/genai";
 
