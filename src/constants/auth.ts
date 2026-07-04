@@ -25,5 +25,7 @@ export const PROTECTED_VIEWS: ViewState[] = [
   'profile', 
   'messages', 
   'cargo',
-  'admin'
+  'admin',
+  'tech-setup',
+  'registry-setup'
 ];

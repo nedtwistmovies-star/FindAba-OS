@@ -72,15 +72,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     finalRouteDecision: 'PENDING'
   });
 
-  // 🔹 PROGRESSIVE BOOT: Release gate quickly
+  // 🔹 PROGRESSIVE BOOT: Release gate if initialization hangs
   useEffect(() => {
     const timer = setTimeout(() => {
       if (bootStatus === 'BOOTING') {
-        console.log("[Auth] Progressive boot triggered. Releasing gate.");
+        console.warn("[Auth] Initialization taking too long. Releasing gate as guest fallback.");
         setAuthLoading(false);
         setBootStatus('READY');
       }
-    }, 1500); // 1.5s max wait for session before guest mode
+    }, 5000); // Increased to 5s for slower connections
     return () => clearTimeout(timer);
   }, [bootStatus]);
 

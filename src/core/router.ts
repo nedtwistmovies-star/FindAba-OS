@@ -20,6 +20,7 @@ export const ROUTE_MAP: Partial<Record<ViewState, any>> = {
   profile: lazy(() => import('../features/auth/Profile')),
   messages: lazy(() => import('../features/oracle/ChatView')),
   admin: lazy(() => import('../features/admin/Admin')),
+  'tech-setup': lazy(() => import('../features/tech/SetupConnection')),
   'buyer-portal': lazy(() => import('../features/finance/BuyerPortal')),
   'ad-manager': lazy(() => import('../features/merchant/AdManager')),
   login: lazy(() => import('../features/auth/Login')),

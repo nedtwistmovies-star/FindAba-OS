@@ -220,6 +220,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
 
       console.log("[AuthModal] Profile sync complete. Finalizing auth...");
+      localStorage.setItem('findaba_show_welcome', 'true');
       addToast("Welcome back to the industrial grid.", "success");
       
       if (data.user) {

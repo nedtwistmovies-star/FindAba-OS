@@ -28,6 +28,7 @@ import { AuthModal } from './AuthModal';
 import { ContactGateway } from './ContactGateway';
 import SystemStatusIndicator from './SystemStatusIndicator';
 import { LanguageSelector } from './LanguageSelector';
+import WelcomeOverlay from './WelcomeOverlay';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -56,5 +57,6 @@ export {
   AuthModal,
   ContactGateway,
   SystemStatusIndicator,
-  LanguageSelector
+  LanguageSelector,
+  WelcomeOverlay
 };

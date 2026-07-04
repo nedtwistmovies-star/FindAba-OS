@@ -2,7 +2,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
-import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal, ContactGateway } from '../components';
+import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal, ContactGateway, WelcomeOverlay } from '../components';
 import { SplashScreen } from '../components/SplashScreen';
 import AuthLoadingScreen from '../components/AuthLoadingScreen';
 import { AuthErrorBoundary } from './AuthErrorBoundary';
@@ -10,7 +10,7 @@ import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } fr
 import { ROUTE_MAP } from './router';
 import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
 import { syncGeminiConfig } from '../services/geminiService';
-import { PUBLIC_VIEWS } from '../constants/auth';
+import { PUBLIC_VIEWS, PROTECTED_VIEWS } from '../constants/auth';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
@@ -80,7 +80,7 @@ const AppContent: React.FC = () => {
       setView('signup');
     }
     
-    if (targetView && ROUTE_MAP[targetView]) {
+    if (targetView && ROUTE_MAP[targetView as ViewState]) {
       setView(targetView);
     }
   }, [setView]);
@@ -167,6 +167,29 @@ const AppContent: React.FC = () => {
   };
 
   const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || ROUTE_MAP['home'];
+  
+  // 🔹 AUTH PROTECTION LAYER
+  useEffect(() => {
+    if (!authLoading && isBooted) {
+      const isProtected = PROTECTED_VIEWS.includes(view as ViewState);
+      const isPublic = PUBLIC_VIEWS.includes(view as ViewState);
+      
+      if (isProtected && !isAuth) {
+        console.warn(`[Guard] Protected view ${view} accessed without auth. Redirecting to login.`);
+        setView('login');
+        return;
+      }
+
+      const isAdminOnly = view === 'admin' || view === 'tech-setup';
+      
+      if (isAdminOnly && userRole !== 'admin') {
+        console.warn(`[Guard] Admin view ${view} accessed by ${userRole}. Access denied.`);
+        setView('home');
+        return;
+      }
+    }
+  }, [view, isAuth, authLoading, isBooted, userRole, setView]);
+
   console.log('STEP_8_ROUTE_DECISION', view || 'home');
 
   const myBusiness = (businesses?.find ? businesses.find(b => b.user_id === user_id) : null) || null;
@@ -218,6 +241,21 @@ const AppContent: React.FC = () => {
             />
           </Suspense>
         )}
+
+        {/* 🔹 AUTHENTICATED WELCOME EXPERIENCE */}
+        <AnimatePresence>
+          {isAuth && (localStorage.getItem('findaba_show_welcome') === 'true') && (
+            <WelcomeOverlay 
+              userName={profile?.full_name || userIdentifier?.split('@')[0] || 'Citizen'}
+              onClose={() => {
+                localStorage.removeItem('findaba_show_welcome');
+                if (userRole === 'admin') setView('admin');
+                else if (myBusiness) setView('merchant-portal');
+                else setView('explore');
+              }}
+            />
+          )}
+        </AnimatePresence>
 
         <FeedbackToast toasts={toasts} onRemove={removeToast} />
 

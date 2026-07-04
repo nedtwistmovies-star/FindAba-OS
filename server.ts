@@ -9,8 +9,8 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from 'resend';
-import { sendPaymentSuccessEmail } from './src/services/emailService.server.js';
-import * as WhatsApp from './src/services/whatsappService.js';
+import { sendPaymentSuccessEmail } from './src/services/emailService';
+import * as WhatsApp from './src/services/whatsappService';
 
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -138,14 +138,57 @@ const ensureAuthenticated = async (req: Request, res: Response, next: NextFuncti
   const token = authHeader.replace('Bearer ', '');
   if (!supabase) return res.status(503).json({ error: "Identity core offline (Missing configuration)" });
   
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  
-  if (error || !user) {
-    return res.status(401).json({ error: "Invalid identity signal" });
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      return res.status(401).json({ error: "Invalid identity signal" });
+    }
+    
+    (req as any).user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Identity verification failed" });
   }
-  
-  (req as any).user = user;
-  next();
+};
+
+const ensureAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: "Unauthorized access (Missing token)" });
+
+  const token = authHeader.replace('Bearer ', '');
+  if (!supabase) return res.status(503).json({ error: "Identity core offline" });
+
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return res.status(401).json({ error: "Invalid token" });
+
+    // Hardcoded master admin check
+    const isAdminEmail = user.email === 'pastornelsonezi@gmail.com';
+    
+    if (isAdminEmail) {
+      (req as any).user = user;
+      return next();
+    }
+
+    // Secondary check: Database profiles table
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || profile?.role !== 'admin') {
+      console.warn(`[Security] Unauthorized admin access attempt by ${user.email}`);
+      return res.status(403).json({ error: "Access denied. Administrative privileges required." });
+    }
+
+    (req as any).user = user;
+    next();
+  } catch (err) {
+    console.error("[Security] Admin verification fault:", err);
+    res.status(500).json({ error: "Internal security fault" });
+  }
 };
 
 console.log("Initializing FindAba City OS Server...");
@@ -178,8 +221,8 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cookieParser());
 
-// Mesh System Configuration Signal
-app.get("/api/config", (req, res) => {
+// Mesh System Configuration Signal (SECURED)
+app.get("/api/config", ensureAdmin, (req, res) => {
   res.json({
     supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co',
     supabaseKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
@@ -190,7 +233,7 @@ app.get("/api/config", (req, res) => {
 });
 
 // API Routes
-app.get("/api/health", (req, res) => {
+app.get("/api/health", ensureAdmin, (req, res) => {
   res.json({ 
     status: "ok", 
     timestamp: new Date().toISOString(),
@@ -206,7 +249,7 @@ app.get("/api/health", (req, res) => {
 
 
 
-app.get("/api/git/diagnostic", async (req, res) => {
+app.get("/api/git/diagnostic", ensureAdmin, async (req, res) => {
   const token = process.env.GITHUB_TOKEN;
   const repo = process.env.GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
   
@@ -236,8 +279,8 @@ app.get("/api/git/diagnostic", async (req, res) => {
   res.json(diagnostic);
 });
 
-  // Config Sync
-app.get(["/api/config", "/api/config/"], (req, res) => {
+  // Config Sync (SECURED)
+app.get(["/api/config", "/api/config/"], ensureAdmin, (req, res) => {
   const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   console.log(`[Server] Config sync requested from ${ip} at ${new Date().toISOString()}`);
   
@@ -473,8 +516,8 @@ app.post("/api/oracle", async (req, res) => {
     }
   });
 
-  // Network Diagnostic Route
-  app.get("/api/debug/network", async (req, res) => {
+  // Network Diagnostic Route (SECURED)
+  app.get("/api/debug/network", ensureAdmin, async (req, res) => {
     const results: any = {
       timestamp: new Date().toISOString(),
       connectivity: {}
@@ -516,6 +559,37 @@ app.post("/api/oracle", async (req, res) => {
     res.json({ success: true });
   });
 
+  // GitHub Webhook Endpoint
+  app.post("/api/github/webhook", async (req, res) => {
+    const signature = req.headers['x-hub-signature-256'] as string;
+    const secret = process.env.GITHUB_WEBHOOK_SECRET;
+
+    if (secret && signature) {
+      const hmac = crypto.createHmac('sha256', secret);
+      const digest = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
+      
+      if (signature !== digest) {
+        console.warn("[GitHub Webhook] Invalid signature detected.");
+        return res.status(401).send('Invalid signature');
+      }
+    }
+
+    const event = req.headers['x-github-event'];
+    console.log(`[GitHub Webhook] Received ${event} event`);
+
+    // Handle push event to default branch
+    if (event === 'push') {
+      const branch = req.body.ref?.replace('refs/heads/', '');
+      const defaultBranch = process.env.GITHUB_BRANCH || 'main';
+      
+      if (branch === defaultBranch) {
+        console.log(`[GitHub Webhook] Push to ${branch} detected. Ready for auto-sync.`);
+      }
+    }
+
+    res.status(200).send('OK');
+  });
+
   // Email Sending Endpoint (Resend Integration with dynamic key support)
   app.post("/api/send-email", async (req, res) => {
     const { to, subject, html, from = "onboarding@findaba.com.ng", name, apiKey } = req.body;
@@ -554,8 +628,8 @@ app.post("/api/oracle", async (req, res) => {
   // Meta WhatsApp API Service Hub
   // -----------------------------
 
-  // Custom Test Handshake for Make.com auto-schema detection
-  app.post("/api/whatsapp/test-webhook", async (req, res) => {
+  // Custom Test Handshake for Make.com auto-schema detection (SECURED)
+  app.post("/api/whatsapp/test-webhook", ensureAdmin, async (req, res) => {
     const { webhookUrl } = req.body;
     if (!webhookUrl) {
       return res.status(400).json({ success: false, error: "Missing 'webhookUrl' parameter" });
@@ -764,8 +838,8 @@ app.post("/api/oracle", async (req, res) => {
     res.status(200).json({ status: "success" });
   });
 
-  // Automatic Git Repo Connection
-  app.get("/api/git/sync", async (req, res) => {
+  // Automatic Git Repo Connection (SECURED)
+  app.get("/api/git/sync", ensureAdmin, async (req, res) => {
     console.log(`[GitSync] Incoming Handshake Request | Origin: ${req.get('origin')} | Host: ${req.get('host')} | Cookie: ${req.cookies.github_token ? 'Present' : 'Missing'}`);
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main';
@@ -851,8 +925,8 @@ app.post("/api/oracle", async (req, res) => {
     }
   });
 
-  // Full System Sync (Server-side)
-  app.post("/api/git/sync-full", async (req, res) => {
+  // Full System Sync (Server-side) (SECURED)
+  app.post("/api/git/sync-full", ensureAdmin, async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || ''; // If empty, will fetch default branch
     const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
@@ -1006,8 +1080,8 @@ app.post("/api/oracle", async (req, res) => {
     }
   });
 
-  // Get all project files for full sync
-  app.get("/api/git/all-files", async (req, res) => {
+  // Get all project files for full sync (SECURED)
+  app.get("/api/git/all-files", ensureAdmin, async (req, res) => {
     try {
       const rootDir = process.cwd();
       const files: { path: string, data: string }[] = [];
@@ -1065,8 +1139,8 @@ app.post("/api/oracle", async (req, res) => {
     }
   });
 
-  // Update metadata.json
-  app.post("/api/metadata", async (req, res) => {
+  // Update metadata.json (SECURED)
+  app.post("/api/metadata", ensureAdmin, async (req, res) => {
     try {
       const metadataPath = path.join(process.cwd(), "metadata.json");
       const newMetadata = req.body;
@@ -1078,8 +1152,8 @@ app.post("/api/oracle", async (req, res) => {
     }
   });
 
-  // Commit to Git Repo (Atomic Multi-file Commit)
-  app.post("/api/git/commit", async (req, res) => {
+  // Commit to Git Repo (Atomic Multi-file Commit) (SECURED)
+  app.post("/api/git/commit", ensureAdmin, async (req, res) => {
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || '';
     const token = req.cookies.github_token || process.env.GITHUB_TOKEN;

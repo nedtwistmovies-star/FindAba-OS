@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { getSupabase } from '../services/supabaseService';
 
 export interface GitSyncStatus {
   connected: boolean;
@@ -14,9 +15,18 @@ export const useGitSync = () => {
   const [status, setStatus] = useState<GitSyncStatus>({ connected: false });
   const [loading, setLoading] = useState(false);
 
+  const getAuthHeaders = async (): Promise<Record<string, string>> => {
+    const supabase = getSupabase();
+    if (!supabase) return {};
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return {};
+    return { 'Authorization': `Bearer ${session.access_token}` };
+  };
+
   const sync = async (manualRepo?: string, manualBranch?: string) => {
     setLoading(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const savedRepo = localStorage.getItem('findaba_git_repo');
       const savedBranch = localStorage.getItem('findaba_git_branch');
       
@@ -32,8 +42,11 @@ export const useGitSync = () => {
       if (queryString) url += `?${queryString}`;
 
       const response = await fetch(url, {
-        credentials: 'include', // Crucial for sending github_token cookie in iframes
-        headers: { 'Accept': 'application/json' }
+        credentials: 'include',
+        headers: { 
+          'Accept': 'application/json',
+          ...authHeaders
+        }
       });
       const text = await response.text();
       
@@ -79,6 +92,7 @@ export const useGitSync = () => {
   const commit = async (files: { path: string; data: any }[], message?: string) => {
     setLoading(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const repo = localStorage.getItem('findaba_git_repo') || '';
       const branch = localStorage.getItem('findaba_git_branch') || '';
       
@@ -92,7 +106,10 @@ export const useGitSync = () => {
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
         credentials: 'include',
         body: JSON.stringify({ files, message })
       });
@@ -133,6 +150,7 @@ export const useGitSync = () => {
     const timeoutId = setTimeout(() => controller.abort(), 600000);
 
     try {
+      const authHeaders = await getAuthHeaders();
       const repo = localStorage.getItem('findaba_git_repo') || '';
       const branch = localStorage.getItem('findaba_git_branch') || '';
       
@@ -146,7 +164,10 @@ export const useGitSync = () => {
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
         credentials: 'include',
         body: JSON.stringify({ message }),
         signal: controller.signal

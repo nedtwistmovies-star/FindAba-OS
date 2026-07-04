@@ -165,6 +165,7 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
           updateDiagnostics({ status: 'READY', step: 'DONE', authResponse: { session_id: session?.access_token ? 'ACTIVE' : 'NONE' } });
           if (session?.user) {
             const user = session.user;
+            localStorage.setItem('findaba_show_welcome', 'true');
             handleAuthSuccess(user.email || '', user.user_metadata.full_name || 'User', 'registered', user.id);
             addToast("Welcome back!", "success");
             onAuthSuccess(user.email || '', user.user_metadata.full_name || 'User', 'registered', user.id);

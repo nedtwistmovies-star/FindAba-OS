@@ -2,7 +2,7 @@
 export type ViewState = 
   | 'discover' | 'home' | 'oracle' | 'cargo' | 'profile' | 'detail' 
   | 'explore' | 'messages' | 'merchant-portal' 
-  | 'register' | 'admin' | 'buyer-portal' | 'ad-manager' 
+  | 'register' | 'admin' | 'tech-setup' | 'buyer-portal' | 'ad-manager' 
   | 'pricing' | 'ad-checkout' | 'about'
   /* 🔹 COMPATIBILITY KEYS (DEPRECATED - REMOVE FROM CALLERS) */
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
