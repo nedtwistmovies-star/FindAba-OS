@@ -734,6 +734,67 @@ app.post("/api/oracle", async (req, res) => {
     res.json(result);
   });
 
+  // Meta WhatsApp Webhook Verification Handshake (GET)
+  app.get("/api/whatsapp/webhook", (req, res) => {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+
+    // Retrieve verification token from environment variable
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || "findaba_verify_token_123";
+
+    console.log(`[WhatsApp Webhook] Received verification request. mode: ${mode}, token: ${token}`);
+
+    if (mode === "subscribe" && token === verifyToken) {
+      console.log("[WhatsApp Webhook] Verification successful!");
+      return res.status(200).send(challenge);
+    } else {
+      console.warn("[WhatsApp Webhook] Verification failed. Token mismatch or invalid mode.");
+      return res.sendStatus(403);
+    }
+  });
+
+  // Meta WhatsApp Webhook Event Handler (POST)
+  app.post("/api/whatsapp/webhook", (req, res) => {
+    const body = req.body;
+
+    console.log("[WhatsApp Webhook] Received event payload:", JSON.stringify(body, null, 2));
+
+    if (body.object === "whatsapp_business_account") {
+      try {
+        for (const entry of body.entry || []) {
+          for (const change of entry.changes || []) {
+            if (change.field === "messages") {
+              const value = change.value;
+              const contacts = value.contacts || [];
+              const messages = value.messages || [];
+
+              for (const message of messages) {
+                const from = message.from; // Sender's phone number
+                const type = message.type;
+                const profileName = contacts.find((c: any) => c.wa_id === from)?.profile?.name || "Unknown Business/User";
+
+                console.log(`[WhatsApp Incoming] Message from ${profileName} (${from}) of type "${type}"`);
+
+                if (type === "text") {
+                  const textBody = message.text?.body;
+                  console.log(`[WhatsApp Incoming] Text Content: "${textBody}"`);
+                } else {
+                  console.log(`[WhatsApp Incoming] Non-text message details:`, JSON.stringify(message, null, 2));
+                }
+              }
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error("[WhatsApp Webhook] Error parsing webhook payload:", err.message);
+      }
+      return res.status(200).send("EVENT_RECEIVED");
+    } else {
+      return res.sendStatus(404);
+    }
+  });
+
   // Paystack Webhook Handler
   app.post("/api/paystack-webhook", async (req, res) => {
     const secret = process.env.PAYSTACK_SECRET_KEY;
