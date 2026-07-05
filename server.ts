@@ -825,7 +825,7 @@ app.post("/api/oracle", async (req, res) => {
       const bookingId = metadata?.booking_id;
       const orderId = metadata?.order_id;
 
-      if (!userId && !orderId) {
+      if (!userId && !) {orderId
         console.error("[Webhook] Missing user identification in metadata");
         return res.status(400).json({ error: "Missing user/order identification" });
       }
