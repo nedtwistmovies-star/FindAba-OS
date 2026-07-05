@@ -48,6 +48,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   Activity,
+  Battery,
+  BatteryCharging,
+  Sun,
+  Moon,
 } from "lucide-react";
 import Logo from "./Logo";
 import { generateWelcomeMessage } from "../services/geminiService";
@@ -59,6 +63,8 @@ import {
 import { useAuth } from "../providers/AuthProvider";
 import { useBusiness } from "../providers/BusinessProvider";
 import { useLanguage } from "../providers/LanguageProvider";
+import { useTheme } from "../providers/ThemeProvider";
+import { useBattery } from "../hooks/useBattery";
 import { useGitSync } from "../hooks/useGitSync";
 import { SANDALS_BRAND } from "../constants";
 import NotificationCenter from "./NotificationCenter";
@@ -105,6 +111,37 @@ const SystemClock: React.FC = () => {
           {timeStr}
         </span>
       </div>
+    </div>
+  );
+};
+
+const BatteryIndicator: React.FC = () => {
+  const { level, charging, supported } = useBattery();
+  const { isDark } = useTheme();
+
+  if (!supported) return null;
+
+  const percentage = Math.round(level * 100);
+  
+  let batteryColor = "text-emerald-500";
+  if (level <= 0.2) {
+    batteryColor = "text-rose-500 animate-pulse";
+  } else if (level <= 0.5) {
+    batteryColor = "text-amber-500";
+  }
+
+  return (
+    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold font-mono select-none ${
+      isDark 
+        ? "bg-white/5 border-white/10 text-white/70" 
+        : "bg-black/5 border-black/10 text-aba-deep/70"
+    }`} title="Device Battery Level">
+      {charging ? (
+        <BatteryCharging size={13} className="text-emerald-400 animate-pulse" />
+      ) : (
+        <Battery size={13} className={batteryColor} />
+      )}
+      <span>{percentage}%</span>
     </div>
   );
 };
@@ -209,6 +246,7 @@ const Layout: React.FC<LayoutProps> = ({
   const { addToast } = useToast();
   const { language, setLanguage, t } = useLanguage();
   const { userIdentifier, userName, isAuth, profile, userRole } = useAuth();
+  const { theme, toggleTheme, isDark } = useTheme();
   const safeProfile = profile || {};
   const {
     searchQuery,
@@ -374,28 +412,7 @@ const Layout: React.FC<LayoutProps> = ({
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const userDarkMode = safeProfile?.dark_mode;
-  const isDarkThemeActive =
-    userDarkMode !== undefined
-      ? userDarkMode
-      : [
-          "discover",
-          "home",
-          "editorial",
-          "editorial-detail",
-          "oracle",
-          "admin",
-          "srts-dashboard",
-          "sandals-hotels",
-          "lab",
-          "about",
-          "feed",
-          "login",
-          "purple-fleet",
-          "driver-console",
-          "fleet-admin",
-          "wallet",
-        ].includes(currentView);
+  const isDarkThemeActive = isDark;
 
   const PUBLIC_VIEWS: ViewState[] = [
     "splash",
@@ -702,6 +719,28 @@ const Layout: React.FC<LayoutProps> = ({
                 {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
               </span>
             </div>
+
+            {/* Battery Level Indicator */}
+            <BatteryIndicator />
+
+            {/* Daylight Mode Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2.5 rounded-xl border transition-all flex items-center justify-center ${
+                isDarkThemeActive 
+                  ? "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-aba-gold" 
+                  : "bg-black/5 border-black/10 text-aba-deep hover:bg-black/10 hover:border-aba-green"
+              }`}
+              title={isDarkThemeActive ? "Switch to Daylight Mode" : "Switch to Dark OS Mode"}
+              aria-label="Toggle Theme"
+              id="theme-toggle-btn"
+            >
+              {isDarkThemeActive ? (
+                <Sun size={15} className="text-aba-gold" />
+              ) : (
+                <Moon size={15} className="text-aba-green" />
+              )}
+            </button>
 
             <div className="hidden md:block">
               <SystemClock />

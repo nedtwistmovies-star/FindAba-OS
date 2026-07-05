@@ -89,12 +89,12 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
         setDriver(d);
         setOnline(d.status === 'online');
         localStorage.setItem('findaba_user_email', authEmail);
-        addToast("Driver Handshake Verified.", "success");
+        addToast("Welcome back, Driver.", "success");
       } else {
-        throw new Error("User is not registered as a driver node.");
+        throw new Error("You are not registered as a driver.");
       }
     } catch (e: any) {
-      addToast(e.message || "Auth Signal Failed", "error");
+      addToast(e.message || "Login failed", "error");
     } finally {
       setIsLoggingIn(false);
     }
@@ -119,7 +119,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
         startMovement();
       }
     } catch (e) {
-      addToast("Signal failure. Registry could not sync.", "error");
+      addToast("Connection issue. Could not update status.", "error");
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
       setRoute([]); // Clear old route
       startMovement();
     } catch (e) {
-      addToast("Handshake failed.", "error");
+      addToast("Could not accept the request.", "error");
     }
   };
 
@@ -151,11 +151,11 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
 
   const handlePanicSignal = () => {
     setPanicActive(true);
-    addToast("SILENT SOS BROADCASTED. Command center is monitoring your live GPS node. Protocol logged.", "error");
+    addToast("EMERGENCY SIGNAL SENT. We are monitoring your live location. Help is being notified.", "error");
   };
 
   const handleReportIncident = () => {
-    addToast(`INCIDENT LOGGED: ${incidentType} at Partner Perimeter. Signal dispatched to Fleet Control.`, "info");
+    addToast(`INCIDENT REPORTED: ${incidentType}. Our team has been notified.`, "info");
     setShowIncidentReport(false);
   };
 
@@ -193,7 +193,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
     const end = geocodeAddress(currentRide.dropoff_addr);
     const path = generateRoutePath(start, end);
     setRoute(path);
-    addToast("Route Signal Synchronized.", "success");
+    addToast("Route updated.", "success");
   };
 
   const handlePrintWaybill = () => {
@@ -229,13 +229,13 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
           created_at: new Date().toISOString()
         });
       }
-      addToast("Passenger Rating Committed to Registry.", "success");
+      addToast("Passenger Rating Saved.", "success");
       setShowRatingModal(false);
       setCurrentRide(null);
       setPassengerRating(5);
       setPassengerFeedback('');
     } catch (e) {
-      addToast("Rating sync failed.", "error");
+      addToast("Rating failed to save.", "error");
     } finally {
       setLoading(false);
     }
@@ -286,7 +286,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
   return (
     <div className="flex-1 flex flex-col bg-[#0f001a] animate-fade-in font-sans relative text-white h-screen">
       
-      {/* COMMAND MAP INTERFACE */}
+      {/* DRIVER MAP */}
       <div className="h-[45vh] relative shrink-0">
         <MapView 
           businesses={[]} 
@@ -317,13 +317,13 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                 <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] mx-auto flex items-center justify-center border border-white/10">
                    <Shield size={48} className="text-white/20" />
                 </div>
-                <p className="text-[12px] font-black uppercase text-white/40 tracking-[0.5em]">Command Station Offline</p>
+                <p className="text-[12px] font-black uppercase text-white/40 tracking-[0.5em]">You are offline</p>
              </div>
           </div>
         )}
       </div>
 
-      {/* DASHBOARD CONTROL PANEL */}
+      {/* DRIVER DASHBOARD */}
       <div className="flex-1 -mt-8 relative z-[400] bg-[#1a0033] rounded-t-[3rem] shadow-[0_-15px_80px_rgba(0,0,0,0.5)] p-6 overflow-y-auto scrollbar-hide border-t border-white/10">
          <div className="max-w-2xl mx-auto w-full space-y-8">
             
@@ -333,11 +333,11 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                      <User size={28} className="text-aba-gold" />
                   </div>
                   <div>
-                     <h3 className="text-lg font-black uppercase tracking-tight text-white">Partner: {driver?.full_name || 'SIG-09'}</h3>
+                     <h3 className="text-lg font-black uppercase tracking-tight text-white">Driver: {driver?.full_name || 'Driver'}</h3>
                      <div className="flex items-center gap-2 mt-0.5">
                         <div className="flex items-center gap-1">
                            <ShieldCheck size={12} className="text-aba-gold" />
-                           <span className="text-[8px] font-black uppercase tracking-widest text-aba-gold">{driver?.compliance_level || 'Level 1: Verified'}</span>
+                           <span className="text-[8px] font-black uppercase tracking-widest text-aba-gold">{driver?.compliance_level || 'Verified Driver'}</span>
                         </div>
                         <div className="flex items-center gap-1">
                            {driver?.nin_verified && <span className="px-1 py-0.5 bg-aba-gold text-aba-dark text-[6px] font-black rounded-full uppercase">NIN</span>}
@@ -364,20 +364,20 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                  
                  <div className="flex justify-between items-start relative z-10">
                     <div className="space-y-1">
-                       <p className="text-[9px] font-black uppercase text-aba-gold/60 tracking-[0.2em]">Incoming Trade Request</p>
-                       <h4 className="text-2xl font-black uppercase tracking-tighter text-white">{rideRequest.passenger_name || 'Executive Citizen'}</h4>
+                       <p className="text-[9px] font-black uppercase text-aba-gold/60 tracking-[0.2em]">New Order Request</p>
+                       <h4 className="text-2xl font-black uppercase tracking-tighter text-white">{rideRequest.passenger_name || 'Passenger'}</h4>
                        <div className="flex items-center gap-2 text-aba-gold">
                           <div className="flex items-center">
                             {[...Array(5)].map((_, i) => (
                               <Star key={i} size={10} fill={i < 4 ? "currentColor" : "none"} />
                             ))}
                           </div>
-                          <span className="text-[9px] font-black">{rideRequest.passenger_rating || 5.0} Integrity Index</span>
+                          <span className="text-[9px] font-black">{rideRequest.passenger_rating || 5.0} Rating</span>
                        </div>
                     </div>
                     <div className="text-right">
                        <p className="text-2xl font-black text-aba-green tracking-tighter">₦{rideRequest.amount?.toLocaleString()}</p>
-                       <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Registry Settlement</p>
+                       <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Payment Amount</p>
                     </div>
                  </div>
 
@@ -385,14 +385,14 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                     <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-tight text-white">
                        <Navigation size={16} className="text-aba-green" /> 
                        <div>
-                          <p className="text-[7px] text-white/40">Pickup Signal</p>
+                          <p className="text-[7px] text-white/40">Pickup Address</p>
                           {rideRequest.pickup_addr}
                        </div>
                     </div>
                     <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-tight text-white">
                        <MapPin size={16} className="text-red-500" /> 
                        <div>
-                          <p className="text-[7px] text-white/40">Target Perimeter</p>
+                          <p className="text-[7px] text-white/40">Drop-off Address</p>
                           {rideRequest.dropoff_addr}
                        </div>
                     </div>
@@ -403,17 +403,17 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                        <div className="flex items-center gap-2">
                           <Car size={14} className="text-aba-gold" />
                           <div>
-                            <p className="text-[8px] font-black uppercase tracking-widest leading-none">Vehicle Unit</p>
+                            <p className="text-[8px] font-black uppercase tracking-widest leading-none">Vehicle Type</p>
                             <p className="text-[10px] font-bold uppercase text-white/60 mt-0.5">{rideRequest.vehicle_class}</p>
                           </div>
                        </div>
-                       <span className="text-[7px] font-mono bg-aba-gold/10 text-aba-gold px-2 py-0.5 rounded-md border border-aba-gold/20">VESSEL_AUTH_PASS</span>
+                       <span className="text-[7px] font-mono bg-aba-gold/10 text-aba-gold px-2 py-0.5 rounded-md border border-aba-gold/20">VERIFIED VEHICLE</span>
                     </div>
 
                     <div className="flex gap-3">
                        <button onClick={() => setRideRequest(null)} className="flex-1 py-4 bg-white/5 text-white/40 rounded-xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all border border-white/10">Decline</button>
                        <button onClick={handleAcceptRide} className="flex-[2] py-4 bg-aba-gold text-aba-dark rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-white group">
-                          <Zap size={18} className="text-aba-dark fill-aba-dark group-hover:scale-110 transition-transform" /> Sync & Deploy
+                          <Zap size={18} className="text-aba-dark fill-aba-dark group-hover:scale-110 transition-transform" /> Accept Order
                        </button>
                     </div>
                  </div>
@@ -471,7 +471,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                     )}
                     {currentRide.status === 'navigating_to_destination' && (
                       <button onClick={completeRide} className="col-span-2 py-5 bg-aba-green text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-                        <CheckCircle2 size={18} /> Complete Mission
+                        <CheckCircle2 size={18} /> Finish Trip
                       </button>
                     )}
                   </div>
@@ -480,22 +480,22 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
 
             <div className="grid grid-cols-2 gap-4">
                <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 space-y-3 shadow-inner group">
-                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest group-hover:text-aba-gold transition-colors">Yield Cycle</p>
+                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest group-hover:text-aba-gold transition-colors">Earnings</p>
                   <h4 className="text-3xl font-black text-aba-green tracking-tighter">₦{driver?.total_earnings?.toLocaleString() || '0'}</h4>
                   <div className="flex items-center gap-2 text-[7px] font-black uppercase text-white/20 tracking-widest">
-                     <Landmark size={10} /> Registry Escrow v1.2
+                     <Landmark size={10} /> Payment History
                   </div>
                </div>
                <button 
                  onClick={() => setShowBankForm(true)}
                  className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 space-y-3 shadow-inner group text-left hover:border-aba-gold/30 transition-all"
                >
-                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest group-hover:text-aba-gold transition-colors">Settlement Gateway</p>
+                  <p className="text-[8px] font-black uppercase text-white/30 tracking-widest group-hover:text-aba-gold transition-colors">Bank Settings</p>
                   <h4 className="text-xs font-black text-white uppercase tracking-tight leading-tight">
-                    {driver?.bank_name ? driver.bank_name : 'Bind Bank Gateway'}
+                    {driver?.bank_name ? driver.bank_name : 'Add Bank Account'}
                   </h4>
                   <div className="flex items-center gap-2 text-[7px] font-black uppercase text-white/20 tracking-widest">
-                     <Landmark size={10} /> {driver?.account_number ? `****${driver.account_number.slice(-4)}` : 'Unconfigured'}
+                     <Landmark size={10} /> {driver?.account_number ? `****${driver.account_number.slice(-4)}` : 'Not set up'}
                   </div>
                </button>
             </div>
@@ -505,9 +505,9 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                   <Activity size={24} />
                </div>
                <div className="space-y-2">
-                  <h4 className="text-sm font-black uppercase tracking-tight">Market Pulse Intel</h4>
+                  <h4 className="text-sm font-black uppercase tracking-tight">City Updates</h4>
                   <p className="text-[10px] font-medium text-white/40 leading-relaxed uppercase tracking-widest italic">
-                    High volume detected in Ariaria Sector. Priority dispatch protocols assigned to Level 2 elite nodes.
+                    High demand detected in the market area. More orders are available for top-rated drivers.
                   </p>
                </div>
             </div>
@@ -517,40 +517,39 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                 onClick={() => setShowIncidentReport(true)}
                 className="w-full py-6 bg-red-600/10 border border-red-600/30 text-red-500 rounded-[2rem] font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all mt-6"
               >
-                 <AlertOctagon size={18} /> Report Incident Signal
+                 <AlertOctagon size={18} /> Report an Issue
               </button>
             )}
 
          </div>
       </div>
-
       {/* Incident Report Modal */}
       {showIncidentReport && (
         <div className="fixed inset-0 z-[5000] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
            <div className="w-full max-w-sm bg-white rounded-[2.5rem] p-8 space-y-8 shadow-2xl border-4 border-red-500">
               <div className="flex justify-between items-center">
-                 <h3 className="text-xl font-black uppercase tracking-tight text-aba-dark">Incident Log</h3>
+                 <h3 className="text-xl font-black uppercase tracking-tight text-aba-dark">Report an Issue</h3>
                  <button onClick={() => setShowIncidentReport(false)} className="p-3 bg-slate-100 rounded-xl text-slate-400"><X size={20}/></button>
               </div>
               
               <div className="space-y-5">
                  <div className="space-y-1">
-                    <label className="text-[8px] font-black uppercase text-slate-300 ml-1 tracking-widest">Incident Category</label>
+                    <label className="text-[8px] font-black uppercase text-slate-300 ml-1 tracking-widest">What's the issue?</label>
                     <select 
-                      className="w-full p-5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black uppercase outline-none focus:border-red-500 shadow-inner text-aba-dark"
-                      value={incidentType}
-                      onChange={e => setIncidentType(e.target.value)}
+                       className="w-full p-5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black uppercase outline-none focus:border-red-500 shadow-inner text-aba-dark"
+                       value={incidentType}
+                       onChange={e => setIncidentType(e.target.value)}
                     >
                        <option>Mechanical Failure</option>
                        <option>Traffic Congestion</option>
                        <option>Security Threat</option>
                        <option>Medical Emergency</option>
-                       <option>Accident Protocol</option>
+                       <option>Accident</option>
                     </select>
                  </div>
                  <div className="p-5 bg-red-50 rounded-xl border border-red-100">
                     <p className="text-[9px] font-bold text-red-600 uppercase tracking-widest leading-relaxed">
-                       Your current GPS coordinates will be attached to this signal for rapid response deployment.
+                       Your current location will be shared with us so we can help you quickly.
                     </p>
                  </div>
               </div>
@@ -559,7 +558,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                 onClick={handleReportIncident}
                 className="w-full py-6 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all"
               >
-                 Dispatch Signal
+                 Send Report
               </button>
            </div>
         </div>
@@ -570,7 +569,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
         <div className="fixed inset-0 z-[5000] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
            <div className="w-full max-w-sm bg-aba-deep rounded-[2.5rem] p-8 space-y-8 shadow-2xl border border-white/10">
               <div className="flex justify-between items-center">
-                 <h3 className="text-xl font-black uppercase tracking-tight text-white">Settlement Bind</h3>
+                 <h3 className="text-xl font-black uppercase tracking-tight text-white">Bank Account</h3>
                  <button onClick={() => setShowBankForm(false)} className="p-3 bg-white/5 rounded-xl text-white/40"><X size={20}/></button>
               </div>
               
@@ -588,18 +587,18 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                     if (client) {
                       await client.from('drivers').update(bankDetails).eq('email', userIdentifier);
                       setDriver({...driver, ...bankDetails});
-                      addToast("Settlement Gateway Bound Successfully.", "success");
+                      addToast("Bank details saved successfully.", "success");
                       setShowBankForm(false);
                     }
                   } catch (e) {
-                    addToast("Sync failed.", "error");
+                    addToast("Could not save bank details.", "error");
                   } finally {
                     setLoading(false);
                   }
                 }}
                 className="w-full py-6 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all"
               >
-                 Confirm Bind
+                 Save Changes
               </button>
            </div>
         </div>
@@ -611,7 +610,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
            <div className="w-full max-w-sm bg-aba-deep rounded-[2.5rem] p-8 space-y-8 shadow-2xl border border-white/10">
               <div className="text-center space-y-2">
                  <h3 className="text-xl font-black uppercase tracking-tight text-white">Rate Passenger</h3>
-                 <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Registry Integrity Assessment</p>
+                 <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">How was your trip?</p>
               </div>
               
               <div className="flex justify-center gap-2">
@@ -627,7 +626,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
               </div>
 
               <textarea 
-                placeholder="Optional Feedback (e.g. Punctuality, Conduct)"
+                placeholder="Optional feedback..."
                 className="w-full p-5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white outline-none focus:border-aba-gold h-32 resize-none"
                 value={passengerFeedback}
                 onChange={e => setPassengerFeedback(e.target.value)}
@@ -639,7 +638,7 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
                 className="w-full py-6 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
               >
                  {loading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                 Commit Rating
+                 Save Rating
               </button>
            </div>
         </div>

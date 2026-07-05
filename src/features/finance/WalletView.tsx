@@ -49,7 +49,7 @@ const WalletView: React.FC = () => {
     try {
       // Simulate financial handshake
       await new Promise(r => setTimeout(r, 2000));
-      addToast(`Deposit of ₦${Number(amount).toLocaleString()} initiated. Proceed to secure gateway.`, "success");
+      addToast(`₦${Number(amount).toLocaleString()} deposit started. Please complete the payment.`, "success");
       setAmount('');
       setShowDeposit(false);
     } finally {
@@ -63,13 +63,13 @@ const WalletView: React.FC = () => {
       return;
     }
     if (wallet && Number(amount) > wallet.balance) {
-      addToast("Insufficient liquidity in node.", "error");
+      addToast("Insufficient balance.", "error");
       return;
     }
     setProcessing(true);
     try {
       await new Promise(r => setTimeout(r, 2500));
-      addToast(`Payout request for ₦${Number(amount).toLocaleString()} submitted to audit.`, "success");
+      addToast(`Withdrawal of ₦${Number(amount).toLocaleString()} requested.`, "success");
       setAmount('');
       setShowPayout(false);
     } finally {
@@ -78,7 +78,7 @@ const WalletView: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingScreen message="Accessing Financial Vault..." />;
+    return <LoadingScreen message="Opening your wallet..." />;
   }
 
   return (
@@ -92,7 +92,7 @@ const WalletView: React.FC = () => {
              </div>
              <div>
                 <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Fidelity <span className="text-aba-gold">Wallet</span></h2>
-                <p className="text-[8px] sm:text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-0.5 sm:mt-1">Authorized Financial Node</p>
+                <p className="text-[8px] sm:text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-0.5 sm:mt-1">Verified account</p>
              </div>
           </div>
           <button className="p-2.5 sm:p-3 bg-white/5 rounded-xl sm:rounded-2xl text-white/40 hover:text-aba-gold transition-standard border border-white/5">
@@ -136,7 +136,7 @@ const WalletView: React.FC = () => {
                </div>
                <div className="flex items-center gap-2 sm:gap-3 bg-white/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl border border-white/20">
                   <ShieldCheck size={12} className="text-white sm:w-3.5 sm:h-3.5" />
-                  <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">Handshake Verified</span>
+                  <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">Secure connection</span>
                </div>
             </div>
           </div>
@@ -151,7 +151,7 @@ const WalletView: React.FC = () => {
               <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-aba-green/10 flex items-center justify-center text-aba-green border border-aba-green/20 group-hover:scale-110 transition-standard">
                 <ArrowUpRight size={20} className="sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-xs font-bold uppercase tracking-widest">Deposit Hub</span>
+              <span className="text-[9px] sm:text-xs font-bold uppercase tracking-widest">Add money</span>
            </button>
            <button 
              onClick={() => setShowPayout(true)}
@@ -160,7 +160,7 @@ const WalletView: React.FC = () => {
               <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-aba-red/10 flex items-center justify-center text-aba-red border border-aba-red/20 group-hover:scale-110 transition-standard">
                 <ArrowDownLeft size={20} className="sm:w-6 sm:h-6" />
               </div>
-              <span className="text-[9px] sm:text-xs font-bold uppercase tracking-widest">Payout Portal</span>
+              <span className="text-[9px] sm:text-xs font-bold uppercase tracking-widest">Withdraw money</span>
            </button>
         </div>
 
@@ -186,7 +186,7 @@ const WalletView: React.FC = () => {
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${showDeposit ? 'bg-aba-green/10 text-aba-green border-aba-green/20' : 'bg-aba-red/10 text-aba-red border-aba-red/20'}`}>
                       {showDeposit ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}
                     </div>
-                    <h3 className="text-xl font-bold uppercase tracking-tight">{showDeposit ? 'Deposit' : 'Payout'} Hub</h3>
+                    <h3 className="text-xl font-bold uppercase tracking-tight">{showDeposit ? 'Add' : 'Withdraw'} Money</h3>
                   </div>
                   <button onClick={() => { setShowDeposit(false); setShowPayout(false); setAmount(''); }} className="p-2 text-white/40 hover:text-white">
                     <X size={20} />
@@ -194,7 +194,7 @@ const WalletView: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <label className="text-[10px] font-bold uppercase text-white/40 tracking-widest ml-4">Settlement Amount (₦)</label>
+                  <label className="text-[10px] font-bold uppercase text-white/40 tracking-widest ml-4">Amount (₦)</label>
                   <div className="relative">
                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-bold text-white/20">₦</span>
                     <input 
@@ -214,10 +214,10 @@ const WalletView: React.FC = () => {
                   className={`w-full py-6 rounded-2xl font-black uppercase text-[10px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 ${processing ? 'opacity-50' : showDeposit ? 'bg-aba-green text-white' : 'bg-aba-red text-white'}`}
                 >
                   {processing ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} fill="currentColor" />}
-                  {showDeposit ? 'Authorize Deposit' : 'Request Payout'}
+                  {showDeposit ? 'Add Money' : 'Withdraw Money'}
                 </button>
                 
-                <p className="text-[8px] font-bold text-center text-white/20 uppercase tracking-[0.2em]">Authorized Handshake Encrypted • 256-bit Financial SSL</p>
+                <p className="text-[8px] font-bold text-center text-white/20 uppercase tracking-[0.2em]">Your transactions are secure.</p>
               </motion.div>
             </div>
           )}
@@ -228,7 +228,7 @@ const WalletView: React.FC = () => {
            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                  <History size={20} className="text-aba-gold" />
-                 <h4 className="text-xl font-bold tracking-tight uppercase tracking-widest">Transaction Signal</h4>
+                 <h4 className="text-xl font-bold tracking-tight uppercase tracking-widest">History</h4>
               </div>
               <button className="flex items-center gap-2 text-xs font-bold text-white/40 hover:text-white transition-standard">
                  <Filter size={14} /> Filter
@@ -260,7 +260,7 @@ const WalletView: React.FC = () => {
                 ))
               ) : (
                 <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-[3rem]">
-                   <p className="text-xs font-bold uppercase text-white/20 tracking-[0.2em]">No financial signals detected</p>
+                   <p className="text-xs font-bold uppercase text-white/20 tracking-[0.2em]">No transactions yet</p>
                 </div>
               )}
            </div>

@@ -6,6 +6,7 @@ import { fetchAllBusinesses, fetchFavorites } from '../services/supabaseService'
 import { useAuth } from './AuthProvider';
 import { useToast } from './ToastProvider';
 import { useGitSync } from '../hooks/useGitSync';
+import { triggerVibration } from '../utils/vibrate';
 
 interface BusinessContextType {
   businesses: Business[];
@@ -102,6 +103,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const { toggleFavorite: toggleFavService } = await import('../services/supabaseService');
       await toggleFavService(userIdentifier, id);
+      triggerVibration('FAVORITE');
       addToast(isFav ? "Removed from Favorites" : "Added to Favorites", "success");
     } catch (e) {
       console.error("Favorite toggle error:", e);

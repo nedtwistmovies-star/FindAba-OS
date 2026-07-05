@@ -47,12 +47,12 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
       await updateBusinessInDB(business.id, {
         verification_status: VerificationStatus.PENDING,
         // In a real app we'd store these specific docs in a related table
-        description: `${business.description}\n\n[AUDIT LOG]: CAC: ${formData.cac_number} | TaxID: ${formData.tax_id}`
+        description: `${business.description}\n\n[LOG]: CAC: ${formData.cac_number} | TaxID: ${formData.tax_id}`
       });
       setStep('completion');
-      addToast("Registry signal received. Documents held for audit.", "success");
+      addToast("We've received your information. Documents are being reviewed.", "success");
     } catch (err) {
-      addToast("Registry Sync Error. Payout recorded, but status update failed. Please contact registrar support.", "error");
+      addToast("An error occurred. Please contact support.", "error");
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
           </button>
           <div className="flex items-center gap-2">
             <ShieldCheck size={18} className="text-blue-600" />
-            <h1 className="text-sm font-black uppercase tracking-widest">Partner Verification Flow</h1>
+            <h1 className="text-sm font-black uppercase tracking-widest">Business Verification</h1>
           </div>
           <div className="w-10" />
         </div>
@@ -101,17 +101,17 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
         {step === 'benefits' && (
           <div className="space-y-10 animate-slide-up">
             <div className="space-y-4">
-              <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">The Institutional <br/>Handshake.</h2>
+              <h2 className="text-3xl font-black uppercase tracking-tighter leading-none">Get <br/>Verified.</h2>
               <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                Verification is not a badge for visibility. It is a technical audit that signals operational readiness to global procurement nodes.
+                Verification helps customers know you are a real and trusted business. It opens up more opportunities for you to grow.
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
               {[
-                { title: "Industrial Trust", desc: "Confirm your legal identity to SANDALSroyalle Registry.", icon: <Lock className="text-blue-600" /> },
-                { title: "Buyer Confidence", desc: "Signals to international buyers that your capacity is audited.", icon: <CheckCircle2 className="text-aba-green" /> },
-                { title: "Export Clearance", desc: "Prerequisite for high-volume trade signals via the Buyer Portal.", icon: <Building2 className="text-aba-gold" /> }
+                { title: "Build Trust", desc: "Show customers you are a legitimate business.", icon: <Lock className="text-blue-600" /> },
+                { title: "More Sales", desc: "Gain confidence from buyers looking for trusted partners.", icon: <CheckCircle2 className="text-aba-green" /> },
+                { title: "Sell Anywhere", desc: "Reach customers outside of Aba with a verified profile.", icon: <Building2 className="text-aba-gold" /> }
               ].map((b, i) => (
                 <div key={i} className="bg-white p-6 rounded-3xl border border-slate-200 flex gap-5 items-start">
                   <div className="p-3 bg-slate-50 rounded-2xl">{b.icon}</div>
@@ -127,7 +127,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
               onClick={() => setStep('documents')}
               className="w-full py-6 bg-aba-dark text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
             >
-              Continue to Documentation <ArrowRight size={18} />
+              Continue <ArrowRight size={18} />
             </button>
           </div>
         )}
@@ -135,13 +135,13 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
         {step === 'documents' && (
           <form onSubmit={handleDocumentSubmit} className="space-y-10 animate-slide-up">
             <div className="space-y-2">
-              <h2 className="text-2xl font-black uppercase tracking-tight">Audit Credentials</h2>
-              <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">Stage 2 of 4: Legal & Operational Proof</p>
+              <h2 className="text-2xl font-black uppercase tracking-tight">Upload Documents</h2>
+              <p className="text-xs text-slate-400 font-medium uppercase tracking-widest">Step 2 of 4: Business Information</p>
             </div>
 
             <div className="bg-white p-8 rounded-[3rem] border border-slate-200 space-y-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">CAC Registration Number</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">CAC Number</label>
                 <input 
                   type="text" 
                   required
@@ -153,7 +153,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">FIRS Tax ID (Optional)</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Tax ID (Optional)</label>
                 <input 
                   type="text" 
                   placeholder="TIN-XXXXXX"
@@ -164,7 +164,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
               </div>
 
               <ImageUpload 
-                label="Director Identity Proof (NIN/Passport)" 
+                label="Director's ID (NIN or Passport)" 
                 onUpload={(url) => setFormData({...formData, identity_url: url})} 
                 currentImage={formData.identity_url}
               />
@@ -172,7 +172,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
               <div className="p-5 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3">
                 <Info size={16} className="text-blue-600 shrink-0" />
                 <p className="text-[9px] font-bold text-blue-800 leading-relaxed uppercase tracking-tight">
-                  Your documents are processed through our secure encryption node. Only Registry Auditors see this data.
+                  Your information is safe. Only verified reviewers will see your documents.
                 </p>
               </div>
             </div>
@@ -181,7 +181,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
               type="submit"
               className="w-full py-6 bg-aba-dark text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
             >
-              Verify Documentation <ArrowRight size={18} />
+              Verify Information <ArrowRight size={18} />
             </button>
           </form>
         )}
@@ -192,19 +192,19 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
                <Landmark size={32} />
             </div>
             <div className="space-y-4">
-              <h2 className="text-2xl font-black uppercase tracking-tight">Audit Settlement</h2>
+              <h2 className="text-2xl font-black uppercase tracking-tight">Verification Fee</h2>
               <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-md mx-auto">
-                Physical verification and capacity audit requires a one-time institutional processing fee.
+                There is a one-time fee for our team to check and verify your business.
               </p>
             </div>
 
             <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-xl space-y-6">
                <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-[10px] font-black uppercase tracking-widest">Audit Category</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Capacity Level 1</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Category</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Business Level 1</span>
                </div>
                <div className="flex justify-between items-center border-t border-slate-50 pt-6">
-                  <span className="text-sm font-black uppercase text-slate-900">Total Settlement</span>
+                  <span className="text-sm font-black uppercase text-slate-900">Total Amount</span>
                   <span className="text-2xl font-black text-aba-green">₦{VERIFICATION_FEE.toLocaleString()}</span>
                </div>
             </div>
@@ -213,11 +213,11 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
               onClick={() => setShowPayment(true)}
               className="w-full py-7 bg-blue-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4"
             >
-              <Lock size={20} /> Initialize Paystack Sync
+              <Lock size={20} /> Pay with Paystack
             </button>
 
             <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest">
-              Processing by Paystack Financial Mesh
+              Securely processed by Paystack
             </p>
           </div>
         )}
@@ -232,9 +232,9 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
             </div>
             
             <div className="space-y-4">
-              <h2 className="text-3xl font-black uppercase tracking-tighter">Signal Logged.</h2>
+              <h2 className="text-3xl font-black uppercase tracking-tighter">Request Received.</h2>
               <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-sm mx-auto uppercase tracking-widest">
-                Your verification packet has been submitted to the <span className="text-aba-dark font-black">Enyimba Hub Registry</span>. 
+                Your application has been submitted to the <span className="text-aba-dark font-black">FindAba Team</span>. 
               </p>
             </div>
 
@@ -244,7 +244,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
                  <p className="text-[10px] font-black uppercase tracking-widest">Status: Under Review</p>
                </div>
                <p className="text-[11px] text-slate-500 leading-relaxed font-medium uppercase tracking-tight">
-                 Institutional review typically completes within <span className="text-aba-dark font-bold">48 working hours</span>. A Registry Auditor may contact you via your registered WhatsApp for a physical node inspection.
+                 We usually check applications within <span className="text-aba-dark font-bold">48 hours</span>. A member of our team may contact you on WhatsApp to confirm your location.
                </p>
             </div>
 
@@ -252,7 +252,7 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
               onClick={() => setView('merchant-portal')}
               className="w-full py-6 bg-aba-dark text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] active:scale-95 transition-all"
             >
-              Return to Portal
+              Go to Dashboard
             </button>
           </div>
         )}

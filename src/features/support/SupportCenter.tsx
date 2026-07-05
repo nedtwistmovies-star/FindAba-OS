@@ -20,7 +20,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, text: "Hello! I'm your FindAba support assistant. How can we help you scale your industrial node today?", sender: 'support', time: '5:27 PM' }
+    { id: 1, text: "Hello! I'm your FindAba support assistant. How can we help you today?", sender: 'support', time: '5:27 PM' }
   ]);
 
   const handleSendMessage = async () => {
@@ -48,7 +48,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
       
       const supportResponse = {
         id: Date.now(),
-        text: aiResponse || "Thank you for your message. A SANDALSroyalle support specialist will be with you shortly to assist with your query.",
+        text: aiResponse || "Thank you for your message. A support member will be with you shortly to assist with your query.",
         sender: 'support',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -56,7 +56,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
     } catch (e) {
       const errorResponse = {
         id: Date.now(),
-        text: "Signal weak. A SANDALSroyalle support specialist will be with you shortly to assist with your query.",
+        text: "Connecting... A support member will be with you shortly to assist with your query.",
         sender: 'support',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -92,8 +92,8 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-aba-green border-2 border-white dark:border-[#020617] rounded-full" />
               </div>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-tight dark:text-white">SANDALSroyalle Support</h3>
-                <p className="text-[10px] font-bold text-aba-green uppercase tracking-widest">Online • Enyimba Partner</p>
+                <h3 className="text-sm font-black uppercase tracking-tight dark:text-white">Customer Support</h3>
+                <p className="text-[10px] font-bold text-aba-green uppercase tracking-widest">Online • Official Support</p>
               </div>
             </div>
           </div>
@@ -133,7 +133,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
               </div>
               <div className="p-4 rounded-2xl shadow-sm border bg-white dark:bg-[#1e293b] rounded-tl-none border-slate-100 dark:border-white/5 flex items-center gap-2">
                 <Loader2 size={14} className="animate-spin text-aba-gold" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Specialist is typing...</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Typing...</span>
               </div>
             </div>
           )}
@@ -227,7 +227,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
               <div className="w-12 h-12 bg-gradient-to-br from-aba-gold to-yellow-600 rounded-2xl flex items-center justify-center text-aba-dark font-black shadow-lg">SR</div>
               <div className="flex-1 text-left">
                 <h5 className="text-sm font-black uppercase tracking-tight dark:text-white">Hi, how can we be of help today?</h5>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">SANDALSroyalle Support • 9m ago</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Customer Support • 9m ago</p>
               </div>
               <div className="w-2 h-2 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
             </button>
@@ -283,7 +283,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
               <ShieldCheck size={16} />
               <Sparkles size={16} />
             </div>
-            <p className="text-[8px] font-black uppercase tracking-[0.5em]">FindAba System Support</p>
+            <p className="text-[8px] font-black uppercase tracking-[0.5em]">Customer Support</p>
           </div>
         </div>
       </motion.div>

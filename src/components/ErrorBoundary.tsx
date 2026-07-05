@@ -23,14 +23,14 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('THRIFT RUNTIME ERROR', error);
+    console.error('APPLICATION ERROR', error);
     console.error('Error Info:', errorInfo);
     console.error('Uncaught error:', error, errorInfo);
     
     // Auto-recovery for chunk loading errors (caused by new deployments)
     const errorMsg = error.message.toLowerCase();
     if (errorMsg.includes('failed to fetch') || errorMsg.includes('chunkloaderror') || errorMsg.includes('dynamic import')) {
-      console.warn('Chunk loading error detected. Auto-refreshing industrial nodes...');
+      console.warn('System update detected. Refreshing application...');
       // Small delay to ensure the user doesn't get stuck in a loop if the internet is actually down
       setTimeout(() => {
         window.location.reload();
@@ -54,17 +54,17 @@ class ErrorBoundary extends Component<Props, State> {
             
             <div className="space-y-4">
               <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter">
-                System <span className="text-aba-red">Fault</span> Detected
+                Something <span className="text-aba-red">Went Wrong</span>
               </h1>
               <p className="text-white/40 text-sm md:text-base font-bold uppercase tracking-widest leading-relaxed">
-                The industrial node encountered an unexpected signal interruption. 
-                Consensus could not be reached on the current operation.
+                The application encountered an unexpected issue. 
+                We're having trouble loading this part of the app.
               </p>
             </div>
 
             {this.state.error && (
               <div className="bg-black/40 rounded-2xl p-6 border border-white/5 text-left overflow-hidden">
-                <p className="text-[10px] font-black text-aba-red uppercase tracking-widest mb-2">Error Log:</p>
+                <p className="text-[10px] font-black text-aba-red uppercase tracking-widest mb-2">Details:</p>
                 <code className="text-[11px] font-mono text-white/60 break-all">
                   {this.state.error.message}
                 </code>
@@ -79,7 +79,7 @@ class ErrorBoundary extends Component<Props, State> {
                 onClick={() => window.location.reload()}
                 fullWidth
               >
-                Retry Partner
+                Try Again
               </IndustrialButton>
               <IndustrialButton 
                 variant="primary" 
@@ -88,12 +88,12 @@ class ErrorBoundary extends Component<Props, State> {
                 onClick={this.handleReset}
                 fullWidth
               >
-                Return Home
+                Go Home
               </IndustrialButton>
             </div>
 
             <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">
-              FindAba Industrial OS // Error Protocol 500
+              FindAba City OS
             </p>
           </div>
         </div>

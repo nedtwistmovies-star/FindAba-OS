@@ -16,14 +16,14 @@ const AdvertorialDetail: React.FC<Props> = ({ post, onBack, setView }) => {
   }, [post.id]);
 
   const isPulse = post.author_name === "FindAba AI Intelligence";
-  const veracityMatch = post.content.match(/VERACITY INDEX: (\d+)%/);
+  const veracityMatch = post.content.match(/RELIABILITY SCORE: (\d+)%/);
   const veracityScore = veracityMatch ? parseInt(veracityMatch[1]) : null;
-  const riskAssessmentMatch = post.content.match(/RISK ASSESSMENT: (.*)/);
+  const riskAssessmentMatch = post.content.match(/AI CONTEXT: (.*)/);
   const riskAssessment = riskAssessmentMatch ? riskAssessmentMatch[1] : null;
   
   const displayContent = post.content
-    .replace(/\[VERACITY INDEX: \d+%\]/, '')
-    .split('RISK ASSESSMENT:')[0]
+    .replace(/\[RELIABILITY SCORE: \d+%\]/, '')
+    .split('AI CONTEXT:')[0]
     .trim();
 
   return (
@@ -38,11 +38,11 @@ const AdvertorialDetail: React.FC<Props> = ({ post, onBack, setView }) => {
           <div className="flex items-center gap-3 mb-6">
              <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2 ${isPulse ? 'bg-blue-600 text-white' : 'bg-aba-gold text-aba-dark'}`}>
                 {isPulse ? <Sparkles size={12} fill="currentColor" /> : <ShieldCheck size={12} />}
-                {isPulse ? 'Synthetic City Insight' : 'Official Editorial'}
+                {isPulse ? 'AI-Generated Insight' : 'Verified Story'}
              </div>
              {veracityScore !== null && (
                 <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2 bg-black/60 border ${veracityScore >= 70 ? 'border-aba-green text-aba-green' : 'border-red-500 text-red-400'}`}>
-                   <ShieldCheck size={12} /> {veracityScore}% Confirmed
+                   <ShieldCheck size={12} /> {veracityScore}% Reliable
                 </div>
              )}
           </div>
@@ -142,7 +142,7 @@ const AdvertorialDetail: React.FC<Props> = ({ post, onBack, setView }) => {
       </div>
 
       <div className="mt-20 opacity-5 text-center pointer-events-none mb-10 overflow-hidden">
-         <h1 className="text-[12vw] font-black uppercase tracking-tighter leading-none select-none whitespace-nowrap">CITY PULSE ENGINE ACTIVE</h1>
+         <h1 className="text-[12vw] font-black uppercase tracking-tighter leading-none select-none whitespace-nowrap">ABA CITY STORIES</h1>
       </div>
     </div>
   );

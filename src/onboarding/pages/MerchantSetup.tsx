@@ -36,8 +36,8 @@ export const MerchantSetup: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
         phone_whatsapp: formData.phone_whatsapp,
         description: formData.description,
         status: 'pending',
-        verification_status: 'Unverified',
-        verification_level: 'Listed'
+        verification_status: 'New',
+        verification_level: 'Visible'
       });
 
       addToast("Business profile created successfully.", "success");
@@ -127,7 +127,7 @@ export const MerchantSetup: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
           >
             {loading ? <Loader2 className="animate-spin" /> : (
               <>
-                PUBLISH PROFILE
+                SAVE PROFILE
                 <ArrowRight size={18} />
               </>
             )}

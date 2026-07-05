@@ -23,7 +23,7 @@ export default function CommitButton({
       disabled={loading}
       className="w-full bg-aba-deep text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-aba-green transition-standard active:scale-95 disabled:opacity-50"
     >
-      {loading ? 'Processing...' : 'COMMIT BOOKING'}
+      {loading ? 'Processing...' : 'CONFIRM BOOKING'}
     </button>
   );
 }

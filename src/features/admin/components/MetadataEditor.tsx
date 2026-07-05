@@ -31,9 +31,9 @@ export const MetadataEditor: React.FC = () => {
       // In a real environment, this would call a server endpoint to write the file
       // For now, we simulate the logic and log it
       console.log("[Admin] Saving Metadata:", metadata);
-      addToast("Metadata configuration synchronized with file system", "success");
+      addToast("Settings saved successfully", "success");
     } catch (e) {
-      addToast("Failed to commit metadata changes", "error");
+      addToast("Could not save changes", "error");
     } finally {
       setSaving(false);
     }
@@ -60,9 +60,9 @@ export const MetadataEditor: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="space-y-2">
             <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-              <Type className="text-aba-gold" /> Identity Config
+              <Type className="text-aba-gold" /> App Information
             </h4>
-            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Public App Manifest (metadata.json)</p>
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">App Details</p>
           </div>
           <IndustrialButton 
             variant="primary" 
@@ -71,7 +71,7 @@ export const MetadataEditor: React.FC = () => {
             loading={saving}
             onClick={handleSave}
           >
-            Commit Changes
+            Save Changes
           </IndustrialButton>
         </div>
 
@@ -86,7 +86,7 @@ export const MetadataEditor: React.FC = () => {
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Vision & Intent</label>
+              <label className="text-[10px] font-black uppercase text-white/40 tracking-widest ml-4">Description</label>
               <textarea 
                 rows={4}
                 value={metadata.description || ''}
@@ -97,13 +97,13 @@ export const MetadataEditor: React.FC = () => {
           </div>
 
           <div className="space-y-8 p-8 bg-black/40 rounded-[2.5rem] border border-white/5">
-            <h5 className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Mesh Hardware Access</h5>
+            <h5 className="text-[10px] font-black uppercase text-aba-gold tracking-widest">App Permissions</h5>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { id: 'camera', icon: Camera, label: 'Camera / Vision' },
-                { id: 'microphone', icon: Mic, label: 'Audio / Voice' },
-                { id: 'geolocation', icon: MapPin, label: 'Geo / Positioning' },
-                { id: 'notifications', icon: Globe, label: 'Notification Relay' }
+                { id: 'camera', icon: Camera, label: 'Camera' },
+                { id: 'microphone', icon: Mic, label: 'Microphone' },
+                { id: 'geolocation', icon: MapPin, label: 'Location' },
+                { id: 'notifications', icon: Globe, label: 'Notifications' }
               ].map(p => (
                 <button 
                   key={p.id}
@@ -121,7 +121,7 @@ export const MetadataEditor: React.FC = () => {
             </div>
             <div className="flex items-center gap-3 p-4 bg-aba-gold/5 rounded-xl border border-aba-gold/10">
               <AlertCircle size={14} className="text-aba-gold" />
-              <p className="text-[9px] font-black uppercase text-aba-gold/60 leading-tight">These signals are handled by the browser security sandbox.</p>
+              <p className="text-[9px] font-black uppercase text-aba-gold/60 leading-tight">These permissions are managed by your browser.</p>
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ export const MetadataEditor: React.FC = () => {
 
       <div className="bg-black/60 p-10 rounded-[3rem] border border-white/10 space-y-8">
         <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-          <Code className="text-aba-gold" /> Advanced Capabilities
+          <Code className="text-aba-gold" /> System Features
         </h4>
         <div className="space-y-4">
           {metadata.majorCapabilities?.map((cap: string, i: number) => (
@@ -144,10 +144,10 @@ export const MetadataEditor: React.FC = () => {
             </div>
           ))}
           <button 
-            onClick={() => updateField('majorCapabilities', [...(metadata.majorCapabilities || []), 'NEW_CAPABILITY'])}
+            onClick={() => updateField('majorCapabilities', [...(metadata.majorCapabilities || []), 'NEW_FEATURE'])}
             className="w-full p-4 border-2 border-dashed border-white/10 rounded-2xl text-[9px] font-black uppercase text-white/20 hover:text-aba-gold hover:border-aba-gold/30 transition-all flex items-center justify-center gap-2"
           >
-            <Plus size={14} /> Register New Platform Capability
+            <Plus size={14} /> Add New Feature
           </button>
         </div>
       </div>

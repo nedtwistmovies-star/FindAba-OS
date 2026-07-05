@@ -19,9 +19,10 @@ import { MultiImageUpload, ImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
 import { TodoList } from '../../components/TodoList';
 import PaystackOverlay from '../../components/PaystackOverlay';
+import { WeeklyTradeVolumeChart } from '../../components/WeeklyTradeVolumeChart';
 import { useAuth } from '../../providers/AuthProvider';
 import { BUSINESS_PLANS } from '../../constants';
-import { BillingCycle, SubscriptionTier, HubTier } from '../../types';
+import { BillingCycle, SubscriptionTier, HubTier, VerificationLevel } from '../../types';
 import HubEnrollment from './HubEnrollment';
 import TerminalTab from './TerminalTab';
 
@@ -166,6 +167,48 @@ const MerchantPortal: React.FC<{
 
   const earnings = orders.reduce((acc, curr) => curr.status === OrderStatus.RELEASED ? acc + curr.merchant_payout : acc, 0);
   const pending = orders.reduce((acc, curr) => curr.status === OrderStatus.PAID ? acc + curr.merchant_payout : acc, 0);
+
+  const [verifyingPresence, setVerifyingPresence] = useState(false);
+
+  const handleVerifyPresence = () => {
+    if (!business) return;
+    if (!navigator.geolocation) {
+      addToast("Geolocation API not supported by this browser.", "error");
+      return;
+    }
+
+    setVerifyingPresence(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const updates: Partial<Business> = {
+            latitude,
+            longitude,
+            verified_presence: true,
+            verified_presence_lat: latitude,
+            verified_presence_lng: longitude,
+            verified_presence_at: new Date().toISOString(),
+            verification_level: VerificationLevel.PHYSICALLY_VERIFIED
+          };
+          
+          await updateBusinessInDB(business.id, updates);
+          setBusiness(prev => prev ? ({ ...prev, ...updates }) : null);
+          addToast("Presence Verified! 'Verified Trade Location' Badge Active.", "success");
+        } catch (err) {
+          addToast("Failed to save verified presence to Registry.", "error");
+        } finally {
+          setVerifyingPresence(false);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        addToast(`Could not acquire location: ${error.message}`, "error");
+        setVerifyingPresence(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
 
   const getTrustScore = (grade: IntegrityGrade) => {
     switch(grade) {
@@ -428,6 +471,33 @@ const MerchantPortal: React.FC<{
                         className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 p-5 md:p-6 rounded-xl md:rounded-2xl outline-none focus:border-aba-gold transition-standard text-sm font-bold text-aba-deep dark:text-white" 
                       />
                     </div>
+                  </div>
+
+                  {/* Geolocation Presence Verification */}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold uppercase text-slate-400 dark:text-white/20 tracking-widest ml-4">Presence Check</label>
+                    {business.verified_presence ? (
+                      <div className="bg-aba-green/10 border border-aba-green/20 rounded-2xl p-5 flex items-center gap-4 text-aba-green">
+                        <div className="w-10 h-10 bg-aba-green/10 text-aba-green rounded-xl flex items-center justify-center shrink-0">
+                          <ShieldCheck size={20} className="animate-pulse" />
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-aba-green">Verified Trade Location Badge Active</p>
+                          <p className="text-[8px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">
+                            Presence validated on {new Date(business.verified_presence_at || '').toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleVerifyPresence}
+                        disabled={verifyingPresence}
+                        className="w-full py-4 bg-aba-gold hover:bg-aba-gold/90 text-aba-deep disabled:opacity-50 rounded-xl md:rounded-2xl font-black uppercase text-[9px] tracking-widest flex items-center justify-center gap-3 active:scale-95 transition-standard"
+                      >
+                        {verifyingPresence ? <Loader2 className="animate-spin" /> : <MapPin size={16} />}
+                        {verifyingPresence ? 'Locking Satellite Position...' : 'Verify Presence at Shop'}
+                      </button>
+                    )}
                   </div>
 
                   <div className="h-64 md:h-80 rounded-3xl md:rounded-[3rem] overflow-hidden border border-slate-100 dark:border-white/10 shadow-inner">
@@ -888,6 +958,9 @@ const MerchantPortal: React.FC<{
                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Awaiting Fulfillment Proof • Escrow Active</p>
                 </div>
              </div>
+
+             {/* Weekly Trade Volume Trends Line Chart */}
+             <WeeklyTradeVolumeChart merchantId={business.id} isDark={true} />
 
              <div className="bg-white dark:bg-[#1e293b] p-6 md:p-12 rounded-3xl md:rounded-[4rem] shadow-xl border border-slate-100 dark:border-white/5 space-y-8 md:space-y-10">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">

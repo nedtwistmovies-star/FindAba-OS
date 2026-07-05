@@ -57,12 +57,12 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
         <div className="w-20 h-20 bg-aba-gold/10 rounded-3xl flex items-center justify-center text-aba-gold animate-pulse mb-6">
           <Loader2 size={40} className="animate-spin" />
         </div>
-        <h2 className="text-2xl font-bold text-white uppercase tracking-tight mb-4">Syncing Partner...</h2>
+        <h2 className="text-2xl font-bold text-white uppercase tracking-tight mb-4">Loading Business...</h2>
         <button 
           onClick={() => setView('home')}
           className="px-8 py-4 bg-white/5 text-white/40 rounded-xl font-bold uppercase text-[10px] tracking-widest border border-white/10 hover:text-white transition-standard"
         >
-          Return to Registry
+          Return to Directory
         </button>
       </div>
     );
@@ -113,7 +113,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
               {isOwner && (
                 <div className="hidden sm:flex bg-aba-green/20 backdrop-blur-xl border border-aba-green/30 rounded-xl px-4 items-center gap-3 text-aba-green text-[10px] font-black uppercase tracking-widest">
                    <div className="w-2 h-2 bg-aba-green rounded-full animate-pulse" />
-                   Owner Account
+                   Your Business
                 </div>
               )}
               <button 
@@ -138,7 +138,12 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                     </div>
                     {isVerified && (
                       <div className="bg-aba-gold text-aba-deep text-[9px] sm:text-[10px] font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-2">
-                         <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Verified Hub
+                         <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Verified Business
+                      </div>
+                    )}
+                    {business.verified_presence && (
+                      <div className="bg-aba-green text-white text-[9px] sm:text-[10px] font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-2 border border-aba-green/30 backdrop-blur-md">
+                         <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Verified Trade Location
                       </div>
                     )}
                     <div className="bg-white/10 backdrop-blur-xl text-white text-[9px] sm:text-[10px] font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg uppercase tracking-widest border border-white/10">
@@ -181,7 +186,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                        onClick={handleContact}
                        className="shadow-xl w-full sm:w-auto"
                     >
-                       Contact Partner
+                       Contact Business
                     </IndustrialButton>
                  )}
               </div>
@@ -194,9 +199,9 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
          <div className="max-w-7xl mx-auto w-full flex gap-6 sm:gap-10 whitespace-nowrap">
             {[
               { id: 'overview', label: 'Overview', icon: <Info size={14} /> },
-              { id: 'products', label: 'Inventory', icon: <Package size={14} /> },
-              { id: 'location', label: 'Coordinates', icon: <MapPin size={14} /> },
-              { id: 'reviews', label: 'Intel', icon: <Star size={14} /> },
+              { id: 'products', label: 'Products', icon: <Package size={14} /> },
+              { id: 'location', label: 'Location', icon: <MapPin size={14} /> },
+              { id: 'reviews', label: 'Reviews', icon: <Star size={14} /> },
             ].map(tab => (
               <button 
                 key={tab.id}
@@ -221,7 +226,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
             {activeTab === 'overview' && (
               <div className="space-y-12 animate-fade-in">
                  <div className="space-y-6">
-                    <SectionHeader title="About this Hub" icon={Info} />
+                    <SectionHeader title="About" icon={Info} />
                     <p className="text-base text-white/60 leading-relaxed font-medium">
                        {business.description}
                     </p>
@@ -233,7 +238,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                        <div className="w-10 h-10 bg-aba-gold/20 text-aba-gold rounded-xl flex items-center justify-center">
                           <Award size={20} />
                        </div>
-                       <h4 className="text-sm font-bold text-white uppercase tracking-tight">Artisan Credentials</h4>
+                       <h4 className="text-sm font-bold text-white uppercase tracking-tight">Skills & Expertise</h4>
                        <div className="space-y-3">
                           {business.skills?.map((skill, i) => (
                             <div key={i} className="flex items-center gap-3 text-[10px] font-bold text-white/40 uppercase tracking-widest">
@@ -246,18 +251,18 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                        <div className="w-10 h-10 bg-aba-green/20 text-aba-green rounded-xl flex items-center justify-center">
                           <Package size={20} />
                        </div>
-                       <h4 className="text-sm font-bold text-white uppercase tracking-tight">Production Capacity</h4>
+                       <h4 className="text-sm font-bold text-white uppercase tracking-tight">Service Details</h4>
                        <div className="space-y-3">
                           <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
-                             <span className="text-white/40">Daily Output</span>
+                             <span className="text-white/40">Production speed</span>
                              <span className="text-aba-gold">High Volume</span>
                           </div>
                           <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
-                             <span className="text-white/40">Lead Time</span>
+                             <span className="text-white/40">Delivery time</span>
                              <span className="text-aba-gold">3-5 Days</span>
                           </div>
                           <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
-                             <span className="text-white/40">Export Ready</span>
+                             <span className="text-white/40">Ships globally</span>
                              <span className="text-aba-green">Verified</span>
                           </div>
                        </div>
@@ -266,10 +271,10 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
               </div>
             )}
 
-            {/* Inventory Section */}
+            {/* Products Section */}
             {activeTab === 'products' && (
               <div className="space-y-12 animate-fade-in">
-                 <SectionHeader title="Industrial Inventory" icon={Package} />
+                 <SectionHeader title="Products" icon={Package} />
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {business.products?.map(product => (
                       <div key={product.id} className="bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden border border-white/5 group hover:border-aba-gold/30 transition-standard shadow-sm">
@@ -285,7 +290,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                          <div className="p-8 space-y-6">
                             <div className="space-y-2">
                                <h4 className="text-lg font-bold text-white uppercase tracking-tight group-hover:text-aba-gold transition-standard">{product.name}</h4>
-                               <p className="text-[10px] font-medium text-white/40 uppercase tracking-widest">Serial: {product.id.slice(0, 8)}</p>
+                               <p className="text-[10px] font-medium text-white/40 uppercase tracking-widest">SKU: {product.id.slice(0, 8)}</p>
                             </div>
                             <p className="text-sm text-white/50 leading-relaxed line-clamp-2 font-medium">{product.description}</p>
                             <IndustrialButton
@@ -295,7 +300,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                                onClick={() => handlePurchase(product)}
                                className="w-full"
                             >
-                               Acquire Item
+                               Buy Now
                             </IndustrialButton>
                          </div>
                       </div>
@@ -307,7 +312,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
             {/* Location Section */}
             {activeTab === 'location' && (
               <div className="space-y-12 animate-fade-in">
-                 <SectionHeader title="Hub Coordinates" icon={MapPin} />
+                 <SectionHeader title="Location Map" icon={MapPin} />
                  <div className="h-[400px] rounded-3xl overflow-hidden border border-white/5 shadow-sm relative z-10">
                     <MapContainer 
                       center={[business.latitude || 5.1065, business.longitude || 7.3675]} 
@@ -330,7 +335,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                           <MapPin size={20} />
                        </div>
                        <div>
-                          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Physical Address</p>
+                          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Address</p>
                           <p className="text-sm font-bold text-white uppercase tracking-tight">{business.address}</p>
                        </div>
                     </div>
@@ -340,7 +345,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                        icon={ExternalLink}
                        onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${business.latitude},${business.longitude}`)}
                     >
-                       Get Route
+                       Get Directions
                     </IndustrialButton>
                  </div>
               </div>
@@ -353,8 +358,8 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
             {/* Contact Card */}
             <div className="bg-white/5 backdrop-blur-xl p-10 rounded-3xl border border-white/10 shadow-sm space-y-10">
                <div className="space-y-4">
-                  <h4 className="text-xl font-bold text-white uppercase tracking-tight">Partner Connectivity</h4>
-                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Official Registry Channels</p>
+                  <h4 className="text-xl font-bold text-white uppercase tracking-tight">Contact Details</h4>
+                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Official Contact Channels</p>
                </div>
 
                <div className="space-y-6">
@@ -366,7 +371,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                         <Phone size={18} />
                      </div>
                      <div className="text-left">
-                        <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Voice Signal</p>
+                        <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Phone Number</p>
                         <p className="text-sm font-bold text-white uppercase tracking-tight">{business.phone_whatsapp}</p>
                      </div>
                   </button>
@@ -390,9 +395,9 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                   <div className="flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <Clock size={16} className="text-aba-gold" />
-                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Registry Status</span>
+                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Status</span>
                      </div>
-                     <span className="text-[10px] font-bold text-aba-green uppercase tracking-widest">Active Now</span>
+                     <span className="text-[10px] font-bold text-aba-green uppercase tracking-widest">Open Now</span>
                   </div>
                   <IndustrialButton
                      variant="primary"
@@ -401,7 +406,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                      onClick={() => window.open(`https://wa.me/${business.phone_whatsapp.replace(/\D/g, '')}`, '_blank')}
                      className="w-full"
                   >
-                     Fast Connect
+                     Chat on WhatsApp
                   </IndustrialButton>
                </div>
             </div>
@@ -413,12 +418,12 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                </div>
                <div className="space-y-1">
                   <h5 className="text-sm font-bold text-white uppercase tracking-tight">
-                    {isVerified ? 'Verified Hub' : 'Integrity Partner'}
+                    {isVerified ? 'Verified Business' : 'Registered Business'}
                   </h5>
                   <p className="text-[9px] font-medium text-white/40 uppercase tracking-widest leading-relaxed">
                      {isVerified 
-                       ? 'This hub has passed the physical integrity inspection and document verification.' 
-                       : 'This partner is currently undergoing the integrity verification protocol.'}
+                       ? 'This business has passed our physical inspection and document verification.' 
+                       : 'This business is currently undergoing our verification process.'}
                   </p>
                </div>
             </div>

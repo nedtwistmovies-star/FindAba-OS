@@ -17,7 +17,7 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
   const [categoryFilter, setCategoryFilter] = useState('All');
 
   const mockIncidents = [
-    { id: 'inc-1', driver: 'Officer Partner 09', type: 'Panic Signal', timestamp: '2m ago', lat: 5.11, lng: 7.36 }
+    { id: 'inc-1', driver: 'Driver 09', type: 'Emergency Alert', timestamp: '2m ago', lat: 5.11, lng: 7.36 }
   ];
 
   const mockRoute: [number, number][] = [
@@ -99,8 +99,8 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
   }, []);
 
   const handleApprove = (id: string) => {
-    if (!confirm("Confirm industrial clearance for this driver partner?")) return;
-    alert("Partner Approved. Signal dispatched to Driver Console.");
+    if (!confirm("Approve this driver for the fleet?")) return;
+    alert("Driver approved. They can now start accepting trips.");
   };
 
   return (
@@ -111,13 +111,13 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
           <div className="flex items-center gap-6">
              <button onClick={() => setView('srts-office')} className="p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all"><ArrowLeft size={24} /></button>
              <div>
-                <h3 className="text-2xl font-black uppercase tracking-tight leading-none">Fleet Control</h3>
-                <p className="text-[9px] font-black text-aba-gold uppercase tracking-[0.4em] mt-3">Sentinel Core v4.2</p>
+                <h3 className="text-2xl font-black uppercase tracking-tight leading-none">Fleet Management</h3>
+                <p className="text-[9px] font-black text-aba-gold uppercase tracking-[0.4em] mt-3">Management System v4.2</p>
              </div>
           </div>
           <div className="flex items-center gap-4">
              <div className="px-6 py-3 bg-red-600/10 border border-red-600/30 text-red-500 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 animate-pulse">
-                <AlertOctagon size={14} /> {mockIncidents.length} Active Alerts
+                <AlertOctagon size={14} /> {mockIncidents.length} Alerts
              </div>
           </div>
       </header>
@@ -125,9 +125,9 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
       {/* METRIC RIBBON */}
       <div className="px-8 py-6 bg-white/5 border-b border-white/5 flex gap-10 overflow-x-auto scrollbar-hide shrink-0">
          {[
-           { label: 'Active Sessions', val: '42', color: 'text-aba-green' },
-           { label: 'Verified Vessels', val: '128', color: 'text-aba-gold' },
-           { label: 'Pending Audits', val: '14', color: 'text-blue-500' },
+           { label: 'Active Trips', val: '42', color: 'text-aba-green' },
+           { label: 'Verified Vehicles', val: '128', color: 'text-aba-gold' },
+           { label: 'Pending Approvals', val: '14', color: 'text-blue-500' },
            { label: 'Total Revenue', val: '₦1.2M', color: 'text-white' }
          ].map((s, i) => (
            <div key={i} className="flex flex-col gap-1 shrink-0">
@@ -156,12 +156,12 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
             {activeTab === 'monitor' && (
               <div className="space-y-10 animate-fade-in">
                  <div className="h-[60vh] rounded-[4rem] overflow-hidden border-8 border-white/5 shadow-2xl relative z-10">
-                    <MapView businesses={activeVehicles} onBusinessClick={(v) => alert(`Inspecting Partner ${v.driver_name}`)} route={mockRoute} />
+                    <MapView businesses={activeVehicles} onBusinessClick={(v) => alert(`Inspecting Driver ${v.driver_name}`)} route={mockRoute} />
                     <div className="absolute bottom-10 left-10 p-10 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-[3.5rem] shadow-2xl max-w-sm space-y-6 z-20">
                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
                              <Activity className="text-aba-green animate-pulse" size={28} />
-                             <h4 className="text-lg font-black uppercase">Live Movement Grid</h4>
+                             <h4 className="text-lg font-black uppercase">Live Map</h4>
                           </div>
                           <div className="flex gap-2">
                              <button className="p-3 bg-white/5 rounded-xl border border-white/10 text-aba-gold"><Search size={16}/></button>
@@ -169,11 +169,11 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
                           </div>
                        </div>
                        <p className="text-[10px] font-bold text-white/40 leading-relaxed uppercase tracking-widest">
-                          Monitoring all active vessel nodes. Geofencing active for Level 3 Shield escorts. No deviations detected.
+                          Monitoring all active vehicles. Security protocols active for specialized transport.
                        </p>
                        <div className="pt-4 border-t border-white/5 flex items-center gap-3">
                           <div className="w-2 h-2 rounded-full bg-aba-green animate-pulse" />
-                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">Live Registry Mapping</span>
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">Live Vehicle Map</span>
                        </div>
                     </div>
                  </div>
@@ -193,18 +193,18 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
                              <p className="text-sm font-bold text-red-400 uppercase tracking-widest">{inc.driver} • {inc.timestamp}</p>
                           </div>
                        </div>
-                       <button onClick={() => alert("Dispatching Rapid Response Partner...")} className="px-10 py-5 bg-white text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Engage Response</button>
+                       <button onClick={() => alert("Dispatching assistance...")} className="px-10 py-5 bg-white text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Send Help</button>
                     </div>
                  ))}
                  {mockIncidents.length === 0 && (
-                   <div className="py-20 text-center opacity-20 italic">No active incidents logged. Hub status: SECURE.</div>
+                   <div className="py-20 text-center opacity-20 italic">No active alerts. All clear.</div>
                  )}
               </div>
             )}
 
             {activeTab === 'queue' && (
               <div className="space-y-6 animate-slide-up">
-                 <h4 className="text-xl font-black uppercase tracking-tight px-4">Verification Registry</h4>
+                 <h4 className="text-xl font-black uppercase tracking-tight px-4">Approval Queue</h4>
                  <div className="grid grid-cols-1 gap-4">
                     {[1, 2, 3].map(i => (
                        <div key={i} className="p-10 bg-white/5 border border-white/10 rounded-[4rem] flex flex-col md:flex-row justify-between items-center gap-10 hover:border-aba-gold/50 transition-all group">
@@ -213,17 +213,17 @@ const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
                                 <User className="text-white/20" size={40} />
                              </div>
                              <div className="space-y-2">
-                                <h4 className="text-2xl font-black uppercase">Candidate {i}</h4>
-                                <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em]">Audit Phase: Level {i}</p>
+                                <h4 className="text-2xl font-black uppercase">Driver {i}</h4>
+                                <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em]">Approval Step: {i}</p>
                                 <div className="flex items-center gap-4 text-[8px] font-black text-white/20 uppercase tracking-widest">
-                                   <FileText size={12} /> NIN Verified
-                                   <Car size={12} /> VIN Detected
+                                   <FileText size={12} /> ID Verified
+                                   <Car size={12} /> Vehicle Verified
                                 </div>
                              </div>
                           </div>
                           <div className="flex items-center gap-4">
-                             <button onClick={() => alert("Opening Registry Artifacts: NIN, License, and Vessel Fingerprint documents are being retrieved from Supabase Storage...")} className="px-10 py-5 bg-white/5 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-white/10 flex items-center gap-2"><Eye size={16}/> View Docs</button>
-                             <button onClick={() => handleApprove(i.toString())} className="px-10 py-5 bg-aba-green text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2"><Check size={16}/> Approve Partner</button>
+                             <button onClick={() => alert("Opening documents: ID and vehicle details...")} className="px-10 py-5 bg-white/5 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-white/10 flex items-center gap-2"><Eye size={16}/> View Docs</button>
+                             <button onClick={() => handleApprove(i.toString())} className="px-10 py-5 bg-aba-green text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2"><Check size={16}/> Approve Driver</button>
                              <button className="p-5 bg-red-600/10 text-red-500 rounded-2xl border border-red-500/20"><XCircle size={20}/></button>
                           </div>
                        </div>

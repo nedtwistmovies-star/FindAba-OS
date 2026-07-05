@@ -420,6 +420,10 @@ export interface Business {
   skills?: string[];
   experience_years?: number;
   portfolio_images?: string[];
+  verified_presence?: boolean;
+  verified_presence_lat?: number;
+  verified_presence_lng?: number;
+  verified_presence_at?: string;
 }
 
 export type ShipmentStatus = 'requested' | 'pickup-scheduled' | 'at-hub' | 'in-transit' | 'delivered' | 'confirmed';

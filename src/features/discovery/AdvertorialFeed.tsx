@@ -119,7 +119,7 @@ const AdvertorialFeed: React.FC<Props> = ({ onBack, setView, onPostClick }) => {
           </button>
           <div>
             <h2 className="text-xl font-black uppercase tracking-tighter dark:text-white">City <span className="text-aba-gold">Pulse</span></h2>
-            <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em]">Neural Advertorial Mesh</p>
+            <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em]">City Updates & Stories</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -129,7 +129,7 @@ const AdvertorialFeed: React.FC<Props> = ({ onBack, setView, onPostClick }) => {
              className={`p-3 rounded-2xl border transition-all flex items-center gap-3 shadow-xl active:scale-95 ${isSyncing ? 'bg-blue-600 border-blue-500 text-white animate-pulse' : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-blue-500 hover:bg-blue-50'}`}
            >
               {isSyncing ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} fill="currentColor" />}
-              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">Veracity Sync</span>
+              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest">Update Feed</span>
            </button>
            <label className="p-3 bg-aba-gold text-aba-dark rounded-2xl shadow-xl flex items-center gap-3 cursor-pointer hover:scale-105 active:scale-95 transition-all">
               <Camera size={20} />
@@ -149,8 +149,8 @@ const AdvertorialFeed: React.FC<Props> = ({ onBack, setView, onPostClick }) => {
                   <Bot size={40} />
                </div>
                <div className="space-y-2">
-                  <h4 className="text-xl font-black uppercase tracking-tight dark:text-white">Neural Processing...</h4>
-                  <p className="text-[10px] font-bold text-gray-500 dark:text-white/40 uppercase tracking-widest">Extracting industrial signals from flyer</p>
+                  <h4 className="text-xl font-black uppercase tracking-tight dark:text-white">Analyzing Flyer...</h4>
+                  <p className="text-[10px] font-bold text-gray-500 dark:text-white/40 uppercase tracking-widest">Finding business details from flyer</p>
                </div>
             </div>
           )}
@@ -183,7 +183,7 @@ const AdvertorialFeed: React.FC<Props> = ({ onBack, setView, onPostClick }) => {
                        className="flex-2 py-4 bg-aba-gold text-aba-dark rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all"
                      >
                         {isCommitting ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
-                        Commit to Registry
+                        Save to Directory
                      </button>
                   </div>
                </div>

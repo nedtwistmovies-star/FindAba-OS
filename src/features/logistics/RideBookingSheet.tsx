@@ -69,7 +69,7 @@ const RideBookingSheet: React.FC<RideBookingSheetProps> = ({
             >
               <div className="space-y-2">
                 <h3 className="text-xl font-black uppercase tracking-tight text-white">Plan Your Route</h3>
-                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Industrial Mobility Protocol</p>
+                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Fast and Secure Rides</p>
               </div>
 
               {/* ROUTE CARDS */}
@@ -137,8 +137,8 @@ const RideBookingSheet: React.FC<RideBookingSheetProps> = ({
             >
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <h3 className="text-xl font-black uppercase tracking-tight text-white">Select Vessel</h3>
-                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Available Fleet Units</p>
+                  <h3 className="text-xl font-black uppercase tracking-tight text-white">Select Vehicle</h3>
+                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Available Rides</p>
                 </div>
                 <button 
                   onClick={() => setStep('route')}
@@ -184,7 +184,7 @@ const RideBookingSheet: React.FC<RideBookingSheetProps> = ({
                   </div>
                 </div>
                 <div className="text-right">
-                   <p className="text-[8px] font-black uppercase text-white/40 tracking-widest">Est. Total</p>
+                   <p className="text-[8px] font-black uppercase text-white/40 tracking-widest">Total Fare</p>
                    <p className="text-sm font-black text-aba-gold">₦{categories.find(c => c.id === selectedCategory)?.price.toLocaleString()}</p>
                 </div>
               </div>
@@ -206,7 +206,7 @@ const RideBookingSheet: React.FC<RideBookingSheetProps> = ({
       <div className="p-4 border-t border-white/5 bg-black/20">
         <div className="flex items-center justify-center gap-2">
           <ShieldCheck className="text-aba-green" size={12} />
-          <span className="text-[8px] font-black uppercase text-white/20 tracking-[0.3em]">NIN-Verified Partners • Secure Transit</span>
+          <span className="text-[8px] font-black uppercase text-white/20 tracking-[0.3em]">Verified Drivers • Safe Rides</span>
         </div>
       </div>
     </motion.div>

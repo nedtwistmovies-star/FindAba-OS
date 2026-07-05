@@ -144,7 +144,7 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
                        <div className="w-1.5 h-1.5 rounded-full bg-aba-green animate-pulse" />
                        <h2 className="text-xl font-black uppercase tracking-tight text-aba-dark">Carry-Me</h2>
                     </div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Aba Executive Transport v6.0</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Premium Transport Service</p>
                  </div>
 
                  <div className="space-y-3">
@@ -174,7 +174,7 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
                    className="w-full py-5 bg-aba-dark text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all hover:bg-aba-gold hover:text-aba-dark"
                  >
                     {loading ? <Loader2 className="animate-spin" size={16} /> : <Search size={18}/>}
-                    {loading ? 'Scanning Registry...' : 'Find Verified Ride'}
+                    {loading ? 'Searching...' : 'Find Verified Ride'}
                  </button>
               </div>
             )}
@@ -210,12 +210,12 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
                           </div>
                           <div className="text-right">
                              <p className="text-base font-black text-aba-dark">₦{driver.category === VehicleCategory.EXECUTIVE ? '4,500' : '2,200'}</p>
-                             <p className="text-[6px] font-black text-slate-300 uppercase tracking-widest">Est. Fare</p>
+                             <p className="text-[6px] font-black text-slate-300 uppercase tracking-widest">Fare</p>
                           </div>
                        </button>
                     )) : (
                       <div className="py-12 text-center">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No vehicles found in registry.</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No vehicles found.</p>
                       </div>
                     )}
                  </div>
@@ -232,22 +232,22 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
                        </div>
                     </div>
                     <div>
-                       <h3 className="text-xl font-black uppercase tracking-tight text-aba-dark">Ride Handshake</h3>
+                       <h3 className="text-xl font-black uppercase tracking-tight text-aba-dark">Booking Confirmed</h3>
                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{selectedVehicle.driver_name} • {selectedVehicle.plate_number}</p>
                     </div>
                  </div>
 
                  <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 space-y-4">
                     <div className="flex justify-between items-center">
-                       <span className="text-[9px] font-black uppercase text-slate-400">Total Settlement</span>
+                       <span className="text-[9px] font-black uppercase text-slate-400">Total Fare</span>
                        <span className="text-xl font-black text-aba-green">₦{fare.toLocaleString()}</span>
                     </div>
                     <div className="h-px w-full bg-slate-200" />
                     <div className="flex items-center gap-3 text-left">
                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-sm"><ShieldCheck size={16}/></div>
                        <div>
-                          <p className="text-[8px] font-black uppercase text-aba-dark">Security Protocol</p>
-                          <p className="text-[8px] font-medium text-slate-500 uppercase leading-relaxed">FindAba Escrow active. Payout shared 80% to driver upon drop-off confirmation.</p>
+                          <p className="text-[8px] font-black uppercase text-aba-dark">Safe & Secure</p>
+                          <p className="text-[8px] font-medium text-slate-500 uppercase leading-relaxed">Payment secured. Payout shared to driver upon drop-off confirmation.</p>
                        </div>
                     </div>
                  </div>
@@ -293,15 +293,14 @@ const CarryMe: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
                    onClick={() => setView('home')}
                    className="w-full py-5 bg-aba-dark text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-xl active:scale-95 transition-all"
                  >
-                    Return to Hub
+                    Return Home
                  </button>
               </div>
             )}
 
             <div className="pt-8 border-t border-slate-50 flex flex-col items-center gap-6 opacity-30 select-none grayscale">
-               <span className="text-[14px] font-black uppercase tracking-[1em]">SANDALSroyalle</span>
                <div className="flex items-center gap-3 text-[7px] font-black uppercase tracking-widest">
-                  <ShieldCheck size={12} /> Registry Integrity Partners
+                  <ShieldCheck size={12} /> Verified Partners
                </div>
             </div>
 

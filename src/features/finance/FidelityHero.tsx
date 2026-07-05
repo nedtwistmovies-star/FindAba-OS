@@ -36,7 +36,7 @@ const FidelityHero: React.FC<FidelityHeroProps> = ({ onStart, onLearnMore }) => 
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-slate-200 rounded-full shadow-sm">
               <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Fintech Savings Product</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Simple Savings</span>
             </div>
 
             {/* Headline */}
@@ -110,7 +110,7 @@ const FidelityHero: React.FC<FidelityHeroProps> = ({ onStart, onLearnMore }) => 
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Fidelity Wallet</p>
-                      <h4 className="text-sm font-black uppercase tracking-tight">Active Portfolio</h4>
+                      <h4 className="text-sm font-black uppercase tracking-tight">Account Balance</h4>
                     </div>
                   </div>
                   <div className="flex bg-white/10 p-1 rounded-xl backdrop-blur-md">
@@ -165,7 +165,7 @@ const FidelityHero: React.FC<FidelityHeroProps> = ({ onStart, onLearnMore }) => 
 
                 {/* Transactions */}
                 <div className="space-y-6">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Recent Handshakes</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Recent Transactions</p>
                   <div className="space-y-4">
                     {[
                       { type: 'Deposit', amount: '+ ₦50,000', color: 'text-green-600', icon: <PlusCircleIcon size={14} /> },

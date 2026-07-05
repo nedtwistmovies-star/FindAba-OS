@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, useScroll, useTransform } from 'motion/react';
-import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Landmark, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane } from 'lucide-react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
+import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Landmark, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane, X } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
 import { Logo, IndustrialButton, SectionHeader, ImageCarousel, BusinessCard } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
@@ -9,6 +9,7 @@ import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/sig
 import { checkDatabaseHealth } from '../../services/supabaseService';
 import { useOracle, useAuth, useLanguage } from '../../providers';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
+import { triggerVibration } from '../../utils/vibrate';
 
 interface HomeProps {
   setView: (v: ViewState) => void;
@@ -75,7 +76,7 @@ const CitySignals: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white leading-none">
-            {registryStatus === 'online' ? t("Registry Online", "Registry Online") : t("Registry Offline", "Registry Offline")}
+            {registryStatus === 'online' ? t("System Online", "System Online") : t("System Offline", "System Offline")}
           </span>
           <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">{t("System Status", "System Status")}</span>
         </div>
@@ -96,6 +97,55 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
   const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
   const [isSearching, setIsSearching] = useState(false);
+
+  // 🔹 Long-Press Context Menu Setup
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [longPressActive, setLongPressActive] = useState(false);
+  const longPressTimer = React.useRef<NodeJS.Timeout | null>(null);
+
+  const startLongPress = (e: React.MouseEvent | React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') || 
+      target.closest('a') || 
+      target.closest('input') || 
+      target.closest('textarea') || 
+      target.closest('select') ||
+      target.closest('video')
+    ) {
+      return;
+    }
+
+    let clientX = 0;
+    let clientY = 0;
+    if ('touches' in e) {
+      if (e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const x = clientX;
+    const y = clientY;
+
+    longPressTimer.current = setTimeout(() => {
+      setMenuPosition({ x, y });
+      setShowContextMenu(true);
+      setLongPressActive(true);
+      triggerVibration('MENU_OPEN');
+    }, 600);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+    setLongPressActive(false);
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +216,20 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans">
+    <div 
+      className="flex-1 flex flex-col bg-aba-deep min-h-screen pb-40 animate-fade-in font-sans"
+      onTouchStart={startLongPress}
+      onTouchEnd={cancelLongPress}
+      onTouchMove={cancelLongPress}
+      onMouseDown={startLongPress}
+      onMouseUp={cancelLongPress}
+      onMouseLeave={cancelLongPress}
+      onContextMenu={(e) => {
+        if (longPressActive || showContextMenu) {
+          e.preventDefault();
+        }
+      }}
+    >
       {/* 🔹 CITY SIGNALS - Top Aligned */}
       <div className="sticky top-0 z-[100] w-full">
         <CitySignals />
@@ -214,17 +277,17 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               onClick={() => setView('explore')}
               className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px]"
             >
-              Industrial Directory
+              Business Directory
             </IndustrialButton>
           </div>
 
           <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
             <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter leading-[1] md:leading-[0.9] uppercase italic">
-              The Industrial <br/>
-              <span className="text-aba-gold">Pulse of Aba.</span>
+              Experience Aba <br/>
+              <span className="text-aba-gold">Like Never Before.</span>
             </h1>
             <p className="text-white/60 text-[9px] sm:text-xs md:text-lg font-black max-w-2xl mx-auto uppercase tracking-widest leading-relaxed px-4">
-              Scale your workshop instantly. Automatic consensus verifies your signal and grants global visibility.
+              Connect with local businesses instantly. Get verified and start reaching customers today.
             </p>
           </div>
 
@@ -236,7 +299,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               <Search size={18} className="text-aba-gold mr-3 sm:mr-4 shrink-0" strokeWidth={3} />
               <input 
                 type="text"
-                placeholder="Search Aba Registry..."
+                placeholder="Search for businesses in Aba..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="text-xs sm:text-sm md:text-lg font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
@@ -307,18 +370,18 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                     <Wallet size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Save with Isusu</h3>
-                    <p className="text-[10px] font-bold text-aba-gold uppercase tracking-wider mt-1">Automatic Thrift</p>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Savings Groups</h3>
+                    <p className="text-[10px] font-bold text-aba-gold uppercase tracking-wider mt-1">Save together</p>
                   </div>
                   <p className="text-white/50 text-xs font-semibold leading-relaxed uppercase tracking-wide">
-                    Participate in trust-backed contributor savings pools and build commercial signals.
+                    Join trusted savings groups with other members and grow your money.
                   </p>
                 </div>
                 <button 
                   onClick={() => setView('oracle')} 
                   className="w-full py-3.5 bg-white/5 hover:bg-aba-gold hover:text-aba-deep text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
                 >
-                  Consult Smart Nodes
+                  Start Saving
                 </button>
               </div>
 
@@ -330,18 +393,18 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                     <Landmark size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Fidelity Wallet</h3>
-                    <p className="text-[10px] font-bold text-aba-gold uppercase tracking-wider mt-1">Consensus Ledgers</p>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Wallet</h3>
+                    <p className="text-[10px] font-bold text-aba-gold uppercase tracking-wider mt-1">Secure Payments</p>
                   </div>
                   <p className="text-white/50 text-xs font-semibold leading-relaxed uppercase tracking-wide">
-                    Establish secure Paystack settle vectors for room bookings and advertising tokens.
+                    Secure payments for bookings and ads.
                   </p>
                 </div>
                 <button 
                   onClick={() => setView('merchant-portal')} 
                   className="w-full py-3.5 bg-white/5 hover:bg-aba-gold hover:text-aba-deep text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
                 >
-                  Open Merchant Hub
+                  Open Wallet
                 </button>
               </div>
 
@@ -353,18 +416,18 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                     <Cpu size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Ask Oracle</h3>
-                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mt-1">AI Consultations</p>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Ask Assistant</h3>
+                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mt-1">Get help from AI</p>
                   </div>
                   <p className="text-white/50 text-xs font-semibold leading-relaxed uppercase tracking-wide">
-                    Leverage decentralized model queries to find verified hardware, shops, and resources.
+                    Use our AI assistant to find verified hardware, shops, and resources.
                   </p>
                 </div>
                 <button 
                   onClick={() => setView('oracle')} 
                   className="w-full py-3.5 bg-white/5 hover:bg-blue-500 hover:text-white text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
                 >
-                  Activate AI Link
+                  Ask Assistant
                 </button>
               </div>
             </div>
@@ -377,9 +440,9 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       {/* 🔹 BUSINESS OF THE DAY */}
       {businessOfTheDay && (
         <section className="px-6 md:px-12 mb-24 max-w-7xl mx-auto w-full">
-           <SectionHeader 
-              title="Business of the Day" 
-              subtitle="Daily Industrial Spotlight"
+          <SectionHeader 
+              title="Featured Business" 
+              subtitle="Business of the Day"
               icon={Sparkles}
               className="mb-10"
            />
@@ -398,7 +461,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                  <div className="absolute inset-0 bg-gradient-to-r from-aba-deep/80 via-transparent to-transparent" />
                  <div className="absolute top-6 left-6">
                     <div className="bg-aba-gold text-aba-deep text-[10px] font-bold px-4 py-2 rounded-xl uppercase tracking-widest shadow-sm flex items-center gap-2">
-                       <Star size={12} fill="currentColor" /> Featured Partner
+                       <Star size={12} fill="currentColor" /> Verified Partner
                     </div>
                  </div>
               </div>
@@ -418,7 +481,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                     <div className="flex items-center gap-2">
                        <ShieldCheck size={16} className="text-aba-green" />
                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                         Verified Hub
+                         Verified Member
                        </span>
                     </div>
                  </div>
@@ -449,10 +512,10 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                <div className="space-y-4 text-center md:text-left">
                   <h3 className="text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight uppercase">FindAba <span className="text-aba-gold">Verified.</span></h3>
                   <p className="text-white/70 text-sm md:text-base max-w-2xl font-medium leading-relaxed uppercase tracking-wider">
-                     Our trust badge isn't just a symbol—it's a guarantee of physical existence, industrial integrity, and trade reliability.
+                     Our trust badge isn't just a symbol—it means we've confirmed this business is real and reliable.
                   </p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-2">
-                     {['Physical Inspection', 'Identity Cleared', 'Trade Integrity'].map((tag, i) => (
+                     {['Physical Check', 'Identity Verified', 'Reliable Member'].map((tag, i) => (
                        <div key={i} className="px-4 py-2 bg-white/5 rounded-lg border border-white/10 text-[9px] font-bold text-white uppercase tracking-widest">
                           {tag}
                        </div>
@@ -470,14 +533,14 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
               <div className="space-y-6 text-center md:text-left max-w-2xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-aba-deep text-aba-gold rounded-lg text-[10px] font-bold uppercase tracking-widest">
-                  <Sparkles size={12} /> Industrial Opportunity
+                  <Sparkles size={12} /> Join us
                 </div>
                 <h2 className="text-4xl md:text-6xl font-bold text-aba-deep uppercase tracking-tight leading-[0.9]">
-                  Bring Your Business <br/>
-                  <span className="opacity-80">To The Global Stage.</span>
+                  Take Your Business <br/>
+                  <span className="opacity-80">Online Today.</span>
                 </h2>
                 <p className="text-aba-deep/70 text-base md:text-lg font-medium leading-relaxed uppercase tracking-wider">
-                  Join 5,000+ Aba artisans already synchronized with the global industrial mesh.
+                  Join 5,000+ local businesses already connected with customers around the world.
                 </p>
               </div>
               
@@ -494,22 +557,22 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         </section>
       )}
 
-      {/* 🔹 ARTISAN REGISTRY TABS */}
+      {/* 🔹 BUSINESS DIRECTORY TABS */}
       <section className="px-8 mb-24 max-w-7xl mx-auto w-full">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
           <SectionHeader 
-            title="Artisan Registry" 
-            subtitle="Industrial Partners"
+            title="Business Directory" 
+            subtitle="Local Partners"
             icon={Users}
             className="mb-0"
           />
           
           <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl overflow-x-auto scrollbar-hide touch-pan-x whitespace-nowrap">
             {[
-              { id: 'new', label: 'New Registrations', icon: Clock },
+              { id: 'new', label: 'Recently Added', icon: Clock },
               { id: 'featured', label: 'Featured', icon: Zap },
               { id: 'top', label: 'Top Rated', icon: Award },
-              { id: 'register', label: 'Register Business', icon: Plus, highlight: true },
+              { id: 'register', label: 'Add Your Business', icon: Plus, highlight: true },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -553,7 +616,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
             onClick={() => setView('explore')}
             className="w-full max-w-xs"
           >
-            Browse All Artisans
+            See All Businesses
           </IndustrialButton>
         </div>
       </section>
@@ -605,7 +668,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
           { id: 'about-aba', label: 'History', icon: <BookOpen size={20} />, desc: 'Aba Archive' },
           { id: 'merchant-portal', label: 'Merchant', icon: <Building2 size={20} />, desc: 'Merchant Hub' },
           { id: 'buyer-portal', label: 'Buyer', icon: <Users size={20} />, desc: 'Buyer Hub' },
-          { id: 'oracle', label: 'Oracle', icon: <MessageSquare size={20} />, desc: 'Oracle AI' },
+          { id: 'oracle', label: 'Assistant', icon: <MessageSquare size={20} />, desc: 'AI Assistant' },
           { id: 'editorial', label: 'News', icon: <Newspaper size={20} />, desc: 'Industrial News' },
           { id: 'support', label: 'Support', icon: <LifeBuoy size={20} />, desc: 'System Help' },
           { id: 'explore', label: 'Registry', icon: <Search size={20} />, desc: 'Full Directory' },
@@ -661,18 +724,118 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-aba-deep border-b-[8px] border-b-transparent ml-1" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl md:text-5xl font-bold text-white uppercase tracking-tight">The Industrial <span className="text-aba-gold">Action.</span></h3>
-                <p className="text-[10px] font-bold text-aba-gold uppercase tracking-widest">Showcasing Aba's Master Artisans</p>
+                <h3 className="text-2xl md:text-5xl font-bold text-white uppercase tracking-tight">Aba in <span className="text-aba-gold">Action.</span></h3>
+                <p className="text-[10px] font-bold text-aba-gold uppercase tracking-widest">Showcasing local businesses</p>
               </div>
             </div>
 
             <div className="absolute top-8 left-8 flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-aba-red rounded-full animate-pulse" />
-              <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Live Industrial Feed</span>
+              <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Watch the action</span>
             </div>
           </div>
         </div>
       </section>
+
+      {/* 🔹 LONG-PRESS INDUSTRIAL CONTEXT MENU */}
+      <AnimatePresence>
+        {showContextMenu && (
+          <div 
+            className="fixed inset-0 z-[99999] bg-black/75 flex items-center justify-center p-4 backdrop-blur-md"
+            onClick={() => setShowContextMenu(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="bg-aba-deep border-2 border-aba-gold/80 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-aba-gold rounded-full animate-ping" />
+                  <span className="text-[10px] font-bold text-aba-gold uppercase tracking-widest font-mono">FINDABA OS CONTEXT PANEL</span>
+                </div>
+                <button 
+                  onClick={() => setShowContextMenu(false)}
+                  className="text-white/40 hover:text-white p-1"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <p className="text-white/60 text-xs mb-4 font-sans">Quick-launch shortcuts for merchants and traders:</p>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setShowContextMenu(false);
+                    triggerVibration('TICK');
+                    setView('cargo');
+                  }}
+                  className="w-full flex items-center justify-between p-3.5 bg-white/5 border border-white/5 hover:border-aba-gold/40 hover:bg-white/10 rounded-xl transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-aba-green/10 text-aba-green rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Truck size={18} />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs font-bold text-white uppercase tracking-wider">New Order</div>
+                      <div className="text-[9px] text-white/40">Logistics & Cargo Delivery</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={14} className="text-white/40 group-hover:text-aba-gold transition-colors" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowContextMenu(false);
+                    triggerVibration('TICK');
+                    setView('explore');
+                  }}
+                  className="w-full flex items-center justify-between p-3.5 bg-white/5 border border-white/5 hover:border-aba-gold/40 hover:bg-white/10 rounded-xl transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-aba-gold/10 text-aba-gold rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Search size={18} />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs font-bold text-white uppercase tracking-wider">Market Explorer</div>
+                      <div className="text-[9px] text-white/40">Discover local Aba businesses</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={14} className="text-white/40 group-hover:text-aba-gold transition-colors" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowContextMenu(false);
+                    triggerVibration('TICK');
+                    setView('support');
+                  }}
+                  className="w-full flex items-center justify-between p-3.5 bg-white/5 border border-white/5 hover:border-aba-gold/40 hover:bg-white/10 rounded-xl transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-aba-red/10 text-aba-red rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <LifeBuoy size={18} />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs font-bold text-white uppercase tracking-wider">Support Chat</div>
+                      <div className="text-[9px] text-white/40">Contact FindAba team and helpdesk</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={14} className="text-white/40 group-hover:text-aba-gold transition-colors" />
+                </button>
+              </div>
+
+              <div className="mt-6 text-center text-[8px] text-white/30 font-mono uppercase tracking-widest">
+                Release or Tap Outside to Cancel
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

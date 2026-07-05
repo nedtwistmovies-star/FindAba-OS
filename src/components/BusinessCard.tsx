@@ -195,6 +195,11 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
                  Grade {business.integrity_grade}
               </div>
            )}
+           {business.verified_presence && (
+              <div className="bg-aba-green text-white text-[8px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm flex items-center gap-1.5 border border-aba-green/30 backdrop-blur-md self-start">
+                 <MapPin size={10} /> Verified Location
+              </div>
+           )}
         </div>
 
         <button 

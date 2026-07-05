@@ -220,7 +220,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
         
         // If due within 24 hours, push a warning notification
         if (hrs > 0 && hrs <= 24) {
-          addToast(`⏰ PAYMENT DUE IN ${Math.round(hrs)}H: Your Isusu contribution of ₦${selectedGroup.group.contribution_amount.toLocaleString()} is due tomorrow!`, "info");
+          addToast(`⏰ PAYMENT DUE IN ${Math.round(hrs)}H: Your contribution of ₦${selectedGroup.group.contribution_amount.toLocaleString()} is due tomorrow!`, "info");
         }
       }
     }
@@ -331,8 +331,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       logs.push({
         id: 'group-create',
         type: 'creation',
-        title: 'CONSILIUM CIRCLE INITIATED',
-        description: `Industrial savings circle authorized and formed by ${founderName}.`,
+        title: 'SAVINGS GROUP STARTED',
+        description: `Savings group created by ${founderName}.`,
         timestamp: group.created_at,
         icon: 'Sparkles',
         color: 'text-amber-500 bg-amber-500/10 border-amber-500/20'
@@ -344,8 +344,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       logs.push({
         id: `member-join-${m.id}`,
         type: 'join',
-        title: 'MEMBER ADMITTED',
-        description: `${name} authenticated membership and secured Slot #${m.payout_position || 'N/A'}.`,
+        title: 'MEMBER JOINED',
+        description: `${name} joined and is at Slot #${m.payout_position || 'N/A'}.`,
         timestamp: m.joined_at || group?.created_at,
         icon: 'User',
         color: 'text-blue-500 bg-blue-500/10 border-blue-500/20'
@@ -356,8 +356,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       logs.push({
         id: 'group-activate',
         type: 'milestone',
-        title: 'CONSORTIUM PROTOCOL ONLINE',
-        description: `All ${group.max_members} premium slots successfully claimed. Rotating payouts have commenced.`,
+        title: 'SAVINGS GROUP ACTIVE',
+        description: `All ${group.max_members} slots filled. Savings rotation has started.`,
         timestamp: group.start_date,
         icon: 'Zap',
         color: 'text-purple-500 bg-purple-500/10 border-purple-500/20'
@@ -370,8 +370,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       logs.push({
         id: `contrib-${c.id}`,
         type: 'contribution',
-        title: 'CONTRIBUTION RECORDED',
-        description: `${name} committed contribution of ₦${c.amount.toLocaleString()} to safety custody registry.`,
+        title: 'PAYMENT RECEIVED',
+        description: `${name} made a contribution of ₦${c.amount.toLocaleString()}.`,
         timestamp: c.created_at,
         icon: 'Card',
         color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20'
@@ -386,7 +386,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
           id: `payout-paid-${p.id}`,
           type: 'payout',
           title: 'DISBURSAL COMPLETED',
-          description: `Savings payout of ₦${p.amount.toLocaleString()} disbursed to ${name} for Slot #${payoutMember?.payout_position || p.cycle_number}.`,
+          description: `₦${p.amount.toLocaleString()} sent to ${name} for Slot #${payoutMember?.payout_position || p.cycle_number}.`,
           timestamp: p.paid_at || p.created_at,
           icon: 'Dollar',
           color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20'
@@ -396,7 +396,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
           id: `payout-scheduled-${p.id}`,
           type: 'payout_scheduled',
           title: 'PAYOUT CYCLE LOCKED',
-          description: `Savings payout pool of ₦${p.amount.toLocaleString()} scheduled for ${name} in turn.`,
+          description: `₦${p.amount.toLocaleString()} is scheduled for ${name}.`,
           timestamp: p.created_at,
           icon: 'Clock',
           color: 'text-slate-500 bg-slate-500/10 border-slate-500/20'
@@ -653,7 +653,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
       } else if (selectedGroup?.group) {
         // Handle group contribution
         await saveGroupContribution(selectedGroup.group.id, selectedGroup.group.contribution_amount, 1); // Cycle 1 for now
-        addToast("Group Isusu Contribution Recorded", "success");
+        addToast("Payment recorded successfully", "success");
         await openGroupDetails(selectedGroup.group.id);
       }
     } catch (e: any) {
@@ -706,7 +706,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
         INSERT_RESULT: 'GROUP_CREATED_SUCCESSFULLY'
       });
 
-      addToast("Isusu Group Forming!", "success");
+      addToast("Savings Group Created!", "success");
       setShowCreateGroup(false);
       await refreshData();
     } catch (e: any) {
@@ -767,7 +767,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
     setActionLoading(true);
     try {
       await joinThriftGroup(groupId, code);
-      addToast("Joined Isusu Group Successfully", "success");
+      addToast("Joined successfully", "success");
       setInviteCodeInput('');
       await openGroupDetails(groupId);
       await refreshData();
@@ -794,7 +794,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
   if (loading) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center space-y-4">
       <Loader2 className="animate-spin text-blue-600" size={48} />
-      <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">Synchronizing Financial Unit</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">Loading...</p>
     </div>
   );
 
@@ -814,8 +814,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
               <div className="w-20 h-20 bg-blue-600 rounded-[2rem] mx-auto flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
                  <ShieldCheck size={40} />
               </div>
-              <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">Activate Savings Unit</h2>
-              <p className="text-sm font-medium text-slate-500 uppercase tracking-widest px-10">Select your savings protocol. Funds are locked securely until the cycle matures.</p>
+              <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">Start Saving</h2>
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-widest px-10">Choose a savings plan. Your funds will be securely held until the period ends.</p>
            </div>
 
            <div className="grid grid-cols-2 gap-4">
@@ -823,7 +823,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                 { id: 'daily', label: 'Daily', desc: 'Fast rotation' },
                 { id: 'weekly', label: 'Weekly', desc: 'Standard business' },
                 { id: 'monthly', label: 'Monthly', desc: 'Growth focus' },
-                { id: 'quarterly', label: 'Quarterly', desc: 'Industrial bulk' }
+                { id: 'quarterly', label: 'Quarterly', desc: 'Large business' }
               ].map(c => (
                 <button 
                   key={c.id}
@@ -838,7 +838,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-3">
               <div className="flex justify-between items-center">
-                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Protocol Arrangement</span>
+                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Savings Plan</span>
                  <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Type {selectedCycle}</span>
               </div>
               <div className="flex justify-between items-center">
@@ -853,7 +853,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
              disabled={actionLoading}
              className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[12px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-4 hover:bg-blue-600"
            >
-             {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={20} />} Activate Protocol
+             {actionLoading ? <Loader2 className="animate-spin" /> : <Plus size={20} />} Start Saving
            </button>
 
            {/* INFRASTRUCTURE WARNING */}
@@ -862,8 +862,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                 <div className="flex items-center gap-4 text-red-600">
                   <AlertTriangle size={32} />
                   <div>
-                    <h4 className="text-lg font-black uppercase tracking-tight">Infrastructure Incomplete</h4>
-                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Missing Registry Modules</p>
+                    <h4 className="text-lg font-black uppercase tracking-tight">Setup Required</h4>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Incomplete setup</p>
                   </div>
                 </div>
                 
@@ -896,8 +896,8 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
              <div className="mt-8 p-6 bg-slate-950 rounded-[2.5rem] border-2 border-blue-500/50 shadow-2xl shadow-blue-500/10 overflow-hidden">
                <div className="flex justify-between items-center bg-blue-500/10 -mx-6 -mt-6 px-6 py-4 border-b border-blue-500/20 mb-6">
                  <div>
-                   <h3 className="text-white font-black uppercase tracking-tighter text-lg">Mission Audit Logic</h3>
-                   <p className="text-[9px] text-blue-400 font-bold uppercase tracking-widest">Fidelity Protocol Diagnostics</p>
+                   <h3 className="text-white font-black uppercase tracking-tighter text-lg">System Diagnostics</h3>
+                   <p className="text-[9px] text-blue-400 font-bold uppercase tracking-widest">System Status</p>
                  </div>
                  <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${debugInfo.status === 'FAILED' ? 'bg-red-600 text-white' : (debugInfo.status === 'SUCCESS' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white animate-pulse')}`}>
                    {debugInfo.status}
@@ -1016,7 +1016,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                   onClick={() => setDebugInfo(null)}
                   className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl uppercase font-black tracking-[0.2em] transition-all border border-white/10"
                  >
-                   Dismiss Diagnostic Link
+                   Dismiss Details
                  </button>
                </div>
              </div>
@@ -1027,14 +1027,14 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                onClick={() => setActiveTab('group')}
                className="text-[10px] font-black uppercase text-blue-600 tracking-widest hover:underline"
              >
-               Switch to Group Isusu
+               Switch to Savings Groups
              </button>
              
              <button 
                 onClick={verifyInfrastructure}
                 className="flex items-center gap-2 text-[8px] font-black uppercase text-slate-400 tracking-widest hover:text-blue-500 transition-colors"
               >
-                <Database size={10} /> Perform Registry Schema Audit
+                <Database size={10} /> Check Connection
               </button>
            </div>
         </div>
@@ -1065,7 +1065,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                 onClick={() => setActiveTab('group')}
                 className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'group' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}
               >
-                Group Isusu
+                Savings Group
               </button>
            </div>
            <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100 font-black text-xs uppercase tracking-widest">
@@ -1081,14 +1081,14 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                 <h4 className="text-sm font-black uppercase tracking-tight">System Infrastructure Fault</h4>
               </div>
               <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest leading-relaxed">
-                Group Isusu required tables are missing from the registry. Individual Savings are functional, but Group operations are disabled.
+                Setup is incomplete. Some features may be unavailable.
               </p>
               <button 
                 onClick={verifyInfrastructure}
                 className="px-6 py-3 bg-red-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-xl active:scale-95 transition-all flex items-center gap-2"
               >
                 <RefreshCcw size={12} className={infrastructureStatus.checking ? 'animate-spin' : ''} />
-                Audit Registry
+                Check System
               </button>
             </div>
           )}
@@ -1115,7 +1115,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                     </div>
                     <div className="pt-8 flex flex-wrap gap-4">
                       <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 flex flex-col">
-                          <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Protocol</span>
+                          <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Savings Plan</span>
                           <span className="text-xs font-black text-white uppercase tracking-widest">{account?.cycle}</span>
                       </div>
                       <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 flex flex-col">
@@ -1188,7 +1188,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                      disabled={timeLeft === 'MATURED' || account?.status === 'withdrawn'}
                      className="w-full py-6 bg-orange-500 disabled:opacity-50 text-white rounded-[2rem] font-black uppercase text-[12px] tracking-[0.4em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 hover:bg-orange-600"
                    >
-                     {timeLeft === 'MATURED' ? 'Cycle Terminated' : 'Commit to Registry'} <Zap size={18} />
+                     {timeLeft === 'MATURED' ? 'Cycle Terminated' : 'Make Payment'} <Zap size={18} />
                    </button>
                 </div>
               </div>
@@ -1218,7 +1218,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
               <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 space-y-8">
                  <div className="flex items-center justify-between">
                     <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-                       <History size={16} /> Registry Logs
+                       <History size={16} /> Activity Logs
                     </h4>
                     <span className="text-[10px] font-black text-slate-400 uppercase">{(contributions || []).length} SIGNALS</span>
                  </div>
@@ -1238,21 +1238,21 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                       </div>
                    ))}
                    {(contributions || []).length === 0 && (
-                      <div className="text-center py-12 opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">No signals recorded in the registry</div>
+                      <div className="text-center py-12 opacity-30 italic text-[10px] font-black uppercase tracking-[0.2em]">No activity found</div>
                    )}
                  </div>
               </div>
             </>
           ) : (
             <>
-              {/* Group Isusu Redesign */}
+              {/* Savings Group Layout */}
               {!selectedGroup ? (
                 <div className="space-y-16">
                   {/* SECTION 1 — DASHBOARD REDESIGN */}
                   <div className="space-y-8">
                     <div className="space-y-2">
-                      <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">MY ISUSU NETWORK</h2>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Industrial Savings Syndicate Dashboard</p>
+                      <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">MY SAVINGS NETWORK</h2>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Savings Dashboard</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1303,7 +1303,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                       <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${groupFetchError ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
                         <div>
-                          <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Isusu Registry Telemetry</h3>
+                          <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">Group Overview</h3>
                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Supabase Service Connection Status</p>
                         </div>
                       </div>
@@ -1393,7 +1393,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                   <div id="discover-public" className="space-y-8 scroll-mt-32">
                     <div className="space-y-2">
                       <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900">DISCOVER PUBLIC GROUPS</h3>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Marketplace of active and forming Isusu syndicates</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active savings groups</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1664,7 +1664,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                                  }`}
                               >
                                  <MessageSquare size={12} />
-                                 Consortium Chat
+                                 Group Chat
                               </button>
                               <button
                                  onClick={() => setRightPanelTab('pulse')}
@@ -1675,7 +1675,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                                  }`}
                               >
                                  <Users size={12} />
-                                 Consortium Pulse
+                                 Group Activity
                               </button>
                            </div>
 
@@ -1685,14 +1685,14 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                                  <div className="flex items-center justify-between shrink-0">
                                     <div className="flex items-center gap-2">
                                        <Sparkles size={14} className="text-indigo-600 animate-spin animate-duration-3000" />
-                                       <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-950">Oracle Advisory Booklet</h4>
+                                       <h4 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-950">Savings Advice</h4>
                                     </div>
                                     <button
                                        type="button"
                                        onClick={() => fetchAdvice(selectedGroup)}
                                        disabled={loadingAdvice}
                                        className="p-1 px-2.5 bg-indigo-50 hover:bg-slate-900 hover:text-white text-[8px] text-indigo-700 font-black uppercase tracking-wider rounded-lg border border-indigo-200/40 transition-all flex items-center gap-1 disabled:opacity-55 active:scale-95 cursor-pointer"
-                                       title="Re-run industrial consensus prediction"
+                                       title="Refresh advice"
                                     >
                                        <RefreshCcw size={10} className={loadingAdvice ? 'animate-spin' : ''} />
                                        Re-Analyze
@@ -1758,7 +1758,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                                        <div className="space-y-2.5">
                                           <h5 className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
                                              <Building2 size={11} className="text-indigo-600" />
-                                             Aba Industrial Strategy Blueprint
+                                             Investment Guide
                                           </h5>
                                           <div className="space-y-2">
                                              {financialAdvice.investment_strategies.map((strategy: string, sIdx: number) => (
@@ -1791,13 +1791,13 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                                      </div>
                                   ) : (
                                      <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-white rounded-2xl border border-slate-100/50">
-                                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Oracle Advisory Signal Missing</p>
+                                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">No advice available yet</p>
                                         <button
                                            type="button"
                                            onClick={() => fetchAdvice(selectedGroup)}
                                            className="mt-3 px-5 py-3 bg-indigo-600 hover:bg-slate-900 transition-all text-white rounded-xl text-[9px] font-black uppercase tracking-wider shadow-sm cursor-pointer"
                                         >
-                                           Synthesize Oracle Wisdom
+                                           Get Advice
                                         </button>
                                      </div>
                                   )}
@@ -1809,9 +1809,9 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                               <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100/80 space-y-4 flex flex-col h-[400px]">
                                  <div className="flex items-center gap-2 shrink-0">
                                     <MessageSquare size={14} className="text-blue-600" />
-                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900">Secure Thread</h4>
+                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900">Group Chat</h4>
                                  </div>
-                                 <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide shrink-0">Real-time collaboration registry for Group members</p>
+                                 <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide shrink-0">Chat with other members in your group</p>
                                  
                                  {/* Messages list */}
                                  <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[180px] max-h-[220px]">
@@ -1877,7 +1877,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                               <div className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100/80 space-y-4">
                                  <div className="flex items-center gap-2">
                                     <Users size={14} className="text-blue-600" />
-                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900">Consortium Pulse</h4>
+                                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900">Group Activity</h4>
                                  </div>
                                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Significant events logged in the savings loop</p>
                                  
@@ -1982,7 +1982,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-slate-900 p-12 rounded-[3.5rem] text-white space-y-6 relative overflow-hidden">
                  <div className="relative z-10 space-y-4">
-                   <h4 className="text-blue-400 text-xs font-black uppercase tracking-[0.4em]">Industrial Logic</h4>
+                   <h4 className="text-blue-400 text-xs font-black uppercase tracking-[0.4em]">How it works</h4>
                    <h3 className="text-2xl font-black uppercase tracking-tight leading-tight">No-Yield Discipline</h3>
                    <p className="text-slate-400 text-sm leading-relaxed">
                      FindAba Savings operates on the principle of <span className="text-white">Capital Protection</span>. 
@@ -2018,19 +2018,19 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                  </button>
                  
                  <div className="space-y-2">
-                    <span className="px-3 py-1 bg-blue-105 bg-blue-100 text-blue-700 rounded-lg text-[8px] font-black uppercase tracking-widest">partner credentials</span>
+                    <span className="px-3 py-1 bg-blue-105 bg-blue-100 text-blue-700 rounded-lg text-[8px] font-black uppercase tracking-widest">member details</span>
                     <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">
-                       {selectedProfileMember.profile?.full_name || 'Isusu Guild Partner'}
+                       {selectedProfileMember.profile?.full_name || 'Group Member'}
                     </h2>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 truncate max-w-full">
-                       Verified Email Credentials: {selectedProfileMember.profile?.email || selectedProfileMember.user_id}
+                       Email: {selectedProfileMember.profile?.email || selectedProfileMember.user_id}
                     </p>
                  </div>
 
                  {/* Profile Details Grid */}
                  <div className="grid grid-cols-2 gap-4">
                     <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100/60 space-y-1">
-                       <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Rotational Slot</span>
+                       <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Payout Turn</span>
                        <p className="text-lg font-black text-slate-950 uppercase">Slot #{selectedProfileMember.payout_position}</p>
                     </div>
 
@@ -2050,7 +2050,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
 
                     <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100/60 col-span-2 flex justify-between items-center">
                        <div className="space-y-1">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Consortium Entry Date</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Joined Date</span>
                           <p className="text-xs font-black text-slate-900 uppercase">
                              {selectedProfileMember.joined_at 
                                 ? new Date(selectedProfileMember.joined_at).toLocaleDateString(undefined, { dateStyle: 'long' })
@@ -2115,7 +2115,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                           }
 
                           if (isCreator) {
-                             summary += `Acts with distinction as the primary coordinator (Isusu Orchestrator) for this cooperative community pool.`;
+                             summary += `Acts as the group leader for this community pool.`;
                           } else {
                              summary += `Maintains consistent financial partnership with all rotational cycle peers.`;
                           }
@@ -2130,7 +2130,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                        onClick={() => setSelectedProfileMember(null)}
                        className="py-3.5 px-8 bg-slate-900 text-white hover:bg-black rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
                     >
-                       Acknowledge partner report
+                       Close
                     </button>
                  </div>
               </div>
@@ -2149,9 +2149,9 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                  </button>
                  
                  <div className="space-y-2">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[8px] font-black uppercase tracking-widest">ledger audit</span>
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[8px] font-black uppercase tracking-widest">history</span>
                     <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Contribution history</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verified cryptographic transaction records for {selectedGroup.group?.name}.</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Transaction records for {selectedGroup.group?.name}.</p>
                  </div>
 
                  {/* Cryptographic Ledger Table */}
@@ -2178,7 +2178,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                                    return (
                                       <tr>
                                          <td colSpan={4} className="p-10 text-center text-xs font-bold text-slate-400 uppercase tracking-wider bg-white">
-                                            No verified savings contributions located in consortium registry.
+                                            No transactions found in this group.
                                          </td>
                                       </tr>
                                    );
@@ -2273,7 +2273,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
                  </button>
                  
                  <div className="space-y-2">
-                    <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Form Isusu Group</h2>
+                    <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Create Savings Group</h2>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Initialize a collective rotating savings unit.</p>
                  </div>
 
@@ -2466,7 +2466,7 @@ const ThriftDashboard: React.FC<ThriftDashboardProps> = ({ setView, userEmail })
             isOpen={showCheckout}
             amount={contributionAmount} 
             email={userEmail} 
-            label="Industrial Thrift Sync"
+            label="Savings Update"
             onSuccess={handlePaymentSuccess} 
             onCancel={() => setShowCheckout(false)} 
           />

@@ -52,14 +52,14 @@ const SystemStatusIndicator: React.FC = () => {
         const errorText = await response.text().catch(() => 'No response body');
         setStatus('disconnected');
         setLatency(null);
-        setLastCheckError(`Server returned ${response.status}: ${errorText.slice(0, 50)}`);
+        setLastCheckError(`The system returned an issue: ${errorText.slice(0, 50)}`);
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.warn('[SystemStatus] Periodic connectivity poll failed:', err);
       setStatus('disconnected');
       setLatency(null);
-      setLastCheckError(err.name === 'AbortError' ? 'Handshake Timeout (5s)' : `Network Fault: ${err.message}`);
+      setLastCheckError(err.name === 'AbortError' ? 'Connection Timeout' : `Network Issue: ${err.message}`);
     } finally {
       setIsSyncing(false);
     }
@@ -100,11 +100,11 @@ const SystemStatusIndicator: React.FC = () => {
   const getStatusText = () => {
     switch (status) {
       case 'connected':
-        return 'AFI Signal Verified';
+        return 'Signal Connected';
       case 'checking':
-        return 'Handshake Syncing';
+        return 'Connecting...';
       case 'disconnected':
-        return 'City Link Offline';
+        return 'Connection Lost';
     }
   };
 
@@ -135,7 +135,7 @@ const SystemStatusIndicator: React.FC = () => {
           </span>
           
           <span className="text-[9px] font-black tracking-widest uppercase text-white/70 group-hover:text-aba-gold transition-colors block">
-            {isOpen || isHovered ? 'City OS Status' : (latency ? `${latency}ms` : 'City OS')}
+            {isOpen || isHovered ? 'System Status' : (latency ? `${latency}ms` : 'System')}
           </span>
         </button>
 
@@ -152,7 +152,7 @@ const SystemStatusIndicator: React.FC = () => {
               <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-2.5">
                 <div className="flex items-center gap-2">
                   <Server size={14} className="text-aba-gold" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-aba-gold">Industrial Signal V6</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-aba-gold">Signal Strength</span>
                 </div>
                 <button
                   onClick={handleManualSync}
@@ -160,7 +160,7 @@ const SystemStatusIndicator: React.FC = () => {
                   className={`p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-white/60 transition-colors ${
                     isSyncing ? 'animate-spin text-aba-gold' : ''
                   }`}
-                  title="Force telemetry handshake verification"
+                  title="Check connection"
                 >
                   <RefreshCw size={12} />
                 </button>
@@ -169,7 +169,7 @@ const SystemStatusIndicator: React.FC = () => {
               <div className="space-y-2.5">
                 {/* Status Row */}
                 <div className="flex items-center justify-between bg-black/10 px-2.5 py-1.5 rounded-lg border border-white/5">
-                  <span className="text-[10px] font-medium text-white/40 uppercase tracking-wide">Handshake</span>
+                  <span className="text-[10px] font-medium text-white/40 uppercase tracking-wide">Connection</span>
                   <div className="flex items-center gap-1.5">
                     {status === 'connected' ? (
                       <Wifi size={12} className="text-emerald-400" />
@@ -189,15 +189,15 @@ const SystemStatusIndicator: React.FC = () => {
                 {/* Latency & Last Checked Info */}
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
                   <div className="bg-black/15 p-2 rounded-lg border border-white/5">
-                    <span className="text-white/40 block pb-1 uppercase tracking-wide font-medium">Latency</span>
+                    <span className="text-white/40 block pb-1 uppercase tracking-wide font-medium">Response</span>
                     <span className="text-white font-bold font-mono">
                       {latency ? `${latency} ms` : '--'}
                     </span>
                   </div>
                   <div className="bg-black/15 p-2 rounded-lg border border-white/5">
-                    <span className="text-white/40 block pb-1 uppercase tracking-wide font-medium">Telemetry</span>
+                    <span className="text-white/40 block pb-1 uppercase tracking-wide font-medium">Signal</span>
                     <span className="text-emerald-400 font-bold uppercase tracking-wider text-[9px]">
-                      {status === 'connected' ? 'Active' : status === 'checking' ? 'Syncing' : 'No Loop'}
+                      {status === 'connected' ? 'Connected' : status === 'checking' ? 'Syncing' : 'No Signal'}
                     </span>
                   </div>
                 </div>
@@ -205,16 +205,16 @@ const SystemStatusIndicator: React.FC = () => {
                 {/* Sync details */}
                 <div className="px-1 text-[8px] leading-relaxed text-white/30 uppercase tracking-widest font-mono">
                   {lastChecked ? (
-                    <span>Last Verify: {lastChecked.toLocaleTimeString()}</span>
+                    <span>Last checked: {lastChecked.toLocaleTimeString()}</span>
                   ) : (
-                    <span>Awaiting handshake...</span>
+                    <span>Connecting...</span>
                   )}
                   {lastCheckError && (
                     <span className="block mt-1 text-rose-400 font-bold lowercase tracking-normal">
-                      Fault: {lastCheckError}
+                      Issue: {lastCheckError}
                     </span>
                   )}
-                  <span className="block mt-1">Host Node: Cloud Run Container</span>
+                  <span className="block mt-1">Connection: Secure</span>
                 </div>
               </div>
             </motion.div>

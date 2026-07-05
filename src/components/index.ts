@@ -29,6 +29,7 @@ import { ContactGateway } from './ContactGateway';
 import SystemStatusIndicator from './SystemStatusIndicator';
 import { LanguageSelector } from './LanguageSelector';
 import WelcomeOverlay from './WelcomeOverlay';
+import { WeeklyTradeVolumeChart } from './WeeklyTradeVolumeChart';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -58,5 +59,6 @@ export {
   ContactGateway,
   SystemStatusIndicator,
   LanguageSelector,
-  WelcomeOverlay
+  WelcomeOverlay,
+  WeeklyTradeVolumeChart
 };

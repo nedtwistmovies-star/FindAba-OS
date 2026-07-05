@@ -147,9 +147,9 @@ const EditorialDetail: React.FC<EditorialDetailProps> = ({ story, onBack, setVie
                         <Share2 size={24} />
                      </div>
                      <h3 className="text-3xl font-black text-white uppercase tracking-tighter leading-tight">
-                        "Aba isn't just a city; it's an industrial philosophy of resilience and innovation."
+                        "Aba isn't just a city; it's a hub of resilience and innovation."
                      </h3>
-                     <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em]">Master Artisan Council // 2024</p>
+                     <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em]">Aba Business Leaders // 2024</p>
                   </div>
                </div>
 

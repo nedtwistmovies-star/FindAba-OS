@@ -13,6 +13,7 @@ import { ShipmentStatus, ViewState } from '../../types';
 import { useToast } from '../../providers/ToastProvider';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { calculateLogisticsQuotes, generateTrackingId, getMockTrackingDetails, LogisticsQuote, ShipmentDetails } from '../../services/logisticsService';
+import { triggerVibration } from '../../utils/vibrate';
 
 const ABA_HUBS = [
   { id: 'ariaria', name: 'Ariaria Export Hub', area: 'Faulks Road', capacity: '85%', status: 'optimal' },
@@ -46,7 +47,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
       if (data) {
         setSelectedTracking(data as any);
       } else {
-        addToast("Tracking ID not found in the Industrial Registry.", "error");
+        addToast("Tracking ID not found.", "error");
       }
     } finally {
       setIsTrackingManual(false);
@@ -120,9 +121,10 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
       await refreshHistory();
       setShowCheckout(false); 
       setActiveTab('track');
-      addToast("Logistics signal confirmed! Cargo movement initialized.", "success");
+      triggerVibration('SUCCESS');
+      addToast("Order confirmed! Your delivery is being processed.", "success");
     } catch (e) {
-      addToast("Registry write signal failed. Payout confirmed, manual audit likely required.", "error");
+      addToast("Connection error. Payment confirmed, but we couldn't update the status. Please contact support.", "error");
     } finally {
       setLoading(false);
     }
@@ -155,7 +157,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                 className="group flex items-center gap-2 text-white/60 hover:text-white transition-colors text-[10px] font-black uppercase tracking-[0.3em]"
               >
                 <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                Back to Command
+                Back
               </motion.button>
 
               <div className="space-y-2">
@@ -172,7 +174,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                   transition={{ delay: 0.1 }}
                   className="text-aba-gold text-xs md:text-sm font-black uppercase tracking-[0.5em] ml-1"
                 >
-                  Smart Logistics & Supply Chain
+                  Delivery & Supply Chain
                 </motion.p>
               </div>
 
@@ -184,7 +186,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
               >
                 <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
                   <div className="w-2 h-2 rounded-full bg-aba-green animate-pulse"></div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Live Fleet Active</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Drivers are online</span>
                 </div>
                 <div className="flex items-center gap-3 bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
                   <Activity size={14} className="text-aba-gold" />
@@ -224,7 +226,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                 onClick={() => setActiveTab(tab)} 
                 className={`relative py-6 text-[10px] font-black uppercase tracking-[0.3em] transition-all whitespace-nowrap ${activeTab === tab ? 'text-aba-gold' : 'text-white/40 hover:text-white/60'}`}
               >
-                {tab === 'book' ? 'New Dispatch' : tab === 'track' ? 'Registry Track' : 'Supply Chain'}
+                {tab === 'book' ? 'New Delivery' : tab === 'track' ? 'Tracking' : 'Supply Chain'}
                 {activeTab === tab && (
                   <motion.div 
                     layoutId="activeTab"
@@ -250,8 +252,8 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
               {/* [2] SERVICE SELECTION (LEFT ON DESKTOP) */}
               <div className="lg:col-span-5 space-y-8">
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-black uppercase tracking-tight">Select Service</h3>
-                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Choose your industrial sync speed</p>
+                  <h3 className="text-2xl font-black uppercase tracking-tight">Select Speed</h3>
+                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Choose your delivery speed</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
@@ -313,7 +315,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                 <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 space-y-6">
                   <div className="flex items-center gap-3">
                     <Warehouse size={20} className="text-aba-gold" />
-                    <h4 className="text-sm font-black uppercase tracking-widest">Hub Registry</h4>
+                    <h4 className="text-sm font-black uppercase tracking-widest">Pickup Points</h4>
                   </div>
                   <div className="grid grid-cols-1 gap-3">
                     {ABA_HUBS.map(h => (
@@ -342,8 +344,8 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
               {/* [3] FORM INPUT (RIGHT ON DESKTOP) */}
               <div className="lg:col-span-7 space-y-8">
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-black uppercase tracking-tight">Dispatch Details</h3>
-                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Configure your industrial waybill</p>
+                  <h3 className="text-2xl font-black uppercase tracking-tight">Delivery Details</h3>
+                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Configure your delivery order</p>
                 </div>
 
                 <form onSubmit={(e) => { e.preventDefault(); setShowCheckout(true); }} className="space-y-8">
@@ -353,7 +355,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                       <div className="w-8 h-8 rounded-full bg-aba-green/20 flex items-center justify-center text-aba-green">
                         <MapPin size={16} />
                       </div>
-                      <h4 className="text-xs font-black uppercase tracking-widest">Pickup Information</h4>
+                      <h4 className="text-xs font-black uppercase tracking-widest">Your Contact Information</h4>
                     </div>
                     <div className="grid grid-cols-1 gap-4">
                       <div className="floating-label-group">
@@ -366,7 +368,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                           onChange={e => setBookingData({...bookingData, email: e.target.value})} 
                           required 
                         />
-                        <label className="floating-label">Customer Hub Email</label>
+                        <label className="floating-label">Email Address</label>
                       </div>
                     </div>
                   </div>
@@ -377,7 +379,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                       <div className="w-8 h-8 rounded-full bg-aba-red/20 flex items-center justify-center text-aba-red">
                         <Navigation size={16} />
                       </div>
-                      <h4 className="text-xs font-black uppercase tracking-widest">Destination Information</h4>
+                      <h4 className="text-xs font-black uppercase tracking-widest">Destination</h4>
                     </div>
                     <div className="grid grid-cols-1 gap-4">
                       <div className="floating-label-group">
@@ -390,10 +392,10 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                           onChange={e => setBookingData({...bookingData, delivery: e.target.value})} 
                           required 
                         />
-                        <label className="floating-label">Destination Industrial Address</label>
+                        <label className="floating-label">Delivery Address</label>
                       </div>
                       <div className="flex justify-end">
-                        <button type="button" className="text-[8px] font-black uppercase tracking-widest text-aba-gold hover:underline">Use Last Destination</button>
+                        <button type="button" className="text-[8px] font-black uppercase tracking-widest text-aba-gold hover:underline">Use Saved Address</button>
                       </div>
                     </div>
                   </div>
@@ -417,7 +419,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                           onChange={e => setBookingData({...bookingData, item: e.target.value})} 
                           required 
                         />
-                        <label className="floating-label">Package Specification</label>
+                        <label className="floating-label">What are you sending?</label>
                       </div>
                       <div className="floating-label-group">
                         <Weight className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20" size={18} />
@@ -446,7 +448,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                     </div>
                     <div className="flex items-center gap-2">
                       <Lock size={14} className="text-white" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Secure Dispatch Protocol</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest">Safe Delivery</span>
                     </div>
                   </div>
                 </form>
@@ -468,8 +470,8 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                   <div className="flex items-center gap-4 mb-8">
                     <Search size={24} className="text-aba-gold" />
                     <div>
-                      <h3 className="text-2xl font-black uppercase tracking-tight">Registry Search</h3>
-                      <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Locate any industrial waybill</p>
+                      <h3 className="text-2xl font-black uppercase tracking-tight">Track Your Order</h3>
+                      <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Enter your tracking ID to see your order status</p>
                     </div>
                   </div>
                   <form onSubmit={handleManualTrack} className="flex flex-col md:flex-row gap-4">
@@ -485,7 +487,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                       disabled={isTrackingManual}
                       className="bg-aba-gold text-aba-dark px-12 py-6 rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-[0_10px_30px_rgba(255,215,0,0.2)]"
                     >
-                      {isTrackingManual ? <Loader2 className="animate-spin" size={20} /> : 'Track Signal'}
+                      {isTrackingManual ? <Loader2 className="animate-spin" size={20} /> : 'Track Now'}
                     </button>
                   </form>
                 </div>
@@ -544,13 +546,13 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                   {loading && cloudOrders.length === 0 ? (
                      <div className="py-32 text-center">
                         <Loader2 className="animate-spin text-aba-gold mx-auto" size={64} />
-                        <p className="text-[12px] font-black uppercase text-white/20 mt-8 tracking-[0.5em]">Synchronizing Registry...</p>
+                        <p className="text-[12px] font-black uppercase text-white/20 mt-8 tracking-[0.5em]">Loading...</p>
                      </div>
                   ) : cloudOrders.length === 0 ? (
                     <div className="py-32 text-center opacity-20 flex flex-col items-center border-2 border-dashed border-white/10 rounded-[4rem]">
                        <Warehouse size={100} className="mb-8" />
-                       <h3 className="text-3xl font-black uppercase tracking-[0.2em] text-white">Empty Archive</h3>
-                       <p className="text-[12px] font-bold uppercase tracking-[0.4em] mt-8">Initialize a dispatch protocol to track movement.</p>
+                       <h3 className="text-3xl font-black uppercase tracking-[0.2em] text-white">No Orders Found</h3>
+                       <p className="text-[12px] font-bold uppercase tracking-[0.4em] mt-8">Book a delivery to see it here.</p>
                     </div>
                   ) : (
                     cloudOrders.map((o: any) => (
@@ -577,8 +579,8 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
 
                         <div className="space-y-6">
                            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.4em] text-white/20">
-                              <span>Registry Point</span>
-                              <span>Destination Partner</span>
+                              <span>Pickup</span>
+                              <span>Delivery</span>
                            </div>
                            <div className="relative h-2 w-full bg-white/5 rounded-full overflow-hidden">
                               <motion.div 
@@ -598,13 +600,13 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                            <div className="flex items-start gap-6">
                               <MapPin size={20} className="text-aba-red shrink-0 mt-1" />
                               <div>
-                                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Hub Location</p>
+                                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Hub</p>
                                  <p className="text-sm font-black uppercase text-white tracking-tight">{o.pickupAddress}</p>
                               </div>
                            </div>
                            <div className="flex items-center justify-between md:justify-end gap-8">
                               <div className="text-right">
-                                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Settlement</p>
+                                 <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Amount Paid</p>
                                  <p className="text-3xl font-black text-aba-gold">₦{o.totalFee.toLocaleString()}</p>
                               </div>
                               <button 
@@ -641,7 +643,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                   </div>
                   <div>
                     <h4 className="text-5xl font-black text-white tracking-tighter">₦1.2M</h4>
-                    <p className="text-[12px] font-black uppercase text-white/20 tracking-[0.3em] mt-3">Monthly Throughput</p>
+                    <p className="text-[12px] font-black uppercase text-white/20 tracking-[0.3em] mt-3">Monthly Sales</p>
                   </div>
                 </div>
                 <div className="bg-white/5 p-12 rounded-[3.5rem] shadow-2xl border border-white/5 space-y-8 group hover:border-blue-500/30 transition-all">
@@ -653,7 +655,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                   </div>
                   <div>
                     <h4 className="text-5xl font-black text-white tracking-tighter">428</h4>
-                    <p className="text-[12px] font-black uppercase text-white/20 tracking-[0.3em] mt-3">Active Inventory Units</p>
+                    <p className="text-[12px] font-black uppercase text-white/20 tracking-[0.3em] mt-3">Items in Stock</p>
                   </div>
                 </div>
               </div>
@@ -666,8 +668,8 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
                       <ShieldCheck size={40} />
                     </div>
                     <div>
-                      <h3 className="text-4xl font-black text-white uppercase tracking-tight">Supply Chain Shield</h3>
-                      <p className="text-[12px] font-bold text-aba-gold uppercase tracking-[0.4em] mt-2">End-to-End Verification Active</p>
+                      <h3 className="text-4xl font-black text-white uppercase tracking-tight">Supply Chain Security</h3>
+                      <p className="text-[12px] font-bold text-aba-gold uppercase tracking-[0.4em] mt-2">Fully verified deliveries</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-20 gap-y-4">
@@ -705,7 +707,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
             >
               <div className="flex items-center gap-4">
                 {loading ? <Loader2 className="animate-spin" size={24} /> : <Package size={28} />} 
-                <span>Commit Waybill</span>
+                <span>Confirm Order</span>
               </div>
               <div className="flex items-center gap-4">
                 <div className="w-px h-8 bg-aba-dark/10"></div>
@@ -713,7 +715,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
               </div>
             </motion.button>
             <div className="flex justify-center gap-8 mt-4 opacity-20">
-              <p className="text-[8px] font-black uppercase tracking-[0.5em]">Industrial Settlement Protocol v10.2</p>
+              <p className="text-[8px] font-black uppercase tracking-[0.5em]">Secure Payment Process</p>
             </div>
           </div>
         </div>
@@ -723,7 +725,7 @@ const Logistics: React.FC<{ setView: (v: ViewState) => void, onBookDelivery?: (o
         <div className="mt-auto py-12 flex flex-col items-center gap-6 opacity-30 select-none">
            <div className="h-px w-32 bg-white/10" />
            <span className="text-[16px] font-black uppercase tracking-[1.2em] text-white">CARRY-GO</span>
-           <p className="text-[8px] font-black uppercase tracking-widest">Industrial Intermediary Protocol v10.2</p>
+           <p className="text-[8px] font-black uppercase tracking-widest">Logistics System v10.2</p>
         </div>
       )}
     </div>

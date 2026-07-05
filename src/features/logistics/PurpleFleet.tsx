@@ -131,9 +131,9 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
       const res = await createRideBooking(booking);
       setCurrentRide(res);
       setBookingStep('live');
-      addToast("Ride requested! Signal locked to driver.", "success");
+      addToast("Ride requested! Your driver is being notified.", "success");
     } catch (e) {
-      addToast("Booking failed. Industrial network interference.", "error");
+      addToast("Booking failed. Please try again.", "error");
     }
   };
 
@@ -229,21 +229,21 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                              currentRide?.status === 'cancelled' ? 'bg-red-500 text-white' :
                              'bg-aba-gold text-aba-dark'
                            }`}>
-                             {currentRide?.status?.replace(/_/g, ' ') || 'Syncing Signal'}
+                             {currentRide?.status?.replace(/_/g, ' ') || 'Searching...'}
                            </span>
                         </div>
                         <h3 className="text-2xl font-black uppercase tracking-tight">
-                          {currentRide?.status === 'requested' ? 'Scanning for Partner' : 
-                           currentRide?.status === 'accepted' ? 'Vessel Assigned' :
+                          {currentRide?.status === 'requested' ? 'Searching for Driver' : 
+                           currentRide?.status === 'accepted' ? 'Driver Assigned' :
                            currentRide?.status === 'navigating_to_pickup' ? 'En Route to Pickup' :
-                           currentRide?.status === 'arrived_at_pickup' ? 'Vessel Arrived' :
+                           currentRide?.status === 'arrived_at_pickup' ? 'Driver Arrived' :
                            currentRide?.status === 'navigating_to_destination' ? 'En Route to Dropoff' :
-                           currentRide?.status === 'completed' ? 'Mission Finalized' :
-                           'Signal Active'}
+                           currentRide?.status === 'completed' ? 'Trip Completed' :
+                           'Active'}
                         </h3>
                         <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em] leading-relaxed max-w-xs mx-auto">
-                           {currentRide?.status === 'completed' ? 'Registry Settlement Committed. Thank you for using Purple Fleet.' : 
-                            'Officer Partner is navigating to your pickup partner. Registry Handshake Verified.'}
+                           {currentRide?.status === 'completed' ? 'Payment complete. Thank you for choosing our service.' : 
+                            'Your driver is on the way to pick you up.'}
                         </p>
                      </div>
                      
@@ -253,8 +253,8 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
                              <div className="flex items-center gap-5">
                                <div className="w-14 h-14 rounded-2xl bg-aba-gold/20 flex items-center justify-center text-aba-gold text-sm font-black border border-aba-gold/20">09</div>
                                <div className="text-left">
-                                   <p className="text-sm font-black uppercase text-white">{selectedVehicle?.driver_name || 'Officer Partner'}</p>
-                                   <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">{selectedVehicle?.vehicle_model || 'Vessel Unit'} • {selectedVehicle?.plate_number}</p>
+                                   <p className="text-sm font-black uppercase text-white">{selectedVehicle?.driver_name || 'Your Driver'}</p>
+                                   <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">{selectedVehicle?.vehicle_model || 'Vehicle'} • {selectedVehicle?.plate_number}</p>
                                </div>
                              </div>
                              <button className="p-4 bg-aba-gold text-aba-dark rounded-2xl active:scale-90 transition-all shadow-lg shadow-aba-gold/20"><Zap size={20} /></button>
@@ -265,7 +265,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
 
                      {currentRide?.status === 'completed' && (
                        <button onClick={() => setView('home')} className="w-full py-6 bg-aba-gold text-aba-dark rounded-[2rem] font-black uppercase text-xs tracking-[0.4em] shadow-xl active:scale-95 transition-all">
-                         Return to Command
+                         Return Home
                        </button>
                      )}
                   </div>

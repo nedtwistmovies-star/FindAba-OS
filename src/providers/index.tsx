@@ -7,7 +7,9 @@ import { ToastProvider } from './ToastProvider';
 import { OracleProvider } from './OracleProvider';
 import { ChatProvider } from './ChatProvider';
 import { LanguageProvider } from './LanguageProvider';
+import { ThemeProvider } from './ThemeProvider';
 export * from './ChatProvider';
+export * from './ThemeProvider';
 import { useAuth } from './AuthProvider';
 
 const ChatProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -25,21 +27,23 @@ const ChatProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <ToastProvider>
-          <ConfigProvider>
-            <BusinessProvider>
-              <OracleProvider>
-                <ChatProviderWrapper>
-                  {children}
-                </ChatProviderWrapper>
-              </OracleProvider>
-            </BusinessProvider>
-          </ConfigProvider>
-        </ToastProvider>
-      </LanguageProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <LanguageProvider>
+          <ToastProvider>
+            <ConfigProvider>
+              <BusinessProvider>
+                <OracleProvider>
+                  <ChatProviderWrapper>
+                    {children}
+                  </ChatProviderWrapper>
+                </OracleProvider>
+              </BusinessProvider>
+            </ConfigProvider>
+          </ToastProvider>
+        </LanguageProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

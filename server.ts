@@ -825,7 +825,7 @@ app.post("/api/oracle", async (req, res) => {
       const bookingId = metadata?.booking_id;
       const orderId = metadata?.order_id;
 
-      if (!userId && !) {orderId
+      if (!userId && !orderId) {
         console.error("[Webhook] Missing user identification in metadata");
         return res.status(400).json({ error: "Missing user/order identification" });
       }
@@ -1395,16 +1395,23 @@ async function setupVite() {
     const vite = await createViteServer({
       server: { 
         middlewareMode: true,
-        hmr: false // ⚡ Disable HMR to prevent port conflicts (shared environment)
+        hmr: true
       },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    // Serve static files in production
+    // Serve static files in production with cache bypass for index.html
     const distPath = path.join(__dirname, "dist");
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        }
+      }
+    }));
     app.get("*", (req, res) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

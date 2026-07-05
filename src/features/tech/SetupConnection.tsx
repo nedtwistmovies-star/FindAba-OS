@@ -157,7 +157,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
               {step === 'database' ? <Database size={28} /> : step === 'git' ? <Github size={28} /> : <Landmark size={28} />}
             </div>
             <h1 className="text-2xl font-black text-white uppercase tracking-tighter">
-              {step === 'database' ? 'Cloud Registry' : step === 'git' ? 'Git Repository' : 'Settlement Gateway'}
+              {step === 'database' ? 'Database' : step === 'git' ? 'Version Control' : 'Payment Settings'}
             </h1>
           </div>
         ) : (
@@ -169,8 +169,8 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                 </div>
              </div>
              <div className="space-y-2">
-                <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Signal Ready.</h2>
-                <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em] animate-pulse">Institution Mesh Operational</p>
+                <h2 className="text-3xl font-black uppercase tracking-tighter text-white">All Ready.</h2>
+                <p className="text-[10px] font-black text-aba-gold uppercase tracking-[0.4em] animate-pulse">Setup is complete</p>
              </div>
           </div>
         )}
@@ -184,7 +184,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
               </div>
               {errorMessage && <p className="text-[9px] font-black uppercase text-aba-red text-center">{errorMessage}</p>}
               <button type="submit" disabled={isTestingDB} className="w-full bg-white text-aba-dark py-5 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all">
-                {isTestingDB ? <Loader2 className="animate-spin" size={16} /> : 'Sync Registry Partner'}
+                {isTestingDB ? <Loader2 className="animate-spin" size={16} /> : 'Connect Database'}
               </button>
             </form>
           )}
@@ -195,10 +195,10 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                 <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4">
                   <div className="space-y-2">
                     <p className="text-[10px] text-white/50 uppercase tracking-widest font-black flex items-center gap-2">
-                       GitHub Mesh Connectivity
+                       GitHub Connection
                     </p>
                     <p className="text-[11px] leading-relaxed text-white/30">
-                      Configure your OAuth callback in the GitHub Developer Console to synchronize this local station with established repos.
+                      Connect your GitHub account to keep your code in sync.
                     </p>
                     <div className="flex items-center gap-2 p-3 bg-black/40 rounded-xl border border-white/5">
                       <input 
@@ -207,7 +207,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                         value={callbackUrl}
                         className="bg-transparent border-none outline-none text-[9px] font-mono text-aba-gold w-full truncate"
                       />
-                      <button onClick={copyToClipboard} className="text-aba-gold hover:text-white transition-colors p-1" title="Copy Signal Redirect">
+                      <button onClick={copyToClipboard} className="text-aba-gold hover:text-white transition-colors p-1" title="Copy URL">
                         {copied ? <Check size={14} /> : <Copy size={12} />}
                       </button>
                     </div>
@@ -224,7 +224,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                       }`}
                     >
                       {isLoggingIn ? <Loader2 className="animate-spin" size={14} /> : <Github size={14} />}
-                      {gitStatus.connected ? 'GitHub Connected' : 'Initiate Handshake'}
+                      {gitStatus.connected ? 'Connected' : 'Connect with GitHub'}
                     </button>
                     
                     {errorMessage && (
@@ -237,7 +237,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
 
                   <div className="space-y-2">
                     <p className="text-[8px] text-white/50 uppercase tracking-widest leading-relaxed">
-                      3. Target Repository (owner/repo):
+                       GitHub Repository:
                     </p>
                     <div className="flex items-center gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
                       <Github size={14} className="text-aba-gold" />
@@ -258,7 +258,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
 
                   <div className="space-y-2">
                     <p className="text-[8px] text-white/50 uppercase tracking-widest leading-relaxed">
-                      4. Target Branch:
+                       Branch:
                     </p>
                     <div className="flex items-center gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
                       <Zap size={14} className="text-aba-gold" />
@@ -277,7 +277,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 justify-center text-aba-green">
                       <CheckCircle2 size={14} />
-                      <span className="text-[9px] font-black uppercase">Signal Established: {gitStatus.repo}</span>
+                      <span className="text-[9px] font-black uppercase">Connected: {gitStatus.repo}</span>
                     </div>
                   </div>
                 )}
@@ -289,7 +289,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                   disabled={gitLoading} 
                   className="w-full bg-white text-aba-dark py-5 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all"
                 >
-                  {gitLoading ? <Loader2 className="animate-spin" size={16} /> : 'Verify Git Connection'}
+                  {gitLoading ? <Loader2 className="animate-spin" size={16} /> : 'Save Connection'}
                 </button>
               
                 <button type="button" onClick={() => setStep('payment')} className="w-full text-white/30 py-2 font-black uppercase text-[8px] tracking-widest hover:text-white transition-colors">
@@ -301,11 +301,11 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
           {step === 'payment' && (
             <form onSubmit={handlePSConnect} className="space-y-6 animate-slide-up">
               <div className="space-y-4">
-                <input type="password" placeholder="Paystack Public Key" className="w-full bg-black/40 p-5 rounded-2xl font-mono text-[10px] text-white border border-white/10 outline-none focus:border-aba-gold" value={psKey} onChange={e => setPsKey(e.target.value)} required />
-                <p className="text-[8px] text-white/30 uppercase tracking-widest text-center px-4 leading-relaxed">Required for industrial settlement protocols.</p>
+                <input type="password" placeholder="Paystack Key" className="w-full bg-black/40 p-5 rounded-2xl font-mono text-[10px] text-white border border-white/10 outline-none focus:border-aba-gold" value={psKey} onChange={e => setPsKey(e.target.value)} required />
+                <p className="text-[8px] text-white/30 uppercase tracking-widest text-center px-4 leading-relaxed">Required for processing payments.</p>
               </div>
               <button type="submit" disabled={isTestingPS} className="w-full bg-aba-gold text-aba-dark py-5 rounded-2xl font-black uppercase text-[10px] flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all">
-                  {isTestingPS ? <Loader2 className="animate-spin" size={16} /> : 'Link Financial Gateway'}
+                  {isTestingPS ? <Loader2 className="animate-spin" size={16} /> : 'Link Payment Account'}
               </button>
             </form>
           )}
@@ -314,15 +314,15 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
             <div className="space-y-8 animate-fade-in text-center">
                <div className="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-4">
                   <div className="flex justify-between items-center text-[8px] font-black uppercase text-white/30 tracking-widest">
-                     <span>Registry Integrity</span>
-                     <span className="text-aba-green">100% Verified</span>
+                     <span>Database Connection</span>
+                     <span className="text-aba-green">Verified</span>
                   </div>
                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                      <div className="h-full bg-aba-green w-full" />
                   </div>
                   <div className="flex justify-between items-center text-[8px] font-black uppercase text-white/30 tracking-widest pt-2">
-                     <span>Oracle Signal Sync</span>
-                     <span className="text-aba-gold">Ready for Handshake</span>
+                     <span>System Sync</span>
+                     <span className="text-aba-gold">Ready</span>
                   </div>
                   <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                      <div className="h-full bg-aba-gold w-1/2 animate-pulse" />
@@ -334,7 +334,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                 className="w-full bg-aba-gold text-aba-dark py-6 rounded-2xl font-black uppercase text-xs tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
                >
                   {committing ? <Loader2 className="animate-spin" size={20} /> : <ShieldCheck size={20} />}
-                  Commit Signal Hub
+                  Finish Setup
                </button>
             </div>
           )}

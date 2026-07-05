@@ -2131,6 +2131,29 @@ export const fetchMerchantStats = async (merchantId: string) => {
   return { pendingPayouts, activeDisputes };
 };
 
+export const fetchWeeklyTradeVolume = async (merchantId: string) => {
+  await ensureAuth();
+  const client = getSupabase();
+  if (!client) return [];
+  
+  try {
+    const { data, error } = await client
+      .from('orders')
+      .select('created_at, amount, merchant_payout, status')
+      .eq('merchant_id', merchantId)
+      .order('created_at', { ascending: true });
+      
+    if (error) {
+      console.error("[SupabaseService] fetchWeeklyTradeVolume error:", error);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error("[SupabaseService] fetchWeeklyTradeVolume exception:", e);
+    return [];
+  }
+};
+
 export const releaseEscrow = async (orderId: string) => {
   await ensureAuth();
   const client = getSupabase();

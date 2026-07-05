@@ -33,7 +33,7 @@ const BuyerOrdersView: React.FC<Props> = ({ setView }) => {
       const data = await fetchOrdersForBuyer(user_id!);
       setOrders(data);
     } catch (e) {
-      addToast("Failed to sync order signals.", "error");
+      addToast("Failed to load orders.", "error");
     } finally {
       setLoading(false);
     }
@@ -44,10 +44,10 @@ const BuyerOrdersView: React.FC<Props> = ({ setView }) => {
     setSyncing(true);
     try {
       await releaseOrderEscrow(orderId);
-      addToast("Escrow Released. Trade Signal Completed.", "success");
+      addToast("Payment released. Order completed.", "success");
       loadOrders();
     } catch (e) {
-      addToast("Settlement Fault. Check connectivity.", "error");
+      addToast("Payment failed. Please check your connection.", "error");
     } finally {
       setSyncing(false);
     }
@@ -79,7 +79,7 @@ const BuyerOrdersView: React.FC<Props> = ({ setView }) => {
     }
   };
 
-  if (loading) return <LoadingScreen message="Querying Order Registry..." />;
+  if (loading) return <LoadingScreen message="Loading orders..." />;
 
   return (
     <div className="flex-1 bg-aba-white dark:bg-aba-deep min-h-screen pb-32">
@@ -96,7 +96,7 @@ const BuyerOrdersView: React.FC<Props> = ({ setView }) => {
           </button>
           <div className="space-y-2">
             <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter">My <span className="text-aba-gold">Orders</span></h2>
-            <p className="text-[10px] md:text-xs font-bold text-aba-gold/50 uppercase tracking-[0.3em]">Institutional Procurement Hub</p>
+            <p className="text-[10px] md:text-xs font-bold text-aba-gold/50 uppercase tracking-[0.3em]">View and manage your purchases</p>
           </div>
         </div>
       </div>
@@ -105,7 +105,7 @@ const BuyerOrdersView: React.FC<Props> = ({ setView }) => {
         {orders.length === 0 ? (
           <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-20 rounded-[3rem] shadow-xl border border-slate-100 dark:border-white/10 text-center space-y-6 opacity-30 italic">
             <ShoppingBag size={64} className="mx-auto" />
-            <p className="text-sm font-medium uppercase tracking-widest leading-loose">No trade signals detected.<br/>Explore the marketplace to initiate procurement.</p>
+            <p className="text-sm font-medium uppercase tracking-widest leading-loose">No orders found.<br/>Start shopping to see your orders here.</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -150,7 +150,7 @@ const BuyerOrdersView: React.FC<Props> = ({ setView }) => {
                       </button>
                    )}
                    <button 
-                     onClick={() => addToast("Registry Message Node Initializing...", "info")}
+                     onClick={() => addToast("Opening chat...", "info")}
                      className="p-4 bg-slate-50 dark:bg-white/5 border dark:border-white/10 rounded-2xl text-slate-400 hover:text-aba-gold transition-all"
                    >
                       <MessageSquare size={18} />
