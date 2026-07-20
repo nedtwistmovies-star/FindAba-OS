@@ -1,8 +1,17 @@
-// WARNING: This file previously contained a hard-coded WhatsApp access token.
-// Replaced with a no-secret shim that delegates to ENV-backed service.
+// INERT DEPRECATED FILE
+// This file previously contained a plaintext WhatsApp access token and a direct fetch() call.
+// It has been replaced with a safe shim that delegates to the canonical env-driven service.
+// Do NOT reintroduce secrets into source files — load credentials from environment variables.
 
-export async function sendWhatsAppLegacyShim() {
-  // Legacy file preserved as a shim during normalization.
-  // It intentionally does not contain any secrets or make external calls.
-  return { success: false, error: 'deprecated-legacy-file' };
+import { sendHelloWorld } from './whatsappService';
+
+console.warn('[DEPRECATED] src/services/whatsappServices, ts is deprecated. Use src/services/whatsappService.ts instead.');
+
+export async function deprecatedKickoffDemo() {
+  try {
+    // Use a clearly fake number; the canonical service will validate env credentials.
+    return await sendHelloWorld('2340000000000');
+  } catch (e: any) {
+    return { success: false, error: 'DEPRECATED_SHIM_FAILED', details: e?.message || String(e) };
+  }
 }
