@@ -1,156 +1,119 @@
-import { Business } from "../../types";
 import { BusinessRepository } from "../../repositories/BusinessRepository";
-import { StorageService } from "../storage/StorageService";
+import type { Business } from "../../types";
 
-export interface BusinessRegistrationPayload {
-
-    business: Partial<Business>;
-
-    logo?: File;
-
-    coverImage?: File;
-
-    gallery?: File[];
-
+export interface RegisterBusinessRequest {
+  name: string;
+  description?: string;
+  category: string;
+  owner_id: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  market_zone?: string;
+  latitude?: number;
+  longitude?: number;
+  logo_url?: string;
 }
 
 export class BusinessRegistrationService {
 
-    static async register(payload: BusinessRegistrationPayload) {
+  static async registerBusiness(
+    payload: RegisterBusinessRequest
+  ): Promise<Business> {
 
-        try {
+    // Required fields
+    if (!payload.name?.trim()) {
+      throw new Error("Business name is required.");
+    }
 
-            //----------------------------------------------------
-            // STEP 1
-            // Create Business
-            //----------------------------------------------------
+    if (!payload.category?.trim()) {
+      throw new Error("Business category is required.");
+    }
 
-            let business = await BusinessRepository.create({
+    if (!payload.owner_id) {
+      throw new Error("Business owner is missing.");
+    }
 
-                ...payload.business,
+    // Prevent duplicate registration
+    const existingBusinesses =
+      await BusinessRepository.findByOwner(payload.owner_id);
 
-                onboarding_completed: false,
+    if (existingBusinesses.length > 0) {
+      throw new Error(
+        "You already have a registered business."
+      );
+    }
 
-                onboarding_step: 1,
+    const business: Partial<Business> = {
+      ...payload,
 
-                profile_completion: 20,
+      verified: false,
 
-                verified: false,
+      featured: false,
 
-                review_count: 0,
+      rating: 0,
 
-                rating: 5,
+      review_count: 0,
 
-                featured: false,
+      created_at: new Date().toISOString(),
 
-                created_at: new Date().toISOString()
+      updated_at: new Date().toISOString()
+    };
 
-            });
+    return await BusinessRepository.create(business);
+  }
 
-            //----------------------------------------------------
-            // STEP 2
-            // Upload Logo
-            //----------------------------------------------------
+  static async updateBusiness(
+    id: string,
+    payload: Partial<Business>
+  ) {
 
-            if (payload.logo) {
+    payload.updated_at = new Date().toISOString();
 
-                const logoUrl =
-                    await StorageService.uploadBusinessLogo(
-                        payload.logo,
-                        business.id
-                    );
+    return await BusinessRepository.update(
+      id,
+      payload
+    );
+  }
 
-                business = await BusinessRepository.update(
-                    business.id,
-                    {
-                        image_url: logoUrl
-                    }
-                );
+  static async deleteBusiness(id: string) {
 
-            }
+    return await BusinessRepository.delete(id);
 
-            //----------------------------------------------------
-            // STEP 3
-            // Upload Cover
-            //----------------------------------------------------
+  }
 
-            if (payload.coverImage) {
+  static async getBusiness(id: string) {
 
-                const coverUrl =
-                    await StorageService.uploadCoverImage(
-                        payload.coverImage,
-                        business.id
-                    );
+    return await BusinessRepository.findById(id);
 
-                business =
-                    await BusinessRepository.update(
-                        business.id,
-                        {
-                            cover_image_url: coverUrl
-                        }
-                    );
+  }
 
-            }
+  static async getMyBusiness(ownerId: string) {
 
-            //----------------------------------------------------
-            // STEP 4
-            // Upload Gallery
-            //----------------------------------------------------
+    const businesses =
+      await BusinessRepository.findByOwner(ownerId);
 
-            if (
-                payload.gallery &&
-                payload.gallery.length > 0
-            ) {
+    return businesses.length
+      ? businesses[0]
+      : null;
+  }
 
-                const galleryUrls =
-                    await StorageService.uploadGallery(
+  static async searchBusinesses(keyword: string) {
 
-                        payload.gallery,
+    return await BusinessRepository.search(keyword);
 
-                        business.id
+  }
 
-                    );
+  static async getFeaturedBusinesses() {
 
-                business =
-                    await BusinessRepository.update(
-                        business.id,
-                        {
-                            gallery_urls: galleryUrls,
-                            profile_completion: 80
-                        }
-                    );
+    return await BusinessRepository.featured();
 
-            }
+  }
 
-            //----------------------------------------------------
-            // STEP 5
-            // Finish
-            //----------------------------------------------------
+  static async getVerifiedBusinesses() {
 
-            business =
-                await BusinessRepository.update(
-                    business.id,
-                    {
+    return await BusinessRepository.verified();
 
-                        onboarding_completed: true,
+  }
 
-                        onboarding_step: 5,
-
-                        profile_completion: 100
-
-                    }
-                );
-
-            return {
-
-                success: true,
-
-                business
-
-            };
-
-        }
-
-        catch (error) {
-
-            console.error
+}
