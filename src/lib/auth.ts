@@ -1,30 +1,39 @@
-const API = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
+import { supabase } from "../lib/supabase";
 
 export async function sendOTP(phone: string) {
-  const res = await fetch(`${API}/send-otp`, {
-    method: "POST",
-    body: JSON.stringify({ phone }),
+  const { error } = await supabase.auth.signInWithOtp({
+    phone,
   });
-  return res.json();
+
+  if (error) throw error;
 }
 
-export async function verifyOTP(phone: string, code: string) {
-  const res = await fetch(`${API}/verify-otp`, {
-    method: "POST",
-    body: JSON.stringify({ phone, code }),
-  });
-  return res.json();
+export async function verifyOTP(
+  phone: string,
+  code: string
+) {
+  const { data, error } =
+    await supabase.auth.verifyOtp({
+      phone,
+      token: code,
+      type: "sms",
+    });
+
+  if (error) throw error;
+
+  return data;
 }
 
-export async function loginWithPhone(phone: string, code: string) {
-  const data = await verifyOTP(phone, code);
+export async function loginWithPhone(
+  phone: string,
+  code: string
+) {
+  const data =
+    await verifyOTP(phone, code);
 
-  if (!data.success) throw new Error("OTP failed");
-
-  return data.profile;
+  return data.user;
 }
 
-export function logout() {
-  // Local storage cleanup (legacy)
-  localStorage.removeItem("user");
+export async function logout() {
+  await supabase.auth.signOut();
 }
