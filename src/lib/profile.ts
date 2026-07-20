@@ -1,0 +1,35 @@
+import { supabase } from "./supabase";
+
+export const ensureProfile = async (user: any) => {
+  if (!user) return;
+
+  try {
+    // Check if profile exists
+    const { data: existing, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    // If exists → do nothing
+    if (existing) return;
+
+    // If not found → create
+    if (error && error.code === "PGRST116") {
+      const { error: insertError } = await supabase
+        .from("profiles")
+        .insert({
+          user_id: user.id,
+          full_name: user.email?.split("@")[0] || "User",
+          avatar_url: "",
+          created_at: new Date().toISOString(),
+        });
+
+      if (insertError) {
+        console.error("Profile creation failed:", insertError);
+      }
+    }
+  } catch (e) {
+    console.error("ensureProfile failed:", e);
+  }
+};
