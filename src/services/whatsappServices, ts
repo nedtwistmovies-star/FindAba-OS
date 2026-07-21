@@ -1,47 +1,17 @@
-const ACCESS_TOKEN = "EAAfV10WmaBEBRmbgSvE2E4MpPCP0X4Vhoj7Mw7a4Vaj7ZBNRCWSkS1e0i59gLxilC7f3dZBZBeH2mEZBqLFd2JqptJa1LJFvJkE6MTMR5dGRedQaClsZB0Kb2k5qgZBJUKVi6S9EZBeDnyD64zqfjCxpkzlIxqGjr3simCeE9nQRpbMEZCZA6CwCeeRFaaTwUIxj4wAZDZD"; 
+// INERT DEPRECATED FILE
+// This file previously contained a plaintext WhatsApp access token and a direct fetch() call.
+// It has been replaced with a safe shim that delegates to the canonical env-driven service.
+// Do NOT reintroduce secrets into source files — load credentials from environment variables.
 
-const PHONE_NUMBER_ID = "1063660716838350";
+import { sendHelloWorld } from './whatsappService';
 
+console.warn('[DEPRECATED] src/services/whatsappServices, ts is deprecated. Use src/services/whatsappService.ts instead.');
 
-
-fetch(
-
-  `https://graph.facebook.com/v23.0/${PHONE_NUMBER_ID}/messages`,
-
-  {
-
-    method: "POST",
-
-    headers: {
-
-      Authorization: `Bearer ${ACCESS_TOKEN}`,
-
-      "Content-Type": "application/json"
-
-    },
-
-    body: JSON.stringify({
-
-      messaging_product: "whatsapp",
-
-      to: "2347032771739",
-
-      type: "template",
-
-      template: {
-
-        name: "hello_world",
-
-        language: {
-
-          code: "en_US"
-
-        }
-
-      }
-
-    })
-
+export async function deprecatedKickoffDemo() {
+  try {
+    // Use a clearly fake number; the canonical service will validate env credentials.
+    return await sendHelloWorld('2340000000000');
+  } catch (e: any) {
+    return { success: false, error: 'DEPRECATED_SHIM_FAILED', details: e?.message || String(e) };
   }
-
-);
+}

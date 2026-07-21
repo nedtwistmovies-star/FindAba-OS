@@ -1,4 +1,3 @@
-
 import { logTransaction, activatePlanFeatures } from './supabaseService';
 import { triggerWebhook, WebhookEvent } from './webhookService';
 
@@ -11,14 +10,16 @@ const PAYSTACK_HANDSHAKE_STATUS = 'findaba_paystack_handshake_confirmed';
  */
 export const paymentService = {
   getApiKey: () => {
-    const local = localStorage.getItem(PAYSTACK_KEY_STORAGE);
+    const local = typeof window !== 'undefined' ? localStorage.getItem(PAYSTACK_KEY_STORAGE) : null;
     if (local) return local;
-    return import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || (typeof process !== 'undefined' && process.env ? process.env.PAYSTACK_PUBLIC_KEY : '') || '';
+    return typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string)
+      ? (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string)
+      : (typeof process !== 'undefined' && process.env ? (process.env.PAYSTACK_PUBLIC_KEY || '') : '');
   },
   
   setApiKey: (key: string) => {
     const cleaned = key.trim();
-    if (cleaned.startsWith('pk_live_') || cleaned.startsWith('pk_test_')) {
+    if (typeof window !== 'undefined' && (cleaned.startsWith('pk_live_') || cleaned.startsWith('pk_test_'))) {
       localStorage.setItem(PAYSTACK_KEY_STORAGE, cleaned);
       return true;
     }
@@ -26,12 +27,13 @@ export const paymentService = {
   },
 
   getWebhookUrl: () => {
+    if (typeof window === 'undefined') return '';
     return `${window.location.origin}/api/paystack-webhook`;
   },
 
   isLive: () => {
-    const key = localStorage.getItem(PAYSTACK_KEY_STORAGE);
-    return key && key.startsWith('pk_live_');
+    const key = typeof window !== 'undefined' ? localStorage.getItem(PAYSTACK_KEY_STORAGE) : null;
+    return !!key && key.startsWith('pk_live_');
   },
 
   hasKey: () => {
@@ -40,18 +42,18 @@ export const paymentService = {
   },
 
   confirmHandshake: () => {
-    localStorage.setItem(PAYSTACK_HANDSHAKE_STATUS, 'true');
+    if (typeof window !== 'undefined') localStorage.setItem(PAYSTACK_HANDSHAKE_STATUS, 'true');
   },
 
   isHandshakeConfirmed: () => {
-    return localStorage.getItem(PAYSTACK_HANDSHAKE_STATUS) === 'true';
+    return typeof window !== 'undefined' && localStorage.getItem(PAYSTACK_HANDSHAKE_STATUS) === 'true';
   },
 
   getPaystackConfig: (config: { email: string, amount: number, label: string, businessId?: string, userId?: string, bookingId?: string }) => {
     return {
       key: paymentService.getApiKey(),
       email: config.email,
-      amount: config.amount * 100, // Paystack uses kobo
+      amount: Math.round(config.amount * 100), // Paystack uses kobo
       ref: `SIG-PS-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
       currency: "NGN",
       metadata: {
@@ -97,57 +99,52 @@ export const paymentService = {
     });
 
     return true;
-  },
-
-  /**
-   * WEBHOOK SIGNAL SIMULATION (FOR TESTING)
-   * Mimics the behavior of a backend receiving a Paystack notification
-   */
-  simulateWebhookSignal: async (businessId: string, planId: string) => {
-    console.debug(`[WEBHOOK] Incoming settlement signal for Biz: ${businessId}, Plan: ${planId}`);
-    
-    // Simulate a delay for institutional processing
-    await new Promise(r => setTimeout(r, 2000));
-
-    try {
-      await activatePlanFeatures(businessId, planId);
-      console.debug(`[WEBHOOK] Commercial node activation successful.`);
-      return true;
-    } catch (e) {
-      console.error(`[WEBHOOK] Critical failure in activation sequence:`, e);
-      return false;
-    }
   }
 };
 
-export function payWithPaystack({
+// Client-side helper: opens Paystack inline popup and resolves on success or rejects on cancel/error
+export async function payWithPaystack({
   email,
   amount,
-  onSuccess,
+  business_id,
+  wallet_id,
+  bookingId,
 }: {
   email: string;
   amount: number;
-  onSuccess: (reference: string) => void;
+  business_id?: string;
+  wallet_id?: string;
+  bookingId?: string;
 }) {
-  return new Promise<void>((resolve, reject) => {
-    if (typeof window === 'undefined') return reject('No window');
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') return reject(new Error('Paystack can only be invoked in browser environment'));
 
-    const handler = (window as any).PaystackPop?.setup({
-      key: paymentService.getApiKey(),
-      email,
-      amount: amount * 100,
-      currency: 'NGN',
+    // Ensure Paystack script is loaded
+    if (!(window as any).PaystackPop) {
+      return reject(new Error('Paystack SDK not loaded'));
+    }
+
+    const config = paymentService.getPaystackConfig({ email, amount, label: 'Payment', businessId: business_id, bookingId, userId: undefined });
+    const handler = (window as any).PaystackPop.setup({
+      ...config,
+      metadata: { ...(config.metadata || {}), business_id, wallet_id },
       callback: function (response: any) {
-        onSuccess(response.reference);
-        resolve();
+        try {
+          const reference = response.reference;
+          resolve({ status: 'success', reference });
+        } catch (e) {
+          reject(e);
+        }
       },
       onClose: function () {
-        reject('Payment cancelled');
-      },
+        reject(new Error('Payment window closed'));
+      }
     });
 
-    if (!handler) return reject('Paystack not loaded');
-
-    handler.openIframe();
+    try {
+      handler.openIframe();
+    } catch (e) {
+      reject(e);
+    }
   });
 }
