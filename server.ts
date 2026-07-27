@@ -85,11 +85,19 @@ const getOpenRouterAI = async (prompt: string, history: any[], catalog: Business
     );
 
     const content = response.data.choices[0].message.content;
-    const result = JSON.parse(content);
-    return {
-      text: result.wisdom || result.text || "Signal lost.",
-      thoughtProcess: result.thought_process || result.thoughtProcess
-    };
+    try {
+      const result = JSON.parse(content);
+      return {
+        text: result.wisdom || result.text || "Signal lost.",
+        thoughtProcess: result.thought_process || result.thoughtProcess
+      };
+    } catch (e) {
+      console.error("[Oracle] Failed to parse OpenRouter response:", content);
+      return {
+        text: content || "The Oracle speaks in riddles (Invalid JSON).",
+        thoughtProcess: "Direct stream extraction failed."
+      };
+    }
   } catch (err: any) {
     if (err.response?.status === 404) {
       console.warn(`[Server] OpenRouter model ${model} not found, retrying with fallback...`);
@@ -109,11 +117,18 @@ const getOpenRouterAI = async (prompt: string, history: any[], catalog: Business
         }
       );
       const content = retryResponse.data.choices[0].message.content;
-      const result = JSON.parse(content);
-      return {
-        text: result.wisdom || result.text || "Signal lost.",
-        thoughtProcess: result.thought_process || result.thoughtProcess
-      };
+      try {
+        const result = JSON.parse(content);
+        return {
+          text: result.wisdom || result.text || "Signal lost.",
+          thoughtProcess: result.thought_process || result.thoughtProcess
+        };
+      } catch (e) {
+        return {
+          text: content || "Fallback signal corrupted.",
+          thoughtProcess: "Fallback extraction failed."
+        };
+      }
     }
     throw err;
   }
@@ -367,7 +382,23 @@ app.post("/api/oracle", async (req, res) => {
         }],
         generationConfig: { responseMimeType: "application/json" }
       });
-      return res.json(JSON.parse(response.response.text() || '{}'));
+      
+      const responseText = response.response.text();
+      try {
+        return res.json(JSON.parse(responseText || '{}'));
+      } catch (e) {
+        console.error("[Oracle] Failed to parse flyer JSON:", responseText);
+        // Fallback: try to extract JSON with regex if it's wrapped in markdown or something
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            return res.json(JSON.parse(jsonMatch[0]));
+          } catch (e2) {
+             return res.status(500).json({ error: "Failed to decode industrial flyer data." });
+          }
+        }
+        return res.status(500).json({ error: "Oracle returned malformed flyer data." });
+      }
     }
 
     res.status(400).json({ error: "Invalid oracle type" });
@@ -959,6 +990,12 @@ app.post("/api/oracle", async (req, res) => {
       
       try {
         const response = await axios.get(url, config);
+        
+        if (!response.data || typeof response.data.content !== 'string') {
+          console.error(`[GitSync] Invalid response structure from GitHub for ${url}:`, response.data);
+          throw new Error("Invalid response from GitHub API while fetching registry.json.");
+        }
+
         const rawContent = Buffer.from(response.data.content, "base64").toString("utf-8").trim();
         
         if (!rawContent) {
@@ -980,9 +1017,9 @@ app.post("/api/oracle", async (req, res) => {
             lastUpdated: new Date().toISOString(),
             data: registry 
           });
-        } catch (parseErr) {
-          console.error(`[GitSync] Failed to parse registry.json:`, parseErr);
-          throw new Error("Registry base signal (registry.json) contains malformed JSON data.");
+        } catch (parseErr: any) {
+          console.error(`[GitSync] Failed to parse registry.json:`, parseErr.message);
+          throw new Error(`Registry base signal (registry.json) contains malformed JSON data: ${parseErr.message}`);
         }
       } catch (fileError: any) {
         if (fileError.response?.status === 404) {

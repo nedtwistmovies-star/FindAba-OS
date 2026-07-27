@@ -484,7 +484,7 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
     if (permissionIssues.length > 0) {
       return {
         status: 'unhealthy' as const,
-        message: `Access restricted. Check RLS policies for [${permissionIssues.join(', ')}].`
+        message: `Access restricted. Check RLS policies for [${permissionIssues.join(', ')}]. Suggestion: Enable Public Read access or use the Service Role key.`
       };
     }
     
@@ -545,7 +545,12 @@ export const updatePlatformConfig = async (updates: Partial<PlatformConfig>) => 
   
   // Always update local storage first as a persistent cache/fallback
   const currentLocal = localStorage.getItem('findaba_platform_config');
-  const parsed = currentLocal ? JSON.parse(currentLocal) : {};
+  let parsed = {};
+  try {
+    parsed = currentLocal ? JSON.parse(currentLocal) : {};
+  } catch (e) {
+    console.warn("[Registry] Local config corrupted, resetting.");
+  }
   const merged = { ...parsed, ...updates };
   localStorage.setItem('findaba_platform_config', JSON.stringify(merged));
 
@@ -566,7 +571,12 @@ export const fetchPlatformConfig = async (): Promise<PlatformConfig | null> => {
   
   // Try local storage first for speed and offline support
   const localConfig = localStorage.getItem('findaba_platform_config');
-  const parsedLocal = localConfig ? JSON.parse(localConfig) : null;
+  let parsedLocal = null;
+  try {
+    parsedLocal = localConfig ? JSON.parse(localConfig) : null;
+  } catch (e) {
+    console.warn("[Registry] Local config parse fail.");
+  }
 
   const defaultConfig: PlatformConfig = {
     id: 1,
