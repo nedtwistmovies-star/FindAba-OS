@@ -696,13 +696,20 @@ const Layout: React.FC<LayoutProps> = ({
 
             {/* Git Repository Sync Indicator */}
             <div 
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border text-xs font-bold leading-none select-none cursor-help transition-all ${
-                !gitStatus.connected ? 'border-red-500/30' : 'border-white/10'
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border text-xs font-bold leading-none select-none transition-all ${
+                !gitStatus.connected 
+                  ? 'border-rose-500/40 hover:border-rose-500 cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.1)]' 
+                  : 'border-white/10 hover:border-white/30 cursor-help'
               }`}
+              onClick={() => {
+                if (!gitStatus.connected && isAdmin) {
+                  setView('tech-setup');
+                }
+              }}
               title={
                 !gitStatus.connected 
-                  ? `Git Disconnected: ${gitStatus.error || "Check Admin Hub"}` 
-                  : (gitSynced ? `Repository In-Sync: ${liveRepo || "System Default"}` : `Repository Out of Sync! Current: ${liveRepo}`)
+                  ? `GIT PROTOCOL ERROR: ${gitStatus.error || "Registry Sync Interrupted"}${isAdmin ? ". Click to configure." : ""}` 
+                  : (gitSynced ? `Industrial Grid Synchronized: ${liveRepo || "Main Hub"}` : `Local/Cloud Drift Detected! Active Repo: ${liveRepo}`)
               }
               id="git-repo-indicator"
             >
@@ -713,11 +720,18 @@ const Layout: React.FC<LayoutProps> = ({
               ) : (
                 <AlertTriangle size={13} className="text-amber-500 shrink-0 animate-pulse" />
               )}
-              <span className={`text-[9px] uppercase tracking-wider font-extrabold ${
-                !gitStatus.connected ? 'text-rose-500' : (gitSynced ? 'text-white/40' : 'text-amber-500')
-              }`}>
-                {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
-              </span>
+              <div className="flex flex-col items-start gap-0.5">
+                <span className={`text-[9px] uppercase tracking-wider font-black ${
+                  !gitStatus.connected ? 'text-rose-500' : (gitSynced ? 'text-white/60' : 'text-amber-500')
+                }`}>
+                  {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
+                </span>
+                {!gitStatus.connected && isAdmin && (
+                  <span className="text-[6px] text-rose-400/50 uppercase font-bold tracking-[0.2em] leading-none">
+                    Fix Connection
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Battery Level Indicator */}

@@ -29,7 +29,11 @@ const CitySignals: React.FC = () => {
   useEffect(() => {
     setMarketDay(getIgboMarketDay());
     getAbaWeather().then(setWeather);
-    checkDatabaseHealth().then(res => setRegistryStatus(res.status === 'healthy' ? 'online' : 'offline'));
+    checkDatabaseHealth().then(res => {
+      if (res.status === 'healthy') setRegistryStatus('online');
+      else if (res.status === 'unhealthy') setRegistryStatus('offline');
+      else setRegistryStatus('syncing'); // Fallback for unknown/timeout
+    });
     
     const updateDate = () => {
       const now = new Date();

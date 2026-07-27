@@ -214,6 +214,13 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                   </div>
 
                   <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                       <span className="text-[8px] text-white/30 uppercase font-bold">System Status:</span>
+                       <span className={`text-[8px] font-bold uppercase ${gitStatus.connected ? 'text-aba-green' : 'text-rose-500'}`}>
+                         {gitStatus.connected ? 'Handshake Active' : 'Offline'}
+                       </span>
+                    </div>
+
                     <button 
                       onClick={handleGitHubLogin}
                       disabled={isLoggingIn}

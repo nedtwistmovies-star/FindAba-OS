@@ -151,14 +151,23 @@ const ensureAuthenticated = async (req: Request, res: Response, next: NextFuncti
 
 const ensureAdmin = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: "Unauthorized access (Missing token)" });
+  if (!authHeader) {
+    console.warn(`[Security] Admin access denied: Missing Authorization header from ${req.ip}`);
+    return res.status(401).json({ error: "Unauthorized access (Missing token)" });
+  }
 
   const token = authHeader.replace('Bearer ', '');
-  if (!supabase) return res.status(503).json({ error: "Identity core offline" });
+  if (!supabase) {
+    console.error(`[Security] Identity core offline. Cannot verify admin for request.`);
+    return res.status(503).json({ error: "Identity core offline" });
+  }
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) return res.status(401).json({ error: "Invalid token" });
+    if (error || !user) {
+      console.warn(`[Security] Admin access denied: Invalid Supabase token (${error?.message || 'User not found'})`);
+      return res.status(401).json({ error: "Invalid token" });
+    }
 
     // Hardcoded master admin check
     const isAdminEmail = user.email === 'pastornelsonezi@gmail.com';
@@ -929,7 +938,7 @@ app.post("/api/oracle", async (req, res) => {
       const [owner, name] = repo.split("/");
       if (!owner || !name) throw new Error(`Invalid repo format: ${repo}. Use owner/repo`);
 
-      console.log(`[GitSync] Polling GitHub: ${owner}/${name} (${branch}) | Auth: ${token ? 'Token Present (' + token.substring(0, 4) + '...)' : 'Public/Cookie Only'}`);
+      console.log(`[GitSync] Polling GitHub: ${owner}/${name} (${branch}) | Auth: ${token ? 'Token Present (' + token.substring(0, 10) + '...)' : 'Anonymous'}`);
       
       const config = {
         timeout: 15000,
@@ -940,8 +949,9 @@ app.post("/api/oracle", async (req, res) => {
       } as any;
 
       if (token) {
-        // Handle classic tokens vs modern tokens
-        const authPrefix = token.startsWith('ghp_') ? 'token' : 'Bearer';
+        // Modern tokens (github_pat_) and OAuth tokens use Bearer
+        // Classic tokens (ghp_) can use Bearer or token prefix
+        const authPrefix = (token.startsWith('ghp_')) ? 'token' : 'Bearer';
         config.headers.Authorization = `${authPrefix} ${token}`;
       }
 
@@ -949,15 +959,31 @@ app.post("/api/oracle", async (req, res) => {
       
       try {
         const response = await axios.get(url, config);
-        const content = Buffer.from(response.data.content, "base64").toString("utf-8");
-        const registry = JSON.parse(content);
+        const rawContent = Buffer.from(response.data.content, "base64").toString("utf-8").trim();
+        
+        if (!rawContent) {
+          console.warn(`[GitSync] registry.json found but is empty on branch ${branch}`);
+          return res.json({ 
+            success: true, 
+            repo, 
+            lastUpdated: new Date().toISOString(),
+            data: null,
+            message: "Registry base signal found but file is empty."
+          });
+        }
 
-        res.json({ 
-          success: true, 
-          repo, 
-          lastUpdated: new Date().toISOString(),
-          data: registry 
-        });
+        try {
+          const registry = JSON.parse(rawContent);
+          res.json({ 
+            success: true, 
+            repo, 
+            lastUpdated: new Date().toISOString(),
+            data: registry 
+          });
+        } catch (parseErr) {
+          console.error(`[GitSync] Failed to parse registry.json:`, parseErr);
+          throw new Error("Registry base signal (registry.json) contains malformed JSON data.");
+        }
       } catch (fileError: any) {
         if (fileError.response?.status === 404) {
           console.log(`[GitSync] Registry signal (registry.json) not found on branch ${branch}.`);
@@ -968,6 +994,21 @@ app.post("/api/oracle", async (req, res) => {
             data: null,
             message: "Registry base signal not found. Ready for initialization."
           });
+        }
+        
+        // Provide more detail if 403 (Rate Limit) or 401 (Bad Token)
+        if (fileError.response?.status === 403 || fileError.response?.status === 401) {
+          const isRateLimit = fileError.response?.headers?.['x-ratelimit-remaining'] === '0';
+          throw {
+            response: {
+              status: fileError.response.status,
+              data: {
+                message: isRateLimit 
+                  ? "GitHub API rate limit exceeded. Set GITHUB_TOKEN in environment." 
+                  : (token ? "Invalid GitHub Token. Please reconnect in Setup." : "Authentication required for private repository.")
+              }
+            }
+          };
         }
         throw fileError;
       }
