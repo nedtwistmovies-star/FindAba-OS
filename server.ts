@@ -12,7 +12,7 @@ import { Resend } from 'resend';
 import { sendPaymentSuccessEmail } from './src/services/emailService';
 import * as WhatsApp from './src/services/whatsappService';
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,10 +45,7 @@ const getAI = (customKey?: string) => {
   if (!key) {
     throw new Error("ORACLE AUTHENTICATION FAILED: PLEASE CHECK YOUR GEMINI_API_KEY IN THE SYSTEM CONSOLE (ADMIN).");
   }
-  return new GoogleGenAI({
-    apiKey: key,
-    httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-  });
+  return new GoogleGenerativeAI(key);
 };
 
 const getOpenRouterAI = async (prompt: string, history: any[], catalog: BusinessContextItem[], model: string = "google/gemini-2.0-flash-exp:free") => {
@@ -96,6 +93,7 @@ const getOpenRouterAI = async (prompt: string, history: any[], catalog: Business
   } catch (err: any) {
     if (err.response?.status === 404) {
       console.warn(`[Server] OpenRouter model ${model} not found, retrying with fallback...`);
+      // Retry once with a more generic model if 404
       const retryResponse = await axios.post(
         "https://openrouter.ai/api/v1/chat/completions",
         {
@@ -162,6 +160,7 @@ const ensureAdmin = async (req: Request, res: Response, next: NextFunction) => {
     const { data: { user }, error } = await supabase.auth.getUser(token);
     if (error || !user) return res.status(401).json({ error: "Invalid token" });
 
+    // Hardcoded master admin check
     const isAdminEmail = user.email === 'pastornelsonezi@gmail.com';
     
     if (isAdminEmail) {
@@ -169,6 +168,7 @@ const ensureAdmin = async (req: Request, res: Response, next: NextFunction) => {
       return next();
     }
 
+    // Secondary check: Database profiles table
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
@@ -197,6 +197,7 @@ console.log("Environment Check:", {
 
 export const app = express();
 
+// Trust proxy is required for correct protocol/host detection behind nginx
 app.set('trust proxy', true);
 
 app.use(cors({
@@ -204,6 +205,7 @@ app.use(cors({
   credentials: true
 }));
 
+// Global error handlers to prevent silent crashes
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Server] Unhandled Rejection at:', promise, 'reason:', reason);
 });
@@ -211,10 +213,12 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (error) => {
   console.error('[Server] Uncaught Exception:', error);
 });
+// Increase limits for large repository syncs
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cookieParser());
 
+// Mesh System Configuration Signal (SECURED)
 app.get("/api/config", ensureAdmin, (req, res) => {
   res.json({
     supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co',
@@ -225,7 +229,8 @@ app.get("/api/config", ensureAdmin, (req, res) => {
   });
 });
 
-app.get("/api/health", ensureAdmin, (req, res) => {
+// API Routes
+app.get("/api/health", (req, res) => {
   res.json({ 
     status: "ok", 
     timestamp: new Date().toISOString(),
@@ -238,6 +243,8 @@ app.get("/api/health", ensureAdmin, (req, res) => {
     }
   });
 });
+
+
 
 app.get("/api/git/diagnostic", ensureAdmin, async (req, res) => {
   const token = process.env.GITHUB_TOKEN;
@@ -269,6 +276,7 @@ app.get("/api/git/diagnostic", ensureAdmin, async (req, res) => {
   res.json(diagnostic);
 });
 
+  // Config Sync (SECURED)
 app.get(["/api/config", "/api/config/"], ensureAdmin, (req, res) => {
   const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   console.log(`[Server] Config sync requested from ${ip} at ${new Date().toISOString()}`);
@@ -289,6 +297,7 @@ app.get(["/api/config", "/api/config/"], ensureAdmin, (req, res) => {
   res.json(config);
 });
 
+// Gemini Proxy
 app.post("/api/oracle", async (req, res) => {
   try {
     const { prompt, history = [], catalog = [], type = 'search', provider = 'gemini' } = req.body;
@@ -318,39 +327,45 @@ app.post("/api/oracle", async (req, res) => {
       const sys = `IDENTITY: FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. 
                    RULES: Prioritize Aba. Do NOT say 'God's Own State'. Use the registry: ${JSON.stringify(businessContext)}`;
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
-        config: { 
-          systemInstruction: sys,
-          responseMimeType: "application/json",
-          tools: [{ googleSearch: {} }]
-        }
+      const model = ai.getGenerativeModel({ 
+        model: 'gemini-1.5-flash',
+        systemInstruction: sys,
       });
+
+      const response = await model.generateContent({
+        contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { 
+          responseMimeType: "application/json",
+        },
+        tools: [{ googleSearch: {} }]
+      } as any);
+
       return res.json({ 
-        text: response.text, 
-        grounding: response.candidates?.[0]?.groundingMetadata?.groundingChunks 
+        text: response.response.text(), 
+        grounding: response.response.candidates?.[0]?.groundingMetadata?.groundingChunks 
       });
     }
 
     if (type === 'flyer') {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: { 
+      const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const response = await model.generateContent({
+        contents: [{
+          role: 'user',
           parts: [
             { inlineData: { data: prompt.base64.split(',')[1] || prompt.base64, mimeType: prompt.mimeType || 'image/jpeg' } }, 
             { text: "Analyze this industrial flyer. Extract JSON: { businessName, category, area, phone, description, confidence_score }" }
           ] 
-        },
-        config: { responseMimeType: "application/json" }
+        }],
+        generationConfig: { responseMimeType: "application/json" }
       });
-      return res.json(JSON.parse(response.text || '{}'));
+      return res.json(JSON.parse(response.response.text() || '{}'));
     }
 
     res.status(400).json({ error: "Invalid oracle type" });
   } catch (err: any) {
     console.error("[Server] Oracle Fault:", err);
     
+    // 🔹 Handle Quota/Billing errors specifically
     if (err.message?.includes("429") || err.message?.includes("RESOURCE_EXHAUSTED") || err.status === 429) {
       return res.status(429).json({ 
         error: "Oracle energy depleted. The industrial signal requires a credit injection (AI Studio Billing).",
@@ -362,971 +377,1037 @@ app.post("/api/oracle", async (req, res) => {
   }
 });
 
-app.get("/api/auth/github/url", (req, res) => {
-  console.log(`[GitHub] Auth URL requested from origin: ${req.query.origin}`);
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientOrigin = req.query.origin as string;
-  
-  if (!clientId) {
-    console.error("[GitHub] GITHUB_CLIENT_ID is missing in environment");
-    return res.status(500).json({ error: "GITHUB_CLIENT_ID not configured" });
-  }
-
-  console.log(`[GitHub] Using Client ID: ${clientId.substring(0, 5)}...`);
-
-  let redirectUri: string;
-  if (clientOrigin) {
-    const baseUrl = clientOrigin.replace(/\/$/, "");
-    redirectUri = `${baseUrl}/api/auth/github/callback`;
-  } else if (process.env.APP_URL) {
-    const baseUrl = process.env.APP_URL.replace(/\/$/, "");
-    redirectUri = `${baseUrl}/api/auth/github/callback`;
-  } else {
-    const host = req.get("host");
-    const protocol = host?.includes("localhost") ? "http" : "https";
-    redirectUri = `${protocol}://${host}/api/auth/github/callback`;
-  }
-  
-  console.log(`GitHub Auth: Constructing redirectUri: ${redirectUri} (Origin: ${clientOrigin || 'None'})`);
-  
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    scope: "read:user repo",
-    state: Math.random().toString(36).substring(7),
-  });
-
-  const authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
-  res.json({ url: authUrl });
-});
-
-app.get("/api/auth/github/callback", async (req, res) => {
-  const { code } = req.query;
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-
-  if (!code || !clientId || !clientSecret) {
-    return res.status(400).send("Missing code or configuration");
-  }
-
-  try {
-    const response = await axios.post(
-      "https://github.com/login/oauth/access_token",
-      {
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-      },
-      {
-        headers: {
-          Accept: "application/json",
-        },
-      }
-    );
-
-    const { access_token } = response.data;
-
-    if (!access_token) {
-      return res.status(400).send("Failed to obtain access token");
+  // GitHub OAuth URL
+  app.get("/api/auth/github/url", (req, res) => {
+    console.log(`[GitHub] Auth URL requested from origin: ${req.query.origin}`);
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientOrigin = req.query.origin as string;
+    
+    if (!clientId) {
+      console.error("[GitHub] GITHUB_CLIENT_ID is missing in environment");
+      return res.status(500).json({ error: "GITHUB_CLIENT_ID not configured" });
     }
 
-    const isProd = process.env.NODE_ENV === "production";
-    res.cookie("github_token", access_token, {
+    console.log(`[GitHub] Using Client ID: ${clientId.substring(0, 5)}...`);
+
+    // Robust redirectUri construction
+    let redirectUri: string;
+    if (clientOrigin) {
+      // Trust the client-provided origin if it looks like a valid URL
+      const baseUrl = clientOrigin.replace(/\/$/, "");
+      redirectUri = `${baseUrl}/api/auth/github/callback`;
+    } else if (process.env.APP_URL) {
+      // Use the provided APP_URL, ensuring it doesn't have a trailing slash before adding path
+      const baseUrl = process.env.APP_URL.replace(/\/$/, "");
+      redirectUri = `${baseUrl}/api/auth/github/callback`;
+    } else {
+      const host = req.get("host");
+      const protocol = host?.includes("localhost") ? "http" : "https";
+      redirectUri = `${protocol}://${host}/api/auth/github/callback`;
+    }
+    
+    console.log(`GitHub Auth: Constructing redirectUri: ${redirectUri} (Origin: ${clientOrigin || 'None'})`);
+    
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: "read:user repo",
+      state: Math.random().toString(36).substring(7),
+    });
+
+    const authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
+    res.json({ url: authUrl });
+  });
+
+  // GitHub OAuth Callback
+  app.get("/api/auth/github/callback", async (req, res) => {
+    const { code } = req.query;
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+    if (!code || !clientId || !clientSecret) {
+      return res.status(400).send("Missing code or configuration");
+    }
+
+    try {
+      const response = await axios.post(
+        "https://github.com/login/oauth/access_token",
+        {
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+        },
+        {
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const { access_token } = response.data;
+
+      if (!access_token) {
+        return res.status(400).send("Failed to obtain access token");
+      }
+
+      // Set cookie with token
+      const isProd = process.env.NODE_ENV === "production";
+      res.cookie("github_token", access_token, {
+        httpOnly: true,
+        secure: true, // Always true for HTTPS in AI Studio
+        sameSite: "none", // Required for iframe context
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+
+      res.send(`
+        <html>
+          <body>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', provider: 'github' }, '*');
+                window.close();
+              } else {
+                window.location.href = '/';
+              }
+            </script>
+            <p>Authentication successful. This window should close automatically.</p>
+          </body>
+        </html>
+      `);
+    } catch (error: any) {
+      console.error("GitHub OAuth Error:", error.response?.data || error.message);
+      const details = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      res.status(500).send(`Internal Server Error during GitHub OAuth: ${details}`);
+    }
+  });
+
+  // Get GitHub User Info
+  app.get("/api/github/user", async (req, res) => {
+    const token = req.cookies.github_token;
+    if (!token) {
+      console.log("[GitHub] User info requested but no token found in cookies");
+      return res.status(401).json({ error: "Not authenticated with GitHub" });
+    }
+
+    try {
+      console.log("[GitHub] Fetching user info for token starting with:", token.substring(0, 5));
+      const response = await axios.get("https://api.github.com/user", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "FindAba-City-OS",
+          Accept: "application/vnd.github.v3+json",
+        },
+        timeout: 10000 // 10s timeout
+      });
+      console.log(`[GitHub] User fetched: ${response.data.login}`);
+      res.json(response.data);
+    } catch (error: any) {
+      const status = error.response?.status || 500;
+      const message = error.response?.data?.message || error.message;
+      console.error("[GitHub] User Fetch Error:", { status, message });
+      
+      // If it's a 401/403, our token is likely stale or invalid
+      if (status === 401 || status === 403) {
+        res.clearCookie("github_token");
+      }
+
+      res.status(status).json({ 
+        error: "Failed to fetch GitHub user",
+        details: message
+      });
+    }
+  });
+
+  // Network Diagnostic Route (SECURED)
+  app.get("/api/debug/network", ensureAdmin, async (req, res) => {
+    const results: any = {
+      timestamp: new Date().toISOString(),
+      connectivity: {}
+    };
+
+    const targets = [
+      { name: 'github', url: 'https://api.github.com/zen' },
+      { name: 'supabase', url: supabaseUrl },
+      { name: 'google', url: 'https://www.google.com' }
+    ];
+
+    for (const target of targets) {
+      try {
+        const start = Date.now();
+        await axios.get(target.url, { timeout: 5000 });
+        results.connectivity[target.name] = { 
+          status: 'ok', 
+          latency: `${Date.now() - start}ms` 
+        };
+      } catch (err: any) {
+        results.connectivity[target.name] = { 
+          status: 'error', 
+          message: err.message,
+          code: err.code
+        };
+      }
+    }
+
+    res.json(results);
+  });
+
+  // Logout GitHub
+  app.post("/api/auth/github/logout", (req, res) => {
+    res.clearCookie("github_token", {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
-
-    res.send(`
-      <html>
-        <body>
-          <script>
-            if (window.opener) {
-              window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', provider: 'github' }, '*');
-              window.close();
-            } else {
-              window.location.href = '/';
-            }
-          </script>
-          <p>Authentication successful. This window should close automatically.</p>
-        </body>
-      </html>
-    `);
-  } catch (error: any) {
-    console.error("GitHub OAuth Error:", error.response?.data || error.message);
-    const details = error.response?.data ? JSON.stringify(error.response.data) : error.message;
-    res.status(500).send(`Internal Server Error during GitHub OAuth: ${details}`);
-  }
-});
-
-app.get("/api/github/user", async (req, res) => {
-  const token = req.cookies.github_token;
-  if (!token) {
-    console.log("[GitHub] User info requested but no token found in cookies");
-    return res.status(401).json({ error: "Not authenticated with GitHub" });
-  }
-
-  try {
-    console.log("[GitHub] Fetching user info for token starting with:", token.substring(0, 5));
-    const response = await axios.get("https://api.github.com/user", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "User-Agent": "FindAba-City-OS",
-        Accept: "application/vnd.github.v3+json",
-      },
-      timeout: 10000
-    });
-    console.log(`[GitHub] User fetched: ${response.data.login}`);
-    res.json(response.data);
-  } catch (error: any) {
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.message || error.message;
-    console.error("[GitHub] User Fetch Error:", { status, message });
-    
-    if (status === 401 || status === 403) {
-      res.clearCookie("github_token");
-    }
-
-    res.status(status).json({ 
-      error: "Failed to fetch GitHub user",
-      details: message
-    });
-  }
-});
-
-app.get("/api/debug/network", ensureAdmin, async (req, res) => {
-  const results: any = {
-    timestamp: new Date().toISOString(),
-    connectivity: {}
-  };
-
-  const targets = [
-    { name: 'github', url: 'https://api.github.com/zen' },
-    { name: 'supabase', url: supabaseUrl },
-    { name: 'google', url: 'https://www.google.com' }
-  ];
-
-  for (const target of targets) {
-    try {
-      const start = Date.now();
-      await axios.get(target.url, { timeout: 5000 });
-      results.connectivity[target.name] = { 
-        status: 'ok', 
-        latency: `${Date.now() - start}ms` 
-      };
-    } catch (err: any) {
-      results.connectivity[target.name] = { 
-        status: 'error', 
-        message: err.message,
-        code: err.code
-      };
-    }
-  }
-
-  res.json(results);
-});
-
-app.post("/api/auth/github/logout", (req, res) => {
-  res.clearCookie("github_token", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
+    res.json({ success: true });
   });
-  res.json({ success: true });
-});
 
-app.post("/api/github/webhook", async (req, res) => {
-  const signature = req.headers['x-hub-signature-256'] as string;
-  const secret = process.env.GITHUB_WEBHOOK_SECRET;
+  // GitHub Webhook Endpoint
+  app.post("/api/github/webhook", async (req, res) => {
+    const signature = req.headers['x-hub-signature-256'] as string;
+    const secret = process.env.GITHUB_WEBHOOK_SECRET;
 
-  if (secret && signature) {
-    const hmac = crypto.createHmac('sha256', secret);
-    const digest = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
-    
-    if (signature !== digest) {
-      console.warn("[GitHub Webhook] Invalid signature detected.");
-      return res.status(401).send('Invalid signature');
-    }
-  }
-
-  const event = req.headers['x-github-event'];
-  console.log(`[GitHub Webhook] Received ${event} event`);
-
-  if (event === 'push') {
-    const branch = req.body.ref?.replace('refs/heads/', '');
-    const defaultBranch = process.env.GITHUB_BRANCH || 'main';
-    
-    if (branch === defaultBranch) {
-      console.log(`[GitHub Webhook] Push to ${branch} detected. Ready for auto-sync.`);
-    }
-  }
-
-  res.status(200).send('OK');
-});
-
-app.post("/api/send-email", async (req, res) => {
-  const { to, subject, html, from = "onboarding@findaba.com.ng", name, apiKey } = req.body;
-  const activeKey = apiKey || process.env.RESEND_API_KEY;
-
-  if (!activeKey) {
-    console.error("[Email] No API Key provided (body or env)");
-    return res.status(500).json({ error: "Email service not configured. Please provide a Resend API Key." });
-  }
-
-  try {
-    console.log(`[Email] Attempting to send email to ${to} from ${from} (Using ${apiKey ? 'Override Key' : 'Env Key'})`);
-    
-    const client = apiKey ? new Resend(apiKey) : resend;
-    
-    const { data, error } = await client.emails.send({
-      from: name ? `${name} <${from}>` : from,
-      to: [to],
-      subject,
-      html,
-    });
-
-    if (error) {
-      console.error("[Email] Resend Error:", error);
-      return res.status(400).json({ error: error.message });
+    if (secret && signature) {
+      const hmac = crypto.createHmac('sha256', secret);
+      const digest = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
+      
+      if (signature !== digest) {
+        console.warn("[GitHub Webhook] Invalid signature detected.");
+        return res.status(401).send('Invalid signature');
+      }
     }
 
-    console.log(`[Email] Success! Message ID: ${data?.id}`);
-    res.json({ success: true, id: data?.id });
-  } catch (err: any) {
-    console.error("[Email] Critical Failure:", err.message);
-    res.status(500).json({ error: "Internal server error during email transmission" });
-  }
-});
+    const event = req.headers['x-github-event'];
+    console.log(`[GitHub Webhook] Received ${event} event`);
 
-app.post("/api/whatsapp/test-webhook", ensureAdmin, async (req, res) => {
-  const { webhookUrl } = req.body;
-  if (!webhookUrl) {
-    return res.status(400).json({ success: false, error: "Missing 'webhookUrl' parameter" });
-  }
+    // Handle push event to default branch
+    if (event === 'push') {
+      const branch = req.body.ref?.replace('refs/heads/', '');
+      const defaultBranch = process.env.GITHUB_BRANCH || 'main';
+      
+      if (branch === defaultBranch) {
+        console.log(`[GitHub Webhook] Push to ${branch} detected. Ready for auto-sync.`);
+      }
+    }
 
-  console.log(`[Make.com Setup] Dispatching schema initialization handshake to: ${webhookUrl}`);
-  try {
-    const response = await axios.post(webhookUrl, {
-      source: 'FindAba Hub Initialization Service',
-      type: 'whatsapp_intent',
-      businessId: 'test-business-abc-123',
-      businessName: 'Aba Integrated Tailors Collective',
-      targetPhone: '+2348039998888',
-      message: 'Pre-flight Initialization signal. Tap "Save" in Make.com. The data structure has been populated successfully.',
-      userName: 'Pastor Nelson (Platform Administrator)',
-      userEmail: 'pastornelsonezi@gmail.com',
-      timestamp: new Date().toISOString()
-    });
-    res.json({ success: true, status: response.status, data: response.data });
-  } catch (err: any) {
-    console.error("[Make.com Setup] Dispatch failed:", err.message);
-    res.status(500).json({ success: false, error: err.message, status: err.response?.status });
-  }
-});
+    res.status(200).send('OK');
+  });
 
-app.post("/api/whatsapp/inquiry", async (req, res) => {
-  const { businessId, businessName, phone, message, userName, userEmail, makeWebhookUrlOverride } = req.body;
-  
-  console.log(`[WhatsApp] Processing inquiry for ${businessName} (${phone})`);
+  // Email Sending Endpoint (Resend Integration with dynamic key support)
+  app.post("/api/send-email", async (req, res) => {
+    const { to, subject, html, from = "onboarding@findaba.com.ng", name, apiKey } = req.body;
+    const activeKey = apiKey || process.env.RESEND_API_KEY;
 
-  const results: any = { whatsapp: { success: false }, make: { success: false } };
+    if (!activeKey) {
+      console.error("[Email] No API Key provided (body or env)");
+      return res.status(500).json({ error: "Email service not configured. Please provide a Resend API Key." });
+    }
 
-  const makeUrl = makeWebhookUrlOverride || process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
-  if (makeUrl) {
     try {
-      await axios.post(makeUrl, {
-        source: 'FindAba Contact Gateway',
+      console.log(`[Email] Attempting to send email to ${to} from ${from} (Using ${apiKey ? 'Override Key' : 'Env Key'})`);
+      
+      const client = apiKey ? new Resend(apiKey) : resend;
+      
+      const { data, error } = await client.emails.send({
+        from: name ? `${name} <${from}>` : from,
+        to: [to],
+        subject,
+        html,
+      });
+
+      if (error) {
+        console.error("[Email] Resend Error:", error);
+        return res.status(400).json({ error: error.message });
+      }
+
+      console.log(`[Email] Success! Message ID: ${data?.id}`);
+      res.json({ success: true, id: data?.id });
+    } catch (err: any) {
+      console.error("[Email] Critical Failure:", err.message);
+      res.status(500).json({ error: "Internal server error during email transmission" });
+    }
+  });
+
+  // Meta WhatsApp API Service Hub
+  // -----------------------------
+
+  // Custom Test Handshake for Make.com auto-schema detection (SECURED)
+  app.post("/api/whatsapp/test-webhook", ensureAdmin, async (req, res) => {
+    const { webhookUrl } = req.body;
+    if (!webhookUrl) {
+      return res.status(400).json({ success: false, error: "Missing 'webhookUrl' parameter" });
+    }
+
+    console.log(`[Make.com Setup] Dispatching schema initialization handshake to: ${webhookUrl}`);
+    try {
+      const response = await axios.post(webhookUrl, {
+        source: 'FindAba Hub Initialization Service',
         type: 'whatsapp_intent',
-        businessId,
-        businessName,
-        targetPhone: phone,
-        message,
-        userName,
-        userEmail,
+        businessId: 'test-business-abc-123',
+        businessName: 'Aba Integrated Tailors Collective',
+        targetPhone: '+2348039998888',
+        message: 'Pre-flight Initialization signal. Tap "Save" in Make.com. The data structure has been populated successfully.',
+        userName: 'Pastor Nelson (Platform Administrator)',
+        userEmail: 'pastornelsonezi@gmail.com',
         timestamp: new Date().toISOString()
       });
-      results.make.success = true;
+      res.json({ success: true, status: response.status, data: response.data });
     } catch (err: any) {
-      console.error("[Make.com] Sync failure:", err.message);
+      console.error("[Make.com Setup] Dispatch failed:", err.message);
+      res.status(500).json({ success: false, error: err.message, status: err.response?.status });
     }
-  }
+  });
 
-  const whatsappResult = await WhatsApp.sendBusinessInquiryMessage(phone, businessName, message, userName);
-  results.whatsapp = whatsappResult;
+  // 1. Business Inquiry (Integrated with Make.com sync + support for client-side configuration overrides)
+  app.post("/api/whatsapp/inquiry", async (req, res) => {
+    const { businessId, businessName, phone, message, userName, userEmail, makeWebhookUrlOverride } = req.body;
+    
+    console.log(`[WhatsApp] Processing inquiry for ${businessName} (${phone})`);
 
-  res.json(results);
-});
+    const results: any = { whatsapp: { success: false }, make: { success: false } };
 
-app.post("/api/whatsapp/otp", async (req, res) => {
-  const { phone, code } = req.body;
-  console.log(`[WhatsApp] Transmitting OTP for ${phone}`);
-  const result = await WhatsApp.sendOTPMessage(phone, code);
-  res.json(result);
-});
+    // Capture in Make.com
+    const makeUrl = makeWebhookUrlOverride || process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
+    if (makeUrl) {
+      try {
+        await axios.post(makeUrl, {
+          source: 'FindAba Contact Gateway',
+          type: 'whatsapp_intent',
+          businessId,
+          businessName,
+          targetPhone: phone,
+          message,
+          userName,
+          userEmail,
+          timestamp: new Date().toISOString()
+        });
+        results.make.success = true;
+      } catch (err: any) {
+        console.error("[Make.com] Sync failure:", err.message);
+      }
+    }
 
-app.post("/api/whatsapp/welcome", async (req, res) => {
-  const { phone, userName } = req.body;
-  console.log(`[WhatsApp] Transmitting Welcome Message for ${userName}`);
-  const result = await WhatsApp.sendWelcomeMessage(phone, userName);
-  res.json(result);
-});
+    // Trigger Meta Cloud API
+    const whatsappResult = await WhatsApp.sendBusinessInquiryMessage(phone, businessName, message, userName);
+    results.whatsapp = whatsappResult;
 
-app.post("/api/whatsapp/notify", async (req, res) => {
-  const { phone, template, parameters } = req.body;
-  console.log(`[WhatsApp] Transmitting Template [${template}] to ${phone}`);
-  const result = await WhatsApp.sendTemplateMessage(phone, template, 'en_US', parameters || []);
-  res.json(result);
-});
+    res.json(results);
+  });
 
-app.post("/api/whatsapp/hello", async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) return res.status(400).json({ success: false, error: "Missing phone number" });
-  
-  console.log(`[WhatsApp] Dispatching HELLO WORLD TEMPLATE to ${phone}`);
-  const result = await WhatsApp.sendHelloWorld(phone);
-  res.json(result);
-});
+  // 2. Auth: OTP Transmission
+  app.post("/api/whatsapp/otp", async (req, res) => {
+    const { phone, code } = req.body;
+    console.log(`[WhatsApp] Transmitting OTP for ${phone}`);
+    const result = await WhatsApp.sendOTPMessage(phone, code);
+    res.json(result);
+  });
 
-app.post("/api/whatsapp/test", async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) return res.status(400).json({ success: false, error: "Missing phone number" });
-  
-  console.log(`[WhatsApp] Dispatching DEV TEST MESSAGE to ${phone}`);
-  const result = await WhatsApp.sendTextMessage(phone, "FindAba Meta WhatsApp Test Successful");
-  res.json(result);
-});
+  // 3. Auth: Welcome/Onboarding
+  app.post("/api/whatsapp/welcome", async (req, res) => {
+    const { phone, userName } = req.body;
+    console.log(`[WhatsApp] Transmitting Welcome Message for ${userName}`);
+    const result = await WhatsApp.sendWelcomeMessage(phone, userName);
+    res.json(result);
+  });
 
-app.get("/api/whatsapp/webhook", (req, res) => {
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
+  // 4. Notifications: Generic Order/Alert
+  app.post("/api/whatsapp/notify", async (req, res) => {
+    const { phone, template, parameters } = req.body;
+    console.log(`[WhatsApp] Transmitting Template [${template}] to ${phone}`);
+    const result = await WhatsApp.sendTemplateMessage(phone, template, 'en_US', parameters || []);
+    res.json(result);
+  });
 
-  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || "findaba_verify_token_123";
+  // 5. Developer Test: Raw Text Message
+  app.post("/api/whatsapp/hello", async (req, res) => {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ success: false, error: "Missing phone number" });
+    
+    console.log(`[WhatsApp] Dispatching HELLO WORLD TEMPLATE to ${phone}`);
+    const result = await WhatsApp.sendHelloWorld(phone);
+    res.json(result);
+  });
 
-  console.log(`[WhatsApp Webhook] Received verification request. mode: ${mode}, token: ${token}`);
+  app.post("/api/whatsapp/test", async (req, res) => {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ success: false, error: "Missing phone number" });
+    
+    console.log(`[WhatsApp] Dispatching DEV TEST MESSAGE to ${phone}`);
+    const result = await WhatsApp.sendTextMessage(phone, "FindAba Meta WhatsApp Test Successful");
+    res.json(result);
+  });
 
-  if (mode === "subscribe" && token === verifyToken) {
-    console.log("[WhatsApp Webhook] Verification successful!");
-    return res.status(200).send(challenge);
-  } else {
-    console.warn("[WhatsApp Webhook] Verification failed. Token mismatch or invalid mode.");
-    return res.sendStatus(403);
-  }
-});
+  // Meta WhatsApp Webhook Verification Handshake (GET)
+  app.get("/api/whatsapp/webhook", (req, res) => {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
 
-app.post("/api/whatsapp/webhook", (req, res) => {
-  const body = req.body;
+    // Retrieve verification token from environment variable
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || "findaba_verify_token_123";
 
-  console.log("[WhatsApp Webhook] Received event payload:", JSON.stringify(body, null, 2));
+    console.log(`[WhatsApp Webhook] Received verification request. mode: ${mode}, token: ${token}`);
 
-  if (body.object === "whatsapp_business_account") {
-    try {
-      for (const entry of body.entry || []) {
-        for (const change of entry.changes || []) {
-          if (change.field === "messages") {
-            const value = change.value;
-            const contacts = value.contacts || [];
-            const messages = value.messages || [];
+    if (mode === "subscribe" && token === verifyToken) {
+      console.log("[WhatsApp Webhook] Verification successful!");
+      return res.status(200).send(challenge);
+    } else {
+      console.warn("[WhatsApp Webhook] Verification failed. Token mismatch or invalid mode.");
+      return res.sendStatus(403);
+    }
+  });
 
-            for (const message of messages) {
-              const from = message.from;
-              const type = message.type;
-              const profileName = contacts.find((c: any) => c.wa_id === from)?.profile?.name || "Unknown Business/User";
+  // Meta WhatsApp Webhook Event Handler (POST)
+  app.post("/api/whatsapp/webhook", (req, res) => {
+    const body = req.body;
 
-              console.log(`[WhatsApp Incoming] Message from ${profileName} (${from}) of type "${type}"`);
+    console.log("[WhatsApp Webhook] Received event payload:", JSON.stringify(body, null, 2));
 
-              if (type === "text") {
-                const textBody = message.text?.body;
-                console.log(`[WhatsApp Incoming] Text Content: "${textBody}"`);
-              } else {
-                console.log(`[WhatsApp Incoming] Non-text message details:`, JSON.stringify(message, null, 2));
+    if (body.object === "whatsapp_business_account") {
+      try {
+        for (const entry of body.entry || []) {
+          for (const change of entry.changes || []) {
+            if (change.field === "messages") {
+              const value = change.value;
+              const contacts = value.contacts || [];
+              const messages = value.messages || [];
+
+              for (const message of messages) {
+                const from = message.from; // Sender's phone number
+                const type = message.type;
+                const profileName = contacts.find((c: any) => c.wa_id === from)?.profile?.name || "Unknown Business/User";
+
+                console.log(`[WhatsApp Incoming] Message from ${profileName} (${from}) of type "${type}"`);
+
+                if (type === "text") {
+                  const textBody = message.text?.body;
+                  console.log(`[WhatsApp Incoming] Text Content: "${textBody}"`);
+                } else {
+                  console.log(`[WhatsApp Incoming] Non-text message details:`, JSON.stringify(message, null, 2));
+                }
               }
             }
           }
         }
+      } catch (err: any) {
+        console.error("[WhatsApp Webhook] Error parsing webhook payload:", err.message);
       }
-    } catch (err: any) {
-      console.error("[WhatsApp Webhook] Error parsing webhook payload:", err.message);
+      return res.status(200).send("EVENT_RECEIVED");
+    } else {
+      return res.sendStatus(404);
     }
-    return res.status(200).send("EVENT_RECEIVED");
-  } else {
-    return res.sendStatus(404);
-  }
-});
+  });
 
-app.post("/api/paystack-webhook", async (req, res) => {
-  const secret = process.env.PAYSTACK_SECRET_KEY;
-  const signature = req.headers["x-paystack-signature"] as string;
+  // Paystack Webhook Handler
+  app.post("/api/paystack-webhook", async (req, res) => {
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+    const signature = req.headers["x-paystack-signature"] as string;
 
-  if (!secret || !signature) {
-    console.error("[Webhook] Missing secret or signature");
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const hash = crypto
-    .createHmac("sha512", secret)
-    .update(JSON.stringify(req.body))
-    .digest("hex");
-
-  if (hash !== signature) {
-    console.error("[Webhook] Invalid signature");
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const event = req.body;
-  console.log(`[Webhook] Received Paystack event: ${event.event}`);
-
-  if (event.event === "charge.success") {
-    const { reference, amount, metadata } = event.data;
-    const userId = metadata?.user_id;
-    const bookingId = metadata?.booking_id;
-    const orderId = metadata?.order_id;
-    const eventTicketId = metadata?.event_ticket_id;
-
-    if (!userId && !orderId && !eventTicketId) {
-      console.error("[Webhook] Missing user identification in metadata");
-      return res.status(400).json({ error: "Missing user/order identification" });
+    if (!secret || !signature) {
+      console.error("[Webhook] Missing secret or signature");
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    try {
-      const paymentData: any = {
-        user_id: userId,
-        amount: amount / 100,
-        reference,
-        status: "success",
-        provider: "paystack",
-        metadata: event.data,
-        created_at: new Date().toISOString()
-      };
+    // Verify signature
+    const hash = crypto
+      .createHmac("sha512", secret)
+      .update(JSON.stringify(req.body))
+      .digest("hex");
 
-      if (bookingId) paymentData.booking_id = bookingId;
-      if (orderId) paymentData.order_id = orderId;
+    if (hash !== signature) {
+      console.error("[Webhook] Invalid signature");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-      const { error: paymentError } = await supabase
-        .from("payments")
-        .upsert(paymentData, { onConflict: 'reference' });
+    const event = req.body;
+    console.log(`[Webhook] Received Paystack event: ${event.event}`);
 
-      if (paymentError) throw paymentError;
+    if (event.event === "charge.success") {
+      const { reference, amount, metadata } = event.data;
+      const userId = metadata?.user_id;
+      const bookingId = metadata?.booking_id;
+      const orderId = metadata?.order_id;
 
-      if (orderId) {
-        console.log(`[Webhook] Updating order ${orderId} status to 'paid'`);
-        const { error: orderError } = await supabase
-          .from("orders")
-          .update({ status: 'paid', updated_at: new Date().toISOString() })
-          .eq("id", orderId);
-        
-        if (orderError) console.error("[Webhook] Order update failed:", orderError.message);
+      if (!userId && !orderId) {
+        console.error("[Webhook] Missing user identification in metadata");
+        return res.status(400).json({ error: "Missing user/order identification" });
       }
 
-      if (eventTicketId) {
-        console.log(`[Webhook] Confirming event ticket ${eventTicketId} as paid`);
-        const { error: ticketError } = await supabase
-          .from("event_tickets")
-          .update({ status: 'paid', payment_reference: reference })
-          .eq("id", eventTicketId);
+      try {
+        // 1. Insert payment record
+        const paymentData: any = {
+          user_id: userId,
+          amount: amount / 100, // Convert kobo to NGN
+          reference,
+          status: "success",
+          provider: "paystack",
+          metadata: event.data,
+          created_at: new Date().toISOString()
+        };
 
-        if (ticketError) console.error("[Webhook] Event ticket update failed:", ticketError.message);
-      }
+        if (bookingId) paymentData.booking_id = bookingId;
+        if (orderId) paymentData.order_id = orderId;
 
-      if (userId) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("tier_level, email, full_name")
-          .eq("id", userId)
-          .single();
+        const { error: paymentError } = await supabase
+          .from("payments")
+          .upsert(paymentData, { onConflict: 'reference' });
 
-        if (!profileError && profile.email) {
-          sendPaymentSuccessEmail(profile.email, reference, amount / 100).catch(err => 
-            console.error("[Email] Payment success email failed:", err.message)
-          );
+        if (paymentError) throw paymentError;
+
+        // 2. If it's an order payment, update order status
+        if (orderId) {
+          console.log(`[Webhook] Updating order ${orderId} status to 'paid'`);
+          const { error: orderError } = await supabase
+            .from("orders")
+            .update({ status: 'paid', updated_at: new Date().toISOString() })
+            .eq("id", orderId);
+          
+          if (orderError) console.error("[Webhook] Order update failed:", orderError.message);
         }
 
-        const makeUrl = process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
-        if (makeUrl) {
-          axios.post(makeUrl, {
-            user_id: userId,
-            order_id: orderId,
-            amount: amount / 100,
-            reference,
-            timestamp: new Date().toISOString()
-          }).catch(err => console.error("[Webhook] Make.com trigger failed:", err.message));
+        // 3. Fetch updated profile for notifications
+        if (userId) {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("tier_level, email, full_name")
+            .eq("id", userId)
+            .single();
+
+          if (!profileError && profile.email) {
+            sendPaymentSuccessEmail(profile.email, reference, amount / 100).catch(err => 
+              console.error("[Email] Payment success email failed:", err.message)
+            );
+          }
+
+          // 4. Trigger Make.com Automation
+          const makeUrl = process.env.VITE_MAKE_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
+          if (makeUrl) {
+            axios.post(makeUrl, {
+              user_id: userId,
+              order_id: orderId,
+              amount: amount / 100,
+              reference,
+              timestamp: new Date().toISOString()
+            }).catch(err => console.error("[Webhook] Make.com trigger failed:", err.message));
+          }
         }
+
+        console.log(`[Webhook] Payment processed successfully for reference ${reference}`);
+      } catch (err: any) {
+        console.error("[Webhook] Processing error:", err.message);
+        return res.status(500).json({ error: "Internal processing error" });
       }
-
-      console.log(`[Webhook] Payment processed successfully for reference ${reference}`);
-    } catch (err: any) {
-      console.error("[Webhook] Processing error:", err.message);
-      return res.status(500).json({ error: "Internal processing error" });
     }
-  }
 
-  res.status(200).json({ status: "success" });
-});
+    res.status(200).json({ status: "success" });
+  });
 
-app.get("/api/git/sync", ensureAdmin, async (req, res) => {
-  console.log(`[GitSync] Incoming Handshake Request | Origin: ${req.get('origin')} | Host: ${req.get('host')} | Cookie: ${req.cookies.github_token ? 'Present' : 'Missing'}`);
-  let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
-  const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main';
-  const token = process.env.GITHUB_TOKEN || req.cookies.github_token;
-
-  if (!repo) {
-    return res.status(400).json({ success: false, error: "GITHUB_REPO not configured" });
-  }
-
-  repo = repo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/$/, '');
-
-  try {
-    const [owner, name] = repo.split("/");
-    if (!owner || !name) throw new Error(`Invalid repo format: ${repo}. Use owner/repo`);
-
-    console.log(`[GitSync] Polling GitHub: ${owner}/${name} (${branch}) | Auth: ${token ? 'Token Present' : 'Public/Cookie Only'}`);
+  // Automatic Git Repo Connection (SECURED)
+  app.get("/api/git/sync", ensureAdmin, async (req, res) => {
+    console.log(`[GitSync] Incoming Handshake Request | Origin: ${req.get('origin')} | Host: ${req.get('host')} | Cookie: ${req.cookies.github_token ? 'Present' : 'Missing'}`);
+    let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
+    const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main';
+    const envToken = process.env.GITHUB_TOKEN;
+    const cookieToken = req.cookies.github_token;
     
-    const config = {
-      timeout: 10000,
-      headers: {
-        "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "FindAba-City-OS"
-      }
-    } as any;
+    // Prioritize cookie token if present (user-specific), fallback to env token (system)
+    let token = (cookieToken && cookieToken.trim()) ? cookieToken.trim() : (envToken && envToken.trim() ? envToken.trim() : null);
 
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Automatic detection: if it starts with ghp_ or doesn't have a prefix, try Bearer first then token
+      // But standardizing on Bearer is usually safest for all new tokens.
+      token = token.trim();
     }
 
-    const url = `https://api.github.com/repos/${owner}/${name}/contents/registry.json?ref=${branch}`;
-    
-    try {
-      const response = await axios.get(url, config);
-      const content = Buffer.from(response.data.content, "base64").toString("utf-8");
-      const registry = JSON.parse(content);
+    if (!repo) {
+      return res.status(400).json({ success: false, error: "GITHUB_REPO not configured" });
+    }
 
-      res.json({ 
-        success: true, 
-        repo, 
-        lastUpdated: new Date().toISOString(),
-        data: registry 
-      });
-    } catch (fileError: any) {
-      if (fileError.response?.status === 404) {
-        console.log(`[GitSync] Registry signal (registry.json) not found on branch ${branch}.`);
-        return res.json({ 
+    // Robustness: Strip URL prefix and .git suffix
+    repo = repo.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '').replace(/\.git$/i, '').replace(/\/$/, '');
+
+    try {
+      const [owner, name] = repo.split("/");
+      if (!owner || !name) throw new Error(`Invalid repo format: ${repo}. Use owner/repo`);
+
+      console.log(`[GitSync] Polling GitHub: ${owner}/${name} (${branch}) | Auth: ${token ? 'Token Present (' + token.substring(0, 4) + '...)' : 'Public/Cookie Only'}`);
+      
+      const config = {
+        timeout: 15000,
+        headers: {
+          "Accept": "application/vnd.github.v3+json",
+          "User-Agent": "FindAba-City-OS"
+        }
+      } as any;
+
+      if (token) {
+        // Handle classic tokens vs modern tokens
+        const authPrefix = token.startsWith('ghp_') ? 'token' : 'Bearer';
+        config.headers.Authorization = `${authPrefix} ${token}`;
+      }
+
+      const url = `https://api.github.com/repos/${owner}/${name}/contents/registry.json?ref=${branch}`;
+      
+      try {
+        const response = await axios.get(url, config);
+        const content = Buffer.from(response.data.content, "base64").toString("utf-8");
+        const registry = JSON.parse(content);
+
+        res.json({ 
           success: true, 
           repo, 
-          lastUpdated: null,
-          data: null,
-          message: "Registry base signal not found. Ready for initialization."
+          lastUpdated: new Date().toISOString(),
+          data: registry 
         });
-      }
-      throw fileError;
-    }
-  } catch (error: any) {
-    const status = error.response?.status || 500;
-    const details = error.response?.data?.message || error.message;
-    const isRateLimit = status === 403 && details.toLowerCase().includes('rate limit');
-    
-    console.error("[GitSync] Failed:", { status, details });
-    
-    let friendlyError = "GitHub Grid Sync Failed";
-    let suggestion = details;
-
-    if (status === 403 || status === 401) {
-      if (isRateLimit) {
-        suggestion = "GitHub API Rate Limit Exceeded. A GITHUB_TOKEN is required for high-traffic live apps. Set it in App Settings.";
-      } else if (!token) {
-        suggestion = "GitHub Handshake Denied. Please connect your GitHub account in the Control Room (Setup) or provide a GITHUB_TOKEN.";
-      }
-    } else if (status === 404) {
-      suggestion = `Repository '${repo}' not found or unreachable. Verify the GITHUB_REPO name.`;
-    }
-
-    res.status(status).json({ 
-      success: false,
-      error: friendlyError, 
-      details: suggestion,
-      status
-    });
-  }
-});
-
-app.post("/api/git/sync-full", ensureAdmin, async (req, res) => {
-  let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
-  const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || '';
-  const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
-  const { message = "Full System Sync via FindAba City OS" } = req.body;
-
-  if (!repo) {
-    return res.status(400).json({ error: "GITHUB_REPO not configured" });
-  }
-
-  repo = repo.replace(/^https?:\/\/github\.com\//i, '')
-             .replace(/\.git$/i, '')
-             .replace(/\/$/, '');
-
-  if (!token) {
-    return res.status(401).json({ error: "GitHub authentication required" });
-  }
-
-  try {
-    const [owner, name] = repo.split("/");
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "FindAba-City-OS"
-    };
-
-    const gitClient = axios.create({ headers, timeout: 600000 });
-
-    console.log(`[GitSync] Starting full sync for repo: ${repo}`);
-    const rootDir = process.cwd();
-    const files: { path: string, content: string }[] = [];
-    const excludeDirs = ['node_modules', 'dist', '.git', '.next', '.vercel', 'build', 'public', 'coverage', 'logs'];
-    const excludeFiles = ['package-lock.json', 'yarn.lock', '.env', '.env.local', 'github_token', '.DS_Store'];
-    const includeExtensions = ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.html', '.md', '.sql'];
-
-    async function readDir(dir: string, relativePath: string = "") {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
-      await Promise.all(entries.map(async (entry) => {
-        const fullPath = path.join(dir, entry.name);
-        const relPath = path.join(relativePath, entry.name).replace(/\\/g, '/');
-        
-        if (entry.isDirectory()) {
-          if (!excludeDirs.includes(entry.name)) {
-            await readDir(fullPath, relPath);
-          }
-        } else {
-          const ext = path.extname(entry.name).toLowerCase();
-          if (!excludeFiles.includes(entry.name) && (includeExtensions.includes(ext) || entry.name === 'LICENSE')) {
-            try {
-              const stats = await fs.stat(fullPath);
-              if (stats.size > 1024 * 1024) {
-                console.warn(`Skipping large file: ${relPath} (${stats.size} bytes)`);
-                return;
-              }
-              const content = await fs.readFile(fullPath, "utf-8");
-              files.push({ path: relPath, content });
-            } catch (e) {
-              console.warn(`Skipping ${relPath}: ${e}`);
-            }
-          }
+      } catch (fileError: any) {
+        if (fileError.response?.status === 404) {
+          console.log(`[GitSync] Registry signal (registry.json) not found on branch ${branch}.`);
+          return res.json({ 
+            success: true, 
+            repo, 
+            lastUpdated: null,
+            data: null,
+            message: "Registry base signal not found. Ready for initialization."
+          });
         }
-      }));
-    }
-    await readDir(rootDir);
-    console.log(`[GitSync] Found ${files.length} files to sync.`);
-
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
-    if (supabaseUrl && supabaseKey) {
-      try {
-        const supabase = createClient(supabaseUrl, supabaseKey, {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false
-          }
-        });
-        const { data: businesses, error: sbError } = await supabase
-          .from('businesses')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(500);
-        
-        if (businesses) {
-          const registry = {
-            version: "v6.0",
-            lastUpdated: new Date().toISOString(),
-            businesses
-          };
-          const registryContent = JSON.stringify(registry, null, 2);
-          const existingIdx = files.findIndex(f => f.path === 'registry.json');
-          if (existingIdx >= 0) files[existingIdx].content = registryContent;
-          else files.push({ path: 'registry.json', content: registryContent });
-        }
-      } catch (e) { console.error("Supabase fetch failed during sync", e); }
-    }
-
-    const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
-    const targetBranch = branch || repoInfo.data.default_branch;
-    let latestCommitSha: string | null = null;
-    let baseTreeSha: string | null = null;
-    
-    try {
-      const branchRes = await gitClient.get(`https://api.github.com/repos/${owner}/${name}/branches/${targetBranch}`);
-      latestCommitSha = branchRes.data.commit.sha;
-      baseTreeSha = branchRes.data.commit.commit.tree.sha;
-    } catch (e) {}
-
-    const syncFiles = files.slice(0, 1000);
-    let warning = null;
-    if (files.length > 1000) {
-      warning = `Project has ${files.length} files. Only syncing first 1,000 for stability.`;
-      console.warn(`[GitSync] ${warning}`);
-    }
-
-    const treeItems = syncFiles.map(file => ({
-      path: file.path,
-      mode: "100644",
-      type: "blob",
-      content: file.content
-    }));
-
-    console.log(`[GitSync] Creating tree with ${treeItems.length} items...`);
-    const treeRes = await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/trees`, {
-      base_tree: baseTreeSha,
-      tree: treeItems
-    });
-    
-    console.log(`[GitSync] Tree created: ${treeRes.data.sha}. Creating commit...`);
-    const commitRes = await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/commits`, {
-      message,
-      tree: treeRes.data.sha,
-      parents: latestCommitSha ? [latestCommitSha] : []
-    });
-
-    console.log(`[GitSync] Commit created: ${commitRes.data.sha}. Updating ref...`);
-    await gitClient.patch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${targetBranch}`, {
-      sha: commitRes.data.sha
-    });
-
-    console.log(`[GitSync] Sync complete: ${commitRes.data.html_url}`);
-    res.json({ success: true, commit: commitRes.data.html_url, warning });
-  } catch (error: any) {
-    console.error("Full Sync Error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to perform full sync", details: error.response?.data?.message || error.message });
-  }
-});
-
-app.get("/api/git/all-files", ensureAdmin, async (req, res) => {
-  try {
-    const rootDir = process.cwd();
-    const files: { path: string, data: string }[] = [];
-    
-    const excludeDirs = ['node_modules', 'dist', '.git', '.next', '.vercel', 'build', 'public'];
-    const excludeFiles = ['package-lock.json', '.env', '.env.local', 'github_token', '.DS_Store'];
-    const includeExtensions = ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.html', '.md', '.sql'];
-
-    async function readDir(dir: string, relativePath: string = "") {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
+        throw fileError;
+      }
+    } catch (error: any) {
+      const status = error.response?.status || 500;
+      const details = error.response?.data?.message || error.message;
+      const isRateLimit = status === 403 && details.toLowerCase().includes('rate limit');
       
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-        const relPath = path.join(relativePath, entry.name);
-        
-        if (entry.isDirectory()) {
-          if (!excludeDirs.includes(entry.name)) {
-            await readDir(fullPath, relPath);
-          }
-        } else {
-          const ext = path.extname(entry.name).toLowerCase();
-          if (!excludeFiles.includes(entry.name) && (includeExtensions.includes(ext) || entry.name === 'LICENSE')) {
-            try {
-              const content = await fs.readFile(fullPath, "utf-8");
-              files.push({ path: relPath, data: content });
-            } catch (e) {
-              console.warn(`Skipping file ${relPath}: ${e}`);
+      console.error("[GitSync] Failed:", { status, details });
+      
+      let friendlyError = "GitHub Grid Sync Failed";
+      let suggestion = details;
+
+      if (status === 403 || status === 401) {
+        if (isRateLimit) {
+          suggestion = "GitHub API Rate Limit Exceeded. A GITHUB_TOKEN is required for high-traffic live apps. Set it in App Settings.";
+        } else if (!token) {
+          suggestion = "GitHub Handshake Denied. Please connect your GitHub account in the Control Room (Setup) or provide a GITHUB_TOKEN.";
+        }
+      } else if (status === 404) {
+        suggestion = `Repository '${repo}' not found or unreachable. Verify the GITHUB_REPO name.`;
+      }
+
+      res.status(status).json({ 
+        success: false,
+        error: friendlyError, 
+        details: suggestion,
+        status
+      });
+    }
+  });
+
+  // Full System Sync (Server-side) (SECURED)
+  app.post("/api/git/sync-full", ensureAdmin, async (req, res) => {
+    let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
+    const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || ''; // If empty, will fetch default branch
+    const envToken = process.env.GITHUB_TOKEN;
+    const cookieToken = req.cookies.github_token;
+    const token = (cookieToken && cookieToken.trim()) ? cookieToken.trim() : (envToken && envToken.trim() ? envToken.trim() : null);
+    const { message = "Full System Sync via FindAba City OS" } = req.body || {};
+
+    if (!repo) {
+      return res.status(400).json({ error: "GITHUB_REPO not configured" });
+    }
+
+    repo = repo.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
+               .replace(/\.git$/i, '')
+               .replace(/\/$/, '');
+
+    if (!token) {
+      return res.status(401).json({ error: "GitHub authentication required. Set GITHUB_TOKEN or login." });
+    }
+
+    try {
+      const [owner, name] = repo.split("/");
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "FindAba-City-OS"
+      };
+
+      const gitClient = axios.create({ headers, timeout: 600000 }); // 10 minutes
+
+      // 1. Gather all local files in parallel
+      console.log(`[GitSync] Starting full sync for repo: ${repo}`);
+      const rootDir = process.cwd();
+      const files: { path: string, content: string }[] = [];
+      const excludeDirs = ['node_modules', 'dist', '.git', '.next', '.vercel', 'build', 'public', 'coverage', 'logs'];
+      const excludeFiles = ['package-lock.json', 'yarn.lock', '.env', '.env.local', 'github_token', '.DS_Store'];
+      const includeExtensions = ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.html', '.md', '.sql'];
+
+      async function readDir(dir: string, relativePath: string = "") {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        await Promise.all(entries.map(async (entry) => {
+          const fullPath = path.join(dir, entry.name);
+          const relPath = path.join(relativePath, entry.name).replace(/\\/g, '/');
+          
+          if (entry.isDirectory()) {
+            if (!excludeDirs.includes(entry.name)) {
+              await readDir(fullPath, relPath);
+            }
+          } else {
+            const ext = path.extname(entry.name).toLowerCase();
+            if (!excludeFiles.includes(entry.name) && (includeExtensions.includes(ext) || entry.name === 'LICENSE')) {
+              try {
+                const stats = await fs.stat(fullPath);
+                if (stats.size > 1024 * 1024) { // Skip files > 1MB
+                  console.warn(`Skipping large file: ${relPath} (${stats.size} bytes)`);
+                  return;
+                }
+                const content = await fs.readFile(fullPath, "utf-8");
+                files.push({ path: relPath, content });
+              } catch (e) {
+                console.warn(`Skipping ${relPath}: ${e}`);
+              }
             }
           }
-        }
+        }));
       }
-    }
+      await readDir(rootDir);
+      console.log(`[GitSync] Found ${files.length} files to sync.`);
 
-    await readDir(rootDir);
-    console.log(`Full Sync: Found ${files.length} files to commit.`);
-    res.json({ files });
-  } catch (error: any) {
-    console.error("Failed to read project files:", error);
-    res.status(500).json({ 
-      error: "Failed to read project files", 
-      details: error.message,
-      path: error.path || 'unknown'
-    });
-  }
-});
+      // 2. Fetch Registry Data from Supabase with limit to avoid huge payload
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      if (supabaseUrl && supabaseKey) {
+        try {
+          const supabase = createClient(supabaseUrl, supabaseKey, {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+              detectSessionInUrl: false
+            }
+          });
+          const { data: businesses, error: sbError } = await supabase
+            .from('businesses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(500); // Limit to 500 businesses for sync stability
+          
+          if (businesses) {
+            const registry = {
+              version: "v6.0",
+              lastUpdated: new Date().toISOString(),
+              businesses
+            };
+            const registryContent = JSON.stringify(registry, null, 2);
+            const existingIdx = files.findIndex(f => f.path === 'registry.json');
+            if (existingIdx >= 0) files[existingIdx].content = registryContent;
+            else files.push({ path: 'registry.json', content: registryContent });
+          }
+        } catch (e) { console.error("Supabase fetch failed during sync", e); }
+      }
 
-app.get("/api/readme", async (req, res) => {
-  try {
-    const readmePath = path.join(process.cwd(), "README.md");
-    const content = await fs.readFile(readmePath, "utf-8");
-    res.json({ content });
-  } catch (error) {
-    res.status(404).json({ error: "README.md not found" });
-  }
-});
+      // 3. GitHub Commit Logic - Split into batches if needed
+      const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
+      const targetBranch = branch || repoInfo.data.default_branch;
+      let latestCommitSha: string | null = null;
+      let baseTreeSha: string | null = null;
+      
+      try {
+        const branchRes = await gitClient.get(`https://api.github.com/repos/${owner}/${name}/branches/${targetBranch}`);
+        latestCommitSha = branchRes.data.commit.sha;
+        baseTreeSha = branchRes.data.commit.commit.tree.sha;
+      } catch (e) {}
 
-app.post("/api/metadata", ensureAdmin, async (req, res) => {
-  try {
-    const metadataPath = path.join(process.cwd(), "metadata.json");
-    const newMetadata = req.body;
-    await fs.writeFile(metadataPath, JSON.stringify(newMetadata, null, 2));
-    res.json({ success: true, message: "Metadata updated successfully" });
-  } catch (error: any) {
-    console.error("Failed to update metadata:", error);
-    res.status(500).json({ error: "Failed to update metadata", details: error.message });
-  }
-});
+      // GitHub Tree API has a limit of 1,000 items per request.
+      // For now, we'll just take the first 1,000 files to ensure success.
+      // A more robust solution would be multiple tree requests.
+      const syncFiles = files.slice(0, 1000);
+      let warning = null;
+      if (files.length > 1000) {
+        warning = `Project has ${files.length} files. Only syncing first 1,000 for stability.`;
+        console.warn(`[GitSync] ${warning}`);
+      }
 
-app.post("/api/git/commit", ensureAdmin, async (req, res) => {
-  let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
-  const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || '';
-  const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
-  const { files, message = "Update via FindAba City OS" } = req.body;
-
-  if (!repo) {
-    return res.status(400).json({ error: "GITHUB_REPO not configured" });
-  }
-
-  repo = repo.replace(/^https?:\/\/github\.com\//i, '')
-             .replace(/\.git$/i, '')
-             .replace(/\/$/, '');
-
-  if (!token) {
-    return res.status(401).json({ error: "GitHub authentication required" });
-  }
-  if (!files || !Array.isArray(files) || files.length === 0) {
-    return res.status(400).json({ error: "No files provided for commit" });
-  }
-
-  try {
-    const [owner, name] = repo.split("/");
-    if (!owner || !name) {
-      return res.status(400).json({ error: "Invalid GITHUB_REPO format. Use owner/repo" });
-    }
-
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "FindAba-City-OS"
-    };
-
-    const gitClient = axios.create({
-      headers,
-      timeout: 60000
-    });
-
-    const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
-    const targetBranch = branch || repoInfo.data.default_branch;
-
-    let latestCommitSha: string | null = null;
-    let baseTreeSha: string | null = null;
-    
-    try {
-      const branchRes = await gitClient.get(
-        `https://api.github.com/repos/${owner}/${name}/branches/${targetBranch}`
-      );
-      latestCommitSha = branchRes.data.commit.sha;
-      baseTreeSha = branchRes.data.commit.commit.tree.sha;
-    } catch (e) {
-    }
-
-    const treeItems = files.map(file => {
-      const content = typeof file.data === 'string' 
-        ? file.data 
-        : JSON.stringify(file.data, null, 2);
-
-      return {
+      const treeItems = syncFiles.map(file => ({
         path: file.path,
         mode: "100644",
         type: "blob",
-        content
-      };
-    });
+        content: file.content
+      }));
 
-    const treeRes = await gitClient.post(
-      `https://api.github.com/repos/${owner}/${name}/git/trees`,
-      {
+      console.log(`[GitSync] Creating tree with ${treeItems.length} items...`);
+      const treeRes = await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/trees`, {
         base_tree: baseTreeSha,
         tree: treeItems
-      }
-    );
-    const newTreeSha = treeRes.data.sha;
-
-    const commitRes = await gitClient.post(
-      `https://api.github.com/repos/${owner}/${name}/git/commits`,
-      {
+      });
+      
+      console.log(`[GitSync] Tree created: ${treeRes.data.sha}. Creating commit...`);
+      const commitRes = await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/commits`, {
         message,
-        tree: newTreeSha,
+        tree: treeRes.data.sha,
         parents: latestCommitSha ? [latestCommitSha] : []
-      }
-    );
-    const newCommitSha = commitRes.data.sha;
+      });
 
-    if (latestCommitSha) {
-      await gitClient.patch(
-        `https://api.github.com/repos/${owner}/${name}/git/refs/heads/${targetBranch}`,
-        { sha: newCommitSha }
-      );
-    } else {
-      await gitClient.post(
-        `https://api.github.com/repos/${owner}/${name}/git/refs`,
+      console.log(`[GitSync] Commit created: ${commitRes.data.sha}. Updating ref...`);
+      await gitClient.patch(`https://api.github.com/repos/${owner}/${name}/git/refs/heads/${targetBranch}`, {
+        sha: commitRes.data.sha
+      });
+
+      console.log(`[GitSync] Sync complete: ${commitRes.data.html_url}`);
+      res.json({ success: true, commit: commitRes.data.html_url, warning });
+    } catch (error: any) {
+      console.error("Full Sync Error:", error.response?.data || error.message);
+      res.status(500).json({ error: "Failed to perform full sync", details: error.response?.data?.message || error.message });
+    }
+  });
+
+  // Get all project files for full sync (SECURED)
+  app.get("/api/git/all-files", ensureAdmin, async (req, res) => {
+    try {
+      const rootDir = process.cwd();
+      const files: { path: string, data: string }[] = [];
+      
+      const excludeDirs = ['node_modules', 'dist', '.git', '.next', '.vercel', 'build', 'public'];
+      const excludeFiles = ['package-lock.json', '.env', '.env.local', 'github_token', '.DS_Store'];
+      const includeExtensions = ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.html', '.md', '.sql'];
+
+      async function readDir(dir: string, relativePath: string = "") {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          const relPath = path.join(relativePath, entry.name);
+          
+          if (entry.isDirectory()) {
+            if (!excludeDirs.includes(entry.name)) {
+              await readDir(fullPath, relPath);
+            }
+          } else {
+            const ext = path.extname(entry.name).toLowerCase();
+            if (!excludeFiles.includes(entry.name) && (includeExtensions.includes(ext) || entry.name === 'LICENSE')) {
+              try {
+                const content = await fs.readFile(fullPath, "utf-8");
+                files.push({ path: relPath, data: content });
+              } catch (e) {
+                console.warn(`Skipping file ${relPath}: ${e}`);
+              }
+            }
+          }
+        }
+      }
+
+      await readDir(rootDir);
+      console.log(`Full Sync: Found ${files.length} files to commit.`);
+      res.json({ files });
+    } catch (error: any) {
+      console.error("Failed to read project files:", error);
+      res.status(500).json({ 
+        error: "Failed to read project files", 
+        details: error.message,
+        path: error.path || 'unknown'
+      });
+    }
+  });
+
+  // Get README content
+  app.get("/api/readme", async (req, res) => {
+    try {
+      const readmePath = path.join(process.cwd(), "README.md");
+      const content = await fs.readFile(readmePath, "utf-8");
+      res.json({ content });
+    } catch (error) {
+      res.status(404).json({ error: "README.md not found" });
+    }
+  });
+
+  // Update metadata.json (SECURED)
+  app.post("/api/metadata", ensureAdmin, async (req, res) => {
+    try {
+      const metadataPath = path.join(process.cwd(), "metadata.json");
+      const newMetadata = req.body;
+      await fs.writeFile(metadataPath, JSON.stringify(newMetadata, null, 2));
+      res.json({ success: true, message: "Metadata updated successfully" });
+    } catch (error: any) {
+      console.error("Failed to update metadata:", error);
+      res.status(500).json({ error: "Failed to update metadata", details: error.message });
+    }
+  });
+
+  // Commit to Git Repo (Atomic Multi-file Commit) (SECURED)
+  app.post("/api/git/commit", ensureAdmin, async (req, res) => {
+    let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
+    const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || '';
+    const envToken = process.env.GITHUB_TOKEN;
+    const cookieToken = req.cookies.github_token;
+    const token = (cookieToken && cookieToken.trim()) ? cookieToken.trim() : (envToken && envToken.trim() ? envToken.trim() : null);
+    const { files = [], message = "Update via FindAba City OS" } = req.body || {};
+
+    if (!repo) {
+      return res.status(400).json({ error: "GITHUB_REPO not configured" });
+    }
+
+    // Robustness: Strip URL prefix and .git suffix if provided
+    repo = repo.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
+               .replace(/\.git$/i, '')
+               .replace(/\/$/, '');
+
+    if (!token) {
+      return res.status(401).json({ error: "GitHub authentication required. Set GITHUB_TOKEN or login." });
+    }
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: "No files provided for commit" });
+    }
+
+    try {
+      const [owner, name] = repo.split("/");
+      if (!owner || !name) {
+        return res.status(400).json({ error: "Invalid GITHUB_REPO format. Use owner/repo" });
+      }
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "FindAba-City-OS"
+      };
+
+      const gitClient = axios.create({
+        headers,
+        timeout: 60000 // 60 seconds
+      });
+
+      // 1. Get the target branch
+      const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
+      const targetBranch = branch || repoInfo.data.default_branch;
+
+      // 2. Get the latest commit SHA of the default branch
+      let latestCommitSha: string | null = null;
+      let baseTreeSha: string | null = null;
+      
+      try {
+        const branchRes = await gitClient.get(
+          `https://api.github.com/repos/${owner}/${name}/branches/${targetBranch}`
+        );
+        latestCommitSha = branchRes.data.commit.sha;
+        baseTreeSha = branchRes.data.commit.commit.tree.sha;
+      } catch (e) {
+        // Repo might be empty, which is fine
+      }
+
+      // 3. Create a new tree
+      const treeItems = files.map(file => {
+        // If data is a string, use it directly (for README.md, etc.)
+        // Otherwise, stringify as JSON (for registry.json, package.json)
+        const content = typeof file.data === 'string' 
+          ? file.data 
+          : JSON.stringify(file.data, null, 2);
+
+        return {
+          path: file.path,
+          mode: "100644",
+          type: "blob",
+          content
+        };
+      });
+
+      const treeRes = await gitClient.post(
+        `https://api.github.com/repos/${owner}/${name}/git/trees`,
         {
-          ref: `refs/heads/${targetBranch}`,
-          sha: newCommitSha
+          base_tree: baseTreeSha,
+          tree: treeItems
         }
       );
+      const newTreeSha = treeRes.data.sha;
+
+      // 4. Create a new commit
+      const commitRes = await gitClient.post(
+        `https://api.github.com/repos/${owner}/${name}/git/commits`,
+        {
+          message,
+          tree: newTreeSha,
+          parents: latestCommitSha ? [latestCommitSha] : []
+        }
+      );
+      const newCommitSha = commitRes.data.sha;
+
+      // 5. Update the branch reference
+      if (latestCommitSha) {
+        await gitClient.patch(
+          `https://api.github.com/repos/${owner}/${name}/git/refs/heads/${targetBranch}`,
+          { sha: newCommitSha }
+        );
+      } else {
+        // Create the branch if it doesn't exist
+        await gitClient.post(
+          `https://api.github.com/repos/${owner}/${name}/git/refs`,
+          {
+            ref: `refs/heads/${targetBranch}`,
+            sha: newCommitSha
+          }
+        );
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Full System Sync Successful",
+        commit: `https://github.com/${owner}/${name}/commit/${newCommitSha}`
+      });
+    } catch (error: any) {
+      console.error("Git Commit Error:", error.response?.data || error.message);
+      res.status(500).json({ 
+        error: "Failed to commit to GitHub", 
+        details: error.response?.data?.message || error.message 
+      });
+    }
+  });
+
+  // Create GitHub Branch
+  app.post("/api/git/branch", async (req, res) => {
+    const { branch, from, repo: bodyRepo } = req.body;
+    let repo = (req.query.repo as string) || bodyRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
+    const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
+
+    if (!repo || !token || !branch) {
+      return res.status(400).json({ error: "Missing parameters for branch creation" });
     }
 
-    res.json({ 
-      success: true, 
-      message: "Full System Sync Successful",
-      commit: `https://github.com/${owner}/${name}/commit/${newCommitSha}`
-    });
-  } catch (error: any) {
-    console.error("Git Commit Error:", error.response?.data || error.message);
-    res.status(500).json({ 
-      error: "Failed to commit to GitHub", 
-      details: error.response?.data?.message || error.message 
-    });
-  }
-});
+    repo = repo.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '').replace(/\.git$/i, '').replace(/\/$/, '');
 
-app.post("/api/git/branch", async (req, res) => {
-  const { branch, from, repo: bodyRepo } = req.body;
-  let repo = (req.query.repo as string) || bodyRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
-  const token = req.cookies.github_token || process.env.GITHUB_TOKEN;
+    try {
+      const [owner, name] = repo.split("/");
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "FindAba-City-OS"
+      };
+      const gitClient = axios.create({ headers });
 
-  if (!repo || !token || !branch) {
-    return res.status(400).json({ error: "Missing parameters for branch creation" });
-  }
+      // 1. Get 'from' branch SHA (defaults to default branch)
+      let sourceBranch = from;
+      if (!sourceBranch) {
+        const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
+        sourceBranch = repoInfo.data.default_branch;
+      }
 
-  repo = repo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/$/, '');
+      console.log(`[GitBranch] Creating ${branch} from ${sourceBranch}`);
+      const branchRes = await gitClient.get(`https://api.github.com/repos/${owner}/${name}/branches/${sourceBranch}`);
+      const sha = branchRes.data.commit.sha;
 
-  try {
-    const [owner, name] = repo.split("/");
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "FindAba-City-OS"
-    };
-    const gitClient = axios.create({ headers });
+      // 2. Create the new ref
+      await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/refs`, {
+        ref: `refs/heads/${branch}`,
+        sha
+      });
 
-    let sourceBranch = from;
-    if (!sourceBranch) {
-      const repoInfo = await gitClient.get(`https://api.github.com/repos/${owner}/${name}`);
-      sourceBranch = repoInfo.data.default_branch;
+      res.json({ success: true, message: `Branch ${branch} created from ${sourceBranch}` });
+    } catch (error: any) {
+      console.error("Branch Creation Error:", error.response?.data || error.message);
+      res.status(500).json({ error: "Failed to create branch", details: error.response?.data?.message || error.message });
     }
+  });
 
-    console.log(`[GitBranch] Creating ${branch} from ${sourceBranch}`);
-    const branchRes = await gitClient.get(`https://api.github.com/repos/${owner}/${name}/branches/${sourceBranch}`);
-    const sha = branchRes.data.commit.sha;
-
-    await gitClient.post(`https://api.github.com/repos/${owner}/${name}/git/refs`, {
-      ref: `refs/heads/${branch}`,
-      sha
-    });
-
-    res.json({ success: true, message: `Branch ${branch} created from ${sourceBranch}` });
-  } catch (error: any) {
-    console.error("Branch Creation Error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to create branch", details: error.response?.data?.message || error.message });
-  }
-});
-
+// Catch-all for unhandled API routes (MUST be after all other API routes, but before setupVite)
 app.all("/api/*", (req, res) => {
   console.warn(`[Server] Unhandled API Request: ${req.method} ${req.url}`);
   res.status(404).json({ error: `Mesh route not found: ${req.url}` });
 });
 
+// Setup Vite or Static Files
 async function setupVite() {
   if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const vite = await createViteServer({
@@ -1338,6 +1419,7 @@ async function setupVite() {
     });
     app.use(vite.middlewares);
   } else {
+    // Serve static files in production with cache bypass for index.html
     const distPath = path.join(__dirname, "dist");
     app.use(express.static(distPath, {
       setHeaders: (res, filePath) => {
@@ -1353,6 +1435,7 @@ async function setupVite() {
   }
 }
 
+// Global Error Handler for all routes - MUST BE LAST
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('[Server] FATAL ROUTE ERROR:', err.stack || err);
   if (res.headersSent) return next(err);
@@ -1365,6 +1448,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
+// Start Server if not on Vercel
 if (!process.env.VERCEL) {
   const PORT = Number(process.env.PORT) || 3000;
   setupVite()
@@ -1375,6 +1459,7 @@ if (!process.env.VERCEL) {
     })
     .catch((err) => {
       console.error("[Industrial-OS] Initialization Failure:", err);
+      // Fallback listen to prevent container restart loops
       app.listen(PORT, "0.0.0.0", () => {
         console.warn(`[Industrial-OS] Server running in failsafe mode on port ${PORT}`);
       });

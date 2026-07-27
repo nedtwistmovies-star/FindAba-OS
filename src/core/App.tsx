@@ -1,6 +1,8 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+
+console.log('[App.tsx] Module loading...');
 import { Loader2, AlertTriangle, Globe } from 'lucide-react';
 import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal, ContactGateway, WelcomeOverlay } from '../components';
 import { SplashScreen } from '../components/SplashScreen';
@@ -86,6 +88,7 @@ const AppContent: React.FC = () => {
   }, [setView]);
 
   const handleBootComplete = React.useCallback(() => {
+    console.log('[App] Boot complete triggered');
     setIsBooted(true);
   }, []);
 
@@ -192,15 +195,15 @@ const AppContent: React.FC = () => {
 
   console.log('STEP_8_ROUTE_DECISION', view || 'home');
 
+  console.log('[App] Current render state:', { isBooted, view, authLoading, businessesCount: businesses?.length });
+
   const myBusiness = (businesses?.find ? businesses.find(b => b.user_id === user_id) : null) || null;
 
   const extraProps = view === 'onboarding' ? { onComplete: handleOnboardingComplete } : {};
 
   console.log('STEP_10_RENDER_TARGET', view);
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+    <div 
       className="relative min-h-screen overflow-x-hidden bg-[#0b100e]"
     >
       <Layout 
@@ -214,31 +217,36 @@ const AppContent: React.FC = () => {
           <SplashScreen onComplete={handleBootComplete} />
         ) : (
           <Suspense fallback={<LoadingScreen />}>
-            <RouteComponent 
-              setView={setView} 
-              onBack={handleBack}
-              {...extraProps}
-              businesses={businesses} 
-              heroImages={heroImages} 
-              heroVideos={heroVideos} 
-              business={selectedBusiness}
-              targetBusiness={selectedBusiness}
-              story={selectedStory}
-              advertorial={selectedAdvertorial}
-              myBusiness={myBusiness}
-              favorites={favorites}
-              onToggleFavorite={toggleFavorite}
-              onBusinessClick={handleBusinessClick}
-              onStoryClick={handleStoryClick}
-              onRegister={refreshData}
-              onRefresh={refreshData}
-              onAuthSuccess={handleAuthSuccess}
-              userEmail={userIdentifier}
-              userRole={userRole}
-              profile={profile}
-              user_id={user_id}
-              isRegistryLoading={businessLoading}
-            />
+            {(() => {
+              console.log('[App] Rendering RouteComponent for view:', view);
+              return (
+                <RouteComponent 
+                  setView={setView} 
+                  onBack={handleBack}
+                  {...extraProps}
+                  businesses={businesses} 
+                  heroImages={heroImages} 
+                  heroVideos={heroVideos} 
+                  business={selectedBusiness}
+                  targetBusiness={selectedBusiness}
+                  story={selectedStory}
+                  advertorial={selectedAdvertorial}
+                  myBusiness={myBusiness}
+                  favorites={favorites}
+                  onToggleFavorite={toggleFavorite}
+                  onBusinessClick={handleBusinessClick}
+                  onStoryClick={handleStoryClick}
+                  onRegister={refreshData}
+                  onRefresh={refreshData}
+                  onAuthSuccess={handleAuthSuccess}
+                  userEmail={userIdentifier}
+                  userRole={userRole}
+                  profile={profile}
+                  user_id={user_id}
+                  isRegistryLoading={businessLoading}
+                />
+              );
+            })()}
           </Suspense>
         )}
 
@@ -285,7 +293,7 @@ const AppContent: React.FC = () => {
           </div>
         )}
       </Layout>
-    </motion.div>
+    </div>
   );
 };
 

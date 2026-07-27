@@ -1,22 +1,29 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, LayoutGrid, Map as MapIcon, ArrowLeft, Filter, CheckCircle2, X, ShieldCheck } from 'lucide-react';
 import { BusinessCard, MapView, IndustrialButton } from '../../components';
 import { Business, VerificationStatus } from '../../types';
 import { CATEGORIES } from '../../constants';
+import { useOracle } from '../../providers';
 
 interface ExploreProps {
-  businesses: Business[];
+  businesses?: Business[];
   onBusinessClick: (b: Business) => void;
-  favorites: string[];
+  favorites?: string[];
   onToggleFavorite: (id: string) => void;
   setView: (v: any) => void;
   loading?: boolean;
 }
 
-import { useOracle } from '../../providers';
-
-const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorites, onToggleFavorite, setView, loading = false }) => {
+const Explore = ({ 
+  businesses = [], 
+  onBusinessClick, 
+  favorites = [], 
+  onToggleFavorite, 
+  setView, 
+  loading = false 
+}: ExploreProps) => {
+  console.log('[Explore] Rendering', { businessesCount: businesses?.length, loading });
   const { searchQuery, setSearchQuery } = useOracle();
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [categoryFilter, setCategoryFilter] = useState<string>('All Categories');
@@ -25,25 +32,33 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
   const [sortBy, setSortBy] = useState<'name' | 'rating'>('name');
   const [showFilters, setShowFilters] = useState(false);
 
-  const areas = Array.from(new Set(businesses.map(b => b.area))).sort();
+  // Safety normalization to handle null props
+  const bizList = Array.isArray(businesses) ? businesses : [];
+  const favList = Array.isArray(favorites) ? favorites : [];
 
-  const filtered = businesses.filter(b => {
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = b.name.toLowerCase().includes(searchLower) || 
-                         b.category.toLowerCase().includes(searchLower) ||
-                         b.primary_product_or_service?.toLowerCase().includes(searchLower) ||
-                         b.area.toLowerCase().includes(searchLower) ||
-                         b.skills?.some(s => s.toLowerCase().includes(searchLower));
-    
-    const matchesCategory = categoryFilter === 'All Categories' || b.category === categoryFilter;
-    const matchesStatus = statusFilter === 'All' || b.verification_status === statusFilter;
-    const matchesArea = areaFilter === 'All Areas' || b.area === areaFilter;
-    
-    return matchesSearch && matchesCategory && matchesStatus && matchesArea;
-  }).sort((a, b) => {
-    if (sortBy === 'rating') return b.rating - a.rating;
-    return a.name.localeCompare(b.name);
-  });
+  const areas = useMemo(() => {
+    return Array.from(new Set(bizList.map(b => b.area))).sort();
+  }, [bizList]);
+
+  const filtered = useMemo(() => {
+    return bizList.filter(b => {
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = b.name.toLowerCase().includes(searchLower) || 
+                           b.category.toLowerCase().includes(searchLower) ||
+                           b.primary_product_or_service?.toLowerCase().includes(searchLower) ||
+                           b.area.toLowerCase().includes(searchLower) ||
+                           b.skills?.some(s => s.toLowerCase().includes(searchLower));
+      
+      const matchesCategory = categoryFilter === 'All Categories' || b.category === categoryFilter;
+      const matchesStatus = statusFilter === 'All' || b.verification_status === statusFilter;
+      const matchesArea = areaFilter === 'All Areas' || b.area === areaFilter;
+      
+      return matchesSearch && matchesCategory && matchesStatus && matchesArea;
+    }).sort((a, b) => {
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }, [bizList, searchQuery, categoryFilter, statusFilter, areaFilter, sortBy]);
 
   const activeFilterCount = (categoryFilter !== 'All Categories' ? 1 : 0) + (statusFilter !== 'All' ? 1 : 0) + (areaFilter !== 'All Areas' ? 1 : 0);
 
@@ -213,7 +228,7 @@ const Explore: React.FC<ExploreProps> = ({ businesses, onBusinessClick, favorite
                 <BusinessCard 
                   business={b} 
                   onClick={onBusinessClick}
-                  isFavorite={favorites.includes(b.id)}
+                  isFavorite={favList.includes(b.id)}
                   onToggleFavorite={onToggleFavorite}
                 />
               </div>

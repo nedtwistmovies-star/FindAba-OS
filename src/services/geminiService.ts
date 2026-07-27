@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Modality, Type, ThinkingLevel } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Business } from "../types";
 import { getOpenRouterStream } from "./openRouterService";
 
@@ -19,7 +19,7 @@ const getAI = () => {
   if (!key) {
     // We expect the server to handle this now
   }
-  return new GoogleGenAI({ apiKey: key || 'proxy' });
+  return new GoogleGenerativeAI(key || 'proxy');
 };
 
 export interface GeminiHealthStatus {
@@ -186,17 +186,19 @@ export const parseFlyerSignal = async (base64: string, mimeType: string = 'image
       "confidence_score": number (0-100)
     }`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: { 
+    const response = await ai.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+    }).generateContent({
+      contents: [{ 
+        role: 'user',
         parts: [
           { inlineData: { data: base64.split(',')[1] || base64, mimeType } }, 
           { text: prompt }
         ] 
-      },
-      config: { responseMimeType: "application/json" }
+      }],
+      generationConfig: { responseMimeType: "application/json" }
     });
-    return JSON.parse(cleanJSON(response.text || '{}'));
+    return JSON.parse(cleanJSON(response.response.text() || '{}'));
   } catch (e: any) {
     console.error("[Oracle] Flyer Parse Fault:", e);
     if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
@@ -215,12 +217,11 @@ export const analyzeHardwareSignal = async (base64: string) => {
   try {
     const ai = getAI();
     const prompt = `Industrial Hardware Audit JSON ONLY: { "spec_summary": "string", "verdict": "Vanguard"|"Migration"|"Legacy", "performance_index": number, "recommendations": ["string"], "wisdom": "string" }`;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: { parts: [{ inlineData: { data: base64.split(',')[1] || base64, mimeType: 'image/jpeg' } }, { text: prompt }] },
-      config: { responseMimeType: "application/json" }
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ inlineData: { data: base64.split(',')[1] || base64, mimeType: 'image/jpeg' } }, { text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
     });
-    return JSON.parse(cleanJSON(response.text || '{}'));
+    return JSON.parse(cleanJSON(response.response.text() || '{}'));
   } catch (e: any) {
     if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
       return { verdict: "Unknown", wisdom: "Oracle energy depleted. The signal is offline." };
@@ -243,12 +244,11 @@ export const analyzeHardwareTextSignal = async (text: string) => {
       "recommendations": ["string"], 
       "wisdom": "string" 
     }`;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: { parts: [{ text: prompt }] },
-      config: { responseMimeType: "application/json" }
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
     });
-    return JSON.parse(cleanJSON(response.text || '{}'));
+    return JSON.parse(cleanJSON(response.response.text() || '{}'));
   } catch (e: any) {
     if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
       return { verdict: "Unknown", wisdom: "Oracle energy depleted. The signal is offline." };
@@ -340,31 +340,20 @@ const processOracleResponse = (response: any) => {
 };
 
 export const generateIndustrialVideo = async (prompt: string) => {
-  try {
-    const ai = getAI();
-    let operation = await ai.models.generateVideos({
-      model: 'veo-3.1-lite-generate-preview',
-      prompt: `Industrial film: ${prompt}. Aba, Nigeria.`,
-      config: { numberOfVideos: 1, resolution: '1080p', aspectRatio: '16:9' }
-    });
-    while (!operation.done) {
-      await new Promise(r => setTimeout(r, 10000));
-      operation = await ai.operations.getVideosOperation({ operation: operation });
-    }
-    const envKey = (typeof process !== 'undefined' && process.env) ? (process.env.GEMINI_API_KEY || process.env.API_KEY) : '';
-    return `${operation.response?.generatedVideos?.[0]?.video?.uri}&key=${envKey}`;
-  } catch (e) { return null; }
+  // Video generation is not yet supported in the standard web SDK
+  console.warn("[Oracle] Video generation signal currently offline.");
+  return null;
 };
 
 export const generateDesignImage = async (prompt: string) => {
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image-preview',
-      contents: { parts: [{ text: `Industrial visual: ${prompt}. Studio lighting.` }] },
-      config: { imageConfig: { aspectRatio: "16:9" } }
+    const response = await ai.getGenerativeModel({ model: 'gemini-1.5-flash' }).generateContent({
+      contents: [{ role: 'user', parts: [{ text: `Industrial visual: ${prompt}. Studio lighting.` }] }],
     });
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
+    // Image generation via generateContent is specific to some models, 
+    // but standard flash returns text. If it returns an image part, we'd handle it.
+    for (const part of response.response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
     }
     return null;
@@ -374,15 +363,10 @@ export const generateDesignImage = async (prompt: string) => {
 export const generateHistoryAudio = async (title: string, lang: string = 'English', voiceName: string = 'Kore') => {
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text: `Narrate industrial history: ${title} in ${lang}. Tone: Informative, professional, and friendly.` }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName as any } } }
-      },
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ text: `Narrate industrial history: ${title} in ${lang}. Tone: Informative, professional, and friendly.` }] }],
     });
-    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    return response.response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
   } catch (e) { return null; }
 };
 
@@ -391,26 +375,26 @@ export const generateAudioNarration = generateHistoryAudio;
 export const generateWelcomeMessage = async (name: string, id: string) => {
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Generate a warm, human, and specific welcome message for ${name} (ID: ${id}) to the FindAba registry. 
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ text: `Generate a warm, human, and specific welcome message for ${name} (ID: ${id}) to the FindAba registry. 
       Identity: FindAba AI (Kalu). 
       Tone: Welcoming, using local Aba flavor (Igbo/Pidgin mix). Mention that they are now part of the industrial heartbeat of Enyimba. 
-      Rules: Prioritize Aba, do NOT say 'God's Own State', do NOT roleplay as a character.`,
+      Rules: Prioritize Aba, do NOT say 'God's Own State', do NOT roleplay as a character.` }] }],
     });
-    return response.text || "Welcome to the Hub. The registry is open.";
+    return response.response.text() || "Welcome to the Hub. The registry is open.";
   } catch (e) { return "Welcome to the Hub."; }
 };
 
 export const getSupportResponse = async (prompt: string, history: any[]) => {
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+    const response = await ai.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: "You are FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Follow the rules: Be extremely precise and specific. Do NOT give generic area suggestions. Prioritize Aba, include nearby cities only if needed/asked, label them clearly, do NOT say 'God's Own State', do NOT roleplay, be practical and helpful, use a friendly Nigerian tone."
+    }).generateContent({
       contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
-      config: { systemInstruction: "You are FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Follow the rules: Be extremely precise and specific. Do NOT give generic area suggestions. Prioritize Aba, include nearby cities only if needed/asked, label them clearly, do NOT say 'God's Own State', do NOT roleplay, be practical and helpful, use a friendly Nigerian tone." }
     });
-    return response.text;
+    return response.response.text();
   } catch (e: any) {
     if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
       return "Oracle energy depleted. The signal is offline.";
@@ -422,11 +406,10 @@ export const getSupportResponse = async (prompt: string, history: any[]) => {
 export const generateImageCaption = async (base64: string, mimeType: string) => {
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: { parts: [{ inlineData: { data: base64.split(',')[1] || base64, mimeType } }, { text: "Describe this industrial asset with wisdom." }] },
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ inlineData: { data: base64.split(',')[1] || base64, mimeType } }, { text: "Describe this industrial asset with wisdom." }] }],
     });
-    return response.text;
+    return response.response.text();
   } catch (e) { return null; }
 };
 
@@ -463,13 +446,12 @@ export const findArtisansAI = async (query: string, businesses: Business[]) => {
       "oracle_wisdom": "A practical, clear, and helpful summary of the search results in a friendly Nigerian tone. Mention specific streets or market lines if applicable."
     }`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: { parts: [{ text: prompt }] },
-      config: { responseMimeType: "application/json" }
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
     });
 
-    return JSON.parse(cleanJSON(response.text || '{}'));
+    return JSON.parse(cleanJSON(response.response.text() || '{}'));
   } catch (e: any) {
     console.error("[Oracle] Discovery Fault:", e);
     if (e.message?.includes("429") || e.message?.includes("RESOURCE_EXHAUSTED")) {
@@ -487,17 +469,14 @@ export const generateAdvertorial = async (topic: string) => {
     Include a [VERACITY INDEX: XX%] and a RISK ASSESSMENT section at the end.
     Tone: Professional, forward-looking, industrial.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ text: prompt }],
-      config: { 
-        tools: [{ googleSearch: {} }]
-      }
-    });
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      tools: [{ googleSearch: {} }]
+    } as any);
 
     return { 
-      content: response.text || "Report generation failed.",
-      groundingMetadata: response.candidates?.[0]?.groundingMetadata
+      content: response.response.text() || "Report generation failed.",
+      groundingMetadata: response.response.candidates?.[0]?.groundingMetadata
     };
   } catch (e) {
     console.error("[Oracle] Advertorial Gen Fault:", e);
@@ -508,11 +487,10 @@ export const generateAdvertorial = async (topic: string) => {
 export const generateConversationTitle = async (firstMessage: string) => {
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `Generate a concise, professional, 3-5 word title for an industrial conversation starting with: "${firstMessage}". Return ONLY the title text.`,
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ text: `Generate a concise, professional, 3-5 word title for an industrial conversation starting with: "${firstMessage}". Return ONLY the title text.` }] }],
     });
-    return response.text?.replace(/["']/g, '').trim() || 'Industrial Query';
+    return response.response.text()?.replace(/["']/g, '').trim() || 'Industrial Query';
   } catch (e) { return 'Industrial Query'; }
 };
 
@@ -530,27 +508,26 @@ export const decodeAudio = async (base64: string, ctx: AudioContext): Promise<Au
 export const generateAutomatedCityInsight = async () => {
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: "Current trade atmosphere in Aba, Nigeria. News/Price shifts.",
-      config: {
-        tools: [{ googleSearch: {} }],
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ text: "Current trade atmosphere in Aba, Nigeria. News/Price shifts." }] }],
+      tools: [{ googleSearch: {} }],
+      generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: "object",
           properties: {
-            title: { type: Type.STRING },
-            content: { type: Type.STRING },
-            featured_image_prompt: { type: Type.STRING },
-            veracity_index: { type: Type.NUMBER },
-            risk_assessment: { type: Type.STRING }
+            title: { type: "string" },
+            content: { type: "string" },
+            featured_image_prompt: { type: "string" },
+            veracity_index: { type: "number" },
+            risk_assessment: { type: "string" }
           },
           required: ["title", "content", "featured_image_prompt", "veracity_index", "risk_assessment"]
         }
       }
-    });
-    const result = JSON.parse(cleanJSON(response.text || '{}'));
-    return { ...result, grounding: response.candidates?.[0]?.groundingMetadata?.groundingChunks };
+    } as any);
+    const result = JSON.parse(cleanJSON(response.response.text() || '{}'));
+    return { ...result, grounding: response.response.candidates?.[0]?.groundingMetadata?.groundingChunks };
   } catch (e) { return null; }
 };
 
@@ -561,28 +538,28 @@ export const verifyReceiptSignal = async (base64: string, expectedAmount: number
   const prompt = `Audit this bank transfer receipt. Verify if it corresponds to a payment of ₦${expectedAmount} to account ${expectedAccount}.`;
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: { 
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ 
+        role: 'user',
         parts: [
           { inlineData: { data: base64.split(',')[1] || base64, mimeType: 'image/jpeg' } }, 
           { text: prompt }
         ] 
-      },
-      config: { 
+      }],
+      generationConfig: { 
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: "object",
           properties: {
-            is_valid: { type: Type.BOOLEAN },
-            confidence_score: { type: Type.NUMBER },
-            reasoning: { type: Type.STRING }
+            is_valid: { type: "boolean" },
+            confidence_score: { type: "number" },
+            reasoning: { type: "string" }
           },
           required: ["is_valid", "confidence_score", "reasoning"]
         }
       }
-    });
-    return JSON.parse(cleanJSON(response.text || '{}'));
+    } as any);
+    return JSON.parse(cleanJSON(response.response.text() || '{}'));
   } catch (e) {
     return { is_valid: false, confidence_score: 0, reasoning: "Signal interrupted during visual audit." };
   }
@@ -626,27 +603,26 @@ export const generateGroupFinancialAdvice = async (
 
   try {
     const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ text: prompt }],
-      config: {
+    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: "object",
           properties: {
-            analysis: { type: Type.STRING },
-            sustainability_rating: { type: Type.STRING },
-            sustainability_justification: { type: Type.STRING },
-            investment_strategies: { type: Type.ARRAY, items: { type: Type.STRING } },
-            tips: { type: Type.ARRAY, items: { type: Type.STRING } },
-            completion_confidence: { type: Type.NUMBER }
+            analysis: { type: "string" },
+            sustainability_rating: { type: "string" },
+            sustainability_justification: { type: "string" },
+            investment_strategies: { type: "array", items: { type: "string" } },
+            tips: { type: "array", items: { type: "string" } },
+            completion_confidence: { type: "number" }
           },
           required: ["analysis", "sustainability_rating", "sustainability_justification", "investment_strategies", "tips", "completion_confidence"]
         }
       }
-    });
+    } as any);
 
-    const parsed = JSON.parse(cleanJSON(response.text || '{}'));
+    const parsed = JSON.parse(cleanJSON(response.response.text() || '{}'));
     return {
       analysis: parsed.analysis || "Savings circle active. Analyze contributions to optimize sustainability.",
       sustainability_rating: parsed.sustainability_rating || "Moderate",

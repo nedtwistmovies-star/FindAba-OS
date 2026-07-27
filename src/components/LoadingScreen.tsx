@@ -28,16 +28,11 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         <div className="w-12 h-12 border-2 border-aba-gold/20 border-t-aba-gold rounded-full animate-spin" />
 
         {message && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
-            transition={{ duration: 0.5 }}
-            className="mt-6 text-center"
-          >
+          <div className="mt-6 text-center opacity-60">
             <p className="text-[9px] font-black text-aba-gold uppercase tracking-[0.4em]">
               {message}
             </p>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>

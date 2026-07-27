@@ -26,22 +26,11 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-aba-gold/5 rounded-full blur-[120px]" />
       </div>
 
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center space-y-12 relative z-10"
-      >
+      <div className="flex flex-col items-center space-y-12 relative z-10">
         <div className="relative">
-          <motion.div 
-            animate={{ 
-              rotate: 360,
-              boxShadow: ["0 0 20px rgba(200,168,75,0.05)", "0 0 60px rgba(200,168,75,0.1)", "0 0 20px rgba(200,168,75,0.05)"]
-            }}
-            transition={{ rotate: { duration: 20, repeat: Infinity, ease: "linear" }, boxShadow: { duration: 4, repeat: Infinity } }}
-            className="w-24 h-24 bg-white/5 border border-aba-gold/20 rounded-[2rem] flex items-center justify-center backdrop-blur-sm"
-          >
+          <div className="w-24 h-24 bg-white/5 border border-aba-gold/20 rounded-[2rem] flex items-center justify-center backdrop-blur-sm shadow-[0_0_20px_rgba(200,168,75,0.05)]">
             <Globe className="text-aba-gold w-10 h-10" strokeWidth={1} />
-          </motion.div>
+          </div>
         </div>
 
         <div className="space-y-3 text-center">
@@ -51,16 +40,16 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
 
         <div className="w-48 space-y-4">
           <div className="h-[1px] w-full bg-white/5 rounded-full overflow-hidden">
-            <motion.div 
-              animate={{ width: `${progress}%` }}
-              className="h-full bg-aba-gold"
+            <div 
+              style={{ width: `${progress}%` }}
+              className="h-full bg-aba-gold transition-all duration-100"
             />
           </div>
           <p className="text-[8px] text-white/20 font-bold uppercase tracking-[0.4em] text-center">
             Loading {progress}%
           </p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };
