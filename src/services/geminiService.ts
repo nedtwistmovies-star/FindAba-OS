@@ -115,11 +115,17 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
           localStorage.setItem('findaba_gemini_key', config.geminiKey);
           console.log("[Oracle] Gemini Signal Synchronized via Server Partner.");
           synced = true;
+        } else if (config.hasGeminiKey) {
+          console.log("[Oracle] Gemini Signal confirmed active on server (Proxy Mode).");
+          synced = true;
         }
 
         if (config.openRouterKey && config.openRouterKey !== 'undefined' && config.openRouterKey.trim() !== '') {
           localStorage.setItem('findaba_openrouter_key', config.openRouterKey);
           console.log("[Oracle] OpenRouter Signal Synchronized via Server Partner.");
+          synced = true;
+        } else if (config.hasOpenRouterKey) {
+          console.log("[Oracle] OpenRouter Signal confirmed active on server (Proxy Mode).");
           synced = true;
         }
 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getSupabase } from '../services/supabaseService';
 
 export interface GitSyncStatus {
@@ -23,7 +23,7 @@ export const useGitSync = () => {
     return { 'Authorization': `Bearer ${session.access_token}` };
   };
 
-  const sync = async (manualRepo?: string, manualBranch?: string) => {
+  const sync = useCallback(async (manualRepo?: string, manualBranch?: string) => {
     setLoading(true);
     try {
       const authHeaders = await getAuthHeaders();
@@ -87,7 +87,7 @@ export const useGitSync = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const commit = async (files: { path: string; data: any }[], message?: string) => {
     setLoading(true);

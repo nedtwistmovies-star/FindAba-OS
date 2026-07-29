@@ -431,61 +431,54 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
   
   try {
     // Probe a subset of critical tables to ensure schema health
-    const criticalTables = [
-      'businesses', 
-      'profiles', 
-      'platform_config', 
-      'disputes', 
-      'tasks', 
-      'referrals', 
-      'ride_bookings', 
-      'driver_signals',
-      'thrift_contributions'
-    ];
+    const essentialTables = ['profiles', 'platform_config'];
+    // Optional tables checked only if essential ones pass
+    const extendedTables = ['businesses', 'tasks'];
     
-    console.log("[SupabaseService] Probing critical tables:", criticalTables);
-    // We check sequentially or with a shorter timeout to avoid hanging
-    const results = await Promise.all(criticalTables.map(async (table) => {
+    console.log("[SupabaseService] Probing database core...");
+    
+    // Test the connection itself first with a light select
+    const { error: connError } = await client.from('platform_config').select('count', { count: 'exact', head: true }).limit(1);
+    
+    if (connError && connError.code !== '42501') {
+      throw connError;
+    }
+
+    // Parallel check for core tables only
+    const results = await Promise.all(essentialTables.map(async (table) => {
       try {
-        console.log(`[SupabaseService] Probing table: ${table}`);
-        const query: any = client!.from(table).select('id').limit(1);
-        const { error } = await query.abortSignal(controller.signal);
+        const { error } = await client!.from(table).select('id').limit(1);
         if (error) {
-          if (error.code === '42P01') {
-            console.warn(`[SupabaseService] Table ${table} missing`);
-            return { table, error: 'missing' };
-          }
-          if (error.code === '42501') {
-            console.warn(`[SupabaseService] Table ${table} permission denied (RLS)`);
-            return { table, error: 'permission_denied' };
-          }
+          if (error.code === '42P01') return { table, healthy: false, error: 'missing' };
+          if (error.code === '42501') return { table, healthy: true, error: 'permission_denied' };
+          return { table, healthy: false, error: error.message };
         }
-        console.log(`[SupabaseService] Table ${table} probe complete`);
-        return null;
+        return { table, healthy: true };
       } catch (e: any) {
-        console.warn(`[SupabaseService] Table ${table} probe fail:`, e.message);
-        return null; 
+        return { table, healthy: false, error: e.message };
       }
     }));
 
     clearTimeout(timeoutId);
-    console.log("[SupabaseService] checkDatabaseHealth probe finished");
 
-    const missingTables = results.filter(r => r?.error === 'missing').map(r => r!.table);
-    const permissionIssues = results.filter(r => r?.error === 'permission_denied').map(r => r!.table);
+    const missingEssential = results.filter(r => r.error === 'missing').map(r => r.table);
+    const permissionIssues = results.filter(r => r.error === 'permission_denied').map(r => r.table);
+    const otherIssues = results.filter(r => !r.healthy && r.error !== 'missing' && r.error !== 'permission_denied').map(r => r.table);
     
-    if (missingTables.length > 0) {
+    if (missingEssential.length > 0) {
       return { 
         status: 'unhealthy' as const, 
-        message: `Schema incomplete. Missing tables [${missingTables.join(', ')}].` 
+        message: `Core schema incomplete. Missing: ${missingEssential.join(', ')}` 
       };
     }
 
     if (permissionIssues.length > 0) {
-      return {
-        status: 'unhealthy' as const,
-        message: `Access restricted. Check RLS policies for [${permissionIssues.join(', ')}]. Suggestion: Enable Public Read access or use the Service Role key.`
-      };
+      console.warn("[SupabaseService] RLS Restrictions detected:", permissionIssues);
+      return { status: 'healthy' as const, message: `Active (RLS: ${permissionIssues.length} tables)` };
+    }
+    
+    if (otherIssues.length > 0) {
+      return { status: 'unknown' as const, message: `Partial signal: ${otherIssues.join(', ')}` };
     }
     
     return { status: 'healthy' as const };

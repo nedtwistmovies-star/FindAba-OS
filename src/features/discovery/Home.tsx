@@ -25,30 +25,33 @@ const CitySignals: React.FC = () => {
   const [marketDay, setMarketDay] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
   const [registryStatus, setRegistryStatus] = useState<'online' | 'offline' | 'syncing'>('syncing');
+  const [healthMessage, setHealthMessage] = useState<string>('');
 
   useEffect(() => {
     setMarketDay(getIgboMarketDay());
     getAbaWeather().then(setWeather);
-    checkDatabaseHealth().then(res => {
-      if (res.status === 'healthy') setRegistryStatus('online');
-      else if (res.status === 'unhealthy') setRegistryStatus('offline');
-      else setRegistryStatus('syncing'); // Fallback for unknown/timeout
-    });
     
-    const updateDate = () => {
-      const now = new Date();
-      const options: Intl.DateTimeFormatOptions = { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' };
-      setCurrentDate(now.toLocaleDateString('en-US', options));
+    const checkStatus = async () => {
+      try {
+        const res = await checkDatabaseHealth();
+        setHealthMessage(res.message || '');
+        if (res.status === 'healthy') setRegistryStatus('online');
+        else if (res.status === 'unhealthy') setRegistryStatus('offline');
+        else setRegistryStatus('syncing');
+      } catch (e) {
+        setRegistryStatus('offline');
+        setHealthMessage('Connection failed');
+      }
     };
 
-    updateDate();
-    const interval = setInterval(updateDate, 60000);
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="w-full bg-aba-deep/90 backdrop-blur-md border-b border-white/5 py-2 sm:py-3 px-4 sm:px-6 md:px-12 flex items-center justify-start md:justify-center gap-4 sm:gap-8 md:gap-12 z-40 relative overflow-x-auto scrollbar-hide whitespace-nowrap touch-pan-x">
-      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1">
+      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1" title={currentDate}>
         <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-gold group-hover:bg-aba-gold group-hover:text-aba-deep transition-standard border border-white/5 shadow-inner">
           <Calendar size={12} strokeWidth={2.5} />
         </div>
@@ -60,7 +63,7 @@ const CitySignals: React.FC = () => {
 
       <div className="h-4 w-px bg-white/10 shrink-0" />
 
-      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1">
+      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1" title={weather ? `${weather.temp} • ${weather.condition}` : 'Syncing weather...'}>
         <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-standard border border-white/5 shadow-inner">
           <CloudSun size={12} strokeWidth={2.5} />
         </div>
@@ -74,7 +77,7 @@ const CitySignals: React.FC = () => {
 
       <div className="h-4 w-px bg-white/10 shrink-0" />
 
-      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1">
+      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1" title={healthMessage || (registryStatus === 'online' ? 'System Mesh Stable' : 'System Connection Fault')}>
         <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-standard border border-white/5 shadow-inner ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green' : 'bg-aba-red/10 text-aba-red'}`}>
           <Database size={12} strokeWidth={2.5} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
         </div>

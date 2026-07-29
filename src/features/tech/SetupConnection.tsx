@@ -82,6 +82,35 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
   const [committing, setCommitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // 🔹 AUTO-SYNC FROM SERVER ON MOUNT
+  useEffect(() => {
+    const autoSync = async () => {
+      try {
+        const result = await syncGeminiConfig();
+        if (result.status === 'healthy') {
+          // Re-load config after sync
+          const newConfig = getRegistryConfig();
+          setUrl(newConfig.url);
+          setKey(newConfig.key);
+          setPsKey(paymentService.getApiKey());
+          
+          // Optimistically check DB health if we got new credentials
+          if (newConfig.url && newConfig.key) {
+            const dbHealth = await checkDatabaseHealth(newConfig.url, newConfig.key);
+            if (dbHealth.status === 'healthy') {
+              reconnectRegistry(newConfig.url, newConfig.key);
+              // If DB is healthy, let's also sync Git in background
+              syncGit();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[SetupConnection] Auto-sync signal weak:", e);
+      }
+    };
+    autoSync();
+  }, []);
+
   const handleDBConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsTestingDB(true);

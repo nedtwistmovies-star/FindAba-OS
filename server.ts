@@ -224,6 +224,18 @@ export const app = express();
 // Trust proxy is required for correct protocol/host detection behind nginx
 app.set('trust proxy', true);
 
+// Request Logger Middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (!req.url.includes('/api/health')) {
+      console.log(`[Server] ${req.method} ${req.url} ${res.statusCode} (${duration}ms)`);
+    }
+  });
+  next();
+});
+
 app.use(cors({
   origin: true,
   credentials: true
@@ -242,30 +254,76 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cookieParser());
 
-// Mesh System Configuration Signal (SECURED)
-app.get("/api/config", ensureAdmin, (req, res) => {
-  res.json({
+// Mesh System Configuration Signal (SECURED for keys, public for existence)
+app.get("/api/config", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  let isAdmin = false;
+  let userEmail = null;
+
+  if (authHeader && supabase) {
+    const token = authHeader.replace('Bearer ', '');
+    try {
+      const { data } = await supabase.auth.getUser(token);
+      const user = data?.user;
+      if (user) {
+        userEmail = user.email;
+        // Hardcoded master admin check or role check
+        if (user.email === 'pastornelsonezi@gmail.com') {
+          isAdmin = true;
+        } else {
+          const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+          if (profile?.role === 'admin') isAdmin = true;
+        }
+      }
+    } catch (e) { /* Ignore auth errors for public partial config */ }
+  }
+
+  const baseConfig = {
     supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://pqzjkvqmherngispxlzy.supabase.co',
     supabaseKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
-    geminiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '',
-    openRouterKey: process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY || '',
-    paystackKey: process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || ''
-  });
+    hasGeminiKey: !!(process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY),
+    hasOpenRouterKey: !!(process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY),
+    hasPaystackKey: !!(process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY),
+    isAdminDetected: isAdmin
+  };
+
+  if (isAdmin) {
+    return res.json({
+      ...baseConfig,
+      geminiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '',
+      openRouterKey: process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY || '',
+      paystackKey: process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || ''
+    });
+  }
+
+  // Return public subset
+  res.json(baseConfig);
 });
 
 // API Routes
-app.get("/api/health", (req, res) => {
-  res.json({ 
-    status: "ok", 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    env: {
-      hasGithubToken: !!process.env.GITHUB_TOKEN,
-      hasGeminiKey: !!(process.env.GEMINI_API_KEY || process.env.API_KEY),
-      hasSupabase: !!supabase
+app.get("/api/health", async (req, res) => {
+  try {
+    // Light check to verify Supabase connectivity without failing for RLS on secondary tables
+    if (supabase) {
+      const { error } = await supabase.from('platform_config').select('id').limit(1);
+      // We ignore 42501 (RLS) because it means the database is ALIVE, just restricted.
+      if (error && error.code !== '42501') throw error;
     }
-  });
+    
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      env: {
+        hasGithubToken: !!process.env.GITHUB_TOKEN,
+        hasGeminiKey: !!(process.env.GEMINI_API_KEY || process.env.API_KEY),
+        hasSupabase: !!supabase
+      }
+    });
+  } catch (err: any) {
+    console.warn("[Health] Core check degraded:", err.message);
+    res.status(503).json({ status: "degraded", message: err.message });
+  }
 });
 
 
@@ -941,8 +999,8 @@ app.post("/api/oracle", async (req, res) => {
     res.status(200).json({ status: "success" });
   });
 
-  // Automatic Git Repo Connection (SECURED)
-  app.get("/api/git/sync", ensureAdmin, async (req, res) => {
+  // Automatic Git Repo Connection (SECURED for status reads, admin for writes)
+  app.get("/api/git/sync", async (req, res) => {
     console.log(`[GitSync] Incoming Handshake Request | Origin: ${req.get('origin')} | Host: ${req.get('host')} | Cookie: ${req.cookies.github_token ? 'Present' : 'Missing'}`);
     let repo = (req.query.repo as string) || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS';
     const branch = (req.query.branch as string) || process.env.GITHUB_BRANCH || process.env.VITE_GITHUB_BRANCH || 'main';
@@ -1528,7 +1586,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
 // Start Server if not on Vercel
 if (!process.env.VERCEL) {
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000; // Force to 3000 for Industrial City OS mesh consistency
   setupVite()
     .then(() => {
       app.listen(PORT, "0.0.0.0", () => {

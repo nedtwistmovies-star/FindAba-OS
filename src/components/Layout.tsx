@@ -256,7 +256,7 @@ const Layout: React.FC<LayoutProps> = ({
     setSelectedBusiness,
     commitAll,
   } = useBusiness();
-  const { status: gitStatus, loading: gitLoading, fullSync } = useGitSync();
+  const { status: gitStatus, loading: gitLoading, sync: syncGit, fullSync } = useGitSync();
   const handleFullSync = async (reason: string) => {
     addToast("Initiating GitHub synchronization...", "info");
     const result = await fullSync(reason);
@@ -349,6 +349,9 @@ const Layout: React.FC<LayoutProps> = ({
 
       const dbHealth = await checkDatabaseHealth();
       const gHealth = await syncGeminiConfig();
+      
+      // Also trigger a background git sync to keep status fresh
+      syncGit();
 
       const healthy =
         dbHealth.status === "healthy" && gHealth.status !== "unhealthy";
@@ -359,7 +362,7 @@ const Layout: React.FC<LayoutProps> = ({
     checkHealth();
     const interval = setInterval(checkHealth, 60000);
     return () => clearInterval(interval);
-  }, [currentView]);
+  }, [currentView, syncGit]);
 
   useEffect(() => {
     if (appLogo) setActiveLogo(appLogo);
