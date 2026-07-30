@@ -261,3 +261,4 @@ export const sendBusinessRegistrationEmail = async (email: string, businessName:
     name: "FindAba Merchant Onboarding"
   });
 };
+

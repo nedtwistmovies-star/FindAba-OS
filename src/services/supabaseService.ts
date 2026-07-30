@@ -431,20 +431,20 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
   
   try {
     // Probe a subset of critical tables to ensure schema health
-    const essentialTables = ['profiles', 'platform_config'];
-    // Optional tables checked only if essential ones pass
-    const extendedTables = ['businesses', 'tasks'];
+    const essentialTables = ['profiles'];
+    // Optional tables checked to verify full mesh capability
+    const secondaryTables = ['platform_config', 'businesses', 'tasks'];
     
     console.log("[SupabaseService] Probing database core...");
     
-    // Test the connection itself first with a light select
-    const { error: connError } = await client.from('platform_config').select('count', { count: 'exact', head: true }).limit(1);
+    // Test the connection itself first with a light select on profiles
+    const { error: connError } = await client.from('profiles').select('count', { count: 'exact', head: true }).limit(1);
     
-    if (connError && connError.code !== '42501') {
+    if (connError && connError.code !== '42501' && connError.code !== '42P01') {
       throw connError;
     }
 
-    // Parallel check for core tables only
+    // Parallel check for essential tables
     const results = await Promise.all(essentialTables.map(async (table) => {
       try {
         const { error } = await client!.from(table).select('id').limit(1);

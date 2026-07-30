@@ -44,8 +44,18 @@ const CitySignals: React.FC = () => {
       }
     };
 
+    const updateDate = () => {
+      const now = new Date();
+      const options: Intl.DateTimeFormatOptions = { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' };
+      setCurrentDate(now.toLocaleDateString('en-US', options));
+    };
+
+    updateDate();
     checkStatus();
-    const interval = setInterval(checkStatus, 30000);
+    const interval = setInterval(() => {
+      updateDate();
+      checkStatus();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
