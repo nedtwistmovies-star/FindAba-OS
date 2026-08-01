@@ -3,9 +3,10 @@ import { Request } from "express";
 import { env } from "./env";
 
 /**
- * ---------------------------------------------------------
- * GitHub API Client
- * ---------------------------------------------------------
+ * ============================================================
+ * FindAba OS GitHub Service
+ * Central GitHub client & authentication utilities
+ * ============================================================
  */
 
 export const githubClient: AxiosInstance = axios.create({
@@ -19,21 +20,29 @@ export const githubClient: AxiosInstance = axios.create({
 });
 
 /**
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  * Resolve GitHub Token
+ *
  * Priority:
- * 1. Logged-in user's cookie
- * 2. Environment variable
- * ---------------------------------------------------------
+ * 1. Valid github_token cookie
+ * 2. GITHUB_TOKEN environment variable
+ * ------------------------------------------------------------
  */
 export function resolveGithubToken(req: Request): string | null {
   try {
     const cookieToken =
-      typeof (req as any).cookies?.github_token === "string"
-        ? (req as any).cookies.github_token.trim()
+      typeof req.cookies?.github_token === "string"
+        ? req.cookies.github_token.trim()
         : "";
 
-    if (cookieToken.length > 0) {
+    if (
+      cookieToken &&
+      (
+        cookieToken.startsWith("github_pat_") ||
+        cookieToken.startsWith("ghp_") ||
+        cookieToken.startsWith("gho_")
+      )
+    ) {
       return cookieToken;
     }
 
@@ -43,23 +52,17 @@ export function resolveGithubToken(req: Request): string | null {
 
     return null;
   } catch {
-    return env.GITHUB_TOKEN || null;
+    return env.GITHUB_TOKEN?.trim() || null;
   }
 }
 
 /**
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  * Authorization Headers
- * Works for:
- * - Fine-Grained PAT
- * - Classic PAT
- * - GitHub App Tokens
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  */
-export function authHeaders(token: string | null) {
-  if (!token) {
-    return {};
-  }
+export function authHeaders(token: string | null): Record<string, string> {
+  if (!token) return {};
 
   return {
     Authorization: `Bearer ${token}`,
@@ -69,54 +72,45 @@ export function authHeaders(token: string | null) {
 }
 
 /**
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  * Normalize Repository
- *
- * Converts:
- * https://github.com/user/repo.git
- * github.com/user/repo
- * user/repo/
- *
- * Into:
- * user/repo
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  */
 export function normalizeRepo(repo: string): string {
   return repo
     .trim()
-    .replace(/^https?:\/\/github\.com\//i, "")
-    .replace(/^www\.github\.com\//i, "")
+    .replace(/^https?:\/\/(www\.)?github\.com\//i, "")
     .replace(/\.git$/i, "")
     .replace(/\/$/, "");
 }
 
 /**
- * ---------------------------------------------------------
- * Repository Validation
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
+ * Validate Repository
+ * ------------------------------------------------------------
  */
 export function validateRepository(repo: string) {
   const cleaned = normalizeRepo(repo);
 
-  const parts = cleaned.split("/");
+  const [owner, name] = cleaned.split("/");
 
-  if (parts.length !== 2) {
+  if (!owner || !name) {
     throw new Error(
-      `Invalid repository "${repo}". Expected format: owner/repository`
+      `Invalid repository "${repo}". Expected owner/repository`
     );
   }
 
   return {
-    owner: parts[0],
-    name: parts[1],
+    owner,
+    name,
     repo: cleaned,
   };
 }
 
 /**
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  * Repository Metadata Cache
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  */
 
 interface CacheEntry<T> {
@@ -124,81 +118,89 @@ interface CacheEntry<T> {
   expiresAt: number;
 }
 
-const repoMetaCache = new Map<string, CacheEntry<any>>();
+const repoCache = new Map<string, CacheEntry<any>>();
 
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_TIME = 5 * 60 * 1000;
 
 /**
- * ---------------------------------------------------------
- * Fetch Repository Metadata
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
+ * Repository Metadata
+ * ------------------------------------------------------------
  */
 export async function getRepoMeta(
   owner: string,
   name: string,
   token: string | null
 ) {
-  const cacheKey = `${owner}/${name}`;
+  const key = `${owner}/${name}`;
 
-  const cached = repoMetaCache.get(cacheKey);
+  const cached = repoCache.get(key);
 
   if (cached && cached.expiresAt > Date.now()) {
     return cached.value;
   }
 
-  const response = await githubClient.get(
+  const { data } = await githubClient.get(
     `/repos/${owner}/${name}`,
     {
       headers: authHeaders(token),
     }
   );
 
-  repoMetaCache.set(cacheKey, {
-    value: response.data,
-    expiresAt: Date.now() + CACHE_TTL,
+  repoCache.set(key, {
+    value: data,
+    expiresAt: Date.now() + CACHE_TIME,
   });
 
-  return response.data;
+  return data;
 }
 
 /**
- * ---------------------------------------------------------
- * Remove Cached Repository
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
+ * Clear Metadata Cache
+ * ------------------------------------------------------------
  */
 export function invalidateRepoMetaCache(
   owner: string,
   name: string
 ) {
-  repoMetaCache.delete(`${owner}/${name}`);
+  repoCache.delete(`${owner}/${name}`);
 }
 
 /**
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  * Validate GitHub Token
- * Useful for Admin Dashboard
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  */
 export async function validateGithubToken(token: string) {
-  const response = await githubClient.get("/user", {
-    headers: authHeaders(token),
-  });
+  try {
+    const { data } = await githubClient.get("/user", {
+      headers: authHeaders(token),
+    });
 
-  return {
-    authenticated: true,
-    login: response.data.login,
-    id: response.data.id,
-    avatar: response.data.avatar_url,
-    profile: response.data.html_url,
-    name: response.data.name,
-  };
+    return {
+      valid: true,
+      login: data.login,
+      id: data.id,
+      avatar: data.avatar_url,
+      profile: data.html_url,
+      name: data.name,
+    };
+  } catch (error: any) {
+    return {
+      valid: false,
+      status: error.response?.status ?? 500,
+      message:
+        error.response?.data?.message ||
+        "Unable to validate GitHub token.",
+    };
+  }
 }
 
 /**
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  * Verify Repository Access
- * Confirms the token has permission to access the repo.
- * ---------------------------------------------------------
+ * ------------------------------------------------------------
  */
 export async function verifyRepositoryAccess(
   repo: string,
@@ -206,17 +208,64 @@ export async function verifyRepositoryAccess(
 ) {
   const { owner, name } = validateRepository(repo);
 
-  const response = await githubClient.get(
-    `/repos/${owner}/${name}`,
-    {
-      headers: authHeaders(token),
-    }
-  );
+  try {
+    const { data } = await githubClient.get(
+      `/repos/${owner}/${name}`,
+      {
+        headers: authHeaders(token),
+      }
+    );
+
+    return {
+      accessible: true,
+      repository: data.full_name,
+      private: data.private,
+      defaultBranch: data.default_branch,
+      permissions: data.permissions,
+    };
+  } catch (error: any) {
+    return {
+      accessible: false,
+      status: error.response?.status ?? 500,
+      message:
+        error.response?.data?.message ||
+        "Repository not accessible.",
+    };
+  }
+}
+
+/**
+ * ------------------------------------------------------------
+ * Full Connection Diagnostic
+ * ------------------------------------------------------------
+ */
+export async function diagnoseGithubConnection(
+  repo: string,
+  token: string
+) {
+  const tokenInfo = await validateGithubToken(token);
+
+  if (!tokenInfo.valid) {
+    return {
+      success: false,
+      stage: "authentication",
+      details: tokenInfo,
+    };
+  }
+
+  const repoInfo = await verifyRepositoryAccess(repo, token);
+
+  if (!repoInfo.accessible) {
+    return {
+      success: false,
+      stage: "repository",
+      details: repoInfo,
+    };
+  }
 
   return {
-    repository: response.data.full_name,
-    private: response.data.private,
-    defaultBranch: response.data.default_branch,
-    permissions: response.data.permissions,
+    success: true,
+    user: tokenInfo,
+    repository: repoInfo,
   };
 }
