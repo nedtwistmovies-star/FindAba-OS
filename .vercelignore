@@ -1,0 +1,8 @@
+# Exclude the auto-added JS file that conflicts with the TypeScript source
+api/paystack-webhook.js
+
+# Add any other build artifacts or local files you do not want deployed
+dist/
+node_modules/
+.env
+.env.*
