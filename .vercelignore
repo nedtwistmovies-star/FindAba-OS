@@ -1,5 +1,6 @@
-# Exclude the auto-added JS file that conflicts with the TypeScript source
+# Exclude auto-added JS files that conflict with TypeScript sources
 api/paystack-webhook.js
+api/verify-payment.js
 
 # Add any other build artifacts or local files you do not want deployed
 dist/
