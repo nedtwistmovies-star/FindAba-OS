@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { SANDALS_BRAND } from '../../constants';
 import Logo from '../../components/Logo';
+import { BackButton } from '../../components/BackButton';
 
 const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void }> = ({ currentView, setView }) => {
   const isSubView = false;

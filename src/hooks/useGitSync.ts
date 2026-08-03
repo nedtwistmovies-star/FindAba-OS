@@ -16,11 +16,23 @@ export const useGitSync = () => {
   const [loading, setLoading] = useState(false);
 
   const getAuthHeaders = async (): Promise<Record<string, string>> => {
+    const headers: Record<string, string> = {};
     const supabase = getSupabase();
-    if (!supabase) return {};
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) return {};
-    return { 'Authorization': `Bearer ${session.access_token}` };
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+      } catch (e) {
+        // Ignore auth error
+      }
+    }
+    const savedPat = localStorage.getItem('findaba_github_pat')?.trim();
+    if (savedPat) {
+      headers['X-GitHub-Token'] = savedPat;
+    }
+    return headers;
   };
 
   const sync = useCallback(async (manualRepo?: string, manualBranch?: string) => {
@@ -42,7 +54,6 @@ export const useGitSync = () => {
       if (queryString) url += `?${queryString}`;
 
       const response = await fetch(url, {
-        credentials: 'include',
         headers: { 
           'Accept': 'application/json',
           ...authHeaders
@@ -110,7 +121,6 @@ export const useGitSync = () => {
           'Content-Type': 'application/json',
           ...authHeaders
         },
-        credentials: 'include',
         body: JSON.stringify({ files, message })
       });
       
@@ -168,7 +178,6 @@ export const useGitSync = () => {
           'Content-Type': 'application/json',
           ...authHeaders
         },
-        credentials: 'include',
         body: JSON.stringify({ message }),
         signal: controller.signal
       });
@@ -212,10 +221,14 @@ export const useGitSync = () => {
     }
   };
 
+  const clearError = useCallback(() => {
+    setStatus(prev => ({ ...prev, error: undefined }));
+  }, []);
+
   // Auto-sync on mount
   useEffect(() => {
     sync();
   }, []);
 
-  return { status, loading, sync, commit, fullSync };
+  return { status, loading, sync, commit, fullSync, clearError };
 };

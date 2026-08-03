@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ViewState } from '../../types';
 import { getSupportResponse } from '../../services/geminiService';
+import { BackButton } from '../../components/BackButton';
 
 interface SupportCenterProps {
   setView: (v: ViewState) => void;
@@ -180,9 +181,11 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
           <div className="absolute top-0 right-0 p-12 opacity-5 -rotate-12"><LifeBuoy size={200} /></div>
           
           <div className="relative z-10 flex flex-col gap-8">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <div className="flex -space-x-3">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <BackButton variant="header" />
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-3">
                   <div className="w-10 h-10 rounded-full border-2 border-aba-dark overflow-hidden bg-slate-200">
                     <img src="https://i.pravatar.cc/100?u=1" className="w-full h-full object-cover" alt="Support 1" />
                   </div>
@@ -195,6 +198,7 @@ const SupportCenter: React.FC<SupportCenterProps> = ({ setView, onBack }) => {
                   <div className="w-1.5 h-1.5 rounded-full bg-aba-green animate-pulse" />
                   <span className="text-[8px] font-black uppercase text-white tracking-widest">We're Online</span>
                 </div>
+              </div>
               </div>
               <button onClick={() => { if(onBack) onBack(); else setView('home'); }} className="p-3 bg-white/20 rounded-xl text-white hover:bg-white/30 transition-all active:scale-90">
                 <X size={20} />

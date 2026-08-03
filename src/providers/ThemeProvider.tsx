@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { triggerVibration } from '../utils/vibrate';
 
-type Theme = 'dark' | 'light';
+type Theme = 'dark' | 'light' | 'high-contrast';
 
 interface ThemeContextType {
   theme: Theme;
   isDark: boolean;
+  isHighContrast: boolean;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 }
@@ -16,7 +17,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
       const saved = localStorage.getItem('findaba_theme');
-      if (saved === 'dark' || saved === 'light') return saved;
+      if (saved === 'dark' || saved === 'light' || saved === 'high-contrast') return saved as Theme;
     } catch (e) {
       console.warn('LocalStorage blocked or unavailable:', e);
     }
@@ -25,7 +26,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const toggleTheme = () => {
     setThemeState((prev) => {
-      const next = prev === 'dark' ? 'light' : 'dark';
+      let next: Theme;
+      if (prev === 'dark') next = 'light';
+      else if (prev === 'light') next = 'high-contrast';
+      else next = 'dark';
+      
       try {
         localStorage.setItem('findaba_theme', next);
       } catch (e) {
@@ -47,19 +52,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     const root = window.document.documentElement;
-    if (theme === 'light') {
-      root.classList.remove('dark');
-      root.classList.add('light');
-    } else {
-      root.classList.remove('light');
-      root.classList.add('dark');
-    }
+    root.classList.remove('light', 'dark', 'high-contrast');
+    root.classList.add(theme);
   }, [theme]);
 
-  const isDark = theme === 'dark';
+  const isDark = theme === 'dark' || theme === 'high-contrast';
+  const isHighContrast = theme === 'high-contrast';
 
   return (
-    <ThemeContext.Provider value={{ theme, isDark, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, isDark, isHighContrast, toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

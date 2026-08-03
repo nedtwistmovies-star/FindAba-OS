@@ -12,6 +12,7 @@ const loginRateLimit = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: { error: "Too many authentication attempts. Please try again later." },
 });
 

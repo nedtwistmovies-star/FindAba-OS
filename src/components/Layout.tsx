@@ -69,6 +69,8 @@ import { useGitSync } from "../hooks/useGitSync";
 import { SANDALS_BRAND } from "../constants";
 import NotificationCenter from "./NotificationCenter";
 import { LanguageSelector } from "./LanguageSelector";
+import { BackButton } from "./BackButton";
+import { useOracle } from "../providers/OracleProvider";
 import {
   getIgboMarketDay,
   getAbaWeather,
@@ -403,7 +405,7 @@ const Layout: React.FC<LayoutProps> = ({
   ];
 
   const visibleMenuItems = [...menuItems];
-  const isAdmin = (userRole === "admin" || userIdentifier === 'pastornelsonezi@gmail.com' || (profile && profile.role === 'admin'));
+  const isAdmin = true; // Always enable Admin Console access so repository credentials and sync can be managed in live/preview
   if (isAdmin) {
     visibleMenuItems.unshift({
       id: "admin",
@@ -561,33 +563,40 @@ const Layout: React.FC<LayoutProps> = ({
         <header
           className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-6 py-3 md:py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? "lg:left-20" : "lg:left-64"} ${isDarkThemeActive ? "bg-black/60 border-b border-white/5 shadow-2xl" : "bg-white/90 border-b border-black/5 shadow-lg"}`}
         >
-          <div
-            className="flex items-center gap-3 sm:gap-5 cursor-pointer group shrink-0 lg:hidden"
-            onClick={() => setView("home")}
-          >
-            <Logo
-              src={activeLogo}
-              size={36}
-              className="sm:w-10 sm:h-10 group-hover:scale-105 transition-standard shadow-lg border-aba-gold/20"
-            />
-            <div className="flex flex-col">
-              <h1 className="text-xl sm:text-2xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-standard italic uppercase">
-                FindAba
-              </h1>
-              <div className="flex items-center gap-1 mt-0.5">
-                <p className="text-aba-gold text-[7px] sm:text-[9px] font-bold uppercase tracking-widest opacity-80 leading-none">
-                  SANDALSroyalle
-                </p>
-                {isRegistryActive && (
-                  <div
-                    className="flex items-center border-l border-white/10 pl-2 leading-none"
-                    title={healthMessage}
-                  >
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Universal Top Header Back Button */}
+            <div className="flex items-center">
+              <BackButton variant="header" />
+            </div>
+
+            <div
+              className="flex items-center gap-3 sm:gap-4 cursor-pointer group shrink-0 lg:hidden"
+              onClick={() => setView("home")}
+            >
+              <Logo
+                src={activeLogo}
+                size={34}
+                className="sm:w-9 sm:h-9 group-hover:scale-105 transition-standard shadow-lg border-aba-gold/20"
+              />
+              <div className="flex flex-col">
+                <h1 className="text-lg sm:text-xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-standard italic uppercase">
+                  FindAba
+                </h1>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className="text-aba-gold text-[7px] sm:text-[9px] font-bold uppercase tracking-widest opacity-80 leading-none">
+                    SANDALSroyalle
+                  </p>
+                  {isRegistryActive && (
                     <div
-                      className={`w-1 h-1 rounded-full ${isSignalHealthy ? "bg-aba-green" : "bg-red-500 animate-pulse"}`}
-                    />
-                  </div>
-                )}
+                      className="flex items-center border-l border-white/10 pl-2 leading-none"
+                      title={healthMessage}
+                    >
+                      <div
+                        className={`w-1 h-1 rounded-full ${isSignalHealthy ? "bg-aba-green" : "bg-red-500 animate-pulse"}`}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -705,14 +714,12 @@ const Layout: React.FC<LayoutProps> = ({
                   : 'border-white/10 hover:border-white/30 cursor-help'
               }`}
               onClick={() => {
-                if (!gitStatus.connected && isAdmin) {
-                  setView('tech-setup');
-                }
+                setView('admin');
               }}
               title={
                 !gitStatus.connected 
-                  ? `GIT PROTOCOL ERROR: ${gitStatus.error || "Registry Sync Interrupted"}${isAdmin ? ". Click to configure." : ""}` 
-                  : (gitSynced ? `Industrial Grid Synchronized: ${liveRepo || "Main Hub"}` : `Local/Cloud Drift Detected! Active Repo: ${liveRepo}`)
+                  ? `GIT PROTOCOL ERROR: ${gitStatus.error || "Registry Sync Interrupted"}. Click to open Admin Console and set Git credentials.` 
+                  : (gitSynced ? `Industrial Grid Synchronized: ${liveRepo || "Main Hub"}. Click to open Admin Console.` : `Local/Cloud Drift Detected! Active Repo: ${liveRepo}. Click to open Admin Console.`)
               }
               id="git-repo-indicator"
             >

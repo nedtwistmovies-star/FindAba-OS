@@ -12,6 +12,7 @@ import { logTransaction, saveLogisticsOrder, fetchLogisticsOrders, fetchTracking
 import { ShipmentStatus, ViewState } from '../../types';
 import { useToast } from '../../providers/ToastProvider';
 import PaystackOverlay from '../../components/PaystackOverlay';
+import { BackButton } from '../../components/BackButton';
 import { calculateLogisticsQuotes, generateTrackingId, getMockTrackingDetails, LogisticsQuote, ShipmentDetails } from '../../services/logisticsService';
 import { triggerVibration } from '../../utils/vibrate';
 

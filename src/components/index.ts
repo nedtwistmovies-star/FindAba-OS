@@ -30,6 +30,7 @@ import SystemStatusIndicator from './SystemStatusIndicator';
 import { LanguageSelector } from './LanguageSelector';
 import WelcomeOverlay from './WelcomeOverlay';
 import { WeeklyTradeVolumeChart } from './WeeklyTradeVolumeChart';
+import { BackButton } from './BackButton';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -60,5 +61,6 @@ export {
   SystemStatusIndicator,
   LanguageSelector,
   WelcomeOverlay,
-  WeeklyTradeVolumeChart
+  WeeklyTradeVolumeChart,
+  BackButton
 };

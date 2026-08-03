@@ -6,6 +6,7 @@ import { useAuth } from '../../providers';
 import { loginWithUsername, signUpWithUsername, sendMagicLink, loginWithGoogle } from '../../services/authService';
 import { useToast } from '../../providers/ToastProvider';
 import { ViewState } from '../../types';
+import { BackButton } from '../../components/BackButton';
 
 interface LoginProps {
   setView: (v: ViewState) => void;
@@ -210,6 +211,9 @@ const Login: React.FC<LoginProps> = ({ setView, onAuthSuccess }) => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-10 shadow-2xl relative z-10"
       >
+        <div className="flex justify-start mb-4">
+          <BackButton onClick={() => setView('home')} label="Back to Home" />
+        </div>
         <div className="text-center mb-10">
            <div className="w-16 h-16 rounded-2xl bg-aba-gold/10 border border-aba-gold/30 flex items-center justify-center text-aba-gold mb-6 mx-auto">
               <ShieldCheck size={32} />

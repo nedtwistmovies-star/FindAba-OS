@@ -9,6 +9,9 @@ interface OracleContextType {
   setIsOracleOpen: (open: boolean) => void;
   view: ViewState;
   setView: (v: ViewState) => void;
+  goBack: () => void;
+  canGoBack: boolean;
+  previousView: ViewState | null;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   isAuthModalOpen: boolean;
@@ -34,6 +37,7 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [contactBusinessId, setContactBusinessId] = useState<string | null>(null);
   const [postAuthAction, setPostAuthAction] = useState<{ type: string; payload: any } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewHistory, setViewHistory] = useState<ViewState[]>([]);
   const [view, setViewState] = useState<ViewState>(() => {
     // 1. Check for URL parameters (?view=xxx)
     const urlParams = new URLSearchParams(window.location.search);
@@ -71,9 +75,31 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    setViewState(v);
-    localStorage.setItem('findaba_current_view', v);
+    if (v !== view) {
+      setViewHistory((prev) => {
+        // Keep max 25 items in view history
+        const filtered = prev.filter((item) => item !== 'splash');
+        return [...filtered, view].slice(-25);
+      });
+      setViewState(v);
+      localStorage.setItem('findaba_current_view', v);
+    }
   };
+
+  const goBack = () => {
+    if (viewHistory.length > 0) {
+      const lastView = viewHistory[viewHistory.length - 1];
+      setViewHistory((prev) => prev.slice(0, -1));
+      setViewState(lastView);
+      localStorage.setItem('findaba_current_view', lastView);
+    } else if (view !== 'home') {
+      setViewState('home');
+      localStorage.setItem('findaba_current_view', 'home');
+    }
+  };
+
+  const previousView = viewHistory.length > 0 ? viewHistory[viewHistory.length - 1] : (view !== 'home' ? 'home' : null);
+  const canGoBack = viewHistory.length > 0 || view !== 'home';
 
   return (
     <OracleContext.Provider value={{ 
@@ -81,6 +107,9 @@ export const OracleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsOracleOpen, 
       view, 
       setView, 
+      goBack,
+      canGoBack,
+      previousView,
       searchQuery, 
       setSearchQuery,
       isAuthModalOpen,

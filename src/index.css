@@ -288,7 +288,7 @@ html.accessibility-reduced-motion * {
   scroll-behavior: auto !important;
 }
 
-html.accessibility-high-contrast {
+html.high-contrast {
   --aba-green: #00ff00 !important;
   --aba-gold: #ffff00 !important;
   --aba-deep: #000000 !important;
@@ -296,20 +296,20 @@ html.accessibility-high-contrast {
   --aba-gray: #f8fafc !important;
 }
 
-html.accessibility-high-contrast * {
+html.high-contrast * {
   text-shadow: none !important;
   box-shadow: none !important;
   border-color: rgba(255, 255, 255, 0.6) !important;
 }
 
-html.accessibility-high-contrast .bg-white\/5 {
+html.high-contrast .bg-white\/5 {
   background-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-html.accessibility-high-contrast .text-white\/40,
-html.accessibility-high-contrast .text-white\/30,
-html.accessibility-high-contrast .text-white\/20,
-html.accessibility-high-contrast .text-white\/50 {
+html.high-contrast .text-white\/40,
+html.high-contrast .text-white\/30,
+html.high-contrast .text-white\/20,
+html.high-contrast .text-white\/50 {
   color: #f8fafc !important;
   opacity: 1 !important;
 }

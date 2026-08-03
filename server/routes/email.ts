@@ -10,6 +10,7 @@ const emailRateLimit = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 const sendEmailSchema = z.object({

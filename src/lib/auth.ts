@@ -1,19 +1,39 @@
-const API = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
+const API = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || '';
 
 export async function sendOTP(phone: string) {
-  const res = await fetch(`${API}/send-otp`, {
-    method: "POST",
-    body: JSON.stringify({ phone }),
-  });
-  return res.json();
+  if (!API) {
+    console.warn("[Auth] VITE_SUPABASE_FUNCTIONS_URL not configured.");
+    return { success: false, error: "Functions URL not configured" };
+  }
+  try {
+    const res = await fetch(`${API}/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    console.error("[Auth] sendOTP network error:", err);
+    return { success: false, error: err.message || "Network error sending OTP" };
+  }
 }
 
 export async function verifyOTP(phone: string, code: string) {
-  const res = await fetch(`${API}/verify-otp`, {
-    method: "POST",
-    body: JSON.stringify({ phone, code }),
-  });
-  return res.json();
+  if (!API) {
+    console.warn("[Auth] VITE_SUPABASE_FUNCTIONS_URL not configured.");
+    return { success: false, error: "Functions URL not configured" };
+  }
+  try {
+    const res = await fetch(`${API}/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, code }),
+    });
+    return await res.json();
+  } catch (err: any) {
+    console.error("[Auth] verifyOTP network error:", err);
+    return { success: false, error: err.message || "Network error verifying OTP" };
+  }
 }
 
 export async function loginWithPhone(phone: string, code: string) {

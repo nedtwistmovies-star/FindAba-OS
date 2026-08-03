@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { getOracleStream as askOracle, getSupportResponse, generateConversationTitle, syncGeminiConfig } from '../../services/geminiService';
 import IndustrialButton from '../../components/IndustrialButton';
+import { BackButton } from '../../components/BackButton';
 import { useToast } from '../../providers/ToastProvider';
 
 interface OracleMessage {
@@ -495,6 +496,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       {/* CHATGPT STYLE HEADER */}
       <header className="px-4 py-3 flex items-center justify-between bg-black/40 backdrop-blur-md border-b border-white/5 shrink-0 z-50">
         <div className="flex items-center gap-2">
+          <BackButton onClick={onBack} variant="header" />
           <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-white/60 hover:text-white transition-colors bg-white/5 rounded-xl border border-white/10 active:scale-95">
             <Menu size={20} />
           </button>

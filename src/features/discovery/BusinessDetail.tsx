@@ -11,7 +11,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Business, Product, ViewState, IntegrityGrade, VerificationLevel } from '../../types';
-import { ImageCarousel, PaystackOverlay, IndustrialButton, SectionHeader } from '../../components';
+import { ImageCarousel, PaystackOverlay, IndustrialButton, SectionHeader, BackButton } from '../../components';
 import { useAuth, useOracle } from '../../providers';
 import { BusinessClaimFlow } from '../merchant/BusinessClaimFlow';
 
@@ -103,12 +103,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
         
         {/* Floating Controls */}
         <div className="absolute top-6 sm:top-10 left-4 sm:left-8 right-4 sm:right-8 z-20 flex justify-between items-center">
-           <button 
-             onClick={onBack} 
-             className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center text-white hover:bg-aba-gold hover:text-aba-deep transition-standard active:scale-90 shadow-sm"
-           >
-             <ArrowLeft className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
-           </button>
+           <BackButton onClick={onBack} variant="header" />
            <div className="flex gap-2 sm:gap-3">
               {isOwner && (
                 <div className="hidden sm:flex bg-aba-green/20 backdrop-blur-xl border border-aba-green/30 rounded-xl px-4 items-center gap-3 text-aba-green text-[10px] font-black uppercase tracking-widest">

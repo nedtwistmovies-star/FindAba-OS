@@ -31,11 +31,27 @@ const openRouterClient: AxiosInstance = axios.create({
   timeout: 30000,
 });
 
+const OPENROUTER_MODELS = [
+  "google/gemini-2.5-flash",
+  "google/gemini-2.0-flash-001",
+  "google/gemini-1.5-flash",
+  "meta-llama/llama-3.3-70b-instruct",
+  "deepseek/deepseek-r1:free",
+  "google/gemini-2.0-flash-exp:free",
+];
+
+const GEMINI_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-flash",
+];
+
 class OpenRouterProvider implements AIProvider {
   name = "openrouter";
   private model: string;
 
-  constructor(model = "google/gemini-2.0-flash-exp:free") {
+  constructor(model = "google/gemini-2.0-flash-001") {
     this.model = model;
   }
 
@@ -83,15 +99,22 @@ class OpenRouterProvider implements AIProvider {
       }
     };
 
-    try {
-      return await attempt(this.model);
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        console.warn(`[AI] Model ${this.model} not found on OpenRouter, retrying with fallback...`);
-        return await attempt("google/gemini-flash-1.5");
+    const modelsToTry = Array.from(new Set([this.model, ...OPENROUTER_MODELS]));
+    let lastErr: any;
+
+    for (const modelName of modelsToTry) {
+      try {
+        return await attempt(modelName);
+      } catch (err: any) {
+        console.warn(`[AI] OpenRouter model '${modelName}' failed (${err.response?.status || err.message}), trying next fallback...`);
+        lastErr = err;
+        if (err.response?.status === 404 || err.response?.status === 400) {
+          continue;
+        }
+        throw err;
       }
-      throw err;
     }
+    throw lastErr;
   }
 }
 
@@ -105,21 +128,34 @@ class GeminiProvider implements AIProvider {
     }
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const ai = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-    const model = ai.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: SYSTEM_IDENTITY(catalog),
-    });
 
-    const response = await model.generateContent({
-      contents: [...history, { role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: "application/json" },
-      tools: [{ googleSearch: {} }],
-    } as any);
+    let lastErr: any;
+    for (const modelName of GEMINI_MODELS) {
+      try {
+        const model = ai.getGenerativeModel({
+          model: modelName,
+          systemInstruction: SYSTEM_IDENTITY(catalog),
+        });
 
-    return {
-      text: response.response.text(),
-      grounding: response.response.candidates?.[0]?.groundingMetadata?.groundingChunks,
-    };
+        const response = await model.generateContent({
+          contents: [...history, { role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" },
+        } as any);
+
+        return {
+          text: response.response.text(),
+          grounding: response.response.candidates?.[0]?.groundingMetadata?.groundingChunks,
+        };
+      } catch (err: any) {
+        console.warn(`[Gemini] Model '${modelName}' failed (${err.message}), trying next fallback...`);
+        lastErr = err;
+        if (err.message?.includes("404") || err.message?.includes("not found")) {
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastErr;
   }
 
   /** Flyer/image vision analysis. */
@@ -129,43 +165,61 @@ class GeminiProvider implements AIProvider {
     }
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const ai = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const response = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { inlineData: { data: base64.split(",")[1] || base64, mimeType } },
+    let lastErr: any;
+    for (const modelName of GEMINI_MODELS) {
+      try {
+        const model = ai.getGenerativeModel({ model: modelName });
+
+        const response = await model.generateContent({
+          contents: [
             {
-              text:
-                "Analyze this industrial flyer. Extract JSON: { businessName, category, area, phone, description, confidence_score }",
+              role: "user",
+              parts: [
+                { inlineData: { data: base64.split(",")[1] || base64, mimeType } },
+                {
+                  text:
+                    "Analyze this industrial flyer. Extract JSON: { businessName, category, area, phone, description, confidence_score }",
+                },
+              ],
             },
           ],
-        },
-      ],
-      generationConfig: { responseMimeType: "application/json" },
-    });
+          generationConfig: { responseMimeType: "application/json" },
+        });
 
-    const responseText = response.response.text();
-    try {
-      return JSON.parse(responseText || "{}");
-    } catch {
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) return JSON.parse(jsonMatch[0]);
-      throw new Error("Oracle returned malformed flyer data.");
+        const responseText = response.response.text();
+        try {
+          return JSON.parse(responseText || "{}");
+        } catch {
+          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) return JSON.parse(jsonMatch[0]);
+          throw new Error("Oracle returned malformed flyer data.");
+        }
+      } catch (err: any) {
+        console.warn(`[Gemini Vision] Model '${modelName}' failed (${err.message}), trying next fallback...`);
+        lastErr = err;
+        if (err.message?.includes("404") || err.message?.includes("not found")) {
+          continue;
+        }
+        throw err;
+      }
     }
+    throw lastErr;
   }
 }
 
 /**
- * AIManager — the single entry point for AI calls in the app.
+ * AIProviderManager — single entry point and abstraction for AI providers (OpenRouter, Gemini, etc.).
  */
-class AIManagerImpl {
+export class AIProviderManager {
   private providers: Record<string, AIProvider> = {
     openrouter: new OpenRouterProvider(),
     gemini: new GeminiProvider(),
   };
+
+  registerProvider(name: string, provider: AIProvider) {
+    this.providers[name] = provider;
+  }
 
   getProvider(name?: string): AIProvider {
     const key = name || env.DEFAULT_AI_PROVIDER;
@@ -203,4 +257,6 @@ class AIManagerImpl {
   }
 }
 
-export const AIManager = new AIManagerImpl();
+export const aiProviderManager = new AIProviderManager();
+export const AIManager = aiProviderManager;
+

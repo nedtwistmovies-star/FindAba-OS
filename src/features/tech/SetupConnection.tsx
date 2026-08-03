@@ -25,6 +25,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
     const saved = localStorage.getItem('findaba_git_branch');
     return saved !== null ? saved : 'main';
   });
+  const [gitPat, setGitPat] = useState(() => localStorage.getItem('findaba_github_pat') || '');
 
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -45,9 +46,7 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
     setIsLoggingIn(true);
     setErrorMessage(null);
     try {
-      const response = await fetch(`/api/auth/github/url?origin=${encodeURIComponent(window.location.origin)}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(`/api/auth/github/url?origin=${encodeURIComponent(window.location.origin)}`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -132,6 +131,12 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
     e.preventDefault();
     setErrorMessage(null);
     
+    if (gitPat.trim()) {
+      localStorage.setItem('findaba_github_pat', gitPat.trim());
+    } else {
+      localStorage.removeItem('findaba_github_pat');
+    }
+
     if (!gitRepo.trim()) {
       localStorage.removeItem('findaba_git_repo');
       await syncGit(''); // Clear sync
@@ -139,9 +144,9 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
       return;
     }
 
-    localStorage.setItem('findaba_git_repo', gitRepo);
-    localStorage.setItem('findaba_git_branch', gitBranch);
-    await syncGit(gitRepo, gitBranch);
+    localStorage.setItem('findaba_git_repo', gitRepo.trim());
+    localStorage.setItem('findaba_git_branch', gitBranch.trim());
+    await syncGit(gitRepo.trim(), gitBranch.trim());
     setStep('payment');
   };
 
@@ -305,6 +310,27 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
                         value={gitBranch}
                         onChange={e => setGitBranch(e.target.value)}
                       />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[8px] text-white/50 uppercase tracking-widest leading-relaxed">
+                       Personal Access Token (PAT - Optional):
+                    </p>
+                    <div className="flex items-center gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
+                      <ShieldCheck size={14} className="text-aba-gold" />
+                      <input 
+                        type="password" 
+                        placeholder="ghp_... or github_pat_..." 
+                        className="bg-transparent border-none outline-none text-[10px] font-mono text-white/80 w-full"
+                        value={gitPat}
+                        onChange={e => setGitPat(e.target.value)}
+                      />
+                      {gitPat && (
+                        <button onClick={() => setGitPat('')} className="text-white/20 hover:text-white transition-colors">
+                          <X size={12} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

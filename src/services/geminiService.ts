@@ -22,6 +22,40 @@ const getAI = () => {
   return new GoogleGenerativeAI(key || 'proxy');
 };
 
+const CLIENT_GEMINI_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-flash",
+];
+
+async function executeWithModelFallback(
+  ai: GoogleGenerativeAI,
+  params: any,
+  config?: { systemInstruction?: string; modelOptions?: any }
+) {
+  let lastErr: any;
+  for (const modelName of CLIENT_GEMINI_MODELS) {
+    try {
+      const model = ai.getGenerativeModel({
+        model: modelName,
+        ...(config?.systemInstruction ? { systemInstruction: config.systemInstruction } : {}),
+        ...(config?.modelOptions || {}),
+      });
+      const response = await model.generateContent(params);
+      return response;
+    } catch (err: any) {
+      lastErr = err;
+      if (err.message?.includes("404") || err.message?.includes("not found")) {
+        console.warn(`[Client Gemini] Model '${modelName}' not found (404), trying fallback...`);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
 export interface GeminiHealthStatus {
   status: 'healthy' | 'unhealthy' | 'warning';
   message: string;
@@ -69,22 +103,25 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
           controller.abort();
         }, 30000);
         
-        response = await fetch(syncUrl, { signal: controller.signal });
+        response = await fetch(syncUrl, { signal: controller.signal }).catch(err => {
+          console.warn(`[Oracle] Attempt ${11 - retries} network error:`, err?.message || err);
+          return null;
+        });
         clearTimeout(timeoutId);
         
-        if (response.ok) {
+        if (response && response.ok) {
           const contentType = response.headers.get("content-type");
           if (contentType && contentType.includes("application/json")) {
             break;
           } else {
-            const text = await response.text();
-            console.warn(`[Oracle] Attempt ${4 - retries} received non-JSON response (${contentType}):`, text.substring(0, 100));
+            const text = await response.text().catch(() => '');
+            console.warn(`[Oracle] Attempt ${11 - retries} received non-JSON response (${contentType}):`, text.substring(0, 100));
           }
-        } else {
-          console.warn(`[Oracle] Attempt ${4 - retries} failed with status: ${response.status}`);
+        } else if (response) {
+          console.warn(`[Oracle] Attempt ${11 - retries} failed with status: ${response.status}`);
         }
       } catch (e) {
-        console.warn(`[Oracle] Attempt ${4 - retries} failed with error:`, e);
+        console.warn(`[Oracle] Attempt ${11 - retries} failed with error:`, e);
       }
       retries--;
       if (retries > 0) await new Promise(r => setTimeout(r, 2000));
@@ -132,6 +169,15 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
         if (config.paystackKey && config.paystackKey !== 'undefined' && config.paystackKey.trim() !== '') {
           localStorage.setItem('findaba_paystack_public_key', config.paystackKey);
           console.log("[Oracle] Paystack Settlement Signal Synchronized.");
+        }
+
+        if (config.githubRepo && config.githubRepo !== 'undefined' && config.githubRepo.trim() !== '') {
+          localStorage.setItem('findaba_git_repo', config.githubRepo);
+          console.log("[Oracle] Git Repository Signal Synchronized.");
+        }
+
+        if (config.githubBranch && config.githubBranch !== 'undefined' && config.githubBranch.trim() !== '') {
+          localStorage.setItem('findaba_git_branch', config.githubBranch);
         }
         
         if (synced) {
@@ -192,9 +238,7 @@ export const parseFlyerSignal = async (base64: string, mimeType: string = 'image
       "confidence_score": number (0-100)
     }`;
 
-    const response = await ai.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-    }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ 
         role: 'user',
         parts: [
@@ -223,7 +267,7 @@ export const analyzeHardwareSignal = async (base64: string) => {
   try {
     const ai = getAI();
     const prompt = `Industrial Hardware Audit JSON ONLY: { "spec_summary": "string", "verdict": "Vanguard"|"Migration"|"Legacy", "performance_index": number, "recommendations": ["string"], "wisdom": "string" }`;
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ inlineData: { data: base64.split(',')[1] || base64, mimeType: 'image/jpeg' } }, { text: prompt }] }],
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -250,7 +294,7 @@ export const analyzeHardwareTextSignal = async (text: string) => {
       "recommendations": ["string"], 
       "wisdom": "string" 
     }`;
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -354,7 +398,7 @@ export const generateIndustrialVideo = async (prompt: string) => {
 export const generateDesignImage = async (prompt: string) => {
   try {
     const ai = getAI();
-    const response = await ai.getGenerativeModel({ model: 'gemini-1.5-flash' }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ text: `Industrial visual: ${prompt}. Studio lighting.` }] }],
     });
     // Image generation via generateContent is specific to some models, 
@@ -369,7 +413,7 @@ export const generateDesignImage = async (prompt: string) => {
 export const generateHistoryAudio = async (title: string, lang: string = 'English', voiceName: string = 'Kore') => {
   try {
     const ai = getAI();
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ text: `Narrate industrial history: ${title} in ${lang}. Tone: Informative, professional, and friendly.` }] }],
     });
     return response.response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
@@ -381,7 +425,7 @@ export const generateAudioNarration = generateHistoryAudio;
 export const generateWelcomeMessage = async (name: string, id: string) => {
   try {
     const ai = getAI();
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ text: `Generate a warm, human, and specific welcome message for ${name} (ID: ${id}) to the FindAba registry. 
       Identity: FindAba AI (Kalu). 
       Tone: Welcoming, using local Aba flavor (Igbo/Pidgin mix). Mention that they are now part of the industrial heartbeat of Enyimba. 
@@ -394,11 +438,10 @@ export const generateWelcomeMessage = async (name: string, id: string) => {
 export const getSupportResponse = async (prompt: string, history: any[]) => {
   try {
     const ai = getAI();
-    const response = await ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: "You are FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Follow the rules: Be extremely precise and specific. Do NOT give generic area suggestions. Prioritize Aba, include nearby cities only if needed/asked, label them clearly, do NOT say 'God's Own State', do NOT roleplay, be practical and helpful, use a friendly Nigerian tone."
-    }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [...history, { role: 'user', parts: [{ text: prompt }] }],
+    }, {
+      systemInstruction: "You are FindAba AI (Kalu) — a smart local assistant focused on Aba, Abia State, Nigeria. Follow the rules: Be extremely precise and specific. Do NOT give generic area suggestions. Prioritize Aba, include nearby cities only if needed/asked, label them clearly, do NOT say 'God's Own State', do NOT roleplay, be practical and helpful, use a friendly Nigerian tone."
     });
     return response.response.text();
   } catch (e: any) {
@@ -412,7 +455,7 @@ export const getSupportResponse = async (prompt: string, history: any[]) => {
 export const generateImageCaption = async (base64: string, mimeType: string) => {
   try {
     const ai = getAI();
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ inlineData: { data: base64.split(',')[1] || base64, mimeType } }, { text: "Describe this industrial asset with wisdom." }] }],
     });
     return response.response.text();
@@ -452,7 +495,7 @@ export const findArtisansAI = async (query: string, businesses: Business[]) => {
       "oracle_wisdom": "A practical, clear, and helpful summary of the search results in a friendly Nigerian tone. Mention specific streets or market lines if applicable."
     }`;
 
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: "application/json" }
     });
@@ -475,10 +518,9 @@ export const generateAdvertorial = async (topic: string) => {
     Include a [VERACITY INDEX: XX%] and a RISK ASSESSMENT section at the end.
     Tone: Professional, forward-looking, industrial.`;
 
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      tools: [{ googleSearch: {} }]
-    } as any);
+    });
 
     return { 
       content: response.response.text() || "Report generation failed.",
@@ -493,7 +535,7 @@ export const generateAdvertorial = async (topic: string) => {
 export const generateConversationTitle = async (firstMessage: string) => {
   try {
     const ai = getAI();
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ text: `Generate a concise, professional, 3-5 word title for an industrial conversation starting with: "${firstMessage}". Return ONLY the title text.` }] }],
     });
     return response.response.text()?.replace(/["']/g, '').trim() || 'Industrial Query';
@@ -514,9 +556,8 @@ export const decodeAudio = async (base64: string, ctx: AudioContext): Promise<Au
 export const generateAutomatedCityInsight = async () => {
   try {
     const ai = getAI();
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ text: "Current trade atmosphere in Aba, Nigeria. News/Price shifts." }] }],
-      tools: [{ googleSearch: {} }],
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -531,7 +572,7 @@ export const generateAutomatedCityInsight = async () => {
           required: ["title", "content", "featured_image_prompt", "veracity_index", "risk_assessment"]
         }
       }
-    } as any);
+    });
     const result = JSON.parse(cleanJSON(response.response.text() || '{}'));
     return { ...result, grounding: response.response.candidates?.[0]?.groundingMetadata?.groundingChunks };
   } catch (e) { return null; }
@@ -544,7 +585,7 @@ export const verifyReceiptSignal = async (base64: string, expectedAmount: number
   const prompt = `Audit this bank transfer receipt. Verify if it corresponds to a payment of ₦${expectedAmount} to account ${expectedAccount}.`;
   try {
     const ai = getAI();
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ 
         role: 'user',
         parts: [
@@ -564,7 +605,7 @@ export const verifyReceiptSignal = async (base64: string, expectedAmount: number
           required: ["is_valid", "confidence_score", "reasoning"]
         }
       }
-    } as any);
+    });
     return JSON.parse(cleanJSON(response.response.text() || '{}'));
   } catch (e) {
     return { is_valid: false, confidence_score: 0, reasoning: "Signal interrupted during visual audit." };
@@ -609,7 +650,7 @@ export const generateGroupFinancialAdvice = async (
 
   try {
     const ai = getAI();
-    const response = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent({
+    const response = await executeWithModelFallback(ai, {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         responseMimeType: "application/json",
@@ -626,7 +667,7 @@ export const generateGroupFinancialAdvice = async (
           required: ["analysis", "sustainability_rating", "sustainability_justification", "investment_strategies", "tips", "completion_confidence"]
         }
       }
-    } as any);
+    });
 
     const parsed = JSON.parse(cleanJSON(response.response.text() || '{}'));
     return {

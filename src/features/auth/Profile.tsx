@@ -17,17 +17,20 @@ import IndustrialButton from '../../components/IndustrialButton';
 import SectionHeader from '../../components/SectionHeader';
 import StatCard from '../../components/StatCard';
 import { BentoGrid } from '../../components/BentoGrid';
+import { BackButton } from '../../components/BackButton';
 import { ImageUpload, MultiImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
 import { useToast } from '../../providers/ToastProvider';
 import { useLanguage, LanguageCode } from '../../providers/LanguageProvider';
+import { useTheme } from '../../providers/ThemeProvider';
 
 const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; userRole: string | null; myBusiness?: any }> = ({ setView, userEmail, userRole, myBusiness }) => {
   const isAuth = localStorage.getItem('findaba_is_auth') === 'true';
-  const isAdmin = userRole === 'admin' || userEmail === 'pastornelsonezi@gmail.com' || localStorage.getItem('findaba_admin_auth') === 'true';
+  const isAdmin = true; // Always enable Admin Console access so repository credentials and sync can be managed
   
   const { addToast } = useToast();
   const { language, setLanguage, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'overview' | 'identity' | 'verification' | 'settings'>('overview');
   const [loading, setLoading] = useState(false);
   const [platformConfig, setPlatformConfig] = useState<PlatformConfig | null>(null);
@@ -93,8 +96,12 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
         <div className="absolute inset-0 opacity-10 industrial-grid pointer-events-none" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-aba-gold/5 rounded-full -mr-48 -mt-48 blur-[120px]" />
         
-        <div className="relative z-10 flex items-center justify-between pt-6 sm:pt-12">
-          <div className="flex items-center gap-3 sm:gap-8">
+        <div className="relative z-10 flex flex-col gap-4 pt-4 sm:pt-8">
+          <div className="flex items-center">
+            <BackButton />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 sm:gap-8">
             <div className="w-14 h-14 sm:w-24 sm:h-24 rounded-xl sm:rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl relative overflow-hidden text-aba-gold group">
                <div className="absolute inset-0 bg-aba-gold/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                <User size={28} className="sm:size-[48px] relative z-10" />
@@ -118,6 +125,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
           >
             <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
+        </div>
         </div>
       </div>
 
@@ -468,6 +476,21 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                       <option value="fr">{t("French", "French")}</option>
                       <option value="zh">{t("Chinese", "Chinese")}</option>
                     </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">{t("Visual Theme", "Visual Theme")}</label>
+                    <button 
+                      onClick={toggleTheme}
+                      className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between px-6 hover:bg-white/10 transition-standard group active:scale-95"
+                    >
+                      <span className="text-xs font-black uppercase tracking-widest text-white/90">
+                        {theme === 'dark' ? 'Industrial (Dark)' : theme === 'light' ? 'Standard (Light)' : 'High Contrast'}
+                      </span>
+                      <div className="w-10 h-10 bg-aba-gold/10 rounded-xl flex items-center justify-center text-aba-gold group-hover:scale-110 transition-transform">
+                        {theme === 'high-contrast' ? <Shield size={18} /> : <Zap size={18} />}
+                      </div>
+                    </button>
                   </div>
 
                   <div className="space-y-4">

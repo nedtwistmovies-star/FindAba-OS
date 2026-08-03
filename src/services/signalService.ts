@@ -40,11 +40,11 @@ export async function getAbaWeather(): Promise<WeatherData> {
 
     const response = await fetch('https://wttr.in/Aba?format=%t|%C|%h|%w', {
       signal: controller.signal
-    });
+    }).catch(() => null);
     
     clearTimeout(timeoutId);
 
-    if (!response.ok) throw new Error('Weather signal lost');
+    if (!response || !response.ok) return defaultWeather;
     
     const text = (await response.text()).slice(0, 500);
     if (!text || !text.includes('|') || text.includes('<!DOCTYPE') || text.includes('<html')) {

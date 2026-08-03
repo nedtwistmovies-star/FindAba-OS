@@ -28,7 +28,7 @@ function optional(name: string, fallbackName?: string): string | undefined {
 export const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
   IS_VERCEL: !!process.env.VERCEL,
-  PORT: Number(process.env.PORT) || 3000,
+  PORT: 3000,
 
   // Required — nothing works without the DB
   SUPABASE_URL: required("SUPABASE_URL", "VITE_SUPABASE_URL"),

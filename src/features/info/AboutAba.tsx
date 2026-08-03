@@ -7,7 +7,7 @@ import {
   Globe, Zap
 } from 'lucide-react';
 import { ViewState } from '../../types';
-import { IndustrialButton, SectionHeader } from '../../components';
+import { IndustrialButton, SectionHeader, BackButton } from '../../components';
 import { generateAudioNarration } from '../../services/geminiService';
 
 interface ExpandableSectionProps {
@@ -88,12 +88,7 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
         />
         
         <div className="absolute top-10 left-8 z-20">
-           <button 
-             onClick={onBack} 
-             className="w-14 h-14 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl flex items-center justify-center text-white hover:bg-aba-gold hover:text-aba-dark transition-all active:scale-90 shadow-2xl"
-           >
-             <ArrowLeft size={24} />
-           </button>
+           <BackButton onClick={onBack} variant="header" />
         </div>
 
         <div className="absolute bottom-16 left-8 right-8 z-20 max-w-7xl mx-auto w-full">

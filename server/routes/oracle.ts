@@ -1,9 +1,10 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
-import { AIManager, BusinessContextItem } from "../services/ai";
+import { aiProviderManager, BusinessContextItem } from "../services/ai";
 
 export const oracleRouter = Router();
+
 
 /** Rate limit AI endpoints per IP. */
 const oracleRateLimit = rateLimit({
@@ -11,6 +12,7 @@ const oracleRateLimit = rateLimit({
   max: 20, // 20 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: { error: "Too many Oracle requests. Please slow down and try again shortly." },
 });
 
@@ -44,7 +46,7 @@ oracleRouter.post("/oracle", oracleRateLimit, async (req, res) => {
         return res.status(400).json({ error: "Flyer analysis requires { base64, mimeType }" });
       }
       const flyerPrompt = prompt as Record<string, any>;
-      const result = await AIManager.gemini.analyzeFlyer(flyerPrompt.base64, flyerPrompt.mimeType);
+      const result = await aiProviderManager.gemini.analyzeFlyer(flyerPrompt.base64, flyerPrompt.mimeType);
       return res.json(result);
     }
 
@@ -52,7 +54,7 @@ oracleRouter.post("/oracle", oracleRateLimit, async (req, res) => {
       return res.status(400).json({ error: "Search prompt must be a string" });
     }
 
-    const result = await AIManager.chat(prompt, history, businessContext, provider);
+    const result = await aiProviderManager.chat(prompt, history, businessContext, provider);
     return res.json(result);
   } catch (err: any) {
     console.error("[Oracle] Fault:", err);

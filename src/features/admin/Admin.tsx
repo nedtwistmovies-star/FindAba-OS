@@ -28,10 +28,17 @@ import {
   Mail,
   ListTodo,
   TrendingUp,
-  LayoutGrid
+  LayoutGrid,
+  Eye,
+  EyeOff,
+  Save,
+  Link2,
+  X,
+  Check
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useGitSync } from "../../hooks/useGitSync";
+import { BackButton } from "../../components/BackButton";
 import {
   BarChart,
   Bar,
@@ -67,11 +74,73 @@ import AutomationAudit from "./components/AutomationAudit";
 import EmailAudit from "./components/EmailAudit";
 import MetadataEditor from "./components/MetadataEditor";
 import TasksManager from "./components/TasksManager";
+import WhatsAppWebhookDashboard from "./components/WhatsAppWebhookDashboard";
+import GitSyncSupabaseCommit from "./components/GitSyncSupabaseCommit";
 
 const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
   const { addToast } = useToast();
   const { refreshData } = useBusiness();
-  const { status: gitStatus, loading: gitLoading, fullSync } = useGitSync();
+  const { status: gitStatus, loading: gitLoading, fullSync, sync: syncGit, clearError } = useGitSync();
+
+  const [inputRepo, setInputRepo] = useState(() => localStorage.getItem('findaba_git_repo') || '');
+  const [inputBranch, setInputBranch] = useState(() => localStorage.getItem('findaba_git_branch') || 'main');
+  const [inputPat, setInputPat] = useState(() => localStorage.getItem('findaba_github_pat') || '');
+  const [showPat, setShowPat] = useState(false);
+  const [isSavingGit, setIsSavingGit] = useState(false);
+
+  // Sync form state when gitStatus repo updates
+  useEffect(() => {
+    if (gitStatus.repo && !inputRepo) {
+      setInputRepo(gitStatus.repo);
+    }
+  }, [gitStatus.repo]);
+
+  const handleSaveGitConfig = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsSavingGit(true);
+    clearError();
+
+    // Clean up repo string if full URL was pasted
+    let cleanRepo = inputRepo.trim();
+    cleanRepo = cleanRepo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '');
+
+    if (cleanRepo) {
+      localStorage.setItem('findaba_git_repo', cleanRepo);
+      setInputRepo(cleanRepo);
+    } else {
+      localStorage.removeItem('findaba_git_repo');
+    }
+
+    const branchToUse = inputBranch.trim() || 'main';
+    localStorage.setItem('findaba_git_branch', branchToUse);
+
+    if (inputPat.trim()) {
+      localStorage.setItem('findaba_github_pat', inputPat.trim());
+    } else {
+      localStorage.removeItem('findaba_github_pat');
+    }
+
+    try {
+      await syncGit(cleanRepo, branchToUse);
+      addToast("Git repository configuration saved and tested!", "success");
+    } catch (err: any) {
+      addToast("Git configuration saved, connection test: " + (err.message || "Failed"), "info");
+    } finally {
+      setIsSavingGit(false);
+    }
+  };
+
+  const handleClearGitConfig = () => {
+    localStorage.removeItem('findaba_git_repo');
+    localStorage.removeItem('findaba_git_branch');
+    localStorage.removeItem('findaba_github_pat');
+    setInputRepo('');
+    setInputBranch('main');
+    setInputPat('');
+    clearError();
+    syncGit('', 'main');
+    addToast("Git configuration cleared.", "info");
+  };
   
   const handleFullSync = async (reason: string) => {
     addToast("Initiating GitHub synchronization...", "info");
@@ -90,6 +159,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
     | "registry"
     | "signals"
     | "users"
+    | "whatsapp"
     | "automation"
     | "tasks"
     | "email"
@@ -197,6 +267,9 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
   return (
     <div className="min-h-screen bg-[#0b100e] pb-32">
       <div className="max-w-7xl mx-auto px-6 pt-12 space-y-12">
+        <div className="flex items-center">
+          <BackButton label="Back to Dashboard" />
+        </div>
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 bg-white/5 p-10 rounded-[3.5rem] border border-white/5 shadow-2xl">
           <div className="flex items-center gap-6">
@@ -259,14 +332,15 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
         <div className="flex flex-wrap gap-2 p-2 bg-white/5 rounded-[2.5rem] border border-white/5 backdrop-blur-md overflow-x-auto no-scrollbar">
           {[
             { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+            { id: 'whatsapp', label: 'WhatsApp Stream', icon: MessageSquare },
             { id: 'registry', label: 'Registry', icon: Database },
             { id: 'signals', label: 'Signals', icon: Radio },
             { id: 'users', label: 'Citizens', icon: Users },
-            { id: 'automation', label: 'Automation', icon: Zap },
+            { id: 'automation', label: 'Automations', icon: Zap },
             { id: 'tasks', label: 'Roadmap', icon: ListTodo },
             { id: 'email', label: 'Email', icon: Mail },
             { id: 'metadata', label: 'Manifest', icon: Globe },
-            { id: 'git', label: 'Git Sync', icon: Github },
+            { id: 'git', label: 'Git Sync & Supabase Commit', icon: Github },
           ].map(tab => (
             <button
               key={tab.id}
@@ -349,77 +423,10 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
 
           {activeTab === 'tasks' && <TasksManager />}
 
-          {activeTab === 'git' && (
-            <div className="space-y-12">
-               <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-8">
-                 <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                       <h4 className="text-xl font-black uppercase tracking-tight flex items-center gap-4">
-                         <Github className="text-aba-gold" /> Version Control Sync
-                       </h4>
-                       <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">GitHub Repository Linkage</p>
-                    </div>
-                    <div className={`px-4 py-2 rounded-full border flex items-center gap-3 ${
-                       gitStatus.connected ? 'bg-aba-green/10 border-aba-green/20 text-aba-green' : 'bg-red-500/10 border-red-500/20 text-red-500'
-                    }`}>
-                       <div className={`w-2 h-2 rounded-full ${gitStatus.connected ? 'bg-aba-green animate-pulse' : 'bg-red-500'}`} />
-                       <span className="text-[10px] font-black uppercase tracking-widest">
-                         {gitStatus.connected ? 'Matched' : 'Disconnected'}
-                       </span>
-                    </div>
-                 </div>
+          {activeTab === 'git' && <GitSyncSupabaseCommit />}
 
-                 {gitStatus.error && (
-                   <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-[2rem] flex items-start gap-4">
-                     <AlertTriangle className="text-red-500 shrink-0 mt-1" size={20} />
-                     <div className="space-y-1">
-                       <p className="text-xs font-black uppercase text-red-500">Handshake Fault Detected</p>
-                       <p className="text-[11px] font-medium text-red-400/80 leading-relaxed">{gitStatus.error}</p>
-                     </div>
-                   </div>
-                 )}
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 bg-black/40 rounded-[2.5rem] border border-white/5">
-                    <div className="space-y-4">
-                       <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-2">Registry Mesh Connection</p>
-                       <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
-                          <span className="text-[10px] font-mono text-white/60">github.com/{gitStatus.repo || '...'}</span>
-                          <span className={`px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${gitStatus.connected ? 'bg-aba-green/20 text-aba-green' : 'bg-red-500/20 text-red-500'}`}>
-                             {gitStatus.connected ? 'ESTABLISHED' : 'FAULT'}
-                          </span>
-                       </div>
-                    </div>
-                    <div className="space-y-4">
-                       <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-2">Last Synchronized</p>
-                       <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between">
-                          <span className="text-[10px] font-mono text-white/60">
-                             {gitStatus.lastUpdated ? new Date(gitStatus.lastUpdated).toLocaleString() : 'NEVER'}
-                          </span>
-                       </div>
-                    </div>
-                 </div>
-
-                 <div className="pt-8 flex flex-wrap gap-4">
-                    <IndustrialButton 
-                      variant="primary" 
-                      size="lg" 
-                      icon={gitLoading ? Loader2 : RefreshCcw} 
-                      loading={gitLoading}
-                      onClick={() => handleFullSync("Manual System Refresh")}
-                    >
-                      Trigger Full OS Sync
-                    </IndustrialButton>
-                    <IndustrialButton 
-                      variant="secondary" 
-                      size="lg" 
-                      icon={ArrowLeft}
-                      onClick={() => setView('tech-setup')}
-                    >
-                      Reconfigure Connection
-                    </IndustrialButton>
-                 </div>
-               </div>
-            </div>
+          {activeTab === 'whatsapp' && (
+            <WhatsAppWebhookDashboard />
           )}
 
           {/* Simple Registry View as Fallback if not extracted yet */}

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Shield, FileText, CreditCard, Users, Code, Scale, Megaphone } from 'lucide-react';
 import { ViewState, LegalDocType } from '../../types';
 import { LEGAL_POLICIES, SANDALS_BRAND } from '../../constants';
+import { BackButton } from '../../components/BackButton';
 
 const Legal: React.FC<{ setView: (v: ViewState) => void; initialDoc?: LegalDocType }> = ({ setView, initialDoc = 'terms' }) => {
   const [activeDoc, setActiveDoc] = useState<LegalDocType>(initialDoc);
@@ -19,9 +20,7 @@ const Legal: React.FC<{ setView: (v: ViewState) => void; initialDoc?: LegalDocTy
   return (
     <div className="p-6 pb-32 bg-gray-50 dark:bg-slate-900 min-h-full animate-fade-in scrollbar-hide">
       <div className="flex items-center gap-4 mb-8">
-        <button onClick={() => setView('profile')} className="p-3 bg-white dark:bg-slate-800 rounded-2xl border shadow-sm active:scale-90 transition-transform">
-          <ArrowLeft size={20} className="dark:text-white" />
-        </button>
+        <BackButton onClick={() => setView('profile')} label="Back" />
         <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Legal & Compliance</h2>
       </div>
 
