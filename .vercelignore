@@ -3,7 +3,6 @@ api/paystack-webhook.js
 api/verify-payment.js
 
 # Add any other build artifacts or local files you do not want deployed
-dist/
 node_modules/
 .env
 .env.*
