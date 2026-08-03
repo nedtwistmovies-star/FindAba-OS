@@ -12,7 +12,7 @@ import compression from "compression";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { env } from "./server/services/env";
+import { env, missingRequiredEnv } from "./server/services/env";
 import { adminRouter } from "./server/routes/admin";
 import { oracleRouter } from "./server/routes/oracle";
 import { authRouter } from "./server/routes/auth";
@@ -69,6 +69,21 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+// --- Fail fast, but with JSON, not a blank body ---
+// If required config (e.g. Supabase) is missing, every /api/* call would
+// otherwise 500 with an empty body and the frontend would see
+// "Unexpected end of JSON input". This turns that into a diagnosable error.
+if (missingRequiredEnv.length > 0) {
+  console.error(`[FindAba] Server misconfigured -- missing: ${missingRequiredEnv.join(", ")}`);
+  app.use("/api", (req, res) => {
+    res.status(503).json({
+      success: false,
+      error: "Server misconfigured",
+      details: `Missing required environment variable(s): ${missingRequiredEnv.join(", ")}. Set these in your deployment's environment settings and redeploy.`,
+    });
+  });
+}
 
 // --- API Routes ---
 app.get("/api/health", (req, res) => {
