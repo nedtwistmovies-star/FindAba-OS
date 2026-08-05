@@ -21,8 +21,23 @@ import { whatsappRouter } from "./server/routes/whatsapp";
 import { paymentRouter } from "./server/routes/payment";
 import { emailRouter } from "./server/routes/email";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+/**
+ * Resolve application directory in a way that works for both ESM (import.meta.url)
+ * and CommonJS (where __dirname exists). If neither is available, fall back to process.cwd().
+ *
+ * We try the import.meta.url approach first (works in ESM), and if it throws we
+ * fallback to __dirname or process.cwd(). This prevents fileURLToPath(undefined)
+ * errors when the server is bundled/run as CommonJS.
+ */
+let APP_DIR: string;
+try {
+  // Try ESM style first. In ESM runtimes this will succeed.
+  // @ts-ignore - import.meta may not be typed in some TS configurations
+  APP_DIR = path.dirname(fileURLToPath(import.meta.url));
+} catch (e) {
+  // If that fails (CommonJS / bundled CJS), use __dirname if present, otherwise cwd.
+  APP_DIR = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+}
 
 console.log("[FindAba] Initializing City OS Backbone...");
 console.log("[FindAba] Config Audit:", {
@@ -115,7 +130,7 @@ async function setupVite() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(__dirname, "dist");
+    const distPath = path.join(APP_DIR, "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
