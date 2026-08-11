@@ -46,7 +46,7 @@ oracleRouter.post("/oracle", oracleRateLimit, async (req, res) => {
         return res.status(400).json({ error: "Flyer analysis requires { base64, mimeType }" });
       }
       const flyerPrompt = prompt as Record<string, any>;
-      const result = await aiProviderManager.gemini.analyzeFlyer(flyerPrompt.base64, flyerPrompt.mimeType);
+      const result = await aiProviderManager.analyzeFlyer(flyerPrompt.base64, flyerPrompt.mimeType, provider);
       return res.json(result);
     }
 

@@ -21,7 +21,7 @@ export const getOpenRouterStream = async (
   prompt: string,
   history: any[],
   catalog: Business[],
-  model: string = "google/gemini-2.0-flash-exp:free"
+  model: string = "meta-llama/llama-3.3-70b-instruct"
 ) => {
   const key = getOpenRouterKey();
   if (!key) {

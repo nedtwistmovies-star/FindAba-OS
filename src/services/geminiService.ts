@@ -130,7 +130,9 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
     if (response && response.ok) {
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
-        const config = await response.json();
+        const text = await response.text();
+        let config: any = {};
+        try { config = text && text.trim() ? JSON.parse(text) : {}; } catch {}
         let synced = false;
 
         if (config.supabaseUrl && config.supabaseUrl !== 'undefined' && config.supabaseUrl.trim() !== '') {
@@ -315,13 +317,16 @@ export const getOracleStream = async (
   history: any[], 
   catalog: Business[]
 ) => {
-  const primaryProvider = (typeof localStorage !== 'undefined') ? (localStorage.getItem('findaba_primary_ai') || 'gemini') : 'gemini';
+  const primaryProvider =
+    typeof localStorage !== 'undefined'
+      ? (localStorage.getItem('findaba_primary_ai') || 'openrouter')
+      : 'openrouter';
 
   if (primaryProvider === 'openrouter' && typeof prompt === 'string') {
     try {
       return await getOpenRouterStream(prompt, history, catalog);
     } catch (e) {
-      console.warn("[Oracle] OpenRouter primary signal failed, falling back to Gemini:", e);
+      console.warn("[Oracle] OpenRouter direct stream failed, falling back to server Oracle API:", e);
     }
   }
 
@@ -337,17 +342,12 @@ export const getOracleStream = async (
     }
   }
 
-  const localKey = (typeof localStorage !== 'undefined') ? (localStorage.getItem('findaba_gemini_key') || '') : '';
-
   const headers: Record<string, string> = {
     "Content-Type": "application/json"
   };
 
   if (session?.access_token) {
     headers["Authorization"] = `Bearer ${session.access_token}`;
-  }
-  if (localKey) {
-    headers["x-gemini-key"] = localKey;
   }
 
   const response = await fetch("/api/oracle", {
@@ -362,12 +362,14 @@ export const getOracleStream = async (
     }),
   });
 
+  const text = await response.text();
+  let result: any = {};
+  try { result = text && text.trim() ? JSON.parse(text) : {}; } catch {}
+
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Oracle Signal Sync Fault");
+    throw new Error(result.error || "Oracle Signal Sync Fault");
   }
 
-  const result = await response.json();
   return {
     text: result.text || result.wisdom || "Signal lost. Re-establishing...",
     thoughtProcess: result.thoughtProcess || result.thought_process,
