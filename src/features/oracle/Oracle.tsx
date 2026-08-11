@@ -749,7 +749,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                         Your current API key has hit its limit. To fix this, open the 
                         <span className="font-black mx-1">Settings</span> menu at the top right of AI Studio, 
                         go to the <span className="font-black mx-1">Secrets</span> tab, 
-                        and select a valid key for <span className="font-black">GEMINI_API_KEY</span>.
+                        and select a valid key for <span className="font-black">OPENROUTER_API_KEY</span>.
                       </p>
                     </div>
                   )}
