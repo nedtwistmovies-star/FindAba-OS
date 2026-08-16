@@ -120,11 +120,30 @@ githubRouter.get("/sync", async (req, res) => {
 
     try {
       const response = await githubClient.get(url, { headers: authHeaders(token) });
-      if (!response.data || typeof response.data.content !== "string") {
+      if (!response.data) {
         throw new Error("Invalid response from GitHub API while fetching registry.json.");
       }
 
-      const rawContent = Buffer.from(response.data.content, "base64").toString("utf-8").trim();
+      let rawContent = "";
+
+      if (
+        response.data.encoding === "base64" &&
+        typeof response.data.content === "string"
+      ) {
+        rawContent = Buffer.from(response.data.content, "base64").toString("utf-8").trim();
+      } else if (response.data.download_url) {
+        const rawResponse = await githubClient.get(response.data.download_url, {
+          headers: {
+            Accept: "application/json",
+            ...authHeaders(token),
+          },
+          responseType: "text",
+        });
+
+        rawContent = String(rawResponse.data || "").trim();
+      } else {
+        throw new Error("GitHub returned registry.json without readable content or download URL.");
+      }
       if (!rawContent) {
         return res.json({ success: true, repo, lastUpdated: new Date().toISOString(), data: null, message: "Registry file is empty." });
       }
