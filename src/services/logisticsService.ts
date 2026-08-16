@@ -40,10 +40,23 @@ export const calculateLogisticsQuotes = (weight: number): LogisticsQuote[] => {
     const isExpress = carrier.name.includes('Express');
     const isPremium = carrier.name.includes('DHL');
     
+    // Tiered pricing for weight (NGN per KG)
+    // 0-5kg: 200, 5-20kg: 100, 20-50kg: 60, 50kg+: 40
+    let weightCost = 0;
+    if (weight <= 5) {
+      weightCost = weight * 200;
+    } else if (weight <= 20) {
+      weightCost = (5 * 200) + ((weight - 5) * 100);
+    } else if (weight <= 50) {
+      weightCost = (5 * 200) + (15 * 100) + ((weight - 20) * 60);
+    } else {
+      weightCost = (5 * 200) + (15 * 100) + (30 * 60) + ((weight - 50) * 40);
+    }
+
     return {
       carrier: carrier.name,
       serviceName: weight > 10 ? 'Heavy Freight' : 'Parcel Sync',
-      price: Math.round(carrier.basePrice + (weight * 200 * carrier.multiplier)),
+      price: Math.round((carrier.basePrice + (weightCost * carrier.multiplier))),
       estimatedDays: isExpress ? 1 : 3,
       tier: isExpress ? 'express' : isPremium ? 'premium' : 'standard',
       eta: isExpress ? '1–3 hrs' : isPremium ? 'Same Day' : '1–2 Days',

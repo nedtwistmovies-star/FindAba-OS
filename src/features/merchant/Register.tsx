@@ -27,6 +27,23 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
   const { userIdentifier, user_id, isAuth } = useAuth();
   const { addToast } = useToast();
   const [step, setStep] = useState<'plan' | 'form' | 'success'>('plan');
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(SubscriptionTier.FREE);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
+  const [loading, setLoading] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [registeredBusiness, setRegisteredBusiness] = useState<Business | null>(null);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone_whatsapp: '',
+    category: Category.SHOEMAKING,
+    area: ABA_AREAS[0],
+    address: '',
+    primary_product_or_service: '',
+    description: '',
+    image_url: ''
+  });
 
   if (!isAuth) {
     return (
@@ -55,24 +72,6 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
       </div>
     );
   }
-
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(SubscriptionTier.FREE);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>(BillingCycle.MONTHLY);
-  const [loading, setLoading] = useState(false);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [registeredBusiness, setRegisteredBusiness] = useState<Business | null>(null);
-
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone_whatsapp: '',
-    category: Category.SHOEMAKING,
-    area: ABA_AREAS[0],
-    address: '',
-    primary_product_or_service: '',
-    description: '',
-    image_url: ''
-  });
 
   const handlePlanSelect = (planId: SubscriptionTier) => {
     setSelectedPlan(planId);

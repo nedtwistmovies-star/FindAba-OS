@@ -20,6 +20,8 @@ import { githubRouter } from "./server/routes/github";
 import { whatsappRouter } from "./server/routes/whatsapp";
 import { paymentRouter } from "./server/routes/payment";
 import { emailRouter } from "./server/routes/email";
+import { storiesRouter } from "./server/routes/stories";
+import { startStoryScraperService } from "./server/services/storyScraper";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -112,24 +114,46 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-console.log("[DEBUG] adminRouter"); app.use("/api", adminRouter);
-console.log("[DEBUG] oracleRouter"); app.use("/api", oracleRouter);
-console.log("[DEBUG] authRouter"); app.use("/api/auth", authRouter);
-console.log("[DEBUG] githubRouter"); app.use("/api/git", githubRouter);
-console.log("[DEBUG] whatsappRouter"); app.use("/api/whatsapp", whatsappRouter);
-console.log("[DEBUG] paymentRouter"); app.use("/api", paymentRouter);
-console.log("[DEBUG] emailRouter"); app.use("/api", emailRouter);
+app.use("/api", adminRouter);
+app.use("/api", oracleRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/git", githubRouter);
+app.use("/api/whatsapp", whatsappRouter);
+app.use("/api", paymentRouter);
+app.use("/api", emailRouter);
+app.use("/api/stories", storiesRouter);
 
-// --- Static Assets ---
-if (env.NODE_ENV === "production" && env.IS_VERCEL) {
-  const distPath = path.join(__dirname, "dist");
-  app.use(express.static(distPath));
+// Launch background story scraper service
+startStoryScraperService(15 * 60 * 1000);
+
+// --- Vite / Static Assets ---
+async function setupVite() {
+  if (env.NODE_ENV !== "production" && !env.IS_VERCEL) {
+    const vite = await createViteServer({
+      server: { 
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === "true" ? false : undefined 
+      },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(__dirname, "dist");
+    app.use(express.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
+    });
+  }
 }
 
 // --- Bootstrap ---
 if (!env.IS_VERCEL) {
-  app.listen(env.PORT, "0.0.0.0", () => {
-    console.log(`[City OS] Operational at http://0.0.0.0:${env.PORT}`);
+  setupVite().then(() => {
+    app.listen(env.PORT, "0.0.0.0", () => {
+      console.log(`[City OS] Operational at http://0.0.0.0:${env.PORT}`);
+    });
+  }).catch(err => {
+    console.error("[City OS] Bootstrap Failed:", err);
   });
 }
 

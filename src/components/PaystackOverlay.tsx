@@ -35,7 +35,8 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
   amount, email, label, businessId, userId, bookingId, onSuccess, onCancel, isOpen 
 }) => {
   const { addToast } = useToast();
-  const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan' | 'qr_pay'>('initialize');
+  const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan' | 'qr_pay' | 'ussd_banks'>('initialize');
+  const [selectedBank, setSelectedBank] = useState<any>(null);
   const [selectedChannel, setSelectedChannel] = useState<string[] | null>(null);
   const [reference, setReference] = useState('');
   const [copied, setCopied] = useState(false);
@@ -216,7 +217,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                   { id: 'card', label: 'Card', icon: <CreditCard size={18} />, channels: ['card'] },
                   { id: 'qr', label: 'In-Person QR', icon: <QrCode size={18} />, action: () => setStep('qr_pay') },
                   { id: 'transfer', label: 'Transfer', icon: <ArrowRight size={18} />, channels: ['bank_transfer'] },
-                  { id: 'ussd', label: 'USSD', icon: <Smartphone size={18} />, channels: ['ussd'] }
+                  { id: 'ussd', label: 'USSD', icon: <Smartphone size={18} />, action: () => setStep('ussd_banks') }
                 ].map((method) => (
                   <button 
                     key={method.id}
@@ -345,6 +346,46 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                     <ArrowLeft size={14} /> Back to Channels
                   </button>
                </div>
+            </div>
+          )}
+
+          {step === 'ussd_banks' && (
+            <div className="space-y-6 md:space-y-8 animate-slide-up pb-4">
+              <div className="text-center space-y-1 md:space-y-2">
+                <h3 className="text-base md:text-lg font-black uppercase tracking-tight">Choose Your Bank</h3>
+                <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest">Select bank to view USSD code</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
+                {[
+                  { name: 'Guaranty Trust Bank', code: '*737#' },
+                  { name: 'Zenith Bank', code: '*966#' },
+                  { name: 'United Bank for Africa (UBA)', code: '*919#' },
+                  { name: 'First Bank', code: '*894#' },
+                  { name: 'Access Bank', code: '*901#' },
+                  { name: 'Wema Bank', code: '*945#' },
+                  { name: 'Fidelity Bank', code: '*770#' },
+                  { name: 'Union Bank', code: '*826#' },
+                  { name: 'Stanbic IBTC Bank', code: '*909#' },
+                  { name: 'Polaris Bank', code: '*833#' }
+                ].map((bank) => (
+                  <button 
+                    key={bank.name}
+                    onClick={() => {
+                      setSelectedBank(bank);
+                      triggerPaystack(['ussd']);
+                    }}
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between hover:border-aba-gold transition-all group active:scale-95"
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-widest text-aba-dark">{bank.name}</span>
+                    <span className="text-[9px] font-bold text-aba-gold font-mono">{bank.code}</span>
+                  </button>
+                ))}
+              </div>
+
+              <button onClick={() => setStep('method_select')} className="w-full py-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors flex items-center justify-center gap-2">
+                <ArrowLeft size={14} /> Back to Channels
+              </button>
             </div>
           )}
 
