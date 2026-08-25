@@ -119,7 +119,17 @@ githubRouter.get("/sync", async (req, res) => {
     const url = `/repos/${owner}/${name}/contents/registry.json?ref=${branch}`;
 
     try {
-      const response = await githubClient.get(url, { headers: authHeaders(token) });
+      let response;
+      try {
+        response = await githubClient.get(url, { headers: authHeaders(token) });
+      } catch (authErr: any) {
+        if (authErr.response?.status === 401 && token) {
+          // Fallback to anonymous request for public repos
+          response = await githubClient.get(url, { headers: {} });
+        } else {
+          throw authErr;
+        }
+      }
       if (!response.data || typeof response.data.content !== "string") {
         throw new Error("Invalid response from GitHub API while fetching registry.json.");
       }
@@ -411,10 +421,33 @@ githubRouter.get("/diagnostic", async (req, res) => {
 
   try {
     const headers = authHeaders(token);
-    const response = await githubClient.get(`/repos/${parts[0]}/${parts[1]}`, { headers });
+    let response;
+    let tokenRejected = false;
+
+    try {
+      response = await githubClient.get(`/repos/${parts[0]}/${parts[1]}`, { headers });
+    } catch (authErr: any) {
+      if (authErr.response?.status === 401 && token) {
+        tokenRejected = true;
+        // Test if public access works
+        response = await githubClient.get(`/repos/${parts[0]}/${parts[1]}`, { headers: {} });
+      } else {
+        throw authErr;
+      }
+    }
+
     results.apiReachable = true;
-    results.checks.apiStatus = "REACHABLE";
-    results.message = `GitHub API reachable for repository '${response.data.full_name}' (${response.data.private ? "Private" : "Public"}). Token status: ${token ? "Authenticated" : "Anonymous"}`;
+    results.checks.apiStatus = tokenRejected ? "REACHABLE (PUBLIC)" : "REACHABLE";
+    results.checks.hasToken = tokenRejected ? "BAD CREDENTIALS (401)" : (token ? "VALID" : "NOT CONFIGURED");
+    results.hasToken = !tokenRejected && !!token;
+
+    if (tokenRejected) {
+      results.success = true;
+      results.message = `Repository '${response.data.full_name}' is reachable publicly! Note: The provided GitHub token returned '401 Bad Credentials' (expired or invalid). Generate a fresh Personal Access Token with 'repo' scope at github.com/settings/tokens to commit or push snapshots.`;
+    } else {
+      results.success = true;
+      results.message = `GitHub API reachable for repository '${response.data.full_name}' (${response.data.private ? "Private" : "Public"}). Token status: ${token ? "Authenticated (Read & Write)" : "Anonymous / Public Only"}`;
+    }
   } catch (error: any) {
     results.success = false;
     results.checks.apiStatus = "UNREACHABLE";
@@ -450,22 +483,42 @@ githubRouter.post("/test-connection", async (req, res) => {
     }
 
     const headers = authHeaders(token);
-    const response = await githubClient.get(`/repos/${owner}/${name}`, { headers });
-    const repoData = response.data;
+    let response;
+    let tokenRejected = false;
 
+    try {
+      response = await githubClient.get(`/repos/${owner}/${name}`, { headers });
+    } catch (authErr: any) {
+      if (authErr.response?.status === 401 && token) {
+        tokenRejected = true;
+        // Test anonymous fallback
+        response = await githubClient.get(`/repos/${owner}/${name}`, { headers: {} });
+      } else {
+        throw authErr;
+      }
+    }
+
+    const repoData = response.data;
     const rateLimitRemaining = parseInt(response.headers["x-ratelimit-remaining"] || "60", 10);
     const isPrivate = repoData.private;
     const defaultBranch = repoData.default_branch || "main";
     const permissions = repoData.permissions || null;
 
-    let authStatus = token ? "Authenticated via Token" : "Anonymous / Public Only";
-    if (token && permissions) {
+    let authStatus = tokenRejected 
+      ? "Token Rejected (401 Bad Credentials) - Public Read Fallback Active" 
+      : (token ? "Authenticated via Token" : "Anonymous / Public Only");
+
+    if (!tokenRejected && token && permissions) {
       if (permissions.push || permissions.admin) {
         authStatus += " (Read & Write Authorized)";
       } else {
         authStatus += " (Read Only Access)";
       }
     }
+
+    const message = tokenRejected
+      ? `Repository '${repoData.full_name}' is verified and reachable! Notice: The entered GitHub token was rejected by GitHub (401 Bad Credentials / Expired). To enable Supabase Snapshots and GitHub Commits, generate a fresh PAT at github.com/settings/tokens with 'repo' scope.`
+      : `Repository '${repoData.full_name}' is reachable! (${isPrivate ? 'Private' : 'Public'}, default branch: ${defaultBranch}). Token status: ${authStatus}`;
 
     res.json({
       success: true,
@@ -476,9 +529,10 @@ githubRouter.post("/test-connection", async (req, res) => {
       permissions,
       rateLimitRemaining,
       authStatus,
+      tokenValid: !tokenRejected && !!token,
       htmlUrl: repoData.html_url,
       description: repoData.description,
-      message: `Repository '${repoData.full_name}' is reachable! (${isPrivate ? 'Private' : 'Public'}, branch: ${defaultBranch}). Token status: ${authStatus}`,
+      message,
     });
   } catch (error: any) {
     const { status, details } = formatGithubError(error, repo, token);

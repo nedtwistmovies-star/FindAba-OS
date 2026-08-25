@@ -52,11 +52,17 @@ export const GitIntegrationDiagnostics: React.FC = () => {
   const runDiagnostics = async () => {
     setLoading(true);
     try {
-      const diagRes = await fetch('/api/git/diagnostic');
+      const savedPat = localStorage.getItem('findaba_github_pat')?.trim();
+      const savedRepo = localStorage.getItem('findaba_git_repo')?.trim() || 'nedtwistmovies-star/FindAba-OS';
+      
+      const headers: Record<string, string> = {};
+      if (savedPat) headers['X-GitHub-Token'] = savedPat;
+
+      const diagRes = await fetch(`/api/git/diagnostic?repo=${encodeURIComponent(savedRepo)}`, { headers });
       const diagData = await diagRes.json();
       setDiagnostics(diagData);
 
-      const logsRes = await fetch('/api/git/webhook-logs');
+      const logsRes = await fetch('/api/git/webhook-logs', { headers });
       const logsData = await logsRes.json();
       const logs = logsData.logs || [];
       setWebhookLogs(logs);
@@ -198,18 +204,38 @@ export const GitIntegrationDiagnostics: React.FC = () => {
           
           <div className="space-y-3">
             {[
-              { label: 'Repository', value: diagnostics?.envRepo || 'Not Configured', status: diagnostics?.checks?.envRepo || 'PENDING' },
-              { label: 'Repo Format', value: diagnostics?.repoValid ? 'Valid' : 'Invalid', status: diagnostics?.checks?.repoFormat || 'PENDING' },
-              { label: 'API Token', value: diagnostics?.hasToken ? 'Active' : 'Missing', status: diagnostics?.checks?.hasToken || 'PENDING' },
-              { label: 'Target Branch', value: diagnostics?.envBranch || 'main', status: 'OK' }
+              { 
+                label: 'Repository', 
+                value: (diagnostics?.envRepo ? diagnostics.envRepo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '') : '') || localStorage.getItem('findaba_git_repo') || 'nedtwistmovies-star/FindAba-OS', 
+                status: diagnostics?.checks?.envRepo === 'PRESENT' || !!localStorage.getItem('findaba_git_repo') ? 'CONFIGURED' : 'DEFAULT' 
+              },
+              { 
+                label: 'Repo Format', 
+                value: diagnostics?.repoValid || diagnostics?.checks?.repoFormat === 'VALID' ? 'Valid' : 'Pending Verification', 
+                status: diagnostics?.checks?.repoFormat || (diagnostics?.repoValid ? 'VALID' : 'PENDING') 
+              },
+              { 
+                label: 'API Token', 
+                value: diagnostics?.checks?.hasToken || (diagnostics?.hasToken ? 'Active' : 'Optional (Public Read)'), 
+                status: diagnostics?.hasToken 
+                  ? 'AUTHENTICATED' 
+                  : (diagnostics?.checks?.hasToken?.includes('401') ? 'BAD TOKEN' : 'ANONYMOUS') 
+              },
+              { 
+                label: 'Target Branch', 
+                value: diagnostics?.envBranch || localStorage.getItem('findaba_git_branch') || 'main', 
+                status: 'OK' 
+              }
             ].map((item, idx) => (
               <div key={idx} className="flex items-center justify-between p-4 bg-black/40 rounded-2xl border border-white/5">
                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{item.label}</span>
                 <div className="flex items-center gap-3">
                   <code className="text-[10px] text-aba-gold">{item.value}</code>
                   <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${
-                    item.status === 'PRESENT' || item.status === 'VALID' || item.status === 'OK'
+                    item.status === 'CONFIGURED' || item.status === 'VALID' || item.status === 'OK' || item.status === 'AUTHENTICATED'
                       ? 'bg-aba-green/10 text-aba-green'
+                      : item.status === 'DEFAULT' || item.status === 'ANONYMOUS'
+                      ? 'bg-aba-gold/10 text-aba-gold'
                       : 'bg-red-500/10 text-red-500'
                   }`}>
                     {item.status}

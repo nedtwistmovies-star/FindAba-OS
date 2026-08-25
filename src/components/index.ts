@@ -31,10 +31,13 @@ import { HealthCheck } from './HealthCheck';
 import { LanguageSelector } from './LanguageSelector';
 import WelcomeOverlay from './WelcomeOverlay';
 import { WeeklyTradeVolumeChart } from './WeeklyTradeVolumeChart';
+import { BankSelector, NIGERIAN_BANKS } from './BankSelector';
 import { BackButton } from './BackButton';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
+  BankSelector,
+  NIGERIAN_BANKS,
   ChatHeader,
   ChatInput,
   ErrorBoundary,

@@ -196,11 +196,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // 🔹 ASYNCHRONOUS BACKGROUND ASSETS
         if (session?.user) {
-          // 1. Immediate optimistic auth success using session data
+          // 1. Immediate optimistic auth success using session data and cached role
+          const isPastor = session.user.email === 'pastornelsonezi@gmail.com';
+          const storedRole = localStorage.getItem('findaba_auth_role');
+          const initialRole = isPastor ? 'admin' : (session.user.user_metadata?.role || storedRole || 'registered');
+          const initialName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
+
           handleAuthSuccess(
             session.user.email || '',
-            session.user.user_metadata?.full_name || 'User',
-            'registered',
+            initialName,
+            initialRole,
             session.user.id
           );
 
@@ -211,15 +216,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setProfile(prof);
                 handleAuthSuccess(
                   session.user.email || '',
-                  prof.full_name || session.user.user_metadata?.full_name || 'User',
-                  prof.role || 'registered',
+                  prof.full_name || initialName,
+                  prof.role || initialRole,
                   session.user.id
                 );
                 updateBootDiagnostics({ authEvent: 'PROFILE_SYNCED' });
               }
             })
             .catch(err => {
-              console.error("[AuthProvider] Background sync failed:", err);
+              console.warn("[AuthProvider] Background sync failed:", err);
             });
         } else if (localStorage.getItem('findaba_is_auth') === 'false') {
           // Explicit cleanup

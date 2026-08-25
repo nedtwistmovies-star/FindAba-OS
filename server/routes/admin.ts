@@ -39,30 +39,6 @@ adminRouter.get("/config", async (req, res) => {
   res.json(publicConfig(isAdmin));
 });
 
-/** GitHub diagnostic (admin only). */
-adminRouter.get("/git/diagnostic", ensureAdmin, async (req, res) => {
-  const token = env.GITHUB_TOKEN;
-  const diagnostic: any = {
-    env_repo: env.GITHUB_REPO,
-    has_token: !!token,
-    token_preview: token ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : "missing",
-  };
-
-  if (token) {
-    try {
-      const response = await axios.get("https://api.github.com/user", {
-        headers: { Authorization: `Bearer ${token}`, "User-Agent": "FindAba-City-OS", Accept: "application/vnd.github.v3+json" },
-      });
-      diagnostic.github_api = { status: "authenticated", user: response.data.login };
-    } catch (err: any) {
-      diagnostic.github_api = { status: "auth_failed", error: err.message };
-    }
-  } else {
-    diagnostic.github_api = { status: "public_only", warning: "No GITHUB_TOKEN configured. Rate limits will apply." };
-  }
-
-  res.json(diagnostic);
-});
 
 /** Basic network diagnostic (admin only). */
 adminRouter.get("/debug/network", ensureAdmin, async (req, res) => {

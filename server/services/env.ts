@@ -30,9 +30,9 @@ export const env = {
   IS_VERCEL: !!process.env.VERCEL,
   PORT: 3000,
 
-  // Required — nothing works without the DB
-  SUPABASE_URL: required("SUPABASE_URL", "VITE_SUPABASE_URL"),
-  SUPABASE_SERVICE_ROLE_KEY: required("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY"),
+  // Database credentials - lazily validated on database requests to prevent serverless bootstrap crashes
+  SUPABASE_URL: optional("SUPABASE_URL", "VITE_SUPABASE_URL") || "",
+  SUPABASE_SERVICE_ROLE_KEY: optional("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY") || "",
   SUPABASE_ANON_KEY: optional("SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"),
 
   // AI providers — optional at startup, validated lazily by services/ai.ts

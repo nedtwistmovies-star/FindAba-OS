@@ -12,6 +12,7 @@ import { paymentService } from '../services/paymentService';
 import { OFFICIAL_BANK_DETAILS } from '../constants';
 import { verifyReceiptSignal } from '../services/geminiService';
 import { useToast } from '../providers/ToastProvider';
+import { BankSelector, NigerianBank } from './BankSelector';
 
 interface PaystackOverlayProps {
   amount: number;
@@ -162,7 +163,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
 
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-aba-deep/98 backdrop-blur-2xl p-4 font-sans text-aba-deep overflow-y-auto">
-      <div className="w-full max-w-sm bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-slide-up border border-white/10 flex flex-col max-h-[96dvh]">
+      <div className="w-full max-w-sm sm:max-w-md bg-white rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden animate-slide-up border border-white/10 flex flex-col max-h-[96dvh]">
         
         <div className={`p-8 md:p-10 flex flex-col items-center text-center relative overflow-hidden shrink-0 ${isPaystackActive ? 'bg-aba-gold' : 'bg-aba-dark'}`}>
           <button 
@@ -350,43 +351,17 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
           )}
 
           {step === 'ussd_banks' && (
-            <div className="space-y-6 md:space-y-8 animate-slide-up pb-4">
-              <div className="text-center space-y-1 md:space-y-2">
-                <h3 className="text-base md:text-lg font-black uppercase tracking-tight">Choose Your Bank</h3>
-                <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest">Select bank to view USSD code</p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
-                {[
-                  { name: 'Guaranty Trust Bank', code: '*737#' },
-                  { name: 'Zenith Bank', code: '*966#' },
-                  { name: 'United Bank for Africa (UBA)', code: '*919#' },
-                  { name: 'First Bank', code: '*894#' },
-                  { name: 'Access Bank', code: '*901#' },
-                  { name: 'Wema Bank', code: '*945#' },
-                  { name: 'Fidelity Bank', code: '*770#' },
-                  { name: 'Union Bank', code: '*826#' },
-                  { name: 'Stanbic IBTC Bank', code: '*909#' },
-                  { name: 'Polaris Bank', code: '*833#' }
-                ].map((bank) => (
-                  <button 
-                    key={bank.name}
-                    onClick={() => {
-                      setSelectedBank(bank);
-                      triggerPaystack(['ussd']);
-                    }}
-                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between hover:border-aba-gold transition-all group active:scale-95"
-                  >
-                    <span className="text-[10px] font-black uppercase tracking-widest text-aba-dark">{bank.name}</span>
-                    <span className="text-[9px] font-bold text-aba-gold font-mono">{bank.code}</span>
-                  </button>
-                ))}
-              </div>
-
-              <button onClick={() => setStep('method_select')} className="w-full py-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors flex items-center justify-center gap-2">
-                <ArrowLeft size={14} /> Back to Channels
-              </button>
-            </div>
+            <BankSelector
+              amount={amount}
+              isPaystackActive={isPaystackActive}
+              selectedBankId={selectedBank?.id}
+              onSelectBank={(bank) => setSelectedBank(bank)}
+              onProceedWithPaystack={(bank) => {
+                setSelectedBank(bank);
+                triggerPaystack(['ussd']);
+              }}
+              onBack={() => setStep('method_select')}
+            />
           )}
 
           {step === 'auth_scan' && (

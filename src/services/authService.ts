@@ -256,45 +256,59 @@ export const getCurrentUser = async () => {
   return user;
 };
 
-export const syncProfile = async (user: any, attempts: number = 3): Promise<any> => {
+export const syncProfile = async (user: any, attempts: number = 2): Promise<any> => {
   if (!user) return null;
 
-  const PROFILE_SYNC_TIMEOUT = 35000; // Increased to 35s for high-latency environments
+  const isPastor = user.email === 'pastornelsonezi@gmail.com';
+  const defaultRole = isPastor ? 'admin' : (user.user_metadata?.role || 'registered');
+
+  // 1. Try instant recovery from local cached profile
+  try {
+    const cached = localStorage.getItem(`findaba_profile_${user.id}`);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.id === user.id) {
+        if (isPastor && parsed.role !== 'admin') {
+          parsed.role = 'admin';
+        }
+        return parsed;
+      }
+    }
+  } catch {}
+
+  const PROFILE_SYNC_TIMEOUT = 5000;
 
   for (let i = 0; i < attempts; i++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.warn(`[AuthService] PROFILE_SYNC_TIMEOUT | Query exceeded ${PROFILE_SYNC_TIMEOUT}ms for user ${user.id} (Attempt ${i + 1})`);
-      controller.abort();
-    }, PROFILE_SYNC_TIMEOUT);
-
-    const startTime = Date.now();
     try {
-      console.log(`[AuthService] Profile sync attempt ${i + 1}/${attempts} for ${user.id}`);
-      
       if (!supabase) {
         throw new Error("Supabase client unreachable during sync");
       }
 
-      // Simplified query to minimize overhead
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('id, email, full_name, role, username, avatar_url, subscription_status')
-        .eq('id', user.id)
-        .maybeSingle()
-        .abortSignal(controller.signal);
-      
-      clearTimeout(timeoutId);
-      const duration = Date.now() - startTime;
-      console.log(`[AuthService] Profile query completed in ${duration}ms for ${user.id}`);
+      // Query with Promise.race to eliminate AbortError exceptions
+      const queryPromise = (async () => {
+        try {
+          const res = await supabase
+            .from('profiles')
+            .select('id, email, full_name, role, username, avatar_url, subscription_status')
+            .eq('id', user.id)
+            .maybeSingle();
+          return res;
+        } catch {
+          return { data: null, error: { message: "Query failed" } };
+        }
+      })();
 
-      if (error) {
-        console.error(`[AuthService] Query error for ${user.id}:`, error.message, error.code);
-        throw error;
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: null, error: { message: "TIMEOUT" } }), PROFILE_SYNC_TIMEOUT);
+      });
+
+      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+      if (error && !profile) {
+        throw new Error(error.message || 'Database query failed');
       }
 
       if (!profile) {
-        console.log(`[AuthService] Profile missing for ${user.id}, initiating upsert...`);
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .upsert({
@@ -304,47 +318,42 @@ export const syncProfile = async (user: any, attempts: number = 3): Promise<any>
             username: user.user_metadata?.username || user.user_metadata?.email?.split('@')[0] || `user_${user.id.substring(0, 5)}`,
             full_name: user.user_metadata?.full_name || 'User',
             phone_verified: !!(user.user_metadata?.phone_verified),
-            role: user.email === 'pastornelsonezi@gmail.com' ? 'admin' : 'registered',
+            role: defaultRole,
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' })
           .select()
           .maybeSingle();
 
         if (createError) {
-          console.error(`[AuthService] Profile upsert failed for ${user.id}:`, createError.message, createError.code);
           throw createError;
+        }
+        if (newProfile) {
+          try { localStorage.setItem(`findaba_profile_${user.id}`, JSON.stringify(newProfile)); } catch {}
         }
         return newProfile;
       }
-      
-      return profile;
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      const isAborted = err.name === 'AbortError' || err.code === '20' || err.message?.includes('aborted');
-      
-      if (isAborted) {
-        console.error(`[AuthService] PROFILE_SYNC_TIMEOUT | Query for ${user.id} was aborted after ${Date.now() - startTime}ms.`);
-      } else {
-        console.warn(`[AuthService] Attempt ${i + 1} failure for ${user.id}:`, err.message || err);
+
+      if (isPastor && profile.role !== 'admin') {
+        profile.role = 'admin';
       }
-      
+      try { localStorage.setItem(`findaba_profile_${user.id}`, JSON.stringify(profile)); } catch {}
+      return profile;
+    } catch {
       if (i < attempts - 1) {
-        const delay = Math.pow(2, i) * 2000 + (isAborted ? 3000 : 0);
-        console.log(`[AuthService] Retrying sync in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, 800));
         continue;
       }
       
-      console.error(`[AuthService] All ${attempts} profile sync attempts failed for ${user.id}. Returning fallback identity.`);
-      
-      return {
+      const fallback = {
         id: user.id,
         email: user.email || '',
-        full_name: user.user_metadata?.full_name || 'User',
-        role: 'registered',
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+        role: defaultRole,
         is_fallback: true,
         created_at: new Date().toISOString()
       };
+      try { localStorage.setItem(`findaba_profile_${user.id}`, JSON.stringify(fallback)); } catch {}
+      return fallback;
     }
   }
   return null;

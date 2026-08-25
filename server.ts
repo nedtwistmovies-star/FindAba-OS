@@ -123,8 +123,10 @@ app.use("/api", paymentRouter);
 app.use("/api", emailRouter);
 app.use("/api/stories", storiesRouter);
 
-// Launch background story scraper service
-startStoryScraperService(15 * 60 * 1000);
+// Launch background story scraper service on long-running node instances
+if (!env.IS_VERCEL) {
+  startStoryScraperService(15 * 60 * 1000);
+}
 
 // --- Vite / Static Assets ---
 async function setupVite() {
