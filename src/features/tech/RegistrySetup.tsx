@@ -18,7 +18,53 @@ interface Props {
 }
 
 const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
+  if (!business) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 text-center shadow-xl">
+          <AlertCircle className="mx-auto mb-4 text-amber-500" size={40} />
+          <h1 className="text-lg font-black uppercase tracking-tight text-aba-dark">
+            Business Profile Required
+          </h1>
+          <p className="mt-3 text-sm text-slate-500">
+            We couldn't load the business profile required to start verification.
+          </p>
+          <button
+            onClick={onBack}
+            className="mt-6 px-6 py-3 rounded-full bg-aba-dark text-white text-xs font-black uppercase tracking-widest"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
   const { addToast } = useToast();
+
+  // Registry Setup requires a business record.
+  // Guard against an empty selection instead of crashing on business.email/id.
+  if (!business) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-aba-dark">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-xl p-8 text-center">
+          <AlertCircle className="mx-auto mb-4 text-amber-500" size={42} />
+          <h1 className="text-xl font-black uppercase tracking-wide mb-3">
+            Business Required
+          </h1>
+          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+            Please select or register a business before starting the
+            institutional verification audit.
+          </p>
+          <button
+            onClick={onBack}
+            className="w-full bg-aba-dark text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:opacity-90 transition-opacity"
+          >
+            Return
+          </button>
+        </div>
+      </div>
+    );
+  }
   const [step, setStep] = useState<'benefits' | 'documents' | 'payment' | 'completion'>('benefits');
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -30,6 +76,28 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
   });
 
   const VERIFICATION_FEE = 12500; // Institutional Audit Fee
+
+  if (!business) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 p-8 text-center shadow-xl">
+          <AlertCircle className="mx-auto mb-4 text-amber-500" size={40} />
+          <h1 className="text-lg font-black uppercase tracking-tight text-aba-dark">
+            Business Profile Required
+          </h1>
+          <p className="mt-3 text-sm text-slate-500">
+            We couldn't load the business profile required to start verification.
+          </p>
+          <button
+            onClick={onBack}
+            className="mt-6 px-6 py-3 rounded-full bg-aba-dark text-white text-xs font-black uppercase tracking-widest"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleDocumentSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -47,6 +47,7 @@ export const Contact = lazy(() => import('../features/info/Contact'));
 export const Legal = lazy(() => import('../features/info/Legal'));
 
 export const HardwareAudit = lazy(() => import('../features/tech/HardwareAudit'));
+export const RegistrySetup = lazy(() => import('../features/tech/RegistrySetup'));
 
 export const Oracle = lazy(() => import('../features/oracle/Oracle'));
 export const ChatView = lazy(() => import('../features/oracle/ChatView'));
@@ -105,7 +106,7 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'onboarding': Onboarding,
   'support': SupportCenter,
   'buyer-portal': Profile,
-  'registry-setup': Register,
+  'registry-setup': RegistrySetup,
   'orders': (props: any) => {
     const isMerchant = props.userRole === 'verified_business' || props.userRole === 'business_owner';
     return isMerchant ? <MerchantPortal {...props} /> : <BuyerOrdersView {...props} />;

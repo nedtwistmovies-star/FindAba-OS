@@ -3,6 +3,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { getSupabase } from '../services/supabaseService';
 
 export interface GitSyncStatus {
+  systemConfigured?: boolean;
+  systemHasToken?: boolean;
+  details?: string;
+
   connected: boolean;
   repo?: string;
   branch?: string;

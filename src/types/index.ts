@@ -402,6 +402,12 @@ export interface Business {
   longitude?: number;
   video_caption?: string;
   created_at: string;
+  updated_at?: string;
+
+  // Legacy/database compatibility fields
+  featured?: boolean;
+  verified?: boolean;
+
   description?: string;
   business_type?: string;
   is_verified?: boolean;

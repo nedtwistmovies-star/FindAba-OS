@@ -1,10 +1,10 @@
 import { BusinessRepository } from "../../repositories/BusinessRepository";
-import type { Business } from "../../types";
+import { Category, type Business } from "../../types";
 
 export interface RegisterBusinessRequest {
   name: string;
   description?: string;
-  category: string;
+  category: Category;
   owner_id: string;
   phone?: string;
   email?: string;

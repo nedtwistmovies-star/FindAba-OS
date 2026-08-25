@@ -42,4 +42,4 @@ export default function AuthForm() {
       </button>
     </div>
   );
-}A
+}

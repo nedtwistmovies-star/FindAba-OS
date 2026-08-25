@@ -68,6 +68,6 @@ export const ROUTE_MAP: Record<string, any> = {
   editorial: safeLazy(() => import('../features/discovery/AdvertorialFeed')),
   'aba-stories': safeLazy(() => import('../features/discovery/AdvertorialFeed')),
   reels: safeLazy(() => import('../features/discovery/AdvertorialFeed')),
-  'hardware-audit': safeLazy(() => import('../features/tech/RegistrySetup')),
+  'hardware-audit': safeLazy(() => import('../features/tech/HardwareAudit')),
   'registry-setup': safeLazy(() => import('../features/tech/RegistrySetup'))
 };

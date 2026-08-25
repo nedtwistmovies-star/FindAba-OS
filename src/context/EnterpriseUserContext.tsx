@@ -7,11 +7,15 @@ import React, {
 } from "react";
 
 import { supabase } from "../lib/supabase";
-import { User } from "../types";
+interface EnterpriseUser {
+    id: string;
+    email?: string;
+    [key: string]: unknown;
+}
 
 interface EnterpriseUserContextType {
 
-    user: User | null;
+    user: EnterpriseUser | null;
 
     loading: boolean;
 
@@ -36,7 +40,7 @@ export const EnterpriseUserProvider = ({
     children: React.ReactNode;
 }) => {
 
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<EnterpriseUser | null>(null);
 
     const [loading, setLoading] = useState(true);
 
@@ -70,7 +74,7 @@ export const EnterpriseUserProvider = ({
 
             if (data) {
 
-                setUser(data as User);
+                setUser(data as EnterpriseUser);
 
             }
 
