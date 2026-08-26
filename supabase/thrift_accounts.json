@@ -4,7 +4,7 @@
     "user_id": "dcb290fc-e51c-4000-8675-fad90660b703",
     "protocol_type": "FIDELITY_SAVINGS",
     "amount": null,
-    "status": "active",
+    "status": "withdrawn",
     "created_at": "2026-06-03T20:30:28.384396+00:00",
     "cycle": "monthly",
     "locked_until": "2026-07-03T20:30:26.13+00:00",
