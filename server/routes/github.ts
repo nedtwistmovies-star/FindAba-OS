@@ -130,13 +130,28 @@ githubRouter.get("/sync", async (req, res) => {
           throw authErr;
         }
       }
-      if (!response.data || typeof response.data.content !== "string") {
-        throw new Error("Invalid response from GitHub API while fetching registry.json.");
+      let rawContent = "";
+      if (response.data && typeof response.data.content === "string" && response.data.content.length > 0) {
+        rawContent = Buffer.from(response.data.content, "base64").toString("utf-8").trim();
       }
 
-      const rawContent = Buffer.from(response.data.content, "base64").toString("utf-8").trim();
+      // GitHub API omits content if file size > 1MB, providing sha instead
+      if (!rawContent && response.data?.sha) {
+        try {
+          const blobRes = await githubClient.get(
+            `/repos/${owner}/${name}/git/blobs/${response.data.sha}`,
+            { headers: authHeaders(token) }
+          );
+          if (blobRes.data?.content) {
+            rawContent = Buffer.from(blobRes.data.content, "base64").toString("utf-8").trim();
+          }
+        } catch (blobErr: any) {
+          console.warn("[GitSync] Failed to fetch large file blob:", blobErr.message);
+        }
+      }
+
       if (!rawContent) {
-        return res.json({ success: true, repo, lastUpdated: new Date().toISOString(), data: null, message: "Registry file is empty." });
+        return res.json({ success: true, repo, branch, lastUpdated: new Date().toISOString(), data: null, message: "Registry file is empty." });
       }
 
       let registry;
@@ -147,7 +162,15 @@ githubRouter.get("/sync", async (req, res) => {
         return res.status(422).json({ success: false, error: "Registry file is corrupted or not a valid JSON.", details: "The 'registry.json' file in your GitHub repository contains invalid JSON syntax." });
       }
       
-      res.json({ success: true, repo, lastUpdated: new Date().toISOString(), data: registry });
+      res.json({
+        success: true,
+        repo,
+        branch,
+        lastUpdated: new Date().toISOString(),
+        data: registry,
+        systemHasToken: !!token,
+        systemConfigured: true
+      });
     } catch (fileError: any) {
       if (fileError.response?.status === 404) {
         // Fallback: Check if the repository itself is reachable

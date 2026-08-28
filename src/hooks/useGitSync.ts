@@ -9,6 +9,9 @@ export interface GitSyncStatus {
   lastUpdated?: string;
   data?: any;
   error?: string;
+  details?: string;
+  systemHasToken?: boolean;
+  systemConfigured?: boolean;
 }
 
 export const useGitSync = () => {
@@ -104,9 +107,11 @@ export const useGitSync = () => {
       setStatus({
         connected: true,
         repo: result.repo,
-        branch: targetBranch || 'main',
+        branch: result.branch || targetBranch || 'main',
         lastUpdated: result.lastUpdated,
         data: result.data || [],
+        systemHasToken: result.systemHasToken,
+        systemConfigured: result.systemConfigured,
         error: undefined
       });
       console.log(`[GitSync] Handshake successful: ${targetRepo || 'default'}`);

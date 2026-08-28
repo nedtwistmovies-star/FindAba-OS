@@ -19,11 +19,11 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
   const [gitRepo, setGitRepo] = useState(() => {
     const saved = localStorage.getItem('findaba_git_repo');
     const envRepo = (typeof process !== 'undefined' && process.env) ? process.env.GITHUB_REPO : '';
-    return saved !== null ? saved : (envRepo || '');
+    return (saved && saved.trim()) ? saved.trim() : (envRepo || 'nedtwistmovies-star/FindAba-OS');
   });
   const [gitBranch, setGitBranch] = useState(() => {
     const saved = localStorage.getItem('findaba_git_branch');
-    return saved !== null ? saved : 'main';
+    return (saved && saved.trim()) ? saved.trim() : 'main';
   });
   const [gitPat, setGitPat] = useState(() => localStorage.getItem('findaba_github_pat') || '');
 

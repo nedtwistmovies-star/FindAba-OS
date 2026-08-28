@@ -106,4 +106,3 @@ const VerifyOTP: React.FC<Props> = ({
 };
 
 export default VerifyOTP;
-```
