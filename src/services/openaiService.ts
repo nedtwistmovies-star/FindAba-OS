@@ -1,6 +1,4 @@
 
-import OpenAI from "openai";
-
 export const getOracleStreamOpenAI = async (
   prompt: string, 
   history: any[], 

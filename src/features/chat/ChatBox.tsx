@@ -18,7 +18,7 @@ export default function ChatBox({ user, orderId, otherUser }: any) {
           schema: "public",
           table: "messages",
         },
-        (payload) => {
+        (payload: any) => {
           const msg = payload.new;
 
           if (msg.order_id === orderId) {

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, MessageSquare, Plus, ShoppingBag, Search, Bell, History, X } from 'lucide-react';
 import { VariableSizeList } from 'react-window';
+const VirtualList = VariableSizeList as any;
 import { Post, Story } from '../../types';
 import { fetchPosts, fetchStories } from '../../services/facesService';
 import StoriesBar from '../../components/StoriesBar';
@@ -163,7 +164,7 @@ const FacesFeed: React.FC = () => {
         {/* Virtualized Feed Posts */}
         <div className="flex-1 min-h-0 relative" ref={containerRef}>
           {posts.length > 0 ? (
-            <VariableSizeList
+            <VirtualList
               ref={listRef}
               height={listHeight}
               itemCount={posts.length}
@@ -173,7 +174,7 @@ const FacesFeed: React.FC = () => {
               className="scrollbar-hide"
             >
               {PostRow}
-            </VariableSizeList>
+            </VirtualList>
           ) : (
             <div className="py-32 text-center space-y-4">
               <div className="w-20 h-20 bg-white/5 rounded-[2.5rem] flex items-center justify-center text-white/10 mx-auto border border-white/5">

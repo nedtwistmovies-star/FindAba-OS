@@ -1574,6 +1574,8 @@ export const addRoomToPartner = async (room: Partial<Room>) => {
   await client.from('rooms').insert(room);
 };
 
+export const addRoomToNode = addRoomToPartner;
+
 export const fetchHospitalityConfig = async (): Promise<HospitalityConfig | null> => {
   const client = getSupabase();
   if (!client) return null;

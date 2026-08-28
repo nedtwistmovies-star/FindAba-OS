@@ -16,7 +16,7 @@ export type ViewState =
   | 'onboarding' | 'support' | 'splash';
 
 export type Language = 'en' | 'ig' | 'pcm' | 'ha' | 'yo' | 'fr' | 'zh';
-export type UserRole = 'visitor' | 'registered' | 'business_owner' | 'verified_business' | 'buyer' | 'editor' | 'admin' | 'driver' | 'fleet_commander';
+export type UserRole = 'visitor' | 'registered' | 'business_owner' | 'verified_business' | 'buyer' | 'editor' | 'admin' | 'super_admin' | 'driver' | 'fleet_commander';
 export type Role = UserRole;
 
 export enum VehicleCategory {
@@ -424,6 +424,12 @@ export interface Business {
   verified_presence_lat?: number;
   verified_presence_lng?: number;
   verified_presence_at?: string;
+  featured?: boolean;
+  verified?: boolean;
+  updated_at?: string;
+  owner_id?: string;
+  market_zone?: string;
+  logo_url?: string;
 }
 
 export type ShipmentStatus = 'requested' | 'pickup-scheduled' | 'at-hub' | 'in-transit' | 'delivered' | 'confirmed';
@@ -752,6 +758,8 @@ export interface Profile {
   onboarding_stage?: string;
   created_at: string;
 }
+
+export type User = Profile;
 
 export type PostActionType = 'none' | 'buy' | 'book' | 'reserve' | 'pay';
 

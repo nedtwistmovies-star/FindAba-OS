@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { supabase } from '../../services/supabaseService';
+import { supabase } from '../../lib/supabase';
 
 interface Props {
   setView: (v: any) => void;

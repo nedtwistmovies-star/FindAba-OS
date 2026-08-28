@@ -46,17 +46,12 @@ export class BusinessRegistrationService {
 
     const business: Partial<Business> = {
       ...payload,
-
+      category: payload.category as any,
       verified: false,
-
       featured: false,
-
       rating: 0,
-
       review_count: 0,
-
       created_at: new Date().toISOString(),
-
       updated_at: new Date().toISOString()
     };
 

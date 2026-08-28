@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { subscribeToast } from "../lib/toast";
+import { subscribeToast } from "../toast";
 
 export default function ToastContainer() {
   const [toasts, setToasts] = useState<string[]>([]);

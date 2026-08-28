@@ -71,7 +71,7 @@ app.use(
     crossOriginResourcePolicy: false,
   })
 );
-app.use(compression());
+app.use(compression() as any);
 app.use(
   cors({
     origin: true,
