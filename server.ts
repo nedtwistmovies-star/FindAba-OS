@@ -1,3 +1,8 @@
+import "dotenv/config";
+
+/**
+ * server.ts
+
 /**
  * server.ts
  * Main Express server entry point for FindAba City OS.
