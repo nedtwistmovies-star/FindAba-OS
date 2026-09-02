@@ -38,10 +38,15 @@ const AdManager: React.FC<Props> = ({ business, onBack, setView }) => {
   const [selectedPriceIdx, setSelectedPriceIdx] = useState(0);
 
   useEffect(() => {
-    fetchMerchantAds(business.id).then(data => {
-      setAds(data);
-      setLoading(false);
-    });
+    fetchMerchantAds(business.id)
+      .then(data => {
+        setAds(data || []);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.warn("[AdManager] fetchMerchantAds error:", err);
+        setLoading(false);
+      });
   }, [business.id]);
 
   const currentTier = AD_TIERS[newAd.type as AdType];

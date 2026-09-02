@@ -1574,8 +1574,6 @@ export const addRoomToPartner = async (room: Partial<Room>) => {
   await client.from('rooms').insert(room);
 };
 
-export const addRoomToNode = addRoomToPartner;
-
 export const fetchHospitalityConfig = async (): Promise<HospitalityConfig | null> => {
   const client = getSupabase();
   if (!client) return null;
@@ -1797,7 +1795,11 @@ export const createWelcomeNotification = async (userId: string) => {
 };
 
 export const fetchNotifications = async (userId: string): Promise<AppNotification[]> => {
-  await ensureAuth();
+  try {
+    await ensureAuth();
+  } catch (authErr) {
+    return [];
+  }
   const client = getSupabase();
   if (!client) return [];
   try {
@@ -1815,10 +1817,18 @@ export const fetchNotifications = async (userId: string): Promise<AppNotificatio
 };
 
 export const markNotificationAsRead = async (id: string) => {
-  await ensureAuth();
+  try {
+    await ensureAuth();
+  } catch {
+    return;
+  }
   const client = getSupabase();
   if (!client) return;
-  await client.from('notifications').update({ read: true }).eq('id', id);
+  try {
+    await client.from('notifications').update({ read: true }).eq('id', id);
+  } catch (e) {
+    console.warn('[markNotificationAsRead] update failed:', e);
+  }
 };
 
 // --- PURPLE FLEET & DRIVER NODE PROTOCOLS ---

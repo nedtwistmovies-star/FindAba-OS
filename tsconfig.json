@@ -16,8 +16,8 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["vite/client", "node"]
+    "types": ["vite/client"]
   },
-  "include": ["src/**/*", "server/**/*", "server.ts", "vite.config.ts"],
-  "exclude": ["node_modules", "dist", "supabase", "api"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist", "supabase"]
 }

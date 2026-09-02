@@ -51,30 +51,105 @@ export const GitIntegrationDiagnostics: React.FC = () => {
 
   const runDiagnostics = async () => {
     setLoading(true);
+    const savedPat = localStorage.getItem('findaba_github_pat')?.trim();
+    const savedRepo = localStorage.getItem('findaba_git_repo')?.trim() || 'nedtwistmovies-star/FindAba-OS';
+    const savedBranch = localStorage.getItem('findaba_git_branch')?.trim() || 'main';
+
     try {
-      const savedPat = localStorage.getItem('findaba_github_pat')?.trim();
-      const savedRepo = localStorage.getItem('findaba_git_repo')?.trim() || 'nedtwistmovies-star/FindAba-OS';
-      
       const headers: Record<string, string> = {};
       if (savedPat) headers['X-GitHub-Token'] = savedPat;
 
-      const diagRes = await fetch(`/api/git/diagnostic?repo=${encodeURIComponent(savedRepo)}`, { headers });
-      const diagData = await diagRes.json();
+      let diagData: DiagnosticResult | null = null;
+
+      try {
+        const diagRes = await fetch(`/api/git/diagnostic?repo=${encodeURIComponent(savedRepo)}`, { headers });
+        if (diagRes.ok) {
+          diagData = await diagRes.json();
+        }
+      } catch (proxyErr) {
+        console.warn("Server proxy diagnostic failed, attempting direct GitHub validation:", proxyErr);
+      }
+
+      // If backend was unreachable or returned non-200, do client-side direct validation
+      if (!diagData) {
+        const cleanRepo = savedRepo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '');
+        const directHeaders: Record<string, string> = { Accept: 'application/vnd.github.v3+json' };
+        if (savedPat) directHeaders['Authorization'] = `Bearer ${savedPat}`;
+
+        try {
+          const directRes = await fetch(`https://api.github.com/repos/${cleanRepo}`, { headers: directHeaders });
+          if (directRes.ok) {
+            const repoJson = await directRes.json();
+            diagData = {
+              success: true,
+              repoValid: true,
+              apiReachable: true,
+              message: `GitHub repository '${repoJson.full_name}' is connected and reachable directly (${repoJson.private ? 'Private' : 'Public'}).`,
+              envRepo: cleanRepo,
+              envBranch: savedBranch,
+              hasToken: !!savedPat,
+              checks: {
+                envRepo: 'PRESENT',
+                hasToken: savedPat ? 'CONFIGURED' : 'ANONYMOUS (PUBLIC)',
+                repoFormat: 'VALID',
+                apiStatus: 'REACHABLE (DIRECT)'
+              }
+            };
+          } else {
+            diagData = {
+              success: false,
+              repoValid: true,
+              apiReachable: false,
+              message: `GitHub API response: ${directRes.status} ${directRes.statusText}`,
+              envRepo: cleanRepo,
+              envBranch: savedBranch,
+              hasToken: !!savedPat,
+              checks: {
+                envRepo: 'PRESENT',
+                hasToken: savedPat ? 'TOKEN ERROR' : 'NOT CONFIGURED',
+                repoFormat: 'VALID',
+                apiStatus: `HTTP ${directRes.status}`
+              }
+            };
+          }
+        } catch (directErr: any) {
+          diagData = {
+            success: false,
+            repoValid: false,
+            apiReachable: false,
+            message: `Could not reach GitHub API: ${directErr.message}`,
+            envRepo: cleanRepo,
+            envBranch: savedBranch,
+            hasToken: !!savedPat,
+            checks: {
+              envRepo: 'PRESENT',
+              hasToken: savedPat ? 'CONFIGURED' : 'MISSING',
+              repoFormat: 'VALID',
+              apiStatus: 'OFFLINE'
+            }
+          };
+        }
+      }
+
       setDiagnostics(diagData);
 
-      const logsRes = await fetch('/api/git/webhook-logs', { headers });
-      const logsData = await logsRes.json();
-      const logs = logsData.logs || [];
-      setWebhookLogs(logs);
+      try {
+        const logsRes = await fetch('/api/git/webhook-logs', { headers });
+        if (logsRes.ok) {
+          const logsData = await logsRes.json();
+          const logs = logsData.logs || [];
+          setWebhookLogs(logs);
+          const hasActivity = logs.some((log: any) => log.event === 'ping' || log.event === 'push');
+          setWebhookActive(hasActivity);
+        }
+      } catch {
+        // Safe ignore for webhook logs
+      }
 
-      // Webhook is considered active if we have received a ping or a push event recently
-      const hasActivity = logs.some((log: any) => log.event === 'ping' || log.event === 'push');
-      setWebhookActive(hasActivity);
-
-      if (diagData.success) {
+      if (diagData?.success) {
         addToast("GitHub integration diagnostics complete.", "success");
       } else {
-        addToast("Diagnostics found configuration issues.", "info");
+        addToast(diagData?.message || "Diagnostics found configuration issues.", "info");
       }
     } catch (err) {
       console.error("Diagnostics failed:", err);

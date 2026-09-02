@@ -33,23 +33,36 @@ export default function Dashboard() {
 
   useEffect(() => {
     const sb = getSupabase();
-    if (!sb) return;
+    if (!sb) {
+      setLoading(false);
+      return;
+    }
 
-    sb.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      if (data.user) {
-        Promise.all([
-          fetchUserProfile(data.user.id),
-          fetchOrdersForBuyer(data.user.id),
-        ]).then(([p, ordersData]) => {
-          setProfile(p);
-          setOrders(ordersData);
+    sb.auth.getUser()
+      .then(({ data }) => {
+        setUser(data?.user || null);
+        if (data?.user) {
+          Promise.all([
+            fetchUserProfile(data.user.id),
+            fetchOrdersForBuyer(data.user.id),
+          ])
+            .then(([p, ordersData]) => {
+              setProfile(p);
+              setOrders(ordersData || []);
+              setLoading(false);
+            })
+            .catch(err => {
+              console.warn("[Dashboard] Profile or orders fetch error:", err);
+              setLoading(false);
+            });
+        } else {
           setLoading(false);
-        });
-      } else {
+        }
+      })
+      .catch(err => {
+        console.warn("[Dashboard] getUser error:", err);
         setLoading(false);
-      }
-    });
+      });
   }, []);
 
   const getStatusColor = (status: OrderStatus) => {

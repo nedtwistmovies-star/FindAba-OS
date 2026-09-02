@@ -1,17 +1,4 @@
-import { supabase } from "./supabase";
-
 const API = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || '';
-
-export async function signInWithEmail(email: string) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
-    }
-  });
-  if (error) throw error;
-  return true;
-}
 
 export async function sendOTP(phone: string) {
   if (!API) {

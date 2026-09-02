@@ -154,9 +154,11 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
   const messages = currentConversation?.messages || [];
 
   useEffect(() => {
-    syncGeminiConfig().then(synced => {
-      if (synced.status === 'healthy') setSignalLocked(true);
-    });
+    syncGeminiConfig()
+      .then(synced => {
+        if (synced.status === 'healthy') setSignalLocked(true);
+      })
+      .catch(err => console.warn("[Oracle] syncGeminiConfig error:", err));
   }, []);
 
   useEffect(() => {
@@ -334,9 +336,11 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
 
       // Auto-titling for new conversations
       if (targetConv && targetConv.title === 'New Conversation') {
-        generateConversationTitle(val).then(newTitle => {
-          renameConversation(activeConvId!, newTitle);
-        });
+        generateConversationTitle(val)
+          .then(newTitle => {
+            renameConversation(activeConvId!, newTitle);
+          })
+          .catch(err => console.warn("[Oracle] Auto-titling error:", err));
       }
 
       if (res.thoughtProcess) setShowThinkingId(modelMsg.id);

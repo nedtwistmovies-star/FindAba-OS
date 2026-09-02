@@ -110,16 +110,3 @@ export const storageService = {
     if (error) throw error;
   }
 };
-
-export const uploadAvatar = (userId: string, file: File): Promise<StorageResult> =>
-  storageService.uploadAvatar(userId, file);
-
-export const uploadProductImage = (userId: string, productId: string, file: File): Promise<StorageResult> =>
-  storageService.uploadProductImage(userId, productId, file);
-
-export const uploadPostMedia = (userId: string, postId: string, file: File): Promise<StorageResult> =>
-  storageService.uploadPostMedia(userId, postId, file);
-
-export const deleteFile = (path: string): Promise<void> =>
-  storageService.deleteFile(path);
-

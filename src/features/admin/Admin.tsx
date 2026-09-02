@@ -77,6 +77,7 @@ import TasksManager from "./components/TasksManager";
 import WhatsAppWebhookDashboard from "./components/WhatsAppWebhookDashboard";
 import GitSyncSupabaseCommit from "./components/GitSyncSupabaseCommit";
 import { GitIntegrationDiagnostics } from "./components/GitIntegrationDiagnostics";
+import { DevActivity } from "./components/DevActivity";
 
 const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
   const { addToast } = useToast();
@@ -407,6 +408,15 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
                   </div>
                 </BentoItem>
               </BentoGrid>
+
+              {/* Developer & Repository Activity */}
+              <div className="space-y-6">
+                <SectionHeader title="Development Activity" subtitle="Real-time repository commits and code push stream" />
+                <DevActivity 
+                  limit={5} 
+                  onViewAll={() => setActiveTab('git')}
+                />
+              </div>
             </div>
           )}
 
@@ -426,6 +436,8 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
 
           {activeTab === 'git' && (
             <div className="space-y-12">
+              <SectionHeader title="Live Commit Feed" subtitle="5 most recent commits from configured environment repository" />
+              <DevActivity limit={5} />
               <SectionHeader title="GitHub Integration Diagnostics" subtitle="Connection integrity and webhook monitoring" />
               <GitIntegrationDiagnostics />
               <SectionHeader title="Repository Synchronization" subtitle="Commit registry data and system files to GitHub" />
