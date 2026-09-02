@@ -71,7 +71,7 @@ app.use(
     crossOriginResourcePolicy: false,
   })
 );
-app.use(compression());
+app.use(compression() as any);
 app.use(
   cors({
     origin: true,
@@ -122,61 +122,6 @@ app.use("/api/whatsapp", whatsappRouter);
 app.use("/api", paymentRouter);
 app.use("/api", emailRouter);
 app.use("/api/stories", storiesRouter);
-
-// Weather Proxy Route with in-memory caching to avoid client-side CORS issues
-let cachedWeather: any = null;
-let lastWeatherFetch = 0;
-
-app.get("/api/weather", async (_req: Request, res: Response) => {
-  const now = Date.now();
-  if (cachedWeather && (now - lastWeatherFetch < 10 * 60 * 1000)) {
-    return res.json(cachedWeather);
-  }
-
-  const defaultWeather = {
-    temp: "29°C",
-    condition: "Harmattan / Partly Cloudy",
-    humidity: "74%",
-    wind: "12 km/h SW",
-    powerGridStatus: "Osisioma Feeder: Normal (132kV)",
-    trafficState: "Ariaria Junction: Moving Swiftly",
-    commercialPulse: "High Industrial Output"
-  };
-
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
-    const response = await fetch("https://wttr.in/Aba?format=%t|%C|%h|%w", {
-      signal: controller.signal,
-      headers: { "User-Agent": "curl/7.68.0" }
-    });
-    clearTimeout(timer);
-
-    if (response.ok) {
-      const text = await response.text();
-      if (text && text.includes("|") && !text.includes("<html")) {
-        const parts = text.split("|");
-        cachedWeather = {
-          temp: (parts[0] || "29°C").trim().slice(0, 10),
-          condition: (parts[1] || "Partly Cloudy").trim().slice(0, 30),
-          humidity: (parts[2] || "74%").trim().slice(0, 10),
-          wind: (parts[3] || "12 km/h SW").trim().slice(0, 20),
-          powerGridStatus: "Osisioma Feeder: Normal (132kV)",
-          trafficState: "Ariaria Junction: Moving Swiftly",
-          commercialPulse: "High Industrial Output"
-        };
-        lastWeatherFetch = now;
-        return res.json(cachedWeather);
-      }
-    }
-  } catch (err) {
-    // Weather fetch fallback to default
-  }
-
-  cachedWeather = defaultWeather;
-  lastWeatherFetch = now;
-  return res.json(defaultWeather);
-});
 
 // Launch background story scraper service on long-running node instances
 if (!env.IS_VERCEL) {

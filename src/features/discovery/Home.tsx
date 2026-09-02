@@ -29,9 +29,7 @@ const CitySignals: React.FC = () => {
 
   useEffect(() => {
     setMarketDay(getIgboMarketDay());
-    getAbaWeather()
-      .then(setWeather)
-      .catch(err => console.warn("[Home] Weather error:", err));
+    getAbaWeather().then(setWeather);
     
     const checkStatus = async () => {
       try {

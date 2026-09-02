@@ -27,37 +27,45 @@ export interface WeatherData {
 export async function getAbaWeather(): Promise<WeatherData> {
   const defaultWeather: WeatherData = {
     temp: '28°C',
-    condition: 'Harmattan / Clear',
+    condition: 'Clear',
     humidity: '65%',
     wind: '12km/h'
   };
 
   try {
+    // Using wttr.in for a simple, no-key-required weather signal
+    // Added a timeout to prevent long-hanging fetches
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    // Call server proxy to completely prevent client-side CORS failures
-    const response = await fetch('/api/weather', {
-      signal: controller.signal,
-      headers: { 'Accept': 'application/json' }
+    const response = await fetch('https://wttr.in/Aba?format=%t|%C|%h|%w', {
+      signal: controller.signal
     }).catch(() => null);
     
     clearTimeout(timeoutId);
 
-    if (response && response.ok) {
-      const data = await response.json().catch(() => null);
-      if (data && data.temp) {
-        return {
-          temp: String(data.temp).trim().slice(0, 10),
-          condition: String(data.condition || 'Partly Cloudy').trim().slice(0, 30),
-          humidity: String(data.humidity || '65%').trim().slice(0, 10),
-          wind: String(data.wind || '12km/h').trim().slice(0, 20)
-        };
-      }
+    if (!response || !response.ok) return defaultWeather;
+    
+    const text = (await response.text()).slice(0, 500);
+    if (!text || !text.includes('|') || text.includes('<!DOCTYPE') || text.includes('<html')) {
+      throw new Error('Invalid weather signal received');
     }
-
-    return defaultWeather;
+    
+    const parts = text.split('|');
+    if (parts.length < 2) throw new Error('Incomplete weather signal');
+    
+    const [temp, condition, humidity, wind] = parts;
+    return {
+      temp: (temp || '28°C').trim().slice(0, 10),
+      condition: (condition || 'Clear').trim().slice(0, 30),
+      humidity: (humidity || '65%').trim().slice(0, 10),
+      wind: (wind || '12km/h').trim().slice(0, 20)
+    };
   } catch (error: any) {
+    // Only log actual errors, not aborts or common network failures in dev
+    if (error.name !== 'AbortError') {
+      // Silence log
+    }
     return defaultWeather;
   }
 }

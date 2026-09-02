@@ -36,9 +36,7 @@ const PurpleFleet: React.FC<{ setView: (v: ViewState) => void }> = ({ setView })
         setPickup("Current Location (GPS Verified)");
       }
     }).catch(() => {});
-    fetchAllVehicles().then(setAllVehicles).catch(err => {
-      console.warn("[PurpleFleet] fetchAllVehicles error:", err);
-    });
+    fetchAllVehicles().then(setAllVehicles);
 
     // Subscribe to real-time driver signals
     const sub = subscribeToDriverSignals((payload) => {

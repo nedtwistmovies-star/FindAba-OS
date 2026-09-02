@@ -27,18 +27,15 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
   // Initial like state check
   useEffect(() => {
     if (user_id) {
-      import('../lib/supabaseClient')
-        .then(({ supabase }) => {
-          supabase
-            .from('likes')
-            .select('id')
-            .eq('post_id', post.id)
-            .eq('user_id', user_id)
-            .single()
-            .then(({ data }: { data: any }) => setIsLiked(!!data))
-            .catch(() => {});
-        })
-        .catch(() => {});
+      import('../lib/supabaseClient').then(({ supabase }) => {
+        supabase
+          .from('likes')
+          .select('id')
+          .eq('post_id', post.id)
+          .eq('user_id', user_id)
+          .single()
+          .then(({ data }: { data: any }) => setIsLiked(!!data));
+      });
     }
   }, [post.id, user_id]);
 

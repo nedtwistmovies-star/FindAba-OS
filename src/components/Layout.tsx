@@ -87,9 +87,7 @@ const SystemClock: React.FC = () => {
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     setMarketDay(getIgboMarketDay());
-    getAbaWeather()
-      .then(setWeather)
-      .catch(err => console.warn("[SystemClock] Weather error:", err));
+    getAbaWeather().then(setWeather);
     return () => clearInterval(timer);
   }, []);
 
@@ -328,20 +326,16 @@ const Layout: React.FC<LayoutProps> = ({
 
   useEffect(() => {
     if (isAuth && userIdentifier) {
-      fetchNotifications(userIdentifier)
-        .then((data: AppNotification[]) => {
-          if (data && data.length > 0) {
-            setNotifications((prev) => {
-              // Merge with local hardcoded ones, avoiding duplicates if any
-              const existingIds = new Set(prev.map((n) => n.id));
-              const newOnes = data.filter((n) => !existingIds.has(n.id));
-              return [...newOnes, ...prev];
-            });
-          }
-        })
-        .catch(err => {
-          console.warn("[Layout] fetchNotifications error:", err);
-        });
+      fetchNotifications(userIdentifier).then((data: AppNotification[]) => {
+        if (data && data.length > 0) {
+          setNotifications((prev) => {
+            // Merge with local hardcoded ones, avoiding duplicates if any
+            const existingIds = new Set(prev.map((n) => n.id));
+            const newOnes = data.filter((n) => !existingIds.has(n.id));
+            return [...newOnes, ...prev];
+          });
+        }
+      });
     }
   }, [isAuth, userIdentifier]);
 

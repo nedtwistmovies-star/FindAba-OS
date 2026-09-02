@@ -25,6 +25,7 @@ import {
   FileJson,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import IndustrialButton from "../../../components/IndustrialButton";
@@ -122,13 +123,20 @@ export const WhatsAppWebhookDashboard: React.FC = () => {
       const query = search.toLowerCase().trim();
       if (!query) return matchesStatus;
 
+      const senderStr = (evt.sender || "").toLowerCase();
+      const senderNameStr = (evt.senderName || "").toLowerCase();
+      const senderPhoneStr = (evt.senderPhone || "").toLowerCase();
+      const summaryStr = (evt.summary || "").toLowerCase();
+      const idStr = (evt.id || "").toLowerCase();
+      const payloadStr = JSON.stringify(evt.payload || {}).toLowerCase();
+
       const matchesQuery =
-        evt.sender.toLowerCase().includes(query) ||
-        evt.senderName.toLowerCase().includes(query) ||
-        evt.senderPhone.toLowerCase().includes(query) ||
-        evt.summary.toLowerCase().includes(query) ||
-        evt.id.toLowerCase().includes(query) ||
-        JSON.stringify(evt.payload).toLowerCase().includes(query);
+        senderStr.includes(query) ||
+        senderNameStr.includes(query) ||
+        senderPhoneStr.includes(query) ||
+        summaryStr.includes(query) ||
+        idStr.includes(query) ||
+        payloadStr.includes(query);
 
       return matchesStatus && matchesQuery;
     });
@@ -233,33 +241,62 @@ export const WhatsAppWebhookDashboard: React.FC = () => {
       </div>
 
       {/* Controls & Filter Bar */}
-      <div className="flex flex-col md:flex-row justify-between gap-4 p-4 bg-white/5 rounded-3xl border border-white/5">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={16} />
-          <input
-            type="text"
-            placeholder="Search payload, sender name, phone number or ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:border-aba-gold/50 transition-colors"
-          />
+      <div className="space-y-3">
+        <div className="flex flex-col md:flex-row justify-between gap-4 p-4 bg-white/5 rounded-3xl border border-white/5">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={16} />
+            <input
+              id="whatsapp-event-search-input"
+              type="text"
+              placeholder="Filter by sender name, sender phone, or payload content..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-10 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:border-aba-gold/50 transition-colors"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                title="Clear filter"
+                aria-label="Clear filter"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
+            {["all", "received", "processed", "delivered", "read", "failed"].map((st) => (
+              <button
+                key={st}
+                onClick={() => setSelectedStatus(st)}
+                className={`px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
+                  selectedStatus === st
+                    ? "bg-white text-aba-dark shadow-lg scale-[1.02]"
+                    : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
-          {["all", "received", "processed", "delivered", "read", "failed"].map((st) => (
-            <button
-              key={st}
-              onClick={() => setSelectedStatus(st)}
-              className={`px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
-                selectedStatus === st
-                  ? "bg-white text-aba-dark shadow-lg scale-[1.02]"
-                  : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              {st}
-            </button>
-          ))}
-        </div>
+        {/* Active Filter & Count Status */}
+        {search.trim() && (
+          <div className="flex items-center justify-between px-4 py-2 bg-aba-gold/10 border border-aba-gold/20 rounded-2xl text-xs text-aba-gold">
+            <div className="flex items-center gap-2">
+              <Filter size={13} />
+              <span className="font-bold">
+                Filtering by: <span className="font-mono text-white underline">"{search.trim()}"</span>
+              </span>
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-aba-gold/80">
+              Showing {filteredEvents.length} of {events.length} events
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Real-time SSE Stream Banner / Flash Indicator */}
