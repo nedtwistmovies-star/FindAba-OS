@@ -1812,13 +1812,16 @@ export const fetchNotifications = async (userId: string): Promise<AppNotificatio
   if (!targetId) {
     try {
       const { data } = await client.auth.getSession();
-      if (data?.session?.user?.id) {
-        targetId = data.session.user.id;
+      const sessId = data?.session?.user?.id;
+      if (sessId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessId.trim())) {
+        targetId = sessId.trim();
       }
     } catch {}
   }
 
-  if (!targetId) return [];
+  if (!targetId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId)) {
+    return [];
+  }
 
   try {
     const { data, error } = await client

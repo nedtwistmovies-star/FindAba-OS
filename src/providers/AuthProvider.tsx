@@ -150,13 +150,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const SESSION_TIMEOUT = hasStoredAuth ? 8000 : 3500;
         console.log('STEP_3_BEFORE_GET_SESSION');
         
+        let isResolved = false;
         let timeoutHandle: any = null;
         const sessionResponse = await Promise.race([
-          sb.auth.getSession().finally(() => {
+          sb.auth.getSession().then((res: any) => {
+            isResolved = true;
             if (timeoutHandle) clearTimeout(timeoutHandle);
+            return res;
+          }).catch((err: any) => {
+            isResolved = true;
+            if (timeoutHandle) clearTimeout(timeoutHandle);
+            throw err;
           }),
           new Promise((resolve) => {
             timeoutHandle = setTimeout(() => {
+              if (isResolved) return;
               console.warn(`[AuthProvider] SESSION_TIMEOUT_EXCEEDED | getSession exceeded ${SESSION_TIMEOUT}ms`);
               resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } });
             }, SESSION_TIMEOUT);

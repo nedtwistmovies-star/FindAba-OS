@@ -61,10 +61,10 @@ const FacesFeed: React.FC = () => {
   }, [posts]);
 
   const fetchNotifs = async () => {
-    if (!user_id) return;
+    if (!user_id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user_id.trim())) return;
     try {
       const { fetchNotifications } = await import('../../services/supabaseService');
-      const data = await fetchNotifications(user_id);
+      const data = await fetchNotifications(user_id.trim());
       setNotifications(data);
     } catch (e) {
       console.warn("Notification fetch failed");

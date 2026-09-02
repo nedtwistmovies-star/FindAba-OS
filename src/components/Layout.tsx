@@ -325,9 +325,10 @@ const Layout: React.FC<LayoutProps> = ({
   }, []);
 
   useEffect(() => {
-    const targetUserId = user_id || profile?.id;
-    if (isAuth && targetUserId) {
-      fetchNotifications(targetUserId).then((data: AppNotification[]) => {
+    const rawId = user_id || profile?.id;
+    const isUuid = rawId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId.trim());
+    if (isAuth && isUuid) {
+      fetchNotifications(rawId.trim()).then((data: AppNotification[]) => {
         if (data && data.length > 0) {
           setNotifications((prev) => {
             // Merge with local hardcoded ones, avoiding duplicates if any
