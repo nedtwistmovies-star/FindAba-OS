@@ -248,7 +248,7 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const { addToast } = useToast();
   const { language, setLanguage, t } = useLanguage();
-  const { userIdentifier, userName, isAuth, profile, userRole } = useAuth();
+  const { userIdentifier, userName, isAuth, profile, userRole, user_id } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const safeProfile = profile || {};
   const {
@@ -325,8 +325,9 @@ const Layout: React.FC<LayoutProps> = ({
   }, []);
 
   useEffect(() => {
-    if (isAuth && userIdentifier) {
-      fetchNotifications(userIdentifier).then((data: AppNotification[]) => {
+    const targetUserId = user_id || profile?.id;
+    if (isAuth && targetUserId) {
+      fetchNotifications(targetUserId).then((data: AppNotification[]) => {
         if (data && data.length > 0) {
           setNotifications((prev) => {
             // Merge with local hardcoded ones, avoiding duplicates if any
@@ -337,14 +338,15 @@ const Layout: React.FC<LayoutProps> = ({
         }
       });
     }
-  }, [isAuth, userIdentifier]);
+  }, [isAuth, user_id, profile?.id]);
 
   const isSealed = localStorage.getItem("findaba_registry_sealed") === "true";
 
   useEffect(() => {
+    let isMounted = true;
     const checkHealth = async () => {
       const sb = getSupabase();
-      setIsRegistryActive(!!sb);
+      if (isMounted) setIsRegistryActive(!!sb);
 
       const { checkDatabaseHealth } =
         await import("../services/supabaseService");
@@ -352,20 +354,22 @@ const Layout: React.FC<LayoutProps> = ({
 
       const dbHealth = await checkDatabaseHealth();
       const gHealth = await syncGeminiConfig();
-      
-      // Also trigger a background git sync to keep status fresh
-      syncGit();
 
-      const healthy =
-        dbHealth.status === "healthy" && gHealth.status !== "unhealthy";
-      setIsSignalHealthy(healthy);
-      setHealthMessage(dbHealth.message || gHealth.message || "");
+      if (isMounted) {
+        const healthy =
+          dbHealth.status !== "unhealthy" && gHealth.status !== "unhealthy";
+        setIsSignalHealthy(healthy);
+        setHealthMessage(dbHealth.message || gHealth.message || "");
+      }
     };
 
     checkHealth();
     const interval = setInterval(checkHealth, 60000);
-    return () => clearInterval(interval);
-  }, [currentView, syncGit]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (appLogo) setActiveLogo(appLogo);

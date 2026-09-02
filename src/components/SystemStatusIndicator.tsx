@@ -23,14 +23,14 @@ const SystemStatusIndicator: React.FC = () => {
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const checkConnectivity = async () => {
+  const checkConnectivity = async (retryCount = 0) => {
     setIsSyncing(true);
     setStatus('checking');
     const start = performance.now();
     
-    // Create an AbortController with a 5 second timeout to prevent hanging fetches
+    // 10-second timeout to accommodate cold starts
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
       const response = await fetch('/api/health', {
@@ -49,13 +49,23 @@ const SystemStatusIndicator: React.FC = () => {
         setLastChecked(new Date());
         setLastCheckError(null);
       } else {
+        // If initial load or cold-start, retry once after 1.5s
+        if (retryCount === 0) {
+          setTimeout(() => checkConnectivity(1), 1500);
+          return;
+        }
         const errorText = await response.text().catch(() => 'No response body');
         setStatus('disconnected');
         setLatency(null);
-        setLastCheckError(`The system returned an issue: ${errorText.slice(0, 50)}`);
+        setLastCheckError(`System issue: ${errorText.slice(0, 50)}`);
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
+      if (retryCount === 0) {
+        // Immediate single retry after 2 seconds for initial container spin-up
+        setTimeout(() => checkConnectivity(1), 2000);
+        return;
+      }
       console.warn('[SystemStatus] Periodic connectivity poll failed:', err);
       setStatus('disconnected');
       setLatency(null);

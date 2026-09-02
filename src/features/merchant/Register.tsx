@@ -140,7 +140,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
             address: formData.address,
             phone_whatsapp: formData.phone_whatsapp,
             description: formData.description,
-            image_url: formData.image_url || 'https://images.unsplash.com/photo-1531315630201-bb15bbeb166a?q=80&w=800',
+            image_url: formData.image_url || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800',
             status: 'pending',
             verification_status: 'Unverified',
             verification_level: 'Listed',

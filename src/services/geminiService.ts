@@ -12,17 +12,23 @@ export const setGeminiKey = (_key: string) => {
 };
 
 let isSyncing = false;
+let lastSyncTime = 0;
+let cachedHealthStatus: GeminiHealthStatus | null = null;
 
 /**
  * SIGNAL SYNC PROTOCOL: Check server config status without client-side key storage
  */
-export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
+export const syncGeminiConfig = async (force: boolean = false): Promise<GeminiHealthStatus> => {
+  const now = Date.now();
+  if (!force && cachedHealthStatus && (now - lastSyncTime < 30000)) {
+    return cachedHealthStatus;
+  }
+
   if (isSyncing) {
-    return { status: 'warning', message: 'Sync already in progress' };
+    return cachedHealthStatus || { status: 'healthy', message: 'Sync in progress' };
   }
   
   isSyncing = true;
-  console.log("[Oracle] Initiating Signal Sync Protocol...");
   
   try {
     const syncUrl = '/api/config';
@@ -44,19 +50,25 @@ export const syncGeminiConfig = async (): Promise<GeminiHealthStatus> => {
         }
 
         if (config.hasOpenRouterKey || config.hasGeminiKey) {
-          return { status: 'healthy', message: 'Oracle Signals Active (Server)', source: 'server' };
+          cachedHealthStatus = { status: 'healthy', message: 'Oracle Signals Active (Server)', source: 'server' };
+          lastSyncTime = Date.now();
+          return cachedHealthStatus;
         }
       }
     }
 
-    return { status: 'healthy', message: 'Oracle Signal Ready (Server Proxy)', source: 'server' };
+    cachedHealthStatus = { status: 'healthy', message: 'Oracle Signal Ready (Server Proxy)', source: 'server' };
+    lastSyncTime = Date.now();
+    return cachedHealthStatus;
   } catch (error) {
     console.warn("[Oracle] Server Sync Fault:", error);
-    return { 
+    cachedHealthStatus = { 
       status: 'warning', 
       message: 'Oracle Signal Active in Proxy Mode', 
       source: 'server' 
     };
+    lastSyncTime = Date.now();
+    return cachedHealthStatus;
   } finally {
     isSyncing = false;
   }

@@ -220,8 +220,15 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (loading) return;
     setLoading(true);
     try {
+      const { getSupabase, saveBusinessToDB } = await import('../services/supabaseService');
+      const sb = getSupabase();
+      const { data: { session } } = sb ? await sb.auth.getSession() : { data: { session: null } };
+      if (!session) {
+        addToast("Please sign in as an admin or business owner to commit to the cloud.", "info");
+        return;
+      }
+
       addToast("Committing local registry to industrial cloud...", "info");
-      const { saveBusinessToDB } = await import('../services/supabaseService');
       
       let successCount = 0;
       let failCount = 0;

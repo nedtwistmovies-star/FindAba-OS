@@ -117,12 +117,12 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
       const synced = await syncGeminiConfig();
       const { checkDatabaseHealth } = await import('../../services/supabaseService');
       const health = await checkDatabaseHealth();
-      setSignalLocked(synced.status === 'healthy' && health.status === 'healthy');
+      setSignalLocked(synced.status !== 'unhealthy' && health.status !== 'unhealthy');
     };
     checkSignal();
     
-    // Periodically check signal health
-    const interval = setInterval(checkSignal, 15000);
+    // Periodically check signal health once every 60 seconds
+    const interval = setInterval(checkSignal, 60000);
     return () => clearInterval(interval);
   }, []);
   const [input, setInput] = useState('');

@@ -726,13 +726,11 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
       <section className="px-6 md:px-12 mb-40 max-w-7xl mx-auto w-full">
         <div className="bg-aba-gold p-0.5 rounded-3xl shadow-xl overflow-hidden">
           <div className="bg-aba-deep rounded-[1.4rem] overflow-hidden relative aspect-video group">
-            <video 
-              src="https://assets.mixkit.co/videos/preview/mixkit-blacksmith-working-on-a-piece-of-metal-41005-large.mp4" 
-              autoPlay 
-              muted 
-              loop 
-              playsInline 
-              className="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-standard duration-1000"
+            <img 
+              src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1600&auto=format&fit=crop" 
+              alt="Aba in Action" 
+              className="w-full h-full object-cover opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-1000"
+              loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-aba-deep via-transparent to-transparent" />
             

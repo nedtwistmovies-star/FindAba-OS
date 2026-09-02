@@ -143,18 +143,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateBootDiagnostics({ authListenerActive: true });
         
         // 🔹 TIMEOUT_PROTECTED_GET_SESSION
-        const SESSION_TIMEOUT = 30000;
+        const hasStoredAuth = typeof localStorage !== 'undefined' && (
+          localStorage.getItem('findaba_is_auth') === 'true' ||
+          Object.keys(localStorage).some(k => k.includes('auth-token') || k.startsWith('sb-'))
+        );
+        const SESSION_TIMEOUT = hasStoredAuth ? 8000 : 3500;
         console.log('STEP_3_BEFORE_GET_SESSION');
         
+        let timeoutHandle: any = null;
         const sessionResponse = await Promise.race([
-          sb.auth.getSession(),
-          new Promise((resolve) => 
-            setTimeout(() => {
+          sb.auth.getSession().finally(() => {
+            if (timeoutHandle) clearTimeout(timeoutHandle);
+          }),
+          new Promise((resolve) => {
+            timeoutHandle = setTimeout(() => {
               console.warn(`[AuthProvider] SESSION_TIMEOUT_EXCEEDED | getSession exceeded ${SESSION_TIMEOUT}ms`);
               resolve({ data: { session: null }, error: { message: 'SESSION_TIMEOUT_EXCEEDED' } });
-            }, SESSION_TIMEOUT)
-          )
+            }, SESSION_TIMEOUT);
+          })
         ]) as any;
+        if (timeoutHandle) clearTimeout(timeoutHandle);
         
         const { data: { session }, error: sessionError } = sessionResponse;
         

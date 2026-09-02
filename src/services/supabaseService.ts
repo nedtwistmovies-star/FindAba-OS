@@ -864,8 +864,12 @@ export const saveBusinessToDB = async (business: Business) => {
   const { data: { session } } = await client.auth.getSession();
   const activeUid = session?.user?.id;
   
-  // Use session ID if available, otherwise fallback (e.g. for seed or admin)
-  const userId = activeUid || business.user_id;
+  if (!activeUid) {
+    throw new Error("Authentication Required: You must be signed in to commit business data to the registry.");
+  }
+
+  // Use active authenticated session ID to satisfy RLS
+  const userId = activeUid;
 
   let currentPayload: any = { 
     ...business,
@@ -1799,12 +1803,28 @@ export const createWelcomeNotification = async (userId: string) => {
 export const fetchNotifications = async (userId: string): Promise<AppNotification[]> => {
   await ensureAuth();
   const client = getSupabase();
-  if (!client) return [];
+  if (!client || !userId) return [];
+
+  // Notifications table user_id is a UUID. If an email or non-UUID was provided, resolve session user ID
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId.trim());
+  let targetId = isUuid ? userId.trim() : null;
+
+  if (!targetId) {
+    try {
+      const { data } = await client.auth.getSession();
+      if (data?.session?.user?.id) {
+        targetId = data.session.user.id;
+      }
+    } catch {}
+  }
+
+  if (!targetId) return [];
+
   try {
     const { data, error } = await client
       .from('notifications')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', targetId)
       .order('created_at', { ascending: false });
     if (error && error.code === '42P01') return [];
     return (data || []).map(n => ({
