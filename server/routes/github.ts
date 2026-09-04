@@ -11,6 +11,9 @@ import {
   authHeaders,
   normalizeRepo,
   getRepoMeta,
+  formatGithubError,
+  getBranchCommitAndTree,
+  createTreeAndCommit,
 } from "../services/github";
 
 export const githubRouter = Router();
@@ -53,51 +56,6 @@ async function collectProjectFiles(rootDir: string) {
 
   await readDir(rootDir);
   return files;
-}
-
-/** Read-only registry pull. */
-function formatGithubError(error: any, repo: string, token: string | null): { status: number; details: string } {
-  const status = error.response?.status || 500;
-  let rawMsg = "Unknown error";
-
-  if (error.response?.data) {
-    if (typeof error.response.data === "string") {
-      rawMsg = error.response.data;
-    } else if (typeof error.response.data === "object" && error.response.data !== null) {
-      rawMsg = error.response.data.message || error.response.data.error || JSON.stringify(error.response.data);
-    }
-  } else if (error.message) {
-    rawMsg = typeof error.message === "string" ? error.message : String(error.message);
-  }
-
-  if (typeof rawMsg === "string" && (rawMsg.includes("Unexpected end of JSON input") || rawMsg.includes("JSON") || rawMsg.includes("Unexpected token"))) {
-    rawMsg = `GitHub API payload could not be parsed. Ensure repository '${repo || "configured"}' exists and contains a valid registry.json.`;
-  }
-
-  if (status === 404) {
-    return {
-      status: 404,
-      details: `Repository '${repo}' or registry file not found. If it's a private repository, ensure your token is valid and has 'repo' scope.`,
-    };
-  }
-
-  if (status === 403 || status === 401 || (typeof rawMsg === 'string' && rawMsg.includes("Resource not accessible"))) {
-    const isRateLimit = error.response?.headers?.["x-ratelimit-remaining"] === "0";
-    if (isRateLimit) {
-      return { status: 429, details: "GitHub API rate limit exceeded. Please provide a valid GITHUB_TOKEN." };
-    }
-    if (typeof rawMsg === 'string' && rawMsg.includes("Resource not accessible") || status === 403) {
-      return {
-        status: 403,
-        details: `GitHub Personal Access Token lacks required write permissions for repository '${repo}'. Please grant 'repo' scope (classic PAT) or 'Contents: Read & Write' permission (fine-grained PAT).`,
-      };
-    }
-    return {
-      status: 401,
-      details: token ? "Invalid or expired GitHub Token. Please update your token or reconnect." : "Authentication required for private repository.",
-    };
-  }
-  return { status, details: String(rawMsg) };
 }
 
 /** Read-only registry pull. */
@@ -198,7 +156,7 @@ githubRouter.get("/sync", async (req, res) => {
   }
 });
 
-/** Full repo sync — writes to GitHub, admin only. */
+/** Full repo sync — writes generated FindAba data and registry to GitHub, admin only. */
 githubRouter.post("/sync-full", ensureAdmin, async (req, res) => {
   let repo = (req.query.repo as string) || env.GITHUB_REPO;
   const branchOverride = (req.query.branch as string) || undefined;
@@ -211,50 +169,46 @@ githubRouter.post("/sync-full", ensureAdmin, async (req, res) => {
 
   try {
     const [owner, name] = repo.split("/");
-    const headers = authHeaders(token);
+    if (!owner || !name) return res.status(400).json({ error: "Invalid repository format" });
 
-    const files = await collectProjectFiles(process.cwd());
-    console.log(`[GitSync] Found ${files.length} files to sync.`);
+    const treeItems: Array<{ path: string; mode?: string; type?: string; content: string }> = [];
 
+    // Fetch live Supabase registry data
     try {
       const { data: businesses } = await supabase.from("businesses").select("*").order("created_at", { ascending: false }).limit(500);
       if (businesses) {
         const registryContent = JSON.stringify({ version: "v6.0", lastUpdated: new Date().toISOString(), businesses }, null, 2);
-        const existingIdx = files.findIndex((f) => f.path === "registry.json");
-        if (existingIdx >= 0) files[existingIdx].content = registryContent;
-        else files.push({ path: "registry.json", content: registryContent });
+        treeItems.push({ path: "registry.json", content: registryContent });
       }
     } catch (e) {
       console.error("[GitSync] Supabase registry fetch failed:", e);
     }
 
-    const repoMeta = await getRepoMeta(owner, name, token);
-    const targetBranch = branchOverride || repoMeta.default_branch;
-
-    let latestCommitSha: string | null = null;
-    let baseTreeSha: string | null = null;
-    try {
-      const branchRes = await githubClient.get(`/repos/${owner}/${name}/branches/${targetBranch}`, { headers });
-      latestCommitSha = branchRes.data.commit.sha;
-      baseTreeSha = branchRes.data.commit.commit.tree.sha;
-    } catch {
-      // Empty repo
+    if (treeItems.length === 0) {
+      // Create minimum baseline registry file if none exists
+      treeItems.push({
+        path: "registry.json",
+        content: JSON.stringify({ version: "v6.0-init", lastUpdated: new Date().toISOString(), initialized: true }, null, 2),
+      });
     }
 
-    const syncFiles = files.slice(0, 1000);
-    const warning = files.length > 1000 ? `Project has ${files.length} files. Only syncing first 1,000 for stability.` : null;
+    const repoMeta = await getRepoMeta(owner, name, token);
+    const targetBranch = branchOverride || repoMeta.default_branch || "main";
 
-    const treeItems = syncFiles.map((file) => ({ path: file.path, mode: "100644", type: "blob", content: file.content }));
+    const { commitSha, treeSha } = await getBranchCommitAndTree(owner, name, targetBranch, token);
 
-    const treeRes = await githubClient.post(`/repos/${owner}/${name}/git/trees`, { base_tree: baseTreeSha, tree: treeItems }, { headers });
-    const commitRes = await githubClient.post(
-      `/repos/${owner}/${name}/git/commits`,
-      { message, tree: treeRes.data.sha, parents: latestCommitSha ? [latestCommitSha] : [] },
-      { headers }
-    );
-    await githubClient.patch(`/repos/${owner}/${name}/git/refs/heads/${targetBranch}`, { sha: commitRes.data.sha }, { headers });
+    const { htmlUrl } = await createTreeAndCommit({
+      owner,
+      name,
+      branch: targetBranch,
+      token,
+      message,
+      treeItems,
+      baseTreeSha: treeSha,
+      parentCommitSha: commitSha,
+    });
 
-    res.json({ success: true, commit: commitRes.data.html_url, warning });
+    res.json({ success: true, commit: htmlUrl, message: "Full registry and data sync committed to GitHub." });
   } catch (error: any) {
     const { status, details } = formatGithubError(error, repo, token);
     console.warn("[GitSync] Full sync error:", { status, details });

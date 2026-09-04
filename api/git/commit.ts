@@ -7,7 +7,6 @@ import {
   getBranchCommitAndTree,
   createTreeAndCommit,
 } from '../../server/services/github';
-import { supabase } from '../../server/services/supabase';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -26,11 +25,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!token) {
     return res.status(401).json({
       success: false,
-      error: 'GitHub authentication required. Configure GITHUB_TOKEN in Vercel environment variables.',
+      error: 'GitHub authentication required. Set GITHUB_TOKEN in environment variables.',
     });
   }
 
-  const { message = 'Full System Sync via FindAba City OS' } = req.body || {};
+  const { files = [], message = 'Update registry via FindAba OS' } = req.body || {};
+
+  if (!Array.isArray(files) || files.length === 0) {
+    return res.status(400).json({ success: false, error: 'No files provided for commit.' });
+  }
 
   try {
     const [owner, name] = repo.split('/');
@@ -38,59 +41,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ success: false, error: 'Invalid repository format. Expected owner/repo.' });
     }
 
-    const treeItems: Array<{ path: string; mode?: string; type?: string; content: string }> = [];
-
-    // Fetch active registry records from Supabase if configured
-    try {
-      if (supabase) {
-        const { data: businesses } = await supabase
-          .from('businesses')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(500);
-
-        if (businesses && businesses.length > 0) {
-          const registryContent = JSON.stringify(
-            {
-              version: 'v6.0-prod',
-              lastUpdated: new Date().toISOString(),
-              repo,
-              recordsCount: businesses.length,
-              businesses,
-            },
-            null,
-            2
-          );
-          treeItems.push({ path: 'registry.json', content: registryContent });
-        }
+    const treeItems: Array<{ path: string; mode?: string; type?: string; content: string }> = files.map((file: any) => {
+      let content = file.content;
+      if (typeof content !== 'string') {
+        content = JSON.stringify(file.data !== undefined ? file.data : file, null, 2);
       }
-    } catch (e: any) {
-      console.warn('[GitSyncFull] Supabase fetch notice:', e.message);
-    }
-
-    // Ensure baseline registry.json is present if database was empty
-    if (treeItems.length === 0) {
-      treeItems.push({
-        path: 'registry.json',
-        content: JSON.stringify(
-          {
-            version: 'v6.0-init',
-            lastUpdated: new Date().toISOString(),
-            repo,
-            status: 'initialized',
-          },
-          null,
-          2
-        ),
-      });
-    }
+      return {
+        path: file.path,
+        mode: file.mode || '100644',
+        type: file.type || 'blob',
+        content,
+      };
+    });
 
     const repoMeta = await getRepoMeta(owner, name, token);
     const targetBranch = branchOverride || repoMeta.default_branch || 'main';
 
     const { commitSha, treeSha } = await getBranchCommitAndTree(owner, name, targetBranch, token);
 
-    const { htmlUrl } = await createTreeAndCommit({
+    const { htmlUrl, commitSha: newSha } = await createTreeAndCommit({
       owner,
       name,
       branch: targetBranch,
@@ -104,16 +73,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: true,
       commit: htmlUrl,
-      repo,
-      branch: targetBranch,
-      message: 'Full registry and data sync committed to GitHub successfully.',
+      sha: newSha,
+      filesCount: treeItems.length,
+      message: 'Files committed successfully to GitHub.',
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
     const { status, details, message: errMsg } = formatGithubError(error, repo, token);
     return res.status(status).json({
       success: false,
-      error: errMsg || 'Failed to perform full sync',
+      error: errMsg || 'Failed to commit files',
       details,
       status,
     });
