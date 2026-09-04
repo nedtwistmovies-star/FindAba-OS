@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { env } from "./env";
+import { env } from "./env.js";
 
 let _client: SupabaseClient | null = null;
 
@@ -50,4 +50,3 @@ export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
     return typeof val === 'function' ? val.bind(client) : val;
   }
 });
-

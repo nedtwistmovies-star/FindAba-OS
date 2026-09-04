@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { Request } from "express";
-import { env } from "./env";
+import { env } from "./env.js";
 
 /** Shared axios instance for GitHub API calls. */
 export const githubClient: AxiosInstance = axios.create({

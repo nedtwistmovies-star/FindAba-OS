@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { githubClient, authHeaders, normalizeRepo, getRepoMeta } from "../../server/services/github";
-import { env } from "../../server/services/env";
-import { supabase } from "../../server/services/supabase";
+import { githubClient, authHeaders, normalizeRepo, getRepoMeta } from "../../server/services/github.js";
+import { env } from "../../server/services/env.js";
+import { supabase } from "../../server/services/supabase.js";
 
 function getToken(req: VercelRequest): string | null {
   const headerToken =
