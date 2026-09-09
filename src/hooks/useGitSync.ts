@@ -85,7 +85,10 @@ export const useGitSync = () => {
           return;
         }
 
-        let errorMsg = result.details || result.error || `Sync Handshake Failed (${response.status})`;
+        const rawErr = result.details || result.error;
+        let errorMsg = typeof rawErr === 'object' && rawErr !== null
+          ? (rawErr.message || JSON.stringify(rawErr))
+          : (rawErr || `Sync Handshake Failed (${response.status})`);
         
         if (response.status === 401 || response.status === 403) {
           errorMsg = "Authentication Failed: Please ensure your GITHUB_TOKEN is valid and has 'repo' scope permissions.";

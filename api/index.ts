@@ -18,6 +18,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       gitDiagnostic: '/api/git/diagnostic',
       gitTestConnection: '/api/git/test-connection',
       gitCommit: '/api/git/commit',
+      gitBranches: '/api/git/branches',
+      gitOrgRepos: '/api/git/org-repos',
     },
   });
 }

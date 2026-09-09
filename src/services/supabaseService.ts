@@ -39,13 +39,13 @@ export const getSupabase = (): SupabaseClient | null => {
     return null;
   }
 
-  // 🔹 LOGGING_INIT_SUCCESS: Helpful for debugging environment variable issues
-  console.log(`[SupabaseService] Initializing. URL: ${url.substring(0, 15)}... Source: ${source}`);
-
   // If we already have an instance and the config hasn't changed, return it
   if (_supabaseInstance && _currentUrl === url && _currentKey === key) {
     return _supabaseInstance;
   }
+
+  // 🔹 LOGGING_INIT_SUCCESS: Helpful for debugging environment variable issues
+  console.log(`[SupabaseService] Initializing. URL: ${url.substring(0, 15)}... Source: ${source}`);
 
   _currentUrl = url;
   _currentKey = key;
@@ -937,11 +937,30 @@ export const saveBusinessToDB = async (business: Business) => {
   throw new Error("Registry Sync Failed: Too many missing columns in database schema.");
 };
 
+const UUID_FORMAT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function resolveUserUuid(client: SupabaseClient, userIdOrEmail: string): Promise<string | null> {
+  if (!userIdOrEmail) return null;
+  if (UUID_FORMAT.test(userIdOrEmail)) return userIdOrEmail;
+  try {
+    const { data } = await client
+      .from('profiles')
+      .select('id')
+      .or(`email.eq.${userIdOrEmail},phone.eq.${userIdOrEmail}`)
+      .maybeSingle();
+    return data?.id || null;
+  } catch {
+    return null;
+  }
+}
+
 export const fetchFavorites = async (userId: string): Promise<string[]> => {
   const client = getSupabase();
-  if (!client) return [];
+  if (!client || !userId) return [];
   try {
-    const { data, error } = await client.from('favorites').select('business_id').eq('user_id', userId);
+    const targetUuid = await resolveUserUuid(client, userId);
+    if (!targetUuid) return [];
+    const { data, error } = await client.from('favorites').select('business_id').eq('user_id', targetUuid);
     if (error && error.code === '42P01') return [];
     if (error && error.message.includes('Unexpected token')) return [];
     return data?.map(f => f.business_id) || [];
@@ -1746,12 +1765,14 @@ export const getAdvertorials = fetchAllAdvertorials;
 export const toggleFavorite = async (userId: string, businessId: string) => {
   await ensureAuth();
   const client = getSupabase();
-  if (!client) return;
-  const { data: existing } = await client.from('favorites').select('*').eq('user_id', userId).eq('business_id', businessId).maybeSingle();
+  if (!client || !userId) return;
+  const targetUuid = await resolveUserUuid(client, userId);
+  if (!targetUuid) return;
+  const { data: existing } = await client.from('favorites').select('*').eq('user_id', targetUuid).eq('business_id', businessId).maybeSingle();
   if (existing) {
-    await client.from('favorites').delete().eq('user_id', userId).eq('business_id', businessId);
+    await client.from('favorites').delete().eq('user_id', targetUuid).eq('business_id', businessId);
   } else {
-    await client.from('favorites').insert({ user_id: userId, business_id: businessId });
+    await client.from('favorites').insert({ user_id: targetUuid, business_id: businessId });
   }
 };
 
@@ -2098,15 +2119,22 @@ export const updateOrderStatus = async (orderId: string, status: OrderStatus) =>
 export const fetchDisputes = async (merchantId: string) => {
   await ensureAuth();
   const client = getSupabase();
-  if (!client) return [];
+  if (!client || !merchantId) return [];
   
-  const { data, error } = await client
-    .from('disputes')
-    .select('*, orders(*)')
-    .eq('merchant_id', merchantId);
-    
-  if (error) return [];
-  return data || [];
+  try {
+    const { data, error } = await client
+      .from('disputes')
+      .select('*, orders!inner(*)')
+      .eq('orders.merchant_id', merchantId);
+      
+    if (error) {
+      console.warn('[Disputes] Query notice:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    return [];
+  }
 };
 
 export const updateDisputeEvidence = async (disputeId: string, evidence: { images: string[], videos: any[] }) => {
@@ -2150,7 +2178,7 @@ export const fetchMerchantStats = async (merchantId: string) => {
 
   const [orders, disputes] = await Promise.all([
     client.from('orders').select('merchant_payout').eq('merchant_id', merchantId).in('status', [OrderStatus.PAID, OrderStatus.DELIVERED]),
-    client.from('disputes').select('id', { count: 'exact', head: true }).eq('merchant_id', merchantId).eq('status', 'open')
+    client.from('disputes').select('id, orders!inner(merchant_id)', { count: 'exact', head: true }).eq('orders.merchant_id', merchantId).eq('status', 'open')
   ]);
 
   const pendingPayouts = orders.data?.reduce((sum, o) => sum + (o.merchant_payout || 0), 0) || 0;

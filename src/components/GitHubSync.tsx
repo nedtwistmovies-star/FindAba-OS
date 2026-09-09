@@ -109,14 +109,23 @@ export const GitHubSync: React.FC = () => {
       const response = await fetch(`/api/git/sync?repo=${encodeURIComponent(status.repo)}`, {
         credentials: 'include'
       });
-      const result = await response.json();
-      if (response.ok) {
+      const text = await response.text();
+      let result: any = {};
+      try {
+        result = text ? JSON.parse(text) : {};
+      } catch {
+        result = { error: text.slice(0, 100) };
+      }
+      if (response.ok && result.success !== false) {
         setRepoHealth({
           exists: !!result.data,
           lastCommit: result.lastUpdated
         });
       } else {
-        const errorMsg = result.error || response.statusText;
+        const rawError = result.details || result.error;
+        const errorMsg = typeof rawError === 'object' && rawError !== null
+          ? (rawError.message || JSON.stringify(rawError))
+          : (rawError || response.statusText || 'Sync check failed');
         console.warn("[GitHub] Health check failed:", errorMsg);
         setRepoHealth({
           exists: false,

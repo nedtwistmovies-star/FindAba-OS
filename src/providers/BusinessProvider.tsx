@@ -32,7 +32,8 @@ interface BusinessContextType {
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
 export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { userIdentifier } = useAuth();
+  const { userIdentifier, user_id } = useAuth();
+  const effectiveUserId = user_id || userIdentifier;
   const { addToast } = useToast();
   const { status: gitStatus, loading: gitLoading } = useGitSync();
   
@@ -90,7 +91,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [gitStatus, addToast]);
 
   const toggleFavorite = async (id: string) => {
-    if (!userIdentifier) {
+    if (!effectiveUserId) {
       addToast("Please login to save favorites.", "info");
       return;
     }
@@ -102,7 +103,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     
     try {
       const { toggleFavorite: toggleFavService } = await import('../services/supabaseService');
-      await toggleFavService(userIdentifier, id);
+      await toggleFavService(effectiveUserId, id);
       triggerVibration('FAVORITE');
       addToast(isFav ? "Removed from Favorites" : "Added to Favorites", "success");
     } catch (e) {
@@ -142,7 +143,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.log("[Registry] Refreshing data from industrial cloud...");
         const fetchPromise = (async () => {
           const bizData = await fetchAllBusinesses(controller.signal);
-          const favs = userIdentifier ? await fetchFavorites(userIdentifier) : [];
+          const favs = effectiveUserId ? await fetchFavorites(effectiveUserId) : [];
           return [bizData, favs] as [Business[], string[]];
         })();
 
