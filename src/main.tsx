@@ -21,6 +21,11 @@ if ('serviceWorker' in navigator && !window.location.hostname.includes('run.app'
     navigator.serviceWorker.register('/sw.js')
       .then(reg => {
         console.log('Registry Signal Active:', reg.scope);
+        // Prompt immediate update check to ensure latest shell is running
+        reg.update().catch(() => {});
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
       })
       .catch(err => console.warn('Registry Signal Blocked:', err));
   });

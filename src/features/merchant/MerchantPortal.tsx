@@ -20,7 +20,8 @@ import { MultiVideoUpload } from '../../components/VideoUpload';
 import { TodoList } from '../../components/TodoList';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { WeeklyTradeVolumeChart } from '../../components/WeeklyTradeVolumeChart';
-import { useAuth } from '../../providers/AuthProvider';
+import { useAuth, useOracle, useBusiness } from '../../providers';
+import { BackButton } from '../../components/BackButton';
 import { BUSINESS_PLANS } from '../../constants';
 import { BillingCycle, SubscriptionTier, HubTier, VerificationLevel } from '../../types';
 import HubEnrollment from './HubEnrollment';
@@ -65,6 +66,7 @@ const MerchantPortal: React.FC<{
   const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<any>(null);
   const [showTasks, setShowTasks] = useState(false);
   const [stats, setStats] = useState({ pendingPayouts: 0, activeDisputes: 0 });
+  const [verifyingPresence, setVerifyingPresence] = useState(false);
 
   useEffect(() => {
     if (initialBusiness) {
@@ -167,8 +169,6 @@ const MerchantPortal: React.FC<{
 
   const earnings = orders.reduce((acc, curr) => curr.status === OrderStatus.RELEASED ? acc + curr.merchant_payout : acc, 0);
   const pending = orders.reduce((acc, curr) => curr.status === OrderStatus.PAID ? acc + curr.merchant_payout : acc, 0);
-
-  const [verifyingPresence, setVerifyingPresence] = useState(false);
 
   const handleVerifyPresence = () => {
     if (!business) return;
@@ -321,10 +321,10 @@ const MerchantPortal: React.FC<{
         <div className="absolute top-0 right-0 p-12 opacity-[0.03] -rotate-12 hidden md:block"><TrendingUp size={400} /></div>
         <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-5 md:gap-8 relative z-10">
            <div className="flex items-center gap-3 sm:gap-8">
-              <button onClick={() => setView('home')} className="p-2.5 md:p-4 bg-white/5 rounded-lg md:rounded-2xl text-white border border-white/10 active:scale-90 shadow-xl transition-standard hover:bg-white/10"><ArrowLeft size={18} className="md:w-6 md:h-6"/></button>
+              <BackButton label="Back" />
               <div className="flex items-center gap-3 md:gap-6">
                  <div className="w-9 h-9 md:w-16 md:h-16 bg-white rounded-lg md:rounded-3xl flex items-center justify-center p-1.5 md:p-3 shadow-2xl border border-white/10">
-                    <img src="/manifest.json" className="w-full h-full object-contain" alt="FindAba" onError={(e) => { (e.target as any).src = 'https://picsum.photos/seed/aba/100/100'; }} />
+                    <img src="/icon.png" className="w-full h-full object-contain" alt="FindAba" onError={(e) => { (e.target as any).src = 'https://picsum.photos/seed/aba/100/100'; }} />
                  </div>
                  <div className="space-y-0 md:space-y-1">
                     <h2 className="text-base md:text-3xl font-bold uppercase tracking-tighter text-white leading-none italic">FindAba</h2>
