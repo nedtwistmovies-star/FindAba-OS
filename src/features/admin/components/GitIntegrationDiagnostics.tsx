@@ -54,31 +54,74 @@ export const GitIntegrationDiagnostics: React.FC = () => {
     try {
       const savedPat = localStorage.getItem('findaba_github_pat')?.trim();
       const savedRepo = localStorage.getItem('findaba_git_repo')?.trim() || 'nedtwistmovies-star/FindAba-OS';
+      const savedBranch = localStorage.getItem('findaba_git_branch')?.trim() || 'main';
       
       const headers: Record<string, string> = {};
       if (savedPat) headers['X-GitHub-Token'] = savedPat;
 
-      const diagRes = await fetch(`/api/git/diagnostic?repo=${encodeURIComponent(savedRepo)}`, { headers });
-      const diagData = await diagRes.json();
+      const diagRes = await fetch(`/api/git/diagnostic?repo=${encodeURIComponent(savedRepo)}&branch=${encodeURIComponent(savedBranch)}`, { headers });
+      const diagText = await diagRes.text();
+      let diagData: any = null;
+      try {
+        diagData = diagText && diagText.trim() ? JSON.parse(diagText) : null;
+      } catch (parseErr) {
+        console.warn("Diagnostics returned non-JSON payload:", diagText.slice(0, 100));
+      }
+
+      if (!diagData) {
+        diagData = {
+          success: false,
+          apiReachable: false,
+          githubApiReachable: false,
+          repoValid: false,
+          repositoryAccessible: false,
+          envRepo: savedRepo,
+          repo: savedRepo,
+          envBranch: savedBranch,
+          branch: savedBranch,
+          hasToken: Boolean(savedPat),
+          rateLimitRemaining: 0,
+          timestamp: new Date().toISOString(),
+          message: `Diagnostics server responded with HTTP ${diagRes.status}. Review API configuration or GitHub token.`,
+          checks: {
+            envRepo: 'PRESENT',
+            repoFormat: 'VALID',
+            hasToken: savedPat ? 'CONFIGURED' : 'ANONYMOUS',
+            apiReachable: 'ERROR',
+            repoAccess: 'ERROR',
+          },
+        };
+      }
+
       setDiagnostics(diagData);
 
-      const logsRes = await fetch('/api/git/webhook-logs', { headers });
-      const logsData = await logsRes.json();
-      const logs = logsData.logs || [];
-      setWebhookLogs(logs);
+      try {
+        const logsRes = await fetch('/api/git/webhook-logs', { headers });
+        const logsText = await logsRes.text();
+        let logsData: any = {};
+        try {
+          logsData = logsText && logsText.trim() ? JSON.parse(logsText) : {};
+        } catch {
+          logsData = {};
+        }
+        const logs = logsData.logs || [];
+        setWebhookLogs(logs);
 
-      // Webhook is considered active if we have received a ping or a push event recently
-      const hasActivity = logs.some((log: any) => log.event === 'ping' || log.event === 'push');
-      setWebhookActive(hasActivity);
+        const hasActivity = logs.some((log: any) => log.event === 'ping' || log.event === 'push');
+        setWebhookActive(hasActivity);
+      } catch {
+        setWebhookLogs([]);
+        setWebhookActive(false);
+      }
 
       if (diagData.success) {
-        addToast("GitHub integration diagnostics complete.", "success");
+        addToast("GitHub integration diagnostics verified successfully.", "success");
       } else {
-        addToast("Diagnostics found configuration issues.", "info");
+        addToast(diagData.message || "Diagnostics identified configuration notices.", "info");
       }
-    } catch (err) {
-      console.error("Diagnostics failed:", err);
-      addToast("Failed to run GitHub diagnostics.", "error");
+    } catch (err: any) {
+      console.error("Diagnostics execution error:", err);
+      addToast(`Diagnostics network fault: ${err.message}`, "error");
     } finally {
       setLoading(false);
     }

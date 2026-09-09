@@ -30,27 +30,30 @@ function resolveGithubToken(req?: VercelRequest): string | null {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-GitHub-Token');
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST' && req.method !== 'GET' && req.method !== 'HEAD') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return res.status(405).json({ error: 'Method Not Allowed. Use GET.' });
   }
 
   const queryRepo = req.query?.repo ? String(req.query.repo) : undefined;
-  const bodyRepo = (req.body as any)?.repo ? String((req.body as any).repo) : undefined;
-  let repo = normalizeRepo(bodyRepo || queryRepo);
+  const repo = normalizeRepo(queryRepo);
 
   const token = resolveGithubToken(req);
 
-  try {
-    const [owner, name] = repo.split('/');
-    if (!owner || !name) {
-      return res.status(400).json({ success: false, error: 'Invalid repository format. Expected owner/repo.' });
-    }
+  const [owner, name] = repo.split('/');
+  if (!owner || !name) {
+    return res.status(400).json({
+      success: false,
+      message: `Invalid repository format '${repo}'. Use 'owner/repo'.`,
+      branches: [],
+    });
+  }
 
+  try {
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
       'User-Agent': 'FindAba-City-OS',
@@ -60,55 +63,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const repoRes = await axios.get(`https://api.github.com/repos/${owner}/${name}`, {
+    const response = await axios.get(`https://api.github.com/repos/${owner}/${name}/branches?per_page=100`, {
       headers,
       timeout: 15000,
     });
-
-    const data = repoRes.data;
-    const permissions = {
-      push: Boolean(data.permissions?.push),
-      pull: Boolean(data.permissions?.pull ?? true),
-      admin: Boolean(data.permissions?.admin),
-    };
-
-    const rateLimitRemaining = Number(repoRes.headers['x-ratelimit-remaining']) || 0;
-
-    let authStatus = 'Public Access (No Token)';
-    if (token) {
-      authStatus = permissions.push ? 'Authenticated (Read/Write)' : 'Authenticated (Read Only)';
-    }
+    const branches = (response.data || []).map((b: any) => ({
+      name: b.name,
+      protected: Boolean(b.protected),
+      sha: b.commit?.sha?.substring(0, 7) || '',
+    }));
 
     return res.status(200).json({
       success: true,
-      repo: data.full_name,
-      exists: true,
-      private: Boolean(data.private),
-      defaultBranch: data.default_branch || 'main',
-      permissions,
-      rateLimitRemaining,
-      authStatus,
-      htmlUrl: data.html_url,
-      tokenValid: Boolean(token),
-      message: `GitHub repository connection to '${data.full_name}' verified successfully.`,
-      timestamp: new Date().toISOString(),
+      repo,
+      branches,
+      count: branches.length,
+      defaultBranch: process.env.GITHUB_BRANCH || 'main',
     });
   } catch (error: any) {
     const status = error.response?.status || 500;
     const details = error.response?.data?.message || error.message || 'Unknown error';
-    let message = `Failed to connect to GitHub repository '${repo}'.`;
-
-    if (status === 404) {
-      message = `Repository '${repo}' not found on GitHub.`;
-    } else if (status === 401 || status === 403) {
-      message = `Access denied for repository '${repo}'. Verify personal access token.`;
-    }
-
     return res.status(status).json({
       success: false,
-      error: message,
-      details,
-      status,
+      message: `Failed to fetch branches for '${repo}': ${details}`,
+      branches: [],
     });
   }
 }

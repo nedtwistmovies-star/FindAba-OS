@@ -1,23 +1,50 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import {
-  githubClient,
-  resolveGithubToken,
-  authHeaders,
-  normalizeRepo,
-  formatGithubError,
-} from '../../server/services/github';
+import axios from 'axios';
+
+function normalizeRepo(repo?: string): string {
+  if (!repo || !repo.trim()) {
+    return (process.env.GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS')
+      .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
+      .replace(/\.git$/i, '')
+      .replace(/\/$/, '');
+  }
+  return repo
+    .trim()
+    .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
+    .replace(/\.git$/i, '')
+    .replace(/\/$/, '');
+}
+
+function resolveGithubToken(req?: VercelRequest): string | null {
+  const headerToken = req?.headers?.['x-github-token'];
+  const resolvedHeaderToken = Array.isArray(headerToken) ? headerToken[0] : headerToken;
+  const authHeader = req?.headers?.authorization;
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : undefined;
+  const bodyToken = (req?.body as any)?.githubToken || (req?.body as any)?.token;
+  const queryToken = (req?.query as any)?.token;
+  const envToken = process.env.GITHUB_TOKEN;
+  const token = (resolvedHeaderToken || bearerToken || bodyToken || queryToken || envToken || '')?.trim();
+  return token || null;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'HEAD') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-GitHub-Token');
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   }
 
   const queryRepo = req.query?.repo ? String(req.query.repo) : undefined;
-  const bodyRepo = req.body?.repo ? String(req.body.repo) : undefined;
-  let repo = normalizeRepo(bodyRepo || queryRepo);
+  const bodyRepo = (req.body as any)?.repo ? String((req.body as any).repo) : undefined;
+  const repo = normalizeRepo(bodyRepo || queryRepo);
 
   const queryBranch = req.query?.branch ? String(req.query.branch) : undefined;
-  const bodyBranch = req.body?.branch ? String(req.body.branch) : undefined;
+  const bodyBranch = (req.body as any)?.branch ? String((req.body as any).branch) : undefined;
   const branch = bodyBranch || queryBranch || process.env.GITHUB_BRANCH || 'main';
 
   const token = resolveGithubToken(req);
@@ -28,23 +55,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ success: false, error: 'Invalid repository format. Expected owner/repo.' });
     }
 
-    const headers = authHeaders(token);
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'FindAba-City-OS',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
 
     try {
-      const response = await githubClient.get(`/repos/${owner}/${name}/contents/registry.json?ref=${encodeURIComponent(branch)}`, {
-        headers,
-      });
+      const response = await axios.get(
+        `https://api.github.com/repos/${owner}/${name}/contents/registry.json?ref=${encodeURIComponent(branch)}`,
+        { headers, timeout: 20000 }
+      );
 
       let rawContent = '';
       if (response.data?.content) {
         rawContent = Buffer.from(response.data.content, 'base64').toString('utf8');
       } else if (response.data?.download_url) {
-        // Large file fallback
-        const blobRes = await githubClient.get(response.data.download_url);
+        // Fallback for files > 1MB where GitHub omits content field
+        const blobRes = await axios.get(response.data.download_url, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          timeout: 25000,
+        });
         rawContent = typeof blobRes.data === 'string' ? blobRes.data : JSON.stringify(blobRes.data);
+      } else if (response.data?.sha) {
+        // Fallback using Git Data Blobs API (supports up to 100MB)
+        const blobRes = await axios.get(
+          `https://api.github.com/repos/${owner}/${name}/git/blobs/${response.data.sha}`,
+          { headers, timeout: 25000 }
+        );
+        if (blobRes.data?.content) {
+          rawContent = Buffer.from(blobRes.data.content, 'base64').toString('utf8');
+        }
       }
 
-      if (!rawContent) {
+      if (!rawContent || !rawContent.trim()) {
         return res.status(200).json({
           success: true,
           repo,
@@ -60,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let registry: any = null;
       try {
         registry = JSON.parse(rawContent);
-      } catch (parseError) {
+      } catch {
         return res.status(422).json({
           success: false,
           error: 'Registry file is corrupted or not valid JSON.',
@@ -79,9 +126,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     } catch (fileError: any) {
       if (fileError.response?.status === 404) {
-        // Fallback: check if the repo is reachable
+        // Verify if repository exists
         try {
-          const repoRes = await githubClient.get(`/repos/${owner}/${name}`, { headers });
+          const repoRes = await axios.get(`https://api.github.com/repos/${owner}/${name}`, { headers, timeout: 10000 });
           if (repoRes.data) {
             return res.status(200).json({
               success: true,
@@ -95,18 +142,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             });
           }
         } catch {
-          // If repo check also fails, fall through to error formatter
+          // Repo check failed, fall through to main error handler
         }
       }
       throw fileError;
     }
   } catch (error: any) {
-    const { status, details, message } = formatGithubError(error, repo, token);
+    const status = error.response?.status || 500;
+    const details = error.response?.data?.message || error.message || 'Unknown GitHub API error';
+    let message = 'GitHub sync failed';
+
+    if (status === 401 || status === 403) {
+      message = 'GitHub authentication denied. Ensure GITHUB_TOKEN is valid and has repository access permissions.';
+    } else if (status === 404) {
+      message = `Repository '${repo}' or branch '${branch}' not found on GitHub.`;
+    }
+
     return res.status(status).json({
       success: false,
-      error: message || 'GitHub sync failed',
+      error: message,
       details,
       status,
+      repo,
+      branch,
     });
   }
 }

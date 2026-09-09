@@ -66,6 +66,7 @@ const MerchantPortal: React.FC<{
   const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<any>(null);
   const [showTasks, setShowTasks] = useState(false);
   const [stats, setStats] = useState({ pendingPayouts: 0, activeDisputes: 0 });
+  const [verifyingPresence, setVerifyingPresence] = useState(false);
 
   useEffect(() => {
     if (initialBusiness) {
@@ -168,8 +169,6 @@ const MerchantPortal: React.FC<{
 
   const earnings = orders.reduce((acc, curr) => curr.status === OrderStatus.RELEASED ? acc + curr.merchant_payout : acc, 0);
   const pending = orders.reduce((acc, curr) => curr.status === OrderStatus.PAID ? acc + curr.merchant_payout : acc, 0);
-
-  const [verifyingPresence, setVerifyingPresence] = useState(false);
 
   const handleVerifyPresence = () => {
     if (!business) return;
@@ -325,7 +324,7 @@ const MerchantPortal: React.FC<{
               <BackButton label="Back" />
               <div className="flex items-center gap-3 md:gap-6">
                  <div className="w-9 h-9 md:w-16 md:h-16 bg-white rounded-lg md:rounded-3xl flex items-center justify-center p-1.5 md:p-3 shadow-2xl border border-white/10">
-                    <img src="/manifest.json" className="w-full h-full object-contain" alt="FindAba" onError={(e) => { (e.target as any).src = 'https://picsum.photos/seed/aba/100/100'; }} />
+                    <img src="/icon.png" className="w-full h-full object-contain" alt="FindAba" onError={(e) => { (e.target as any).src = 'https://picsum.photos/seed/aba/100/100'; }} />
                  </div>
                  <div className="space-y-0 md:space-y-1">
                     <h2 className="text-base md:text-3xl font-bold uppercase tracking-tighter text-white leading-none italic">FindAba</h2>

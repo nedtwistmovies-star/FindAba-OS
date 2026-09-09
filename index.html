@@ -12,7 +12,8 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FindAba OS" />
-    <link rel="apple-touch-icon" href="/assets/images/findaba_logo_official_1780607887279.png" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -108,11 +109,20 @@
         }
       })();
 
-      // CLEANUP STALE SERVICE WORKERS IN PREVIEW
+      // CLEANUP STALE SERVICE WORKERS IN PREVIEW & EVICT DEPRECATED CACHES
       if ('serviceWorker' in navigator && window.location.hostname.includes('run.app')) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
           for (let registration of registrations) {
             registration.unregister();
+          }
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          for (const key of keys) {
+            if (key.includes('v110.0') || key.includes('trinity') || key.includes('v111.0')) {
+              caches.delete(key);
+            }
           }
         });
       }
