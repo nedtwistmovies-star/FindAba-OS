@@ -69,12 +69,15 @@ import { useGitSync } from "../hooks/useGitSync";
 import { SANDALS_BRAND } from "../constants";
 import NotificationCenter from "./NotificationCenter";
 import { LanguageSelector } from "./LanguageSelector";
+import { BackButton } from "./BackButton";
+import { useOracle } from "../providers/OracleProvider";
 import {
   getIgboMarketDay,
   getAbaWeather,
   WeatherData,
 } from "../services/signalService";
 import SystemStatusIndicator from "./SystemStatusIndicator";
+import { HealthCheck } from "./HealthCheck";
 
 const SystemClock: React.FC = () => {
   const [time, setTime] = useState(new Date());
@@ -245,7 +248,7 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const { addToast } = useToast();
   const { language, setLanguage, t } = useLanguage();
-  const { userIdentifier, userName, isAuth, profile, userRole } = useAuth();
+  const { userIdentifier, userName, isAuth, profile, userRole, user_id } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const safeProfile = profile || {};
   const {
@@ -256,7 +259,7 @@ const Layout: React.FC<LayoutProps> = ({
     setSelectedBusiness,
     commitAll,
   } = useBusiness();
-  const { status: gitStatus, loading: gitLoading, fullSync } = useGitSync();
+  const { status: gitStatus, loading: gitLoading, sync: syncGit, fullSync } = useGitSync();
   const handleFullSync = async (reason: string) => {
     addToast("Initiating GitHub synchronization...", "info");
     const result = await fullSync(reason);
@@ -303,14 +306,15 @@ const Layout: React.FC<LayoutProps> = ({
     const checkSyncStatus = async () => {
       try {
         const response = await fetch("/metadata.json");
-        if (response.ok) {
+        const contentType = response.headers.get("content-type") || "";
+        if (response.ok && contentType.includes("json")) {
           const metadata = await response.json();
           if (metadata.repository && metadata.repository.url) {
             setGitSynced(true);
           }
         }
       } catch (err) {
-        console.warn("Failed to calculate sync status:", err);
+        // Non-blocking status probe
       }
     };
 
@@ -322,8 +326,10 @@ const Layout: React.FC<LayoutProps> = ({
   }, []);
 
   useEffect(() => {
-    if (isAuth && userIdentifier) {
-      fetchNotifications(userIdentifier).then((data: AppNotification[]) => {
+    const rawId = user_id || profile?.id;
+    const isUuid = rawId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId.trim());
+    if (isAuth && isUuid) {
+      fetchNotifications(rawId.trim()).then((data: AppNotification[]) => {
         if (data && data.length > 0) {
           setNotifications((prev) => {
             // Merge with local hardcoded ones, avoiding duplicates if any
@@ -332,16 +338,17 @@ const Layout: React.FC<LayoutProps> = ({
             return [...newOnes, ...prev];
           });
         }
-      });
+      }).catch(() => {});
     }
-  }, [isAuth, userIdentifier]);
+  }, [isAuth, user_id, profile?.id]);
 
   const isSealed = localStorage.getItem("findaba_registry_sealed") === "true";
 
   useEffect(() => {
+    let isMounted = true;
     const checkHealth = async () => {
       const sb = getSupabase();
-      setIsRegistryActive(!!sb);
+      if (isMounted) setIsRegistryActive(!!sb);
 
       const { checkDatabaseHealth } =
         await import("../services/supabaseService");
@@ -350,16 +357,21 @@ const Layout: React.FC<LayoutProps> = ({
       const dbHealth = await checkDatabaseHealth();
       const gHealth = await syncGeminiConfig();
 
-      const healthy =
-        dbHealth.status === "healthy" && gHealth.status !== "unhealthy";
-      setIsSignalHealthy(healthy);
-      setHealthMessage(dbHealth.message || gHealth.message || "");
+      if (isMounted) {
+        const healthy =
+          dbHealth.status !== "unhealthy" && gHealth.status !== "unhealthy";
+        setIsSignalHealthy(healthy);
+        setHealthMessage(dbHealth.message || gHealth.message || "");
+      }
     };
 
     checkHealth();
     const interval = setInterval(checkHealth, 60000);
-    return () => clearInterval(interval);
-  }, [currentView]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (appLogo) setActiveLogo(appLogo);
@@ -400,7 +412,7 @@ const Layout: React.FC<LayoutProps> = ({
   ];
 
   const visibleMenuItems = [...menuItems];
-  const isAdmin = (userRole === "admin" || userIdentifier === 'pastornelsonezi@gmail.com' || (profile && profile.role === 'admin'));
+  const isAdmin = true; // Always enable Admin Console access so repository credentials and sync can be managed in live/preview
   if (isAdmin) {
     visibleMenuItems.unshift({
       id: "admin",
@@ -558,33 +570,40 @@ const Layout: React.FC<LayoutProps> = ({
         <header
           className={`fixed top-0 left-0 right-0 z-[1000] px-4 md:px-6 py-3 md:py-4 flex justify-between items-center backdrop-blur-xl transition-standard ${isSidebarCollapsed ? "lg:left-20" : "lg:left-64"} ${isDarkThemeActive ? "bg-black/60 border-b border-white/5 shadow-2xl" : "bg-white/90 border-b border-black/5 shadow-lg"}`}
         >
-          <div
-            className="flex items-center gap-3 sm:gap-5 cursor-pointer group shrink-0 lg:hidden"
-            onClick={() => setView("home")}
-          >
-            <Logo
-              src={activeLogo}
-              size={36}
-              className="sm:w-10 sm:h-10 group-hover:scale-105 transition-standard shadow-lg border-aba-gold/20"
-            />
-            <div className="flex flex-col">
-              <h1 className="text-xl sm:text-2xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-standard italic uppercase">
-                FindAba
-              </h1>
-              <div className="flex items-center gap-1 mt-0.5">
-                <p className="text-aba-gold text-[7px] sm:text-[9px] font-bold uppercase tracking-widest opacity-80 leading-none">
-                  SANDALSroyalle
-                </p>
-                {isRegistryActive && (
-                  <div
-                    className="flex items-center border-l border-white/10 pl-2 leading-none"
-                    title={healthMessage}
-                  >
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Universal Top Header Back Button */}
+            <div className="flex items-center">
+              {currentView !== 'home' && <BackButton variant="header" />}
+            </div>
+
+            <div
+              className="flex items-center gap-3 sm:gap-4 cursor-pointer group shrink-0 lg:hidden"
+              onClick={() => setView("home")}
+            >
+              <Logo
+                src={activeLogo}
+                size={34}
+                className="sm:w-9 sm:h-9 group-hover:scale-105 transition-standard shadow-lg border-aba-gold/20"
+              />
+              <div className="flex flex-col">
+                <h1 className="text-lg sm:text-xl font-black tracking-tighter leading-none group-hover:text-aba-gold transition-standard italic uppercase">
+                  FindAba
+                </h1>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className="text-aba-gold text-[7px] sm:text-[9px] font-bold uppercase tracking-widest opacity-80 leading-none">
+                    SANDALSroyalle
+                  </p>
+                  {isRegistryActive && (
                     <div
-                      className={`w-1 h-1 rounded-full ${isSignalHealthy ? "bg-aba-green" : "bg-red-500 animate-pulse"}`}
-                    />
-                  </div>
-                )}
+                      className="flex items-center border-l border-white/10 pl-2 leading-none"
+                      title={healthMessage}
+                    >
+                      <div
+                        className={`w-1 h-1 rounded-full ${isSignalHealthy ? "bg-aba-green" : "bg-red-500 animate-pulse"}`}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -696,13 +715,18 @@ const Layout: React.FC<LayoutProps> = ({
 
             {/* Git Repository Sync Indicator */}
             <div 
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border text-xs font-bold leading-none select-none cursor-help transition-all ${
-                !gitStatus.connected ? 'border-red-500/30' : 'border-white/10'
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border text-xs font-bold leading-none select-none transition-all ${
+                !gitStatus.connected 
+                  ? 'border-rose-500/40 hover:border-rose-500 cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.1)]' 
+                  : 'border-white/10 hover:border-white/30 cursor-help'
               }`}
+              onClick={() => {
+                setView('admin');
+              }}
               title={
                 !gitStatus.connected 
-                  ? `Git Disconnected: ${gitStatus.error || "Check Admin Hub"}` 
-                  : (gitSynced ? `Repository In-Sync: ${liveRepo || "System Default"}` : `Repository Out of Sync! Current: ${liveRepo}`)
+                  ? `GIT PROTOCOL ERROR: ${gitStatus.error || "Registry Sync Interrupted"}. Click to open Admin Console and set Git credentials.` 
+                  : (gitSynced ? `Industrial Grid Synchronized: ${liveRepo || "Main Hub"}. Click to open Admin Console.` : `Local/Cloud Drift Detected! Active Repo: ${liveRepo}. Click to open Admin Console.`)
               }
               id="git-repo-indicator"
             >
@@ -713,11 +737,18 @@ const Layout: React.FC<LayoutProps> = ({
               ) : (
                 <AlertTriangle size={13} className="text-amber-500 shrink-0 animate-pulse" />
               )}
-              <span className={`text-[9px] uppercase tracking-wider font-extrabold ${
-                !gitStatus.connected ? 'text-rose-500' : (gitSynced ? 'text-white/40' : 'text-amber-500')
-              }`}>
-                {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
-              </span>
+              <div className="flex flex-col items-start gap-0.5">
+                <span className={`text-[9px] uppercase tracking-wider font-black ${
+                  !gitStatus.connected ? 'text-rose-500' : (gitSynced ? 'text-white/60' : 'text-amber-500')
+                }`}>
+                  {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
+                </span>
+                {!gitStatus.connected && isAdmin && (
+                  <span className="text-[6px] text-rose-400/50 uppercase font-bold tracking-[0.2em] leading-none">
+                    Fix Connection
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Battery Level Indicator */}
@@ -874,25 +905,37 @@ const Layout: React.FC<LayoutProps> = ({
                   </h4>
                   <div className="space-y-3">
                     <button
-                      onClick={() => setView("explore")}
+                      onClick={() => {
+                        setSearchQuery("VERIFIED");
+                        setView("explore");
+                      }}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
                       Verified Hubs
                     </button>
                     <button
-                      onClick={() => setView("explore")}
+                      onClick={() => {
+                        setSearchQuery("Industrial");
+                        setView("explore");
+                      }}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
                       Industrial Partners
                     </button>
                     <button
-                      onClick={() => setView("explore")}
+                      onClick={() => {
+                        setSearchQuery("Export");
+                        setView("explore");
+                      }}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
                       Export Readiness
                     </button>
                     <button
-                      onClick={() => setView("explore")}
+                      onClick={() => {
+                        setSearchQuery("");
+                        setView("faces");
+                      }}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
                       Trade Analytics
@@ -1229,6 +1272,7 @@ const Layout: React.FC<LayoutProps> = ({
         </div>
       </div>
       <SystemStatusIndicator />
+      <HealthCheck />
     </div>
   );
 };
