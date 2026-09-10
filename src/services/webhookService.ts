@@ -179,16 +179,22 @@ async function logAutomationEvent(data: any, status: 'success' | 'failed', respo
     const sb = getSupabase();
     if (!sb) return;
 
-    await sb.from('automation_logs').insert({
-      user_id: data.user_id,
-      event_type: data.event_type,
-      payload: data,
+    // Schema for automation_logs: id (UUID), event_type (TEXT), payload (JSONB), status (TEXT), response (JSONB), created_at (TIMESTAMPTZ)
+    // Do NOT include user_id as it does not exist in automation_logs schema
+    const logPayload = {
+      event_type: data?.event_type || 'unknown_event',
+      payload: typeof data === 'object' ? data : { raw: data },
       status: status,
-      response: response,
+      response: typeof response === 'object' ? response : { message: String(response) },
       created_at: new Date().toISOString()
-    });
+    };
+
+    const { error } = await sb.from('automation_logs').insert(logPayload);
+    if (error) {
+      // Non-critical logging; silently ignore schema or RLS issues without breaking caller
+    }
   } catch (e) {
-    console.warn("[Automation] Logging failed (Table might not exist yet):", e);
+    // Non-blocking
   }
 }
 

@@ -1,17 +1,30 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
+  applyCors,
   resolveGithubToken,
   normalizeRepo,
   getRepoMeta,
   formatGithubError,
   getBranchCommitAndTree,
   createTreeAndCommit,
-} from '../../server/services/github';
-import { supabase } from '../../server/services/supabase';
+  getSafeSupabase,
+  verifyAdminCaller,
+} from './common';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (applyCors(req, res)) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
+  }
+
+  // Verify that the request has admin rights
+  const adminCheck = await verifyAdminCaller(req);
+  if (!adminCheck.isAdmin) {
+    return res.status(adminCheck.status || 401).json({
+      success: false,
+      error: adminCheck.error || 'Unauthorized: Admin privileges required.',
+    });
   }
 
   const queryRepo = req.query?.repo ? String(req.query.repo) : undefined;
@@ -26,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!token) {
     return res.status(401).json({
       success: false,
-      error: 'GitHub authentication required. Configure GITHUB_TOKEN in Vercel environment variables.',
+      error: 'GitHub authentication required. Configure GITHUB_TOKEN in Vercel environment variables or provide token.',
     });
   }
 
@@ -42,6 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Fetch active registry records from Supabase if configured
     try {
+      const supabase = getSafeSupabase();
       if (supabase) {
         const { data: businesses } = await supabase
           .from('businesses')

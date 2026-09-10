@@ -1,39 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
-
-function normalizeRepo(repo?: string): string {
-  if (!repo || !repo.trim()) {
-    return (process.env.GITHUB_REPO || 'nedtwistmovies-star/FindAba-OS')
-      .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
-      .replace(/\.git$/i, '')
-      .replace(/\/$/, '');
-  }
-  return repo
-    .trim()
-    .replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '')
-    .replace(/\.git$/i, '')
-    .replace(/\/$/, '');
-}
-
-function resolveGithubToken(req?: VercelRequest): string | null {
-  const headerToken = req?.headers?.['x-github-token'];
-  const resolvedHeaderToken = Array.isArray(headerToken) ? headerToken[0] : headerToken;
-  const authHeader = req?.headers?.authorization;
-  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : undefined;
-  const bodyToken = (req?.body as any)?.githubToken || (req?.body as any)?.token;
-  const queryToken = (req?.query as any)?.token;
-  const envToken = process.env.GITHUB_TOKEN;
-  const token = (resolvedHeaderToken || bearerToken || bodyToken || queryToken || envToken || '')?.trim();
-  return token || null;
-}
+import { applyCors, normalizeRepo, resolveGithubToken } from './common';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-GitHub-Token');
-    return res.status(200).end();
-  }
+  if (applyCors(req, res)) return;
 
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method Not Allowed' });

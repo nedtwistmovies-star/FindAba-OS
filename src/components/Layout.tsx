@@ -306,14 +306,15 @@ const Layout: React.FC<LayoutProps> = ({
     const checkSyncStatus = async () => {
       try {
         const response = await fetch("/metadata.json");
-        if (response.ok) {
+        const contentType = response.headers.get("content-type") || "";
+        if (response.ok && contentType.includes("json")) {
           const metadata = await response.json();
           if (metadata.repository && metadata.repository.url) {
             setGitSynced(true);
           }
         }
       } catch (err) {
-        console.warn("Failed to calculate sync status:", err);
+        // Non-blocking status probe
       }
     };
 
@@ -337,7 +338,7 @@ const Layout: React.FC<LayoutProps> = ({
             return [...newOnes, ...prev];
           });
         }
-      });
+      }).catch(() => {});
     }
   }, [isAuth, user_id, profile?.id]);
 

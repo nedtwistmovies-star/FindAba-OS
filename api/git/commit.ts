@@ -1,16 +1,28 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
+  applyCors,
   resolveGithubToken,
   normalizeRepo,
   getRepoMeta,
   formatGithubError,
   getBranchCommitAndTree,
   createTreeAndCommit,
-} from '../../server/services/github';
+  verifyAdminCaller,
+} from './common';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (applyCors(req, res)) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
+  }
+
+  const adminCheck = await verifyAdminCaller(req);
+  if (!adminCheck.isAdmin) {
+    return res.status(adminCheck.status || 401).json({
+      success: false,
+      error: adminCheck.error || 'Unauthorized: Admin privileges required.',
+    });
   }
 
   const queryRepo = req.query?.repo ? String(req.query.repo) : undefined;
