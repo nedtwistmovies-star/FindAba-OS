@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useMemo } from 'react';
 import { Search, LayoutGrid, Map as MapIcon, ArrowLeft, Filter, CheckCircle2, X, ShieldCheck } from 'lucide-react';
 import { BusinessCard, MapView, IndustrialButton } from '../../components';
@@ -37,17 +37,28 @@ const Explore = ({
   const favList = Array.isArray(favorites) ? favorites : [];
 
   const areas = useMemo(() => {
-    return Array.from(new Set(bizList.map(b => b.area))).sort();
-  }, [bizList]);
+  return Array.from(
+    new Set(
+      bizList
+        .map(b => String(b.area ?? '').trim())
+        .filter(Boolean)
+    )
+  ).sort();
+}, [bizList]);
 
   const filtered = useMemo(() => {
     return bizList.filter(b => {
-      const searchLower = searchQuery.toLowerCase();
-      const matchesSearch = b.name.toLowerCase().includes(searchLower) || 
-                           b.category.toLowerCase().includes(searchLower) ||
-                           b.primary_product_or_service?.toLowerCase().includes(searchLower) ||
-                           b.area.toLowerCase().includes(searchLower) ||
-                           b.skills?.some(s => s.toLowerCase().includes(searchLower));
+      const searchLower = String(searchQuery ?? '').toLowerCase().trim();
+
+const matchesSearch =
+  String(b.name ?? '').toLowerCase().includes(searchLower) ||
+  String(b.category ?? '').toLowerCase().includes(searchLower) ||
+  String(b.primary_product_or_service ?? '').toLowerCase().includes(searchLower) ||
+  String(b.area ?? '').toLowerCase().includes(searchLower) ||
+  (Array.isArray(b.skills) &&
+    b.skills.some(s =>
+      String(s ?? '').toLowerCase().includes(searchLower)
+    ));
       
       const matchesCategory = categoryFilter === 'All Categories' || b.category === categoryFilter;
       const matchesStatus = statusFilter === 'All' || b.verification_status === statusFilter;
@@ -260,3 +271,4 @@ const Explore = ({
 };
 
 export default Explore;
+
