@@ -68,10 +68,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api"
-    },
-    {
       "source": "/((?!api/|sw\\.js|manifest\\.json|metadata\\.json|icon\\.png|assets/).*)",
       "destination": "/index.html"
     }
