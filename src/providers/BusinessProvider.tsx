@@ -142,9 +142,14 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         console.log("[Registry] Refreshing data from industrial cloud...");
         const fetchPromise = (async () => {
-          const bizData = await fetchAllBusinesses(controller.signal);
-          const favs = effectiveUserId ? await fetchFavorites(effectiveUserId) : [];
-          return [bizData, favs] as [Business[], string[]];
+          try {
+            const bizData = await fetchAllBusinesses(controller.signal);
+            const favs = effectiveUserId ? await fetchFavorites(effectiveUserId) : [];
+            return [bizData, favs] as [Business[], string[]];
+          } catch (e) {
+            console.warn("[Registry] Fetch caught in background:", e);
+            return [[], []] as [Business[], string[]];
+          }
         })();
 
         // Use a race but handle the timeout specifically

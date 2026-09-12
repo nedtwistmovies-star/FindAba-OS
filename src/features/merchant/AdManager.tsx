@@ -41,6 +41,9 @@ const AdManager: React.FC<Props> = ({ business, onBack, setView }) => {
     fetchMerchantAds(business.id).then(data => {
       setAds(data);
       setLoading(false);
+    }).catch(() => {
+      setAds([]);
+      setLoading(false);
     });
   }, [business.id]);
 

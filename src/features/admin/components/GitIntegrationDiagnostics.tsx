@@ -10,7 +10,12 @@ import {
   Clock, 
   ShieldCheck,
   Zap,
-  Globe
+  Globe,
+  GitCommit,
+  UploadCloud,
+  ExternalLink,
+  Lock,
+  Check
 } from 'lucide-react';
 import { useGitSync } from '../../../hooks/useGitSync';
 import IndustrialButton from '../../../components/IndustrialButton';
@@ -41,7 +46,7 @@ interface WebhookLog {
 }
 
 export const GitIntegrationDiagnostics: React.FC = () => {
-  const { status: gitStatus, sync: syncGit } = useGitSync();
+  const { status: gitStatus, sync: syncGit, pushChanges } = useGitSync();
   const { addToast } = useToast();
   
   const [loading, setLoading] = useState(false);
@@ -49,12 +54,77 @@ export const GitIntegrationDiagnostics: React.FC = () => {
   const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
   const [webhookActive, setWebhookActive] = useState<boolean | 'unknown'>('unknown');
 
+  // Push Changes Workflow State
+  const [pushBranch, setPushBranch] = useState(() => {
+    const saved = localStorage.getItem('findaba_git_branch')?.trim();
+    return (saved && saved !== 'main') ? saved : 'prod-stabilize/phase1-foundation';
+  });
+  const [pushMessage, setPushMessage] = useState('chore(sync): update city registry and system state [Admin Push]');
+  const [pushing, setPushing] = useState(false);
+  const [pushResult, setPushResult] = useState<{
+    commit?: string;
+    commitSha?: string;
+    branch?: string;
+    filesCount?: number;
+    error?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (gitStatus.branch && gitStatus.branch !== pushBranch) {
+      setPushBranch(gitStatus.branch);
+    }
+  }, [gitStatus.branch]);
+
+  useEffect(() => {
+    const handleConfigUpdated = (e: any) => {
+      if (e.detail?.branch && e.detail.branch !== pushBranch) {
+        setPushBranch(e.detail.branch);
+      }
+    };
+    window.addEventListener('findaba:git_config_updated', handleConfigUpdated);
+    return () => window.removeEventListener('findaba:git_config_updated', handleConfigUpdated);
+  }, [pushBranch]);
+
+  const handlePushChanges = async () => {
+    setPushing(true);
+    setPushResult(null);
+    try {
+      addToast(`Initiating authenticated push to branch '${pushBranch}'...`, 'info');
+      const res = await pushChanges({
+        branch: pushBranch.trim() || 'prod-stabilize/phase1-foundation',
+        message: pushMessage.trim() || 'Push changes via FindAba City OS',
+      });
+
+      if (res.success) {
+        setPushResult({
+          commit: res.commit,
+          commitSha: res.commitSha,
+          branch: res.branch || pushBranch,
+          filesCount: res.filesCount,
+        });
+        addToast(`Successfully pushed commit ${res.commitSha?.slice(0, 7) || ''} to GitHub!`, 'success');
+        // Refresh diagnostics and logs
+        runDiagnostics();
+      } else {
+        setPushResult({
+          error: res.error || 'Failed to push changes to GitHub',
+        });
+        addToast(`Push rejected: ${res.error}`, 'error');
+      }
+    } catch (err: any) {
+      setPushResult({ error: err.message || 'Push exception' });
+      addToast(`Push error: ${err.message}`, 'error');
+    } finally {
+      setPushing(false);
+    }
+  };
+
   const runDiagnostics = async () => {
     setLoading(true);
     try {
       const savedPat = localStorage.getItem('findaba_github_pat')?.trim();
       const savedRepo = localStorage.getItem('findaba_git_repo')?.trim() || 'nedtwistmovies-star/FindAba-OS';
-      const savedBranch = localStorage.getItem('findaba_git_branch')?.trim() || 'main';
+      const savedBranch = localStorage.getItem('findaba_git_branch')?.trim() || 'prod-stabilize/phase1-foundation';
       
       const headers: Record<string, string> = {};
       if (savedPat) headers['X-GitHub-Token'] = savedPat;
@@ -234,6 +304,121 @@ export const GitIntegrationDiagnostics: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Push Changes Workflow (Admin Gated) */}
+      <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-aba-gold/10 text-aba-gold rounded-2xl">
+              <UploadCloud size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <h4 className="text-lg font-black uppercase tracking-tight text-white">Push Changes to GitHub</h4>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-aba-gold/30 bg-aba-gold/10 text-[9px] font-black text-aba-gold uppercase tracking-wider">
+                  <Lock size={10} /> Admin Gated
+                </span>
+              </div>
+              <p className="text-[11px] text-white/50">
+                Interacts with GitHub REST API (<code className="text-aba-gold/80">/git/trees</code>, <code className="text-aba-gold/80">/git/commits</code>, <code className="text-aba-gold/80">/git/refs</code>) to atomically commit changes.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40">
+              Target Branch
+            </label>
+            <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-2xl px-4 py-3">
+              <GitCommit size={16} className="text-white/30" />
+              <input
+                type="text"
+                value={pushBranch}
+                onChange={(e) => setPushBranch(e.target.value)}
+                placeholder="main"
+                className="bg-transparent text-sm text-white focus:outline-none w-full font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/40">
+              Commit Message
+            </label>
+            <input
+              type="text"
+              value={pushMessage}
+              onChange={(e) => setPushMessage(e.target.value)}
+              placeholder="Commit description..."
+              className="bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none w-full font-medium"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
+          <div className="text-[10px] text-white/40 flex items-center gap-2">
+            <ShieldCheck size={14} className="text-aba-green" />
+            <span>Endpoint: <code className="text-white/60">POST /api/git/push</code> (Gated by Admin Session &amp; PAT Verification)</span>
+          </div>
+          <IndustrialButton
+            variant="primary"
+            icon={UploadCloud}
+            loading={pushing}
+            onClick={handlePushChanges}
+          >
+            Push Changes Now
+          </IndustrialButton>
+        </div>
+
+        {/* Push Result Banner */}
+        {pushResult && (
+          <div className={`p-5 rounded-2xl border ${
+            pushResult.commit 
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
+              : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+          } animate-fade-in`}>
+            {pushResult.commit ? (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Check size={20} className="text-emerald-400" />
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wider text-emerald-200">
+                      Commit Created &amp; Pushed Successfully!
+                    </p>
+                    <p className="text-[11px] text-emerald-300/80">
+                      Branch: <code className="font-mono text-emerald-100">{pushResult.branch}</code> • SHA: <code className="font-mono text-emerald-100">{pushResult.commitSha?.slice(0, 7)}</code> {pushResult.filesCount ? `• ${pushResult.filesCount} file(s)` : ''}
+                    </p>
+                  </div>
+                </div>
+                {pushResult.commit && (
+                  <a
+                    href={pushResult.commit}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 rounded-xl text-xs font-bold transition-colors"
+                  >
+                    View on GitHub <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <XCircle size={20} className="text-rose-400" />
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-rose-200">
+                    Push Refused or Failed
+                  </p>
+                  <p className="text-[11px] text-rose-300/80">
+                    {pushResult.error}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Advanced Details */}

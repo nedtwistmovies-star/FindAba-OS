@@ -37,7 +37,10 @@ export const GitSyncSupabaseCommit: React.FC = () => {
 
   // Settings State
   const [repo, setRepo] = useState(() => localStorage.getItem('findaba_git_repo') || 'nedtwistmovies-star/FindAba-OS');
-  const [branch, setBranch] = useState(() => localStorage.getItem('findaba_git_branch') || 'main');
+  const [branch, setBranch] = useState(() => {
+    const saved = localStorage.getItem('findaba_git_branch')?.trim();
+    return (saved && saved !== 'main') ? saved : 'prod-stabilize/phase1-foundation';
+  });
   const [token, setToken] = useState(() => localStorage.getItem('findaba_github_pat') || '');
   const [showToken, setShowToken] = useState(false);
 
@@ -59,17 +62,62 @@ export const GitSyncSupabaseCommit: React.FC = () => {
   const [diagnostics, setDiagnostics] = useState<any>(null);
   const [runningDiagnostics, setRunningDiagnostics] = useState(false);
 
+  // Synchronize with server authoritative Git config on mount
+  useEffect(() => {
+    let isMounted = true;
+    const loadAuthoritativeConfig = async () => {
+      try {
+        const res = await fetch('/api/git/config');
+        if (res.ok) {
+          const cfg = await res.json();
+          if (cfg.success && isMounted) {
+            if (cfg.repo && cfg.repo !== repo) {
+              setRepo(cfg.repo);
+              localStorage.setItem('findaba_git_repo', cfg.repo);
+            }
+            if (cfg.branch) {
+              const currentLocal = localStorage.getItem('findaba_git_branch');
+              if (!currentLocal || currentLocal === 'main' || currentLocal !== cfg.branch) {
+                setBranch(cfg.branch);
+                localStorage.setItem('findaba_git_branch', cfg.branch);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[GitSyncSupabaseCommit] Could not load /api/git/config:', err);
+      }
+    };
+    loadAuthoritativeConfig();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Listen to system git config update events
+  useEffect(() => {
+    const handleConfigUpdated = (e: any) => {
+      if (e.detail?.branch && e.detail.branch !== branch) {
+        setBranch(e.detail.branch);
+      }
+      if (e.detail?.repo && e.detail.repo !== repo) {
+        setRepo(e.detail.repo);
+      }
+    };
+    window.addEventListener('findaba:git_config_updated', handleConfigUpdated);
+    return () => window.removeEventListener('findaba:git_config_updated', handleConfigUpdated);
+  }, [branch, repo]);
+
   const runDiagnostics = async () => {
     setRunningDiagnostics(true);
     setDiagnostics(null);
     try {
       const savedPat = token.trim() || localStorage.getItem('findaba_github_pat')?.trim();
       const currentRepo = repo.trim();
+      const currentBranch = branch.trim();
       const headers: Record<string, string> = {};
       if (savedPat) headers['X-GitHub-Token'] = savedPat;
 
-      // Pass repo in query to test unsaved config
-      const url = `/api/git/diagnostic?repo=${encodeURIComponent(currentRepo)}`;
+      // Pass repo and branch in query to test exact target config
+      const url = `/api/git/diagnostic?repo=${encodeURIComponent(currentRepo)}&branch=${encodeURIComponent(currentBranch)}`;
       const res = await fetch(url, { headers });
       const text = await res.text();
       let data: any = {};
@@ -147,9 +195,14 @@ export const GitSyncSupabaseCommit: React.FC = () => {
 
       if (data.success && Array.isArray(data.branches)) {
         setBranches(data.branches);
-        if (data.branches.length > 0 && !data.branches.some((b: any) => b.name === branch)) {
+        const storedBranch = localStorage.getItem('findaba_git_branch')?.trim();
+        if (data.defaultBranch && (storedBranch === 'main' || !storedBranch || !data.branches.some((b: any) => b.name === branch))) {
+          setBranch(data.defaultBranch);
+          localStorage.setItem('findaba_git_branch', data.defaultBranch);
+        } else if (data.branches.length > 0 && !data.branches.some((b: any) => b.name === branch)) {
           const defaultB = data.defaultBranch || data.branches[0].name;
           setBranch(defaultB);
+          localStorage.setItem('findaba_git_branch', defaultB);
         }
       } else {
         setFetchBranchesError(data.message || "Failed to fetch branches");
@@ -202,6 +255,13 @@ export const GitSyncSupabaseCommit: React.FC = () => {
       setRepo(gitStatus.repo);
     }
   }, [gitStatus.repo]);
+
+  useEffect(() => {
+    if (gitStatus.branch && gitStatus.branch !== branch) {
+      setBranch(gitStatus.branch);
+      localStorage.setItem('findaba_git_branch', gitStatus.branch);
+    }
+  }, [gitStatus.branch]);
 
   // Handle Testing Connection
   const handleTestConnection = async () => {

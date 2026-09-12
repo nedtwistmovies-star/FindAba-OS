@@ -5,13 +5,17 @@ import {
   Star, MessageCircle, ShoppingBag, Share2, 
   Heart, ExternalLink, Award, Package, Clock,
   ChevronRight, Zap, CheckCircle2, Info, Loader2,
-  Lock
+  Lock, QrCode
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Business, Product, ViewState, IntegrityGrade, VerificationLevel } from '../../types';
-import { ImageCarousel, PaystackOverlay, IndustrialButton, SectionHeader, BackButton } from '../../components';
+import { 
+  ImageCarousel, PaystackOverlay, IndustrialButton, 
+  SectionHeader, BackButton, BusinessDetailSkeleton, 
+  BusinessQRCodeModal, cacheBusinessOffline 
+} from '../../components';
 import { useAuth, useOracle } from '../../providers';
 import { BusinessClaimFlow } from '../merchant/BusinessClaimFlow';
 
@@ -38,6 +42,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [showClaimFlow, setShowClaimFlow] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'location' | 'reviews'>('overview');
 
   const getGradeColor = (grade: IntegrityGrade) => {
@@ -52,20 +57,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
   };
 
   if (!business) {
-    return (
-      <div className="min-h-screen bg-aba-deep flex flex-col items-center justify-center p-8 text-center">
-        <div className="w-20 h-20 bg-aba-gold/10 rounded-3xl flex items-center justify-center text-aba-gold animate-pulse mb-6">
-          <Loader2 size={40} className="animate-spin" />
-        </div>
-        <h2 className="text-2xl font-bold text-white uppercase tracking-tight mb-4">Loading Business...</h2>
-        <button 
-          onClick={() => setView('home')}
-          className="px-8 py-4 bg-white/5 text-white/40 rounded-xl font-bold uppercase text-[10px] tracking-widest border border-white/10 hover:text-white transition-standard"
-        >
-          Return to Directory
-        </button>
-      </div>
-    );
+    return <BusinessDetailSkeleton />;
   }
 
   const isVerified = business.integrity_grade === IntegrityGrade.A || business.integrity_grade === IntegrityGrade.A_PLUS;
@@ -74,7 +66,10 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    if (business) {
+      cacheBusinessOffline(business);
+    }
+  }, [business]);
 
   const handlePurchase = (product: Product) => {
     setSelectedProduct(product);
@@ -117,8 +112,12 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
               >
                 <Heart className="w-[18px] h-[18px] sm:w-5 sm:h-5" fill={isFavorite ? "currentColor" : "none"} />
               </button>
-              <button className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-standard active:scale-90 shadow-sm">
-                <Share2 className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
+              <button 
+                onClick={() => setShowQRModal(true)}
+                title="Share Business Profile & QR Pass"
+                className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-xl border border-white/10 rounded-xl flex items-center justify-center text-white hover:bg-white/20 transition-standard active:scale-90 shadow-sm"
+              >
+                <QrCode className="w-[18px] h-[18px] sm:w-5 sm:h-5 text-aba-gold" />
               </button>
            </div>
         </div>
@@ -162,7 +161,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                     </div>
                  </div>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4">
                  {isClaimable ? (
                     <IndustrialButton
                       variant="primary"
@@ -174,15 +173,26 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                       Claim This Business
                     </IndustrialButton>
                  ) : (
-                    <IndustrialButton
-                       variant="primary"
-                       size="lg"
-                       icon={MessageCircle}
-                       onClick={handleContact}
-                       className="shadow-xl w-full sm:w-auto"
-                    >
-                       Contact Business
-                    </IndustrialButton>
+                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                      <IndustrialButton
+                         variant="primary"
+                         size="lg"
+                         icon={MessageCircle}
+                         onClick={handleContact}
+                         className="shadow-xl flex-1 sm:flex-initial"
+                      >
+                         Contact Business
+                      </IndustrialButton>
+                      <IndustrialButton
+                         variant="secondary"
+                         size="lg"
+                         icon={QrCode}
+                         onClick={() => setShowQRModal(true)}
+                         className="shadow-xl flex-1 sm:flex-initial"
+                      >
+                         QR Pass
+                      </IndustrialButton>
+                    </div>
                  )}
               </div>
            </div>
@@ -449,6 +459,13 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
           isOpen={showPayment}
         />
       )}
+
+      {/* 6. BUSINESS PROFILE QR CODE MODAL */}
+      <BusinessQRCodeModal 
+        business={business}
+        isOpen={showQRModal}
+        onClose={() => setShowQRModal(false)}
+      />
     </div>
   );
 };

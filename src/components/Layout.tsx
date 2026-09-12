@@ -78,6 +78,8 @@ import {
 } from "../services/signalService";
 import SystemStatusIndicator from "./SystemStatusIndicator";
 import { HealthCheck } from "./HealthCheck";
+import VoiceSearchButton from "./VoiceSearchButton";
+import OfflineBanner from "./OfflineBanner";
 
 const SystemClock: React.FC = () => {
   const [time, setTime] = useState(new Date());
@@ -475,6 +477,7 @@ const Layout: React.FC<LayoutProps> = ({
     <div
       className={`flex flex-col min-h-[100dvh] w-full transition-colors duration-500 font-sans relative ${isDarkThemeActive ? "bg-aba-deep text-white" : "bg-aba-white text-aba-deep"}`}
     >
+      <OfflineBanner />
       {/* DESKTOP SIDEBAR */}
       <aside
         className={`hidden lg:flex flex-col fixed left-0 top-0 bottom-0 z-[1100] transition-standard border-r border-white/5 bg-black/20 backdrop-blur-xl ${isSidebarCollapsed ? "w-20" : "w-64"}`}
@@ -620,8 +623,15 @@ const Layout: React.FC<LayoutProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Universal Industrial Search..."
-                  className="w-full pl-12 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-aba-gold/50 transition-all font-bold tracking-tight"
+                  className="w-full pl-12 pr-12 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-aba-gold/50 transition-all font-bold tracking-tight"
                 />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
+                  <VoiceSearchButton 
+                    onTranscript={(text) => setSearchQuery(text)} 
+                    buttonSize={30}
+                    iconSize={15}
+                  />
+                </div>
 
                 {/* Search Results Dropdown */}
                 {searchQuery.length >= 2 && (

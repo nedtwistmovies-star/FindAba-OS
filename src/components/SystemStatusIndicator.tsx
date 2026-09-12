@@ -51,7 +51,7 @@ const SystemStatusIndicator: React.FC = () => {
       } else {
         // If initial load or cold-start, retry once after 1.5s
         if (retryCount === 0) {
-          setTimeout(() => checkConnectivity(1), 1500);
+          setTimeout(() => { checkConnectivity(1).catch(() => {}); }, 1500);
           return;
         }
         const errorText = await response.text().catch(() => 'No response body');
@@ -63,7 +63,7 @@ const SystemStatusIndicator: React.FC = () => {
       clearTimeout(timeoutId);
       if (retryCount === 0) {
         // Immediate single retry after 2 seconds for initial container spin-up
-        setTimeout(() => checkConnectivity(1), 2000);
+        setTimeout(() => { checkConnectivity(1).catch(() => {}); }, 2000);
         return;
       }
       console.warn('[SystemStatus] Periodic connectivity poll failed:', err);
@@ -77,11 +77,11 @@ const SystemStatusIndicator: React.FC = () => {
 
   useEffect(() => {
     // Initial check
-    checkConnectivity();
+    checkConnectivity().catch(() => {});
 
     // Check periodically every 30 seconds
     timerRef.current = setInterval(() => {
-      checkConnectivity();
+      checkConnectivity().catch(() => {});
     }, 30000);
 
     return () => {

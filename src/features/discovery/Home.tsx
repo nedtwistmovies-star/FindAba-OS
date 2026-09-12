@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
 import { ArrowRight, Hotel, Truck, Wallet, Users, Car, Landmark, Radio, Sparkles, Search, ShieldCheck, Gem, ChevronRight, Star, MapPin, CloudSun, Calendar, Clock, Award, Zap, PlusCircle, Building2, Plus, BookOpen, Loader2, MessageSquare, Newspaper, Headphones, LifeBuoy, Globe, Database, Github, Key, Scissors, Footprints, Hammer, Cpu, Package, Box, Sun, Briefcase, Droplets, Trash2, Plane, X } from 'lucide-react';
 import { ViewState, Business, VerificationLevel } from '../../types';
-import { Logo, IndustrialButton, SectionHeader, ImageCarousel, BusinessCard } from '../../components';
+import { Logo, IndustrialButton, SectionHeader, ImageCarousel, BusinessCard, VoiceSearchButton } from '../../components';
 import { ARTISANS, SANDALS_BRAND, DEFAULT_HERO_IMAGES } from '../../constants';
 import { getIgboMarketDay, getAbaWeather, WeatherData } from '../../services/signalService';
 import { checkDatabaseHealth } from '../../services/supabaseService';
@@ -321,13 +321,23 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="text-xs sm:text-sm md:text-lg font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
               />
-              {isSearching ? (
-                <Loader2 className="animate-spin text-aba-gold ml-3 sm:ml-4" size={18} />
-              ) : (
-                <button type="submit" className="text-white/40 hover:text-aba-gold transition-standard ml-3 sm:ml-4 active:scale-90">
-                  <ArrowRight size={24} strokeWidth={3} />
-                </button>
-              )}
+              <div className="flex items-center gap-1 sm:gap-2 ml-2">
+                <VoiceSearchButton 
+                  onTranscript={(text) => {
+                    setSearchQuery(text);
+                    setGlobalSearchQuery(text);
+                  }}
+                  buttonSize={36}
+                  iconSize={18}
+                />
+                {isSearching ? (
+                  <Loader2 className="animate-spin text-aba-gold" size={18} />
+                ) : (
+                  <button type="submit" className="text-white/40 hover:text-aba-gold transition-standard active:scale-90 p-1">
+                    <ArrowRight size={24} strokeWidth={3} />
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </motion.div>

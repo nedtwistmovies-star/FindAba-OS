@@ -70,7 +70,7 @@ export const GitRepositorySyncModal: React.FC<GitRepositorySyncModalProps> = ({
   const handleUpdateFromMetadata = async () => {
     setLoading(true);
     try {
-      const syncedRepo = await initializeRepositoryConfig();
+      const { repo: syncedRepo } = await initializeRepositoryConfig();
       setLocalRepoValue(syncedRepo);
       setCustomUrlInput(syncedRepo);
       setIsSynced(true);

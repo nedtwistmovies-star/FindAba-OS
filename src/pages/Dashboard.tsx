@@ -45,10 +45,14 @@ export default function Dashboard() {
           setProfile(p);
           setOrders(ordersData);
           setLoading(false);
+        }).catch(() => {
+          setLoading(false);
         });
       } else {
         setLoading(false);
       }
+    }).catch(() => {
+      setLoading(false);
     });
   }, []);
 

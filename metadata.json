@@ -8,7 +8,8 @@
   "short_name": "FindAba",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nedtwistmovies-star/FindAba-OS.git"
+    "url": "https://github.com/nedtwistmovies-star/FindAba-OS.git",
+    "branch": "prod-stabilize/phase1-foundation"
   },
   "description": "FindAba connects the markets of Aba and the products of Abia State to the world. We help traders, artisans, and businesses manage orders, reach new customers, and grow their trade community.",
   "theme_color": "#020617",

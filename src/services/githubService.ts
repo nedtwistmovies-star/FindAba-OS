@@ -106,7 +106,7 @@ export class GithubService {
       return {
         success: data.success ?? true,
         repo: data.repo || targetRepo || 'nedtwistmovies-star/FindAba-OS',
-        branch: data.branch || targetBranch || 'main',
+        branch: data.branch || targetBranch || 'prod-stabilize/phase1-foundation',
         count: data.count || (data.commits ? data.commits.length : 0),
         tokenRejected: data.tokenRejected,
         commits: data.commits || [],
@@ -128,7 +128,7 @@ export class GithubService {
   ): Promise<CommitHistoryResponse> {
     const rawRepo = customRepo || localStorage.getItem('findaba_git_repo') || 'nedtwistmovies-star/FindAba-OS';
     const cleanRepo = rawRepo.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '').replace(/\.git$/i, '');
-    const branch = customBranch || localStorage.getItem('findaba_git_branch') || 'main';
+    const branch = customBranch || localStorage.getItem('findaba_git_branch') || 'prod-stabilize/phase1-foundation';
 
     try {
       const res = await fetch(`https://api.github.com/repos/${cleanRepo}/commits?sha=${encodeURIComponent(branch)}&per_page=${limit}`, {

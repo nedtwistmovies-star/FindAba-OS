@@ -7,6 +7,10 @@ console.log(`[BOOT] Timestamp: ${new Date().toISOString()}`);
 import { createRoot } from 'react-dom/client';
 import App from './core/App';
 import './index.css';
+import { initializeRepositoryConfig } from './services/gitConfigService';
+
+// Initialize authoritative git config on boot
+initializeRepositoryConfig().catch(console.warn);
 
 const container = document.getElementById('root');
 if (container) {

@@ -30,17 +30,18 @@ export const GitHubSync: React.FC = () => {
         credentials: 'include'
       });
       if (response.ok) {
-        const data = await response.json();
-        setUser(data);
-      } else if (response.status === 401) {
-        setUser(null);
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          setUser(data);
+        } else {
+          setUser(null);
+        }
       } else {
-        const errData = await response.json().catch(() => ({}));
-        console.warn('[GitHub] Fetch failed:', response.status, errData);
         setUser(null);
       }
     } catch (error: any) {
-      console.error('Failed to fetch GitHub user:', error.message || error);
+      console.warn('GitHub user session check skipped or unauthenticated:', error.message || error);
       setUser(null);
     } finally {
       setLoading(false);

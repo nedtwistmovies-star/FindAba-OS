@@ -7,6 +7,7 @@
 export interface RepositoryConfig {
   type: string;
   url: string;
+  branch?: string;
 }
 
 export interface AppMetadata {
@@ -39,57 +40,72 @@ export function cleanRepositoryName(url: string): string {
   return cleaned;
 }
 
+export const AUTHORITATIVE_DEFAULT_BRANCH = 'prod-stabilize/phase1-foundation';
+export const AUTHORITATIVE_DEFAULT_REPO = 'nedtwistmovies-star/FindAba-OS';
+
 /**
- * Initializes and synchronizes the Git Repository configuration from metadata.json to local storage.
- * This is non-blocking and handles failures gracefully with fallback values.
+ * Initializes and synchronizes the Git Repository configuration.
+ * Queries /api/git/config as the primary authoritative source of truth,
+ * with fallback to /metadata.json and built-in defaults.
  */
-export async function initializeRepositoryConfig(): Promise<string> {
-  const defaultRepo = 'nedtwistmovies-star/FindAba-OS';
-  const defaultBranch = 'main';
+export async function initializeRepositoryConfig(): Promise<{ repo: string; branch: string }> {
+  let targetRepo = AUTHORITATIVE_DEFAULT_REPO;
+  let targetBranch = AUTHORITATIVE_DEFAULT_BRANCH;
 
+  // 1. Try fetching authoritative config from server
   try {
-    console.log('[GitConfigService] Fetching metadata.json...');
-    const response = await fetch('/metadata.json');
-    if (!response.ok) {
-      throw new Error(`Failed to fetch metadata.json: Server returned status ${response.status}`);
-    }
-    
-    const metadata: AppMetadata = await response.json();
-    console.log('[GitConfigService] Metadata loaded successfully:', metadata);
-
-    let targetRepo = defaultRepo;
-    
-    if (metadata.repository && metadata.repository.url) {
-      const parsedRepo = cleanRepositoryName(metadata.repository.url);
-      if (parsedRepo) {
-        targetRepo = parsedRepo;
-        console.log(`[GitConfigService] Detected repository from metadata: ${targetRepo}`);
+    const configRes = await fetch('/api/git/config');
+    if (configRes.ok) {
+      const configData = await configRes.json();
+      if (configData.success) {
+        if (configData.repo) targetRepo = cleanRepositoryName(configData.repo);
+        if (configData.branch) targetBranch = configData.branch.trim();
       }
     }
-
-    // Update localStorage
-    const currentLocalRepo = localStorage.getItem('findaba_git_repo');
-    if (currentLocalRepo !== targetRepo) {
-      console.log(`[GitConfigService] Updating repository in localStorage: ${currentLocalRepo} -> ${targetRepo}`);
-      localStorage.setItem('findaba_git_repo', targetRepo);
-    }
-
-    if (!localStorage.getItem('findaba_git_branch')) {
-      localStorage.setItem('findaba_git_branch', defaultBranch);
-    }
-
-    return targetRepo;
-  } catch (error: any) {
-    console.warn('[GitConfigService] Failed to read metadata.json programmatically, using fallback configuration:', error.message || error);
-    
-    // Fallback synchronization
-    if (!localStorage.getItem('findaba_git_repo')) {
-      localStorage.setItem('findaba_git_repo', defaultRepo);
-    }
-    if (!localStorage.getItem('findaba_git_branch')) {
-      localStorage.setItem('findaba_git_branch', defaultBranch);
-    }
-    
-    return localStorage.getItem('findaba_git_repo') || defaultRepo;
+  } catch (apiErr) {
+    console.warn('[GitConfigService] /api/git/config not reachable, falling back to metadata.json:', apiErr);
   }
+
+  // 2. Supplement/fallback from metadata.json if needed
+  try {
+    const metaRes = await fetch('/metadata.json');
+    if (metaRes.ok) {
+      const metadata: AppMetadata = await metaRes.json();
+      if (metadata.repository?.url && (!targetRepo || targetRepo === AUTHORITATIVE_DEFAULT_REPO)) {
+        const parsed = cleanRepositoryName(metadata.repository.url);
+        if (parsed) targetRepo = parsed;
+      }
+      if (metadata.repository?.branch && targetBranch === AUTHORITATIVE_DEFAULT_BRANCH) {
+        targetBranch = metadata.repository.branch.trim();
+      }
+    }
+  } catch (metaErr) {
+    console.warn('[GitConfigService] metadata.json read error:', metaErr);
+  }
+
+  // 3. Authoritative sync with localStorage
+  // If stored branch is 'main' while authoritative target is prod-stabilize/phase1-foundation,
+  // promote to the authoritative branch so UI and API never mismatch.
+  const currentLocalBranch = localStorage.getItem('findaba_git_branch')?.trim();
+  if (!currentLocalBranch || currentLocalBranch === 'main') {
+    localStorage.setItem('findaba_git_branch', targetBranch);
+  } else {
+    targetBranch = currentLocalBranch;
+  }
+
+  const currentLocalRepo = localStorage.getItem('findaba_git_repo')?.trim();
+  if (!currentLocalRepo) {
+    localStorage.setItem('findaba_git_repo', targetRepo);
+  } else {
+    targetRepo = currentLocalRepo;
+  }
+
+  // 4. Dispatch event so active UI components react immediately
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('findaba:git_config_updated', {
+      detail: { repo: targetRepo, branch: targetBranch }
+    }));
+  }
+
+  return { repo: targetRepo, branch: targetBranch };
 }

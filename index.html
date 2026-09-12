@@ -48,11 +48,37 @@
       (function() {
         var logs = [];
         window.addEventListener('error', function(e) {
+          var msg = e.message || '';
+          if (
+            msg.includes('ResizeObserver') ||
+            msg.includes('Failed to fetch') ||
+            msg.includes('Load failed') ||
+            msg.includes('Script error') ||
+            msg.includes('AbortError')
+          ) {
+            console.warn('[Handled Error Event]', msg);
+            return;
+          }
           showErrorOverlay('Unhandled Runtime Error: ' + e.message, e.filename, e.lineno, e.colno, e.error);
         });
         window.addEventListener('unhandledrejection', function(e) {
           var err = e.reason;
           var msg = err ? (err.message || String(err)) : 'Unknown promise rejection';
+          if (
+            msg.includes('Failed to fetch') ||
+            msg.includes('NetworkError') ||
+            msg.includes('AbortError') ||
+            msg.includes('Load failed') ||
+            msg.includes('cancelled') ||
+            msg.includes('ResizeObserver') ||
+            msg.includes('SESSION_TIMEOUT') ||
+            msg.includes('signal is aborted') ||
+            msg.includes('Auth session missing')
+          ) {
+            console.warn('[Handled UnhandledRejection]', msg);
+            if (e.preventDefault) e.preventDefault();
+            return;
+          }
           showErrorOverlay('Unhandled Promise Rejection: ' + msg, '', 0, 0, err);
         });
 

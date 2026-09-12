@@ -93,8 +93,8 @@ authRouter.post("/github/logout", (req, res) => {
   res.json({ success: true });
 });
 
-authRouter.get("/github/user", async (req, res) => {
-  const token = req.cookies.github_token;
+const handleGetUser = async (req: any, res: any) => {
+  const token = req.cookies?.github_token;
   if (!token) return res.status(401).json({ error: "Not authenticated with GitHub" });
 
   try {
@@ -108,4 +108,7 @@ authRouter.get("/github/user", async (req, res) => {
     if (status === 401 || status === 403) res.clearCookie("github_token");
     res.status(status).json({ error: "Failed to fetch GitHub user", details: error.response?.data?.message || error.message });
   }
-});
+};
+
+authRouter.get("/github/user", handleGetUser);
+authRouter.get("/user", handleGetUser);

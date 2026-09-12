@@ -23,7 +23,7 @@ import ProductDetailOverlay from './ProductDetailOverlay';
 import SectionHeader from './SectionHeader';
 import StatCard from './StatCard';
 import { VideoUpload, MultiVideoUpload } from './VideoUpload';
-import { BusinessCardSkeleton, FeedSkeleton, HeroSkeleton } from './SkeletonLoader';
+import { BusinessCardSkeleton, FeedSkeleton, HeroSkeleton, BusinessDetailSkeleton, BusinessListSkeleton, ShimmerBox } from './SkeletonLoader';
 import { AuthModal } from './AuthModal';
 import { ContactGateway } from './ContactGateway';
 import SystemStatusIndicator from './SystemStatusIndicator';
@@ -33,6 +33,9 @@ import WelcomeOverlay from './WelcomeOverlay';
 import { WeeklyTradeVolumeChart } from './WeeklyTradeVolumeChart';
 import { BankSelector, NIGERIAN_BANKS } from './BankSelector';
 import { BackButton } from './BackButton';
+import VoiceSearchButton from './VoiceSearchButton';
+import OfflineBanner, { cacheBusinessOffline, getOfflineCachedBusinesses } from './OfflineBanner';
+import BusinessQRCodeModal, { BusinessQRCode } from './BusinessQRCodeModal';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -59,7 +62,7 @@ export {
   SectionHeader,
   StatCard,
   VideoUpload, MultiVideoUpload,
-  BusinessCardSkeleton, FeedSkeleton, HeroSkeleton,
+  BusinessCardSkeleton, FeedSkeleton, HeroSkeleton, BusinessDetailSkeleton, BusinessListSkeleton, ShimmerBox,
   AuthModal,
   ContactGateway,
   SystemStatusIndicator,
@@ -67,5 +70,11 @@ export {
   LanguageSelector,
   WelcomeOverlay,
   WeeklyTradeVolumeChart,
-  BackButton
+  BackButton,
+  VoiceSearchButton,
+  OfflineBanner,
+  BusinessQRCodeModal,
+  BusinessQRCode,
+  cacheBusinessOffline,
+  getOfflineCachedBusinesses
 };

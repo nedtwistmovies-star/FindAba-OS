@@ -84,17 +84,26 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
   const { status: gitStatus, loading: gitLoading, fullSync, sync: syncGit, clearError } = useGitSync();
 
   const [inputRepo, setInputRepo] = useState(() => localStorage.getItem('findaba_git_repo') || '');
-  const [inputBranch, setInputBranch] = useState(() => localStorage.getItem('findaba_git_branch') || 'main');
+  const [inputBranch, setInputBranch] = useState(() => {
+    const saved = localStorage.getItem('findaba_git_branch')?.trim();
+    return (saved && saved !== 'main') ? saved : 'prod-stabilize/phase1-foundation';
+  });
   const [inputPat, setInputPat] = useState(() => localStorage.getItem('findaba_github_pat') || '');
   const [showPat, setShowPat] = useState(false);
   const [isSavingGit, setIsSavingGit] = useState(false);
 
-  // Sync form state when gitStatus repo updates
+  // Sync form state when gitStatus updates
   useEffect(() => {
     if (gitStatus.repo && !inputRepo) {
       setInputRepo(gitStatus.repo);
     }
   }, [gitStatus.repo]);
+
+  useEffect(() => {
+    if (gitStatus.branch && gitStatus.branch !== inputBranch) {
+      setInputBranch(gitStatus.branch);
+    }
+  }, [gitStatus.branch]);
 
   const handleSaveGitConfig = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -112,7 +121,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
       localStorage.removeItem('findaba_git_repo');
     }
 
-    const branchToUse = inputBranch.trim() || 'main';
+    const branchToUse = inputBranch.trim() || 'prod-stabilize/phase1-foundation';
     localStorage.setItem('findaba_git_branch', branchToUse);
 
     if (inputPat.trim()) {
@@ -136,10 +145,10 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
     localStorage.removeItem('findaba_git_branch');
     localStorage.removeItem('findaba_github_pat');
     setInputRepo('');
-    setInputBranch('main');
+    setInputBranch('prod-stabilize/phase1-foundation');
     setInputPat('');
     clearError();
-    syncGit('', 'main');
+    syncGit('', 'prod-stabilize/phase1-foundation');
     addToast("Git configuration cleared.", "info");
   };
   

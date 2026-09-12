@@ -117,6 +117,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api", adminRouter);
 app.use("/api", oracleRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/github", authRouter);
 app.use("/api/git", githubRouter);
 app.use("/api/whatsapp", whatsappRouter);
 app.use("/api", paymentRouter);

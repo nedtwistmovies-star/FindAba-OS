@@ -1,7 +1,7 @@
-﻿
+
 import React, { useState, useMemo } from 'react';
 import { Search, LayoutGrid, Map as MapIcon, ArrowLeft, Filter, CheckCircle2, X, ShieldCheck } from 'lucide-react';
-import { BusinessCard, MapView, IndustrialButton } from '../../components';
+import { BusinessCard, MapView, IndustrialButton, VoiceSearchButton, BusinessListSkeleton } from '../../components';
 import { Business, VerificationStatus } from '../../types';
 import { CATEGORIES } from '../../constants';
 import { useOracle } from '../../providers';
@@ -114,10 +114,17 @@ const matchesSearch =
                <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-aba-gold transition-standard w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                <input 
                  placeholder="Search for businesses..." 
-                 className="w-full pl-10 sm:pl-12 pr-4 sm:pr-6 py-3 sm:py-4 bg-white/5 border border-white/10 rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-aba-gold/50 transition-standard text-white placeholder:text-white/20 uppercase"
+                 className="w-full pl-10 sm:pl-12 pr-12 sm:pr-14 py-3 sm:py-4 bg-white/5 border border-white/10 rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-aba-gold/50 transition-standard text-white placeholder:text-white/20 uppercase"
                  value={searchQuery}
                  onChange={e => setSearchQuery(e.target.value)}
                />
+               <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+                 <VoiceSearchButton 
+                   onTranscript={text => setSearchQuery(text)}
+                   buttonSize={36}
+                   iconSize={18}
+                 />
+               </div>
             </div>
             
             <IndustrialButton
@@ -227,11 +234,7 @@ const matchesSearch =
       {/* Business List Display */}
       <div className="flex-1 p-4 sm:p-6 md:p-10">
         {loading ? (
-          <div className="max-w-7xl mx-auto grid-adaptive gap-6 sm:gap-8 pb-40">
-            {[...Array(6)].map((_, i) => (
-              <BusinessCard key={i} isLoading={true} />
-            ))}
-          </div>
+          <BusinessListSkeleton count={6} />
         ) : viewMode === 'grid' ? (
           <div className="max-w-7xl mx-auto grid-adaptive gap-6 sm:gap-8 pb-40">
             {filtered.map(b => (

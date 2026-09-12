@@ -45,7 +45,7 @@ export const env = {
   GITHUB_CLIENT_ID: optional("GITHUB_CLIENT_ID"),
   GITHUB_CLIENT_SECRET: optional("GITHUB_CLIENT_SECRET"),
   GITHUB_REPO: optional("GITHUB_REPO") || "nedtwistmovies-star/FindAba-OS",
-  GITHUB_BRANCH: optional("GITHUB_BRANCH") || "main",
+  GITHUB_BRANCH: optional("GITHUB_BRANCH") || "prod-stabilize/phase1-foundation",
   GITHUB_WEBHOOK_SECRET: optional("GITHUB_WEBHOOK_SECRET"),
 
   // Payments

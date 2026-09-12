@@ -135,17 +135,22 @@ export const useGitSync = () => {
         return;
       }
       
+      const resolvedBranch = result.branch || targetBranch || 'prod-stabilize/phase1-foundation';
+      if (result.branch && result.branch !== localStorage.getItem('findaba_git_branch')) {
+        localStorage.setItem('findaba_git_branch', result.branch);
+      }
+
       setStatus({
         connected: true,
         repo: result.repo,
-        branch: result.branch || targetBranch || 'main',
+        branch: resolvedBranch,
         lastUpdated: result.lastUpdated,
         data: result.data || [],
         systemHasToken: result.systemHasToken,
         systemConfigured: result.systemConfigured,
         error: undefined
       });
-      console.log(`[GitSync] Handshake successful: ${targetRepo || 'default'}`);
+      console.log(`[GitSync] Handshake successful: ${targetRepo || 'default'} on branch ${resolvedBranch}`);
     } catch (err: any) {
       if (retriesLeft > 0 && err.message === 'Failed to fetch') {
         console.log(`[GitSync] Network fault during handshake. Retrying in 3s... (${retriesLeft} retries left)`);
@@ -167,7 +172,7 @@ export const useGitSync = () => {
     try {
       const authHeaders = await getAuthHeaders();
       const repo = localStorage.getItem('findaba_git_repo') || '';
-      const branch = localStorage.getItem('findaba_git_branch') || '';
+      const branch = localStorage.getItem('findaba_git_branch') || 'prod-stabilize/phase1-foundation';
       
       let url = `/api/git/commit`;
       const params = new URLSearchParams();
@@ -183,7 +188,7 @@ export const useGitSync = () => {
           'Content-Type': 'application/json',
           ...authHeaders
         },
-        body: JSON.stringify({ files, message })
+        body: JSON.stringify({ files, message, repo, branch })
       });
       
       const text = await response.text();

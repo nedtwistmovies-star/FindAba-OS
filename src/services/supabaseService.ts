@@ -108,9 +108,9 @@ export const ensureAuth = async () => {
   try {
     // 🔹 TIMEOUT_PROTECTED_GET_SESSION
     const sessionResponse = await Promise.race([
-      sb.auth.getSession(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("AUTH_SESSION_TIMEOUT")), 12000)
+      sb.auth.getSession().catch((err: any) => ({ data: { session: null }, error: err })),
+      new Promise((resolve) => 
+        setTimeout(() => resolve({ data: { session: null }, error: new Error("AUTH_SESSION_TIMEOUT") }), 12000)
       )
     ]) as any;
 
@@ -398,7 +398,48 @@ export const authSignOut = async () => {
   if (sb) await sb.auth.signOut();
 };
 
+let _activeHealthCheckPromise: Promise<{ status: 'healthy' | 'unhealthy' | 'unknown'; message?: string }> | null = null;
+let _cachedHealthResult: { status: 'healthy' | 'unhealthy' | 'unknown'; message?: string } | null = null;
+let _lastHealthCheckTimestamp = 0;
+const HEALTH_CACHE_TTL_MS = 25000; // 25s cache window for simultaneous/recent probes
+
+export const clearDatabaseHealthCache = () => {
+  _cachedHealthResult = null;
+  _lastHealthCheckTimestamp = 0;
+  _activeHealthCheckPromise = null;
+};
+
 export const checkDatabaseHealth = async (url?: string, key?: string) => {
+  // If specific custom URL/Key provided, bypass cache and test directly
+  if (url && key) {
+    return runDatabaseHealthProbe(url, key);
+  }
+
+  const now = Date.now();
+  if (_cachedHealthResult && (now - _lastHealthCheckTimestamp < HEALTH_CACHE_TTL_MS)) {
+    return _cachedHealthResult;
+  }
+
+  if (_activeHealthCheckPromise) {
+    return _activeHealthCheckPromise;
+  }
+
+  _activeHealthCheckPromise = runDatabaseHealthProbe()
+    .then((result) => {
+      _cachedHealthResult = result;
+      _lastHealthCheckTimestamp = Date.now();
+      _activeHealthCheckPromise = null;
+      return result;
+    })
+    .catch((err) => {
+      _activeHealthCheckPromise = null;
+      return { status: 'unknown' as const, message: err?.message || 'Database health probe error' };
+    });
+
+  return _activeHealthCheckPromise;
+};
+
+const runDatabaseHealthProbe = async (url?: string, key?: string) => {
   console.log("[SupabaseService] checkDatabaseHealth probe start");
   // If specific URL/Key provided, test that instead of the main instance
   let client = getSupabase();
@@ -427,7 +468,7 @@ export const checkDatabaseHealth = async (url?: string, key?: string) => {
   const timeoutId = setTimeout(() => {
     console.warn("[SupabaseService] checkDatabaseHealth probe ABORTED by timeout");
     controller.abort();
-  }, 25000);
+  }, 10000);
   
   try {
     // Probe a subset of critical tables to ensure schema health

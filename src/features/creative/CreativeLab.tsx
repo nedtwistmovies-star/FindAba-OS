@@ -31,7 +31,7 @@ const CreativeLab: React.FC<any> = ({ onBack }) => {
   const userEmail = localStorage.getItem('findaba_user_email');
 
   useEffect(() => {
-    if (userEmail) fetchVisionHistory(userEmail).then(setHistory);
+    if (userEmail) fetchVisionHistory(userEmail).then(setHistory).catch(() => {});
   }, [userEmail]);
 
   const handleRun = async () => {

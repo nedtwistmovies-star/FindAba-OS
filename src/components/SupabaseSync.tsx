@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Database, RefreshCw, CheckCircle, AlertCircle, ShieldCheck, Activity, Terminal } from 'lucide-react';
 import { useBusiness } from '../providers/BusinessProvider';
 import { useToast } from '../providers/ToastProvider';
-import { checkDatabaseHealth, getRegistryConfig } from '../services/supabaseService';
+import { checkDatabaseHealth, getRegistryConfig, clearDatabaseHealthCache } from '../services/supabaseService';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const SupabaseSync: React.FC = () => {
@@ -24,7 +24,8 @@ export const SupabaseSync: React.FC = () => {
   const handleSync = async () => {
     setIsSyncing(true);
     try {
-      // 1. Health Probe
+      // 1. Health Probe (clear cache for manual user-initiated sync)
+      clearDatabaseHealthCache();
       const health = await checkDatabaseHealth();
       setHealthStatus(health);
 

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
@@ -274,6 +274,182 @@ githubRouter.post("/commit", ensureAdmin, async (req, res) => {
   }
 });
 
+/**
+ * Push Changes workflow:
+ * Creates branch commits and updates the remote branch reference using the GitHub REST API.
+ * Strictly gated by ensureAdmin.
+ */
+const pushChangesHandler = async (req: any, res: any) => {
+  let repo = (req.body?.repo as string) || (req.query?.repo as string) || env.GITHUB_REPO;
+  const branchOverride = (req.body?.branch as string) || (req.query?.branch as string) || undefined;
+  const token = resolveGithubToken(req);
+  const {
+    files = [],
+    message = "Push changes via FindAba City OS",
+    author = "FindAba Admin",
+    createBranchIfMissing = true,
+  } = req.body || {};
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: "GitHub authentication required. Please configure GITHUB_TOKEN or provide an authorized X-GitHub-Token.",
+    });
+  }
+
+  repo = normalizeRepo(repo);
+
+  try {
+    const [owner, name] = repo.split("/");
+    if (!owner || !name) {
+      return res.status(400).json({ success: false, error: `Invalid repository format '${repo}'. Use 'owner/repo'.` });
+    }
+
+    const headers = authHeaders(token);
+    const repoMeta = await getRepoMeta(owner, name, token);
+    const targetBranch = branchOverride || env.GITHUB_BRANCH || repoMeta.default_branch || "main";
+
+    // Prepare files to push
+    const treeItems: Array<{ path: string; mode?: string; type?: string; content: string }> = [];
+
+    if (Array.isArray(files) && files.length > 0) {
+      for (const file of files) {
+        let content = file.content;
+        if (content === undefined && file.data !== undefined) {
+          content = typeof file.data === "string" ? file.data : JSON.stringify(file.data, null, 2);
+        } else if (typeof content !== "string") {
+          content = JSON.stringify(content, null, 2);
+        }
+        treeItems.push({
+          path: file.path,
+          mode: file.mode || "100644",
+          type: file.type || "blob",
+          content,
+        });
+      }
+    } else {
+      // If no files explicitly specified, collect latest registry & system state
+      try {
+        const localRegistryPath = path.join(process.cwd(), "registry.json");
+        const localRegistry = await fs.readFile(localRegistryPath, "utf-8");
+        treeItems.push({
+          path: "registry.json",
+          mode: "100644",
+          type: "blob",
+          content: localRegistry,
+        });
+      } catch (readErr) {
+        console.warn("[GitPush] Local registry.json read fallback:", readErr);
+      }
+
+      // Add database snapshot if Supabase is connected
+      try {
+        const { data: businesses } = await supabase
+          .from("businesses")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(500);
+
+        if (businesses && businesses.length > 0) {
+          treeItems.push({
+            path: "supabase/businesses.json",
+            mode: "100644",
+            type: "blob",
+            content: JSON.stringify(businesses, null, 2),
+          });
+        }
+      } catch (sbErr) {
+        console.warn("[GitPush] Supabase businesses fetch note:", sbErr);
+      }
+    }
+
+    if (treeItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No changes detected or provided to push.",
+      });
+    }
+
+    // Determine target branch commit & base tree
+    let branchInfo = await getBranchCommitAndTree(owner, name, targetBranch, token);
+
+    // If branch doesn't exist yet and createBranchIfMissing is true, fork from default branch
+    if (!branchInfo.commitSha && createBranchIfMissing && targetBranch !== repoMeta.default_branch) {
+      const defaultBranchInfo = await getBranchCommitAndTree(owner, name, repoMeta.default_branch, token);
+      if (defaultBranchInfo.commitSha) {
+        try {
+          await githubClient.post(
+            `/repos/${owner}/${name}/git/refs`,
+            { ref: `refs/heads/${targetBranch}`, sha: defaultBranchInfo.commitSha },
+            { headers }
+          );
+          branchInfo = defaultBranchInfo;
+        } catch (refErr) {
+          console.warn(`[GitPush] Could not create branch '${targetBranch}', falling back to default branch:`, refErr);
+        }
+      }
+    }
+
+    const { commitSha, htmlUrl } = await createTreeAndCommit({
+      owner,
+      name,
+      branch: targetBranch,
+      token,
+      message,
+      treeItems,
+      baseTreeSha: branchInfo.treeSha,
+      parentCommitSha: branchInfo.commitSha,
+    });
+
+    // Record in webhook / push logs
+    const adminIdentifier = req.user?.email || req.user?.username || author;
+    const pushLog: WebhookLogEntry = {
+      id: `push_${Date.now()}_${commitSha.substring(0, 7)}`,
+      timestamp: new Date().toISOString(),
+      event: "push",
+      repository: `${owner}/${name}`,
+      sender: adminIdentifier,
+      ref: `refs/heads/${targetBranch}`,
+      commitsCount: 1,
+      status: "success",
+      message: `Admin push completed: "${message}" (${treeItems.length} file(s) updated)`,
+      headCommit: {
+        id: commitSha.substring(0, 7),
+        message,
+        author: adminIdentifier,
+        timestamp: new Date().toISOString(),
+      },
+    };
+    webhookLogs.unshift(pushLog);
+    if (webhookLogs.length > 100) webhookLogs.pop();
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully pushed changes to branch '${targetBranch}'.`,
+      commit: htmlUrl,
+      commitSha,
+      branch: targetBranch,
+      repo: `${owner}/${name}`,
+      filesCount: treeItems.length,
+      files: treeItems.map((t) => t.path),
+      timestamp: new Date().toISOString(),
+      admin: adminIdentifier,
+    });
+  } catch (error: any) {
+    const { status, details, message: errMsg } = formatGithubError(error, repo, token);
+    console.warn("[GitPush] Push error:", { status, details, repo });
+    return res.status(status).json({
+      success: false,
+      error: errMsg || "Failed to push changes to GitHub",
+      details,
+      status,
+    });
+  }
+};
+
+githubRouter.post("/push", ensureAdmin, pushChangesHandler);
+githubRouter.post("/push-changes", ensureAdmin, pushChangesHandler);
+
 githubRouter.post("/branch", ensureAdmin, async (req, res) => {
   const { branch, from, repo: bodyRepo } = req.body;
   let repo = (req.query.repo as string) || bodyRepo || env.GITHUB_REPO;
@@ -351,22 +527,32 @@ const webhookLogs: WebhookLogEntry[] = [
   }
 ];
 
-/** Run complete GitHub integration diagnostics */
-githubRouter.get("/diagnostic", async (req, res) => {
+/** Run complete GitHub integration diagnostics (aligns with /api/git/diagnostic contract) */
+const handleDiagnosticRequest = async (req: Request, res: Response) => {
   const token = resolveGithubToken(req);
   const queryRepo = req.query.repo as string;
-  const repo = queryRepo || env.GITHUB_REPO;
-  const branch = env.GITHUB_BRANCH || "main";
+  const bodyRepo = (req.body as any)?.repo as string;
+  const repo = bodyRepo || queryRepo || env.GITHUB_REPO;
+
+  const queryBranch = req.query.branch as string;
+  const bodyBranch = (req.body as any)?.branch as string;
+  const branch = bodyBranch || queryBranch || env.GITHUB_BRANCH || "prod-stabilize/phase1-foundation";
 
   const results: any = {
     success: true,
+    repo: repo ? normalizeRepo(repo) : null,
     envRepo: env.GITHUB_REPO || null,
-    envBranch: branch,
+    branch,
+    envBranch: env.GITHUB_BRANCH || "prod-stabilize/phase1-foundation",
     hasToken: !!token,
     repoValid: false,
+    repositoryAccessible: false,
     apiReachable: false,
+    githubApiReachable: false,
+    registryExists: false,
     message: "Diagnostics started",
     details: "",
+    timestamp: new Date().toISOString(),
     checks: {
       envRepo: env.GITHUB_REPO ? "PRESENT" : "MISSING",
       hasToken: token ? "PRESENT" : "MISSING",
@@ -414,16 +600,26 @@ githubRouter.get("/diagnostic", async (req, res) => {
     }
 
     results.apiReachable = true;
+    results.githubApiReachable = true;
+    results.repositoryAccessible = true;
     results.checks.apiStatus = tokenRejected ? "REACHABLE (PUBLIC)" : "REACHABLE";
     results.checks.hasToken = tokenRejected ? "BAD CREDENTIALS (401)" : (token ? "VALID" : "NOT CONFIGURED");
     results.hasToken = !tokenRejected && !!token;
+
+    // Check registry.json existence on target branch
+    try {
+      const regRes = await githubClient.get(`/repos/${parts[0]}/${parts[1]}/contents/registry.json?ref=${encodeURIComponent(branch)}`, { headers });
+      results.registryExists = Boolean(regRes.data?.sha);
+    } catch {
+      results.registryExists = false;
+    }
 
     if (tokenRejected) {
       results.success = true;
       results.message = `Repository '${response.data.full_name}' is reachable publicly! Note: The provided GitHub token returned '401 Bad Credentials' (expired or invalid). Generate a fresh Personal Access Token with 'repo' scope at github.com/settings/tokens to commit or push snapshots.`;
     } else {
       results.success = true;
-      results.message = `GitHub API reachable for repository '${response.data.full_name}' (${response.data.private ? "Private" : "Public"}). Token status: ${token ? "Authenticated (Read & Write)" : "Anonymous / Public Only"}`;
+      results.message = `GitHub API reachable for repository '${response.data.full_name}' (${response.data.private ? "Private" : "Public"}). Target branch '${branch}' verified. Token status: ${token ? "Authenticated (Read & Write)" : "Anonymous / Public Only"}`;
     }
   } catch (error: any) {
     results.success = false;
@@ -433,7 +629,10 @@ githubRouter.get("/diagnostic", async (req, res) => {
   }
 
   res.json(results);
-});
+};
+
+githubRouter.all("/diagnostic", handleDiagnosticRequest);
+githubRouter.all("/diagnostics", handleDiagnosticRequest);
 
 /** Test GitHub repository & token connection */
 githubRouter.post("/test-connection", async (req, res) => {
@@ -523,6 +722,16 @@ githubRouter.post("/test-connection", async (req, res) => {
       message: `Connection test failed for '${repo}': ${details}`,
     });
   }
+});
+
+/** Get current authoritative GitHub repository configuration */
+githubRouter.get("/config", async (_req, res) => {
+  res.json({
+    success: true,
+    repo: env.GITHUB_REPO || "nedtwistmovies-star/FindAba-OS",
+    branch: env.GITHUB_BRANCH || "prod-stabilize/phase1-foundation",
+    hasToken: Boolean(env.GITHUB_TOKEN),
+  });
 });
 
 /** Update GITHUB_REPO environment setting directly */

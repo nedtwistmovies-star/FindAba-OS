@@ -160,7 +160,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }).catch((err: any) => {
             isResolved = true;
             if (timeoutHandle) clearTimeout(timeoutHandle);
-            throw err;
+            console.warn('[AuthProvider] getSession failed gracefully:', err?.message || err);
+            return { data: { session: null }, error: err };
           }),
           new Promise((resolve) => {
             timeoutHandle = setTimeout(() => {

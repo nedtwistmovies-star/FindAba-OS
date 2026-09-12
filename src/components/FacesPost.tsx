@@ -34,8 +34,9 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
           .eq('post_id', post.id)
           .eq('user_id', user_id)
           .single()
-          .then(({ data }: { data: any }) => setIsLiked(!!data));
-      });
+          .then(({ data }: { data: any }) => setIsLiked(!!data))
+          .catch(() => setIsLiked(false));
+      }).catch(() => {});
     }
   }, [post.id, user_id]);
 
