@@ -1,3 +1,3 @@
-﻿import app from "../server";
+import app from "../dist/server.js";
 
 export default app;
