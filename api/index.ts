@@ -1,4 +1,3 @@
-﻿// Vercel API entrypoint: use the production server bundle created by `vercel-build`.
-import app from "../dist/server.js";
+﻿import app from "../server";
 
 export default app;
