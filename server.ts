@@ -4,7 +4,6 @@
  * Manages middleware, API routes, and serves the Vite application.
  */
 import express, { Request, Response, NextFunction } from "express";
-import { createServer as createViteServer } from "vite";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
@@ -132,6 +131,7 @@ if (!env.IS_VERCEL) {
 // --- Vite / Static Assets ---
 async function setupVite() {
   if (env.NODE_ENV !== "production" && !env.IS_VERCEL) {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { 
         middlewareMode: true,
