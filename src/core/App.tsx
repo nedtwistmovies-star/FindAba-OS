@@ -221,6 +221,7 @@ const AppContent: React.FC = () => {
               console.log('[App] Rendering RouteComponent for view:', view);
               return (
                 <RouteComponent 
+                  currentView={view}
                   setView={setView} 
                   onBack={handleBack}
                   {...extraProps}

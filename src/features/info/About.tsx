@@ -11,6 +11,54 @@ import { BackButton } from '../../components/BackButton';
 
 const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void }> = ({ currentView, setView }) => {
   const isSubView = false;
+  const isAboutView = currentView === 'about' || currentView === 'about-who' || currentView === 'about-vision' || currentView === 'about-mission';
+
+  React.useEffect(() => {
+    let targetId = '';
+    if (currentView === 'about-who') {
+      targetId = 'who-we-are';
+    } else if (currentView === 'about-vision') {
+      targetId = 'vision';
+    } else if (currentView === 'about-mission') {
+      targetId = 'mission';
+    } else if (window.location.hash) {
+      targetId = window.location.hash.replace('#', '');
+    }
+
+    if (targetId) {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        const timer = setTimeout(() => {
+          document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentView]);
+
+  React.useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        const el = document.getElementById(hash);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      if (window.location.hash) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    };
+  }, []);
   
   const protocols = [
     { 
@@ -58,12 +106,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
         <section className="relative h-[60dvh] flex flex-col justify-end p-8 md:p-24 overflow-hidden bg-aba-dark">
            <div className="absolute inset-0 opacity-10 industrial-grid" />
            <div className="absolute top-12 left-8 md:left-24 z-30">
-              <button 
-                onClick={() => setView('profile')} 
-                className="p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white active:scale-90 transition-all shadow-2xl"
-              >
-                <ArrowLeft size={24} />
-              </button>
+              <BackButton onClick={() => setView('home')} variant="header" />
            </div>
 
            <div className="relative z-10 max-w-5xl space-y-8 animate-slide-up">
@@ -95,8 +138,8 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
       <main className="max-w-5xl mx-auto px-8 py-24 space-y-32">
          
          {/* WHO WE ARE */}
-         {(currentView === 'about') && (
-           <section id="who-we-are" className="space-y-12">
+         {isAboutView && (
+           <section id="who-we-are" className="space-y-12 scroll-mt-28">
               <div className="flex items-center gap-4">
                  <div className="w-12 h-12 bg-aba-gold/10 rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20">
                     <ShieldCheck size={24} />
@@ -150,8 +193,8 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
 
          {/* VISION & MISSION */}
          <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {(currentView === 'about') && (
-              <div id="vision" className={`bg-aba-dark p-12 rounded-[4rem] border border-white/5 space-y-10 group hover:border-aba-gold/30 transition-all`}>
+            {isAboutView && (
+              <div id="vision" className={`bg-aba-dark p-12 rounded-[4rem] border border-white/5 space-y-10 group hover:border-aba-gold/30 transition-all scroll-mt-28`}>
                  <div className="w-14 h-14 bg-aba-gold/10 rounded-2xl flex items-center justify-center text-aba-gold border border-aba-gold/20">
                     <Sparkles size={28} />
                  </div>
@@ -182,8 +225,8 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
               </div>
             )}
 
-            {(currentView === 'about') && (
-              <div id="mission" className={`bg-slate-50 dark:bg-white/5 p-12 rounded-[4rem] border border-slate-200 dark:border-white/10 space-y-10 group hover:border-aba-gold/30 transition-all`}>
+            {isAboutView && (
+              <div id="mission" className={`bg-slate-50 dark:bg-white/5 p-12 rounded-[4rem] border border-slate-200 dark:border-white/10 space-y-10 group hover:border-aba-gold/30 transition-all scroll-mt-28`}>
                  <div className="w-14 h-14 bg-aba-green/10 rounded-2xl flex items-center justify-center text-aba-green border border-aba-green/20">
                     <Activity size={28} />
                  </div>
@@ -219,7 +262,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
          </section>
 
          {/* PROTOCOL MESH */}
-         {currentView === 'about' && (
+         {isAboutView && (
            <section className="space-y-16">
               <div className="text-center space-y-4">
                  <h3 className="text-[12px] font-black uppercase text-slate-400 tracking-[0.8em]">Operational Layers</h3>
@@ -243,7 +286,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
          )}
 
          {/* STATS HUD */}
-         {currentView === 'about' && (
+         {isAboutView && (
            <section className="bg-aba-dark p-12 md:p-24 rounded-[5rem] shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-12 opacity-5 rotate-12"><Activity size={300} /></div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-12 relative z-10">
@@ -263,7 +306,7 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
          )}
 
          {/* OFFICIAL SIGN-OFF */}
-         {currentView === 'about' && (
+         {isAboutView && (
            <section className="flex flex-col items-center text-center space-y-12">
               <div className="w-24 h-24 bg-slate-50 dark:bg-white/5 rounded-full border border-slate-100 dark:border-white/10 flex items-center justify-center shadow-inner">
                  <Award size={48} className="text-aba-gold" />

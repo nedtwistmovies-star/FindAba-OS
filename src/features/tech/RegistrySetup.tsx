@@ -12,13 +12,24 @@ import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
 
 interface Props {
-  business: Business;
-  onBack: () => void;
-  setView: (v: ViewState) => void;
+  business?: Business | null;
+  myBusiness?: Business | null;
+  businesses?: Business[];
+  onBack?: () => void;
+  setView?: (v: ViewState) => void;
+  userEmail?: string;
 }
 
-const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
+const VerificationFlow: React.FC<Props> = ({ 
+  business, 
+  myBusiness, 
+  businesses = [], 
+  onBack = () => {}, 
+  setView = () => {}, 
+  userEmail 
+}) => {
   const { addToast } = useToast();
+  const [selectedBizOverride, setSelectedBizOverride] = useState<Business | null>(null);
   const [step, setStep] = useState<'benefits' | 'documents' | 'payment' | 'completion'>('benefits');
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -28,6 +39,9 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
     identity_url: '',
     workshop_proof_url: ''
   });
+
+  const activeBiz = selectedBizOverride || business || myBusiness || (businesses.length > 0 ? businesses[0] : null);
+  const payerEmail = activeBiz?.email || userEmail || 'support@findaba.com.ng';
 
   const VERIFICATION_FEE = 12500; // Institutional Audit Fee
 
@@ -41,13 +55,18 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
   };
 
   const handlePaymentSuccess = async () => {
+    if (!activeBiz) {
+      addToast("We've received your information. Documents are being reviewed.", "success");
+      setStep('completion');
+      return;
+    }
     setLoading(true);
     try {
       // Mark as pending and save details
-      await updateBusinessInDB(business.id, {
+      await updateBusinessInDB(activeBiz.id, {
         verification_status: VerificationStatus.PENDING,
         // In a real app we'd store these specific docs in a related table
-        description: `${business.description}\n\n[LOG]: CAC: ${formData.cac_number} | TaxID: ${formData.tax_id}`
+        description: `${activeBiz.description || ''}\n\n[LOG]: CAC: ${formData.cac_number} | TaxID: ${formData.tax_id}`
       });
       setStep('completion');
       addToast("We've received your information. Documents are being reviewed.", "success");
@@ -58,12 +77,57 @@ const VerificationFlow: React.FC<Props> = ({ business, onBack, setView }) => {
     }
   };
 
+  if (!activeBiz) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-aba-dark animate-fade-in pb-20">
+        <header className="bg-white border-b border-slate-200 p-6 sticky top-0 z-50">
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
+            <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={18} className="text-blue-600" />
+              <h1 className="text-sm font-black uppercase tracking-widest">Business Verification</h1>
+            </div>
+            <div className="w-10" />
+          </div>
+        </header>
+
+        <main className="flex-1 max-w-2xl mx-auto w-full p-6 py-16 flex flex-col items-center justify-center text-center space-y-6">
+          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center shadow-inner">
+            <Building2 size={36} />
+          </div>
+          <div className="space-y-3">
+            <h2 className="text-2xl font-black uppercase tracking-tight">No Business Enrolled Yet</h2>
+            <p className="text-slate-500 text-sm max-w-md mx-auto leading-relaxed">
+              Business verification audits require an active business listing in the FindAba Registry. You can register your enterprise or explore existing trade hubs.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm pt-4">
+            <button
+              onClick={() => setView('register')}
+              className="flex-1 py-4 px-6 bg-aba-dark text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all"
+            >
+              Register Business
+            </button>
+            <button
+              onClick={() => setView('explore')}
+              className="flex-1 py-4 px-6 bg-white border border-slate-200 text-slate-700 rounded-2xl font-black uppercase text-xs tracking-widest shadow-sm hover:bg-slate-50 active:scale-95 transition-all"
+            >
+              Browse Registry
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-aba-dark animate-fade-in pb-20">
       <PaystackOverlay 
         isOpen={showPayment}
         amount={VERIFICATION_FEE}
-        email={business.email}
+        email={payerEmail}
         label="Institutional Verification Audit"
         onSuccess={handlePaymentSuccess}
         onCancel={() => setShowPayment(false)}

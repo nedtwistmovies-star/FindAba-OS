@@ -16,7 +16,7 @@ import { BankSelector, NigerianBank } from './BankSelector';
 
 interface PaystackOverlayProps {
   amount: number;
-  email: string;
+  email?: string;
   label: string;
   businessId?: string;
   userId?: string;
@@ -33,7 +33,7 @@ declare global {
 }
 
 const PaystackOverlay: React.FC<PaystackOverlayProps> = ({ 
-  amount, email, label, businessId, userId, bookingId, onSuccess, onCancel, isOpen 
+  amount, email = 'support@findaba.com.ng', label, businessId, userId, bookingId, onSuccess, onCancel, isOpen 
 }) => {
   const { addToast } = useToast();
   const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan' | 'qr_pay' | 'ussd_banks'>('initialize');

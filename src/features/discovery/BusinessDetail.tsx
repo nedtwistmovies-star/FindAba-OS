@@ -97,7 +97,7 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
         <ImageCarousel images={mediaUrls} className="h-full w-full object-cover brightness-[0.8] group-hover:brightness-100 transition-standard duration-1000" />
         
         {/* Floating Controls */}
-        <div className="absolute top-6 sm:top-10 left-4 sm:left-8 right-4 sm:right-8 z-20 flex justify-between items-center">
+        <div className="absolute top-6 sm:top-10 left-4 sm:left-8 right-4 sm:right-8 z-40 flex justify-between items-center pointer-events-auto">
            <BackButton onClick={onBack} variant="header" />
            <div className="flex gap-2 sm:gap-3">
               {isOwner && (

@@ -79,33 +79,56 @@ const AboutAba: React.FC<AboutAbaProps> = ({ onBack, setView }) => {
   return (
     <div className="flex-1 flex flex-col bg-[#020617] animate-fade-in min-h-screen pb-40">
       {/* 1. CINEMATIC HERO */}
-      <section className="relative h-[60vh] w-full overflow-hidden">
-        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/60 via-transparent to-aba-deep" />
+      <section className="relative min-h-[500px] md:min-h-[580px] w-full overflow-hidden flex flex-col justify-between p-6 sm:p-10 md:p-14">
+        <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/80 via-black/40 to-[#020617] pointer-events-none" />
         <img 
           src="https://storage.googleapis.com/generativeai-downloads/images/ais-dev-5q7nnribbp3c77pxgx2ejy-5850429325.europe-west2.run.app/step-96-0.png" 
-          className="w-full h-full object-cover brightness-[0.5] animate-slow-zoom" 
+          className="absolute inset-0 w-full h-full object-cover brightness-[0.45] animate-slow-zoom pointer-events-none" 
           alt="Aba Heritage" 
         />
         
-        <div className="absolute top-10 left-8 z-20">
-           <BackButton onClick={onBack} variant="header" />
+        {/* Isolated Top Navigation Bar - High z-index, never overlapped */}
+        <div className="relative z-50 flex items-center justify-between w-full max-w-7xl mx-auto pointer-events-auto">
+           <BackButton 
+             onClick={() => {
+               if (typeof onBack === 'function') {
+                 onBack();
+               } else if (typeof setView === 'function') {
+                 setView('home');
+               }
+             }} 
+             variant="header" 
+             className="shadow-2xl"
+           />
         </div>
 
-        <div className="absolute bottom-16 left-8 right-8 z-20 max-w-7xl mx-auto w-full">
-           <div className="space-y-6 animate-slide-up">
-              <div className="bg-aba-gold text-aba-dark text-[10px] font-black px-5 py-2 rounded-xl uppercase tracking-widest shadow-2xl w-fit">
+        {/* Hero Title and Identity Content - Safely placed in normal flow beneath the nav bar */}
+        <div className="relative z-20 max-w-7xl mx-auto w-full pt-10 pb-2 pointer-events-none">
+           <div className="space-y-4 sm:space-y-6 animate-slide-up pointer-events-auto">
+              <div className="bg-aba-gold text-aba-dark text-[10px] font-black px-4 py-1.5 rounded-xl uppercase tracking-widest shadow-2xl w-fit">
                  City Heritage Registry
               </div>
-              <h1 className="text-5xl md:text-8xl font-black text-white uppercase tracking-tighter leading-[0.85] drop-shadow-2xl">
+              <h1 className="text-4xl sm:text-6xl md:text-8xl font-black text-white uppercase tracking-tighter leading-[0.88] drop-shadow-2xl">
                  THE FORGE OF <br/>
                  <span className="text-aba-gold italic">ENTERPRISE.</span>
               </h1>
-              <p className="text-lg md:text-xl text-white/50 font-medium max-w-2xl leading-relaxed">
+              <p className="text-base sm:text-lg md:text-xl text-white/60 font-medium max-w-2xl leading-relaxed">
                  Uncovering the industrial soul and historical resilience of Aba, Nigeria.
               </p>
            </div>
         </div>
       </section>
+
+      {/* Floating back button for easy exit when scrolled down */}
+      <div className="fixed bottom-6 left-6 z-50 sm:hidden">
+        <BackButton 
+          onClick={() => {
+            if (typeof onBack === 'function') onBack();
+            else if (typeof setView === 'function') setView('home');
+          }}
+          variant="pill"
+        />
+      </div>
 
       {/* 2. MAIN CONTENT */}
       <main className="px-8 py-20 max-w-5xl mx-auto w-full space-y-12">

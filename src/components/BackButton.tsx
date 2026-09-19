@@ -55,14 +55,20 @@ export const BackButton: React.FC<BackButtonProps> = ({
   variant = 'default',
   showPreviousViewName = true,
 }) => {
-  const { goBack, canGoBack, previousView, view } = useOracle();
+  const { goBack, canGoBack, previousView, view, setView } = useOracle();
 
   if (view === 'home') return null;
 
   const handleBack = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     if (onClick) {
-      onClick();
+      try {
+        onClick();
+      } catch (err) {
+        console.error('[BackButton] Custom onClick handler error, falling back to goBack:', err);
+        goBack();
+      }
     } else {
       goBack();
     }
@@ -76,7 +82,7 @@ export const BackButton: React.FC<BackButtonProps> = ({
       <button
         type="button"
         onClick={handleBack}
-        className={`inline-flex items-center gap-1.5 text-xs font-bold text-white/70 hover:text-aba-gold transition-all duration-200 group active:scale-95 ${className}`}
+        className={`inline-flex items-center gap-1.5 text-xs font-bold text-white/70 hover:text-aba-gold transition-all duration-200 group active:scale-95 cursor-pointer relative z-30 pointer-events-auto select-none ${className}`}
         aria-label={displayLabel}
         title={displayLabel}
       >
@@ -91,12 +97,12 @@ export const BackButton: React.FC<BackButtonProps> = ({
       <button
         type="button"
         onClick={handleBack}
-        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-aba-gold/40 text-xs font-bold transition-all duration-200 group shadow-sm active:scale-95 ${className}`}
+        className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black/60 hover:bg-black/80 text-white border border-white/20 hover:border-aba-gold/60 text-xs font-bold transition-all duration-200 group shadow-md backdrop-blur-md active:scale-95 cursor-pointer relative z-30 pointer-events-auto select-none ${className}`}
         aria-label={displayLabel}
         title={displayLabel}
       >
         <ArrowLeft size={14} className="text-aba-gold group-hover:-translate-x-0.5 transition-transform duration-200 shrink-0" />
-        <span className="truncate max-w-[120px] sm:max-w-none tracking-tight">{displayLabel}</span>
+        <span className="truncate max-w-[140px] sm:max-w-none tracking-tight">{displayLabel}</span>
       </button>
     );
   }

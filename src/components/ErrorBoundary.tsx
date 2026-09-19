@@ -27,14 +27,23 @@ class ErrorBoundary extends Component<Props, State> {
     console.error('Error Info:', errorInfo);
     console.error('Uncaught error:', error, errorInfo);
     
-    // Auto-recovery for chunk loading errors (caused by new deployments)
+    // Auto-recovery ONLY for script chunk loading errors caused by new deployments
     const errorMsg = error.message.toLowerCase();
-    if (errorMsg.includes('failed to fetch') || errorMsg.includes('chunkloaderror') || errorMsg.includes('dynamic import')) {
-      console.warn('System update detected. Refreshing application...');
-      // Small delay to ensure the user doesn't get stuck in a loop if the internet is actually down
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+    const isChunkError = 
+      errorMsg.includes('failed to fetch dynamically imported module') ||
+      errorMsg.includes('chunkloaderror') ||
+      errorMsg.includes('loading chunk');
+
+    if (isChunkError) {
+      const now = Date.now();
+      const lastReload = parseInt(sessionStorage.getItem('findaba_last_chunk_reload') || '0', 10);
+      if (now - lastReload > 30000) {
+        sessionStorage.setItem('findaba_last_chunk_reload', now.toString());
+        console.warn('System update detected (new module chunk). Refreshing application once...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      }
     }
   }
 

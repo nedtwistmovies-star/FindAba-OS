@@ -98,11 +98,32 @@ async function callServerOracle(payload: any) {
     headers["Authorization"] = `Bearer ${session.access_token}`;
   }
 
-  const response = await fetch("/api/oracle", {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  });
+  let response: Response | null = null;
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      response = await fetch("/api/oracle", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
+      break;
+    } catch (fetchErr: any) {
+      lastError = fetchErr;
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+  }
+
+  if (!response) {
+    throw new Error(
+      lastError?.message === 'Failed to fetch'
+        ? "Network connection to Oracle server unavailable. Please try again."
+        : (lastError?.message || "Oracle Signal Fault")
+    );
+  }
 
   const text = await response.text();
   let result: any = {};

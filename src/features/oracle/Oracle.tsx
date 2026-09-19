@@ -43,7 +43,26 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
   const [conversations, setConversations] = useState<Conversation[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed: Conversation[] = JSON.parse(saved);
+      // Preserve all user conversations and history while sanitizing historical failed assistant responses
+      return parsed.map((conv: Conversation) => ({
+        ...conv,
+        messages: (conv.messages || []).map((m: OracleMessage) => {
+          if (
+            m.role === 'model' &&
+            (m.text === 'Signal lost.' ||
+              m.text === 'Signal lost. Re-establishing...' ||
+              m.text.trim() === 'Signal lost.')
+          ) {
+            return {
+              ...m,
+              text: "I’m unable to complete that request right now. Please try again shortly."
+            };
+          }
+          return m;
+        })
+      }));
     } catch (e) { return []; }
   });
 
@@ -107,7 +126,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
 
   const switchToOpenRouter = () => {
     localStorage.setItem('findaba_primary_ai', 'openrouter');
-    addToast("Switched to secondary connection.", "info");
+    addToast("Reset AI connection session.", "info");
     setErrorNode(null);
     setIsQuotaError(false);
   };
@@ -366,6 +385,10 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
         } catch (err) {
           // Fallback to original message if parsing fails
         }
+      }
+
+      if (msg.toLowerCase().includes("failed to fetch")) {
+        msg = "Unable to reach the Oracle service. Please check your network connection and try again.";
       }
 
       const isQuota = 
@@ -779,7 +802,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   onClick={switchToOpenRouter}
                   fullWidth
                 >
-                  Try secondary connection
+                  Reset AI session
                 </IndustrialButton>
                 <IndustrialButton 
                   variant="secondary" 

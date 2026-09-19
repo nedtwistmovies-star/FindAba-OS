@@ -32,17 +32,38 @@ export const getOpenRouterStream = async (
     headers["Authorization"] = `Bearer ${session.access_token}`;
   }
 
-  const response = await fetch("/api/oracle", {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      prompt,
-      history,
-      catalog,
-      type: 'search',
-      provider: 'openrouter'
-    }),
-  });
+  let response: Response | null = null;
+  let lastError: any = null;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      response = await fetch("/api/oracle", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          prompt,
+          history,
+          catalog,
+          type: 'search',
+          provider: 'openrouter'
+        }),
+      });
+      break;
+    } catch (fetchErr: any) {
+      lastError = fetchErr;
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+  }
+
+  if (!response) {
+    throw new Error(
+      lastError?.message === 'Failed to fetch'
+        ? "Unable to reach the Oracle service. Please check your connection and try again."
+        : (lastError?.message || "Oracle Signal Sync Fault")
+    );
+  }
 
   const text = await response.text();
   let result: any = {};
@@ -52,15 +73,23 @@ export const getOpenRouterStream = async (
     throw new Error(result.error || "Oracle Signal Sync Fault");
   }
 
+  const extractedText =
+    (typeof result.text === 'string' && result.text.trim()) ||
+    (typeof result.wisdom === 'string' && result.wisdom.trim()) ||
+    (typeof result.answer === 'string' && result.answer.trim()) ||
+    (typeof result.response === 'string' && result.response.trim()) ||
+    (typeof result.message === 'string' && result.message.trim()) ||
+    "I’m unable to complete that request right now. Please try again shortly.";
+
   triggerWebhook(WebhookEvent.SEARCH_QUERY, { 
     query: typeof prompt === 'string' ? prompt : 'flyer', 
     engine: 'openrouter', 
     model: model,
-    wisdom: (result.text || result.wisdom || '').substring(0, 100) 
+    wisdom: extractedText.substring(0, 100) 
   }, { silent: true });
 
   return {
-    text: result.text || result.wisdom || "Signal lost. Re-establishing...",
+    text: extractedText,
     thoughtProcess: result.thoughtProcess || result.thought_process,
     dataPoints: result.dataPoints || result.data_points || { verified_facts: [], locations: [] },
     suggestions: result.suggestions || result.trade_signals || [],

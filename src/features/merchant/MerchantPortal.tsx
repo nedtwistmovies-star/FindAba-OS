@@ -269,7 +269,7 @@ const MerchantPortal: React.FC<{
       <PaystackOverlay 
         isOpen={showUpgradeCheckout}
         amount={selectedUpgradePlan?.price || 0}
-        email={business.email}
+        email={business?.email || 'support@findaba.com.ng'}
         label={`Upgrade to ${selectedUpgradePlan?.name}`}
         onSuccess={async () => {
           setSyncing(true);

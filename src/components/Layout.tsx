@@ -437,7 +437,25 @@ const Layout: React.FC<LayoutProps> = ({
     "support",
     "about",
     "about-aba",
+    "about-who",
+    "about-vision",
+    "about-mission",
   ];
+
+  const navigateToAboutSection = (sectionId: string) => {
+    if (currentView !== "about") {
+      setView("about");
+    }
+    window.location.hash = sectionId;
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      setTimeout(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
+      }, 120);
+    }
+  };
 
   if (PUBLIC_VIEWS.includes(currentView)) {
     return (
@@ -1010,24 +1028,36 @@ const Layout: React.FC<LayoutProps> = ({
                     About
                   </h4>
                   <div className="space-y-3">
-                    <button
-                      onClick={() => setView("about")}
-                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left"
+                    <a
+                      href="#who-we-are"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigateToAboutSection("who-we-are");
+                      }}
+                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left cursor-pointer"
                     >
                       Who we are
-                    </button>
-                    <button
-                      onClick={() => setView("about")}
-                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left"
+                    </a>
+                    <a
+                      href="#vision"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigateToAboutSection("vision");
+                      }}
+                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left cursor-pointer"
                     >
                       Our Vision
-                    </button>
-                    <button
-                      onClick={() => setView("about")}
-                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left"
+                    </a>
+                    <a
+                      href="#mission"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigateToAboutSection("mission");
+                      }}
+                      className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest text-left cursor-pointer"
                     >
                       Our Mission
-                    </button>
+                    </a>
                   </div>
                 </div>
               </div>
