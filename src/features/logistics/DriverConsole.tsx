@@ -258,8 +258,8 @@ const DriverConsole: React.FC<{ setView: (v: ViewState) => void }> = ({ setView 
           <Shield size={40} className="text-red-500" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-black uppercase tracking-tight">Identity Signal Lost</h2>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Authentication Required to Access Command Node</p>
+          <h2 className="text-2xl font-black uppercase tracking-tight">Access Denied</h2>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Login required to access dashboard</p>
         </div>
         <button onClick={() => setView('home')} className="px-10 py-5 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest">Return to Home</button>
       </div>

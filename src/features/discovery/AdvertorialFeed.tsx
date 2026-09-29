@@ -848,19 +848,21 @@ export const AdvertorialFeed: React.FC<Props> = ({ onBack, setView, onPostClick 
                       <div className="flex items-center gap-3">
                         <button
                           onClick={(e) => handleOpenAiBreakdown(story, e)}
-                          title="Oracle AI Analysis"
+                          title="FindAba Analysis"
                           className="p-1.5 text-white/40 hover:text-aba-gold transition-all"
                         >
                           <Bot size={14} />
                         </button>
                         <button
                           onClick={(e) => toggleLike(story.id, e)}
+                          title={isLiked ? "Remove support" : "Show support"}
                           className={`flex items-center gap-1 text-[10px] font-bold ${
                             isLiked ? 'text-rose-400' : 'text-white/40 hover:text-white'
                           }`}
                         >
                           <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
                           <span>{story.likes_count + (isLiked ? 1 : 0)}</span>
+                          <span className="opacity-40 ml-0.5">{isLiked ? 'Supported' : 'Support'}</span>
                         </button>
                       </div>
                     </div>

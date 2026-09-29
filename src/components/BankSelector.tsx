@@ -2,9 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, Smartphone, Copy, Check, PhoneCall, 
   ExternalLink, ArrowLeft, Building2, Zap, Shield, Sparkles, CheckCircle2,
-  SlidersHorizontal, X
+  SlidersHorizontal, X, AlertTriangle, ArrowRight, CreditCard
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from '../providers/ToastProvider';
 
 export interface NigerianBank {
@@ -19,6 +18,9 @@ export interface NigerianBank {
   textColor?: string;
   popular?: boolean;
   tagline?: string;
+  paystackUssdSupported: boolean;
+  paystackUssdType?: string;
+  unsupportedReason?: string;
 }
 
 export const NIGERIAN_BANKS: NigerianBank[] = [
@@ -32,7 +34,9 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'tier-1',
     color: '#DD4F05',
     popular: true,
-    tagline: '737 Simple Banking'
+    tagline: '737 Simple Banking',
+    paystackUssdSupported: true,
+    paystackUssdType: '737',
   },
   {
     id: 'zenith',
@@ -44,7 +48,9 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'tier-1',
     color: '#B30000',
     popular: true,
-    tagline: 'Eazy Banking'
+    tagline: 'Eazy Banking',
+    paystackUssdSupported: true,
+    paystackUssdType: '966',
   },
   {
     id: 'uba',
@@ -56,7 +62,23 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'tier-1',
     color: '#D10000',
     popular: true,
-    tagline: 'Magic Banking'
+    tagline: 'Magic Banking',
+    paystackUssdSupported: true,
+    paystackUssdType: '919',
+  },
+  {
+    id: 'sterling',
+    name: 'Sterling Bank',
+    shortName: 'Sterling',
+    ussdCode: '*822#',
+    ussdFormat: '*822*{amount}#',
+    bankCode: '232',
+    category: 'commercial',
+    color: '#8A0000',
+    popular: true,
+    tagline: 'Your One-Bank',
+    paystackUssdSupported: true,
+    paystackUssdType: '822',
   },
   {
     id: 'access',
@@ -68,7 +90,10 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'tier-1',
     color: '#004B87',
     popular: true,
-    tagline: 'More than Banking'
+    tagline: 'More than Banking',
+    paystackUssdSupported: false,
+    paystackUssdType: '901',
+    unsupportedReason: "Paystack does not offer merchant USSD checkout for Access Bank (*901#). To pay from your Access Bank account, select Pay via Bank Transfer (instant virtual account) or Debit Card.",
   },
   {
     id: 'firstbank',
@@ -80,7 +105,10 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'tier-1',
     color: '#113366',
     popular: true,
-    tagline: 'You First'
+    tagline: 'You First',
+    paystackUssdSupported: false,
+    paystackUssdType: '894',
+    unsupportedReason: "Paystack does not offer merchant USSD checkout for FirstBank (*894#). To pay with FirstBank funds, select Pay via Bank Transfer or Debit Card.",
   },
   {
     id: 'fidelity',
@@ -92,7 +120,10 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'commercial',
     color: '#1B2C68',
     popular: true,
-    tagline: 'We Keep Our Word'
+    tagline: 'We Keep Our Word',
+    paystackUssdSupported: false,
+    paystackUssdType: '770',
+    unsupportedReason: "Paystack does not offer merchant USSD checkout for Fidelity Bank (*770#). Select Pay via Bank Transfer or Debit Card to settle seamlessly.",
   },
   {
     id: 'wema',
@@ -104,7 +135,10 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'commercial',
     color: '#7D0A4E',
     popular: true,
-    tagline: 'Purple Magic'
+    tagline: 'Purple Magic',
+    paystackUssdSupported: false,
+    paystackUssdType: '945',
+    unsupportedReason: "Paystack does not offer merchant USSD checkout for Wema / ALAT (*945#). Select Pay via Bank Transfer or Debit Card.",
   },
   {
     id: 'stanbic',
@@ -116,103 +150,10 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'commercial',
     color: '#0033A0',
     popular: true,
-    tagline: 'Moving Forward'
-  },
-  {
-    id: 'opay',
-    name: 'OPay Digital Services',
-    shortName: 'OPay',
-    ussdCode: '*955#',
-    ussdFormat: '*955*{amount}#',
-    bankCode: '999992',
-    category: 'digital',
-    color: '#00B875',
-    popular: true,
-    tagline: 'Fast Digital Pay'
-  },
-  {
-    id: 'palmpay',
-    name: 'PalmPay Nigeria',
-    shortName: 'PalmPay',
-    ussdCode: '*652#',
-    ussdFormat: '*652*{amount}#',
-    bankCode: '999991',
-    category: 'digital',
-    color: '#4F46E5',
-    popular: true,
-    tagline: 'Rewards & Speed'
-  },
-  {
-    id: 'kuda',
-    name: 'Kuda Microfinance Bank',
-    shortName: 'Kuda Bank',
-    ussdCode: '*5573#',
-    ussdFormat: '*5573*{amount}#',
-    bankCode: '50211',
-    category: 'digital',
-    color: '#40196D',
-    popular: true,
-    tagline: 'The Bank of the Free'
-  },
-  {
-    id: 'moniepoint',
-    name: 'Moniepoint MFB',
-    shortName: 'Moniepoint',
-    ussdCode: '*5573#',
-    ussdFormat: '*5573*{amount}#',
-    bankCode: '50515',
-    category: 'digital',
-    color: '#003399',
-    popular: true,
-    tagline: 'Powering Trade'
-  },
-  {
-    id: 'union',
-    name: 'Union Bank of Nigeria',
-    shortName: 'Union Bank',
-    ussdCode: '*826#',
-    ussdFormat: '*826*{amount}#',
-    bankCode: '032',
-    category: 'commercial',
-    color: '#00AEEF',
-    popular: false,
-    tagline: 'Your Simpler Bank'
-  },
-  {
-    id: 'polaris',
-    name: 'Polaris Bank',
-    shortName: 'Polaris',
-    ussdCode: '*833#',
-    ussdFormat: '*833*{amount}#',
-    bankCode: '076',
-    category: 'commercial',
-    color: '#532380',
-    popular: false,
-    tagline: 'The Polaris Way'
-  },
-  {
-    id: 'sterling',
-    name: 'Sterling Bank',
-    shortName: 'Sterling',
-    ussdCode: '*822#',
-    ussdFormat: '*822*{amount}#',
-    bankCode: '232',
-    category: 'commercial',
-    color: '#8A0000',
-    popular: false,
-    tagline: 'Your One-Bank'
-  },
-  {
-    id: 'fcmb',
-    name: 'First City Monument Bank (FCMB)',
-    shortName: 'FCMB',
-    ussdCode: '*329#',
-    ussdFormat: '*329*{amount}#',
-    bankCode: '214',
-    category: 'commercial',
-    color: '#5C068C',
-    popular: false,
-    tagline: 'My Bank and I'
+    tagline: 'Moving Forward',
+    paystackUssdSupported: false,
+    paystackUssdType: '909',
+    unsupportedReason: "Paystack does not offer merchant USSD checkout for Stanbic IBTC (*909#). Select Pay via Bank Transfer or Debit Card.",
   },
   {
     id: 'ecobank',
@@ -224,7 +165,109 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'commercial',
     color: '#005CA9',
     popular: false,
-    tagline: 'The Pan-African Bank'
+    tagline: 'The Pan-African Bank',
+    paystackUssdSupported: false,
+    paystackUssdType: '326',
+    unsupportedReason: "Paystack does not offer merchant USSD checkout for Ecobank (*326#). Select Pay via Bank Transfer or Debit Card.",
+  },
+  {
+    id: 'opay',
+    name: 'OPay Digital Services',
+    shortName: 'OPay',
+    ussdCode: '*955#',
+    ussdFormat: '*955*{amount}#',
+    bankCode: '999992',
+    category: 'digital',
+    color: '#00B875',
+    popular: true,
+    tagline: 'Fast Digital Wallet',
+    paystackUssdSupported: false,
+    paystackUssdType: '955',
+    unsupportedReason: "OPay's *955# is restricted to personal wallet transfers only. Paystack does not offer merchant checkout via OPay USSD. Use Bank Transfer or Card to pay with your OPay funds.",
+  },
+  {
+    id: 'palmpay',
+    name: 'PalmPay Nigeria',
+    shortName: 'PalmPay',
+    ussdCode: '*652#',
+    ussdFormat: '*652*{amount}#',
+    bankCode: '999991',
+    category: 'digital',
+    color: '#4F46E5',
+    popular: true,
+    tagline: 'Digital Finance',
+    paystackUssdSupported: false,
+    paystackUssdType: '652',
+    unsupportedReason: "PalmPay *652# is for personal transfers only. Use Paystack Bank Transfer or Card to pay with your PalmPay funds.",
+  },
+  {
+    id: 'kuda',
+    name: 'Kuda Microfinance Bank',
+    shortName: 'Kuda Bank',
+    ussdCode: '*5573#',
+    ussdFormat: '*5573*{amount}#',
+    bankCode: '50211',
+    category: 'digital',
+    color: '#40196D',
+    popular: true,
+    tagline: 'The Bank of the Free',
+    paystackUssdSupported: false,
+    paystackUssdType: '5573',
+    unsupportedReason: "Kuda does not support merchant USSD checkout via Paystack. Please use Bank Transfer or Debit Card.",
+  },
+  {
+    id: 'moniepoint',
+    name: 'Moniepoint MFB',
+    shortName: 'Moniepoint',
+    ussdCode: '*5573#',
+    ussdFormat: '*5573*{amount}#',
+    bankCode: '50515',
+    category: 'digital',
+    color: '#003399',
+    popular: true,
+    tagline: 'Powering Trade',
+    paystackUssdSupported: false,
+    paystackUssdType: '5573',
+    unsupportedReason: "Moniepoint USSD is for agency and personal banking. Use Paystack Bank Transfer or Card to pay with Moniepoint.",
+  },
+  {
+    id: 'union',
+    name: 'Union Bank of Nigeria',
+    shortName: 'Union Bank',
+    ussdCode: '*826#',
+    ussdFormat: '*826*{amount}#',
+    bankCode: '032',
+    category: 'commercial',
+    color: '#00AEEF',
+    popular: false,
+    tagline: 'Your Simpler Bank',
+    paystackUssdSupported: true,
+  },
+  {
+    id: 'polaris',
+    name: 'Polaris Bank',
+    shortName: 'Polaris',
+    ussdCode: '*833#',
+    ussdFormat: '*833*{amount}#',
+    bankCode: '076',
+    category: 'commercial',
+    color: '#532380',
+    popular: false,
+    tagline: 'The Polaris Way',
+    paystackUssdSupported: true,
+  },
+  {
+    id: 'fcmb',
+    name: 'First City Monument Bank (FCMB)',
+    shortName: 'FCMB',
+    ussdCode: '*329#',
+    ussdFormat: '*329*{amount}#',
+    bankCode: '214',
+    category: 'commercial',
+    color: '#5C068C',
+    popular: false,
+    tagline: 'My Bank and I',
+    paystackUssdSupported: true,
   },
   {
     id: 'keystone',
@@ -236,7 +279,8 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'commercial',
     color: '#004B87',
     popular: false,
-    tagline: 'Never Say Never'
+    tagline: 'Never Say Never',
+    paystackUssdSupported: true,
   },
   {
     id: 'unity',
@@ -248,7 +292,8 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'commercial',
     color: '#E0711E',
     popular: false,
-    tagline: 'Succeed Together'
+    tagline: 'Succeed Together',
+    paystackUssdSupported: true,
   },
   {
     id: 'jaiz',
@@ -260,7 +305,8 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'commercial',
     color: '#008751',
     popular: false,
-    tagline: 'Non-Interest Banking'
+    tagline: 'Non-Interest Banking',
+    paystackUssdSupported: true,
   },
   {
     id: 'taj',
@@ -272,14 +318,15 @@ export const NIGERIAN_BANKS: NigerianBank[] = [
     category: 'commercial',
     color: '#9C7A14',
     popular: false,
-    tagline: 'Ethical Banking'
+    tagline: 'Ethical Banking',
+    paystackUssdSupported: true,
   }
 ];
 
 export interface BankSelectorProps {
   amount?: number;
   onSelectBank?: (bank: NigerianBank) => void;
-  onProceedWithPaystack?: (bank: NigerianBank) => void;
+  onProceedWithPaystack?: (bank: NigerianBank, channels?: string[]) => void;
   onBack?: () => void;
   selectedBankId?: string;
   className?: string;
@@ -308,10 +355,11 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
 
   const filteredBanks = useMemo(() => {
     return NIGERIAN_BANKS.filter(bank => {
+      const searchLower = (searchQuery || '').toLowerCase();
       const matchesSearch = 
-        bank.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        bank.shortName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        bank.ussdCode.toLowerCase().includes(searchQuery.toLowerCase());
+        String(bank.name || '').toLowerCase().includes(searchLower) ||
+        String(bank.shortName || '').toLowerCase().includes(searchLower) ||
+        String(bank.ussdCode || '').toLowerCase().includes(searchLower);
 
       if (!matchesSearch) return false;
 
@@ -344,7 +392,6 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
   };
 
   const handleDial = (code: string) => {
-    // Clean string for tel link
     const cleanTel = code.replace(/#/g, '%23');
     window.location.href = `tel:${cleanTel}`;
   };
@@ -356,13 +403,13 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
       <div className="text-center space-y-1">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-aba-gold/10 border border-aba-gold/20 text-aba-dark text-[8px] font-black uppercase tracking-widest mb-1">
           <Smartphone size={12} className="text-aba-gold" />
-          <span>USSD Interactive Gateway</span>
+          <span>USSD & Bank Payment Hub</span>
         </div>
         <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-aba-dark">
           Select Your Bank
         </h3>
         <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-          Curated Nigerian Banking USSD Codes
+          Choose a commercial bank for USSD or fintech wallet for transfer
         </p>
       </div>
 
@@ -374,7 +421,7 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search bank name or USSD code (e.g. *737#, Zenith, UBA)..."
+          placeholder="Search bank name (e.g. GTBank, OPay, Zenith, Access)..."
           className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-aba-dark placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-aba-gold focus:bg-white transition-all shadow-sm"
         />
         {searchQuery && (
@@ -394,7 +441,7 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
           { id: 'popular', label: 'Popular' },
           { id: 'tier-1', label: 'Tier-1' },
           { id: 'commercial', label: 'Commercial' },
-          { id: 'digital', label: 'Digital / MFB' }
+          { id: 'digital', label: 'Wallets / Digital' }
         ].map((cat) => (
           <button
             key={cat.id}
@@ -414,7 +461,7 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
       {/* Curated Bank Grid */}
       <div 
         id="bank-grid-container"
-        className="grid grid-cols-2 sm:grid-cols-2 gap-2.5 max-h-[220px] md:max-h-[240px] overflow-y-auto pr-1 scrollbar-hide py-1"
+        className="grid grid-cols-2 sm:grid-cols-2 gap-2.5 max-h-[200px] md:max-h-[220px] overflow-y-auto pr-1 scrollbar-hide py-1"
       >
         {filteredBanks.length === 0 ? (
           <div className="col-span-2 py-8 text-center space-y-2 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
@@ -454,15 +501,19 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
                     <div className="w-5 h-5 rounded-full bg-aba-gold flex items-center justify-center text-aba-dark shadow-sm">
                       <Check size={12} strokeWidth={3} />
                     </div>
-                  ) : bank.popular ? (
-                    <span className="text-[7px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full uppercase">
-                      Top
+                  ) : bank.paystackUssdSupported ? (
+                    <span className="text-[7px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full uppercase">
+                      USSD
                     </span>
-                  ) : null}
+                  ) : (
+                    <span className="text-[7px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded-full uppercase">
+                      Transfer
+                    </span>
+                  )}
                 </div>
 
                 {/* Bank Name */}
-                <div className="space-y-0.5 min-h-[32px]">
+                <div className="space-y-0.5 min-h-[30px]">
                   <p className="text-[10px] font-black text-aba-dark tracking-tight leading-tight line-clamp-1">
                     {bank.shortName}
                   </p>
@@ -471,13 +522,13 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
                   </p>
                 </div>
 
-                {/* USSD Code Tag */}
+                {/* USSD / Channel Tag */}
                 <div className="mt-2 pt-1.5 border-t border-slate-200/50 flex items-center justify-between">
                   <span className="text-[10px] font-mono font-black text-aba-gold tracking-tight">
                     {bank.ussdCode}
                   </span>
                   <span className="text-[7px] font-bold text-slate-400 uppercase group-hover:text-aba-dark transition-colors">
-                    Dial
+                    {bank.paystackUssdSupported ? 'Select' : 'Transfer'}
                   </span>
                 </div>
               </button>
@@ -495,17 +546,17 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div 
-                className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-[9px] text-white shadow-sm"
+                className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-[10px] text-white shadow-sm"
                 style={{ backgroundColor: activeBank.color }}
               >
                 {activeBank.shortName.substring(0, 2).toUpperCase()}
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-tight text-white">
-                  {activeBank.name}
+                <p className="text-[11px] font-black uppercase tracking-tight text-white flex items-center gap-1.5">
+                  <span>{activeBank.name}</span>
                 </p>
                 <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">
-                  {amount > 0 ? `Amount: ₦${Math.round(amount).toLocaleString()}` : 'USSD Quick Dial'}
+                  {amount > 0 ? `Amount: ₦${Math.round(amount).toLocaleString()}` : 'Quick Settlement'}
                 </p>
               </div>
             </div>
@@ -517,37 +568,102 @@ export const BankSelector: React.FC<BankSelectorProps> = ({
             </div>
           </div>
 
-          {/* Quick Actions Grid */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <button
-              id="copy-ussd-code-btn"
-              onClick={(e) => handleCopyCode(getDialString(activeBank), e)}
-              className="py-2.5 px-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-1.5 active:scale-95 transition-all"
-            >
-              {copiedCode ? <Check size={13} className="text-aba-green" /> : <Copy size={13} />}
-              <span>{copiedCode ? 'Copied!' : 'Copy Code'}</span>
-            </button>
+          {/* If the bank does NOT support direct Paystack USSD (e.g. OPay, PalmPay, Kuda) */}
+          {!activeBank.paystackUssdSupported ? (
+            <div className="space-y-2.5 pt-1">
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-left space-y-1">
+                <div className="flex items-center gap-1.5 text-amber-400 text-[9px] font-black uppercase tracking-wider">
+                  <AlertTriangle size={13} className="shrink-0" />
+                  <span>{activeBank.shortName} Settlement Guide</span>
+                </div>
+                <p className="text-[8px] text-slate-300 leading-relaxed">
+                  {activeBank.unsupportedReason || `${activeBank.shortName} does not support merchant USSD checkout. To pay with your ${activeBank.shortName} account balance, use Paystack Bank Transfer or Card.`}
+                </p>
+              </div>
 
-            <button
-              id="dial-ussd-code-btn"
-              onClick={() => handleDial(getDialString(activeBank))}
-              className="py-2.5 px-3 bg-aba-gold text-aba-dark rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md hover:bg-amber-400"
-            >
-              <PhoneCall size={13} />
-              <span>Dial on Phone</span>
-            </button>
-          </div>
+              {/* Action Buttons for Digital Wallets */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {isPaystackActive && onProceedWithPaystack && (
+                  <button
+                    id="opay-transfer-btn"
+                    onClick={() => onProceedWithPaystack(activeBank, ['bank_transfer'])}
+                    className="py-3 px-3 bg-aba-gold text-aba-dark rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md hover:bg-amber-400"
+                  >
+                    <ArrowRight size={13} />
+                    <span>Pay via Transfer with {activeBank.shortName}</span>
+                  </button>
+                )}
 
-          {/* Proceed with Paystack USSD Gateway */}
-          {isPaystackActive && onProceedWithPaystack && (
-            <button
-              id="proceed-paystack-ussd-btn"
-              onClick={() => onProceedWithPaystack(activeBank)}
-              className="w-full py-3 bg-gradient-to-r from-aba-gold via-amber-400 to-amber-500 text-aba-deep rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-aba-gold/20 active:scale-95 transition-all mt-2"
-            >
-              <Zap size={14} className="fill-current" />
-              <span>Pay with {activeBank.shortName} USSD</span>
-            </button>
+                {isPaystackActive && onProceedWithPaystack && (
+                  <button
+                    id="opay-card-btn"
+                    onClick={() => onProceedWithPaystack(activeBank, ['card'])}
+                    className="py-3 px-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                  >
+                    <CreditCard size={13} />
+                    <span>Pay with {activeBank.shortName} Card</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Personal USSD dial options */}
+              <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[8px] text-slate-400">
+                <span>Personal Wallet Menu:</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => handleCopyCode(activeBank.ussdCode, e)}
+                    className="text-aba-gold hover:underline font-mono"
+                  >
+                    Copy {activeBank.ussdCode}
+                  </button>
+                  <span>•</span>
+                  <button
+                    onClick={() => handleDial(activeBank.ussdCode)}
+                    className="text-white hover:underline"
+                  >
+                    Dial on Phone
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Supported Commercial Bank (GTBank, Zenith, UBA, Access, etc.) */
+            <div className="space-y-2 pt-1">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  id="copy-ussd-code-btn"
+                  onClick={(e) => handleCopyCode(getDialString(activeBank), e)}
+                  className="py-2.5 px-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                >
+                  {copiedCode ? <Check size={13} className="text-aba-green" /> : <Copy size={13} />}
+                  <span>{copiedCode ? 'Copied!' : 'Copy Code'}</span>
+                </button>
+
+                <button
+                  id="dial-ussd-code-btn"
+                  onClick={() => handleDial(getDialString(activeBank))}
+                  className="py-2.5 px-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                >
+                  <PhoneCall size={13} />
+                  <span>Direct Dial</span>
+                </button>
+              </div>
+
+              {isPaystackActive && onProceedWithPaystack && (
+                <button
+                  id="proceed-paystack-ussd-btn"
+                  onClick={() => onProceedWithPaystack(activeBank, ['ussd'])}
+                  className="w-full py-3 bg-gradient-to-r from-aba-gold via-amber-400 to-amber-500 text-aba-deep rounded-xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-aba-gold/20 active:scale-95 transition-all mt-1"
+                >
+                  <Zap size={14} className="fill-current" />
+                  <span>Generate {activeBank.shortName} USSD on Paystack</span>
+                </button>
+              )}
+
+              <p className="text-[7px] text-center text-slate-400 uppercase tracking-widest">
+                Paystack generates a unique one-time dial code tied to this order.
+              </p>
+            </div>
           )}
         </div>
       )}

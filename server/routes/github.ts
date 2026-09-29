@@ -81,8 +81,21 @@ githubRouter.get("/sync", async (req, res) => {
       try {
         response = await githubClient.get(url, { headers: authHeaders(token) });
       } catch (authErr: any) {
-        if (authErr.response?.status === 401 && token) {
-          // Fallback to anonymous request for public repos
+        // Fallback 1: If branch not found, try default branch
+        if (authErr.response?.status === 404 && branch !== "main") {
+          try {
+            const repoMeta = await getRepoMeta(owner, name, token);
+            if (repoMeta.default_branch && repoMeta.default_branch !== branch) {
+              const fallbackUrl = `/repos/${owner}/${name}/contents/registry.json?ref=${repoMeta.default_branch}`;
+              response = await githubClient.get(fallbackUrl, { headers: authHeaders(token) });
+            } else {
+              throw authErr;
+            }
+          } catch (fallbackErr) {
+            throw authErr;
+          }
+        } else if (authErr.response?.status === 401 && token) {
+          // Fallback 2: Anonymous request for public repos if token is rejected
           response = await githubClient.get(url, { headers: {} });
         } else {
           throw authErr;

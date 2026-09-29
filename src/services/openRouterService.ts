@@ -10,7 +10,12 @@ export const getOpenRouterStream = async (
   prompt: string,
   history: any[],
   catalog: Business[],
-  model: string = "meta-llama/llama-3.3-70b-instruct"
+  model: string = "google/gemini-2.0-flash-001",
+  options?: {
+    useSearch?: boolean;
+    taskType?: 'general' | 'complex' | 'fast' | 'search';
+    userLocation?: { latitude: number; longitude: number };
+  }
 ) => {
   const { getSupabase } = await import('./supabaseService');
   const sb = getSupabase();
@@ -45,7 +50,10 @@ export const getOpenRouterStream = async (
           history,
           catalog,
           type: 'search',
-          provider: 'openrouter'
+          provider: 'openrouter',
+          useSearch: options?.useSearch,
+          taskType: options?.taskType,
+          userLocation: options?.userLocation,
         }),
       });
       break;

@@ -14,7 +14,11 @@ const BusinessVerification: React.FC<{ setView: (v: ViewState) => void }> = ({ s
     setLoading(true);
     try {
       const all = await fetchAllBusinesses();
-      const filtered = all.filter((b: Business) => b.name.toLowerCase().includes(search.toLowerCase()));
+      const filtered = all.filter((b: Business) => {
+        const name = String(b.name ?? '').toLowerCase();
+        const searchLower = search.toLowerCase();
+        return name.includes(searchLower);
+      });
       setResults(filtered);
     } catch (e) {
       console.error(e);

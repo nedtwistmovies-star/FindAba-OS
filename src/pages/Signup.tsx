@@ -98,11 +98,11 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
             
             <div className="text-center space-y-4">
                <h2 className="text-[54px] font-black uppercase tracking-tighter leading-[0.8] flex flex-col items-center">
-                  <span>JOIN</span>
-                  <span className="text-aba-gold">NODE.</span>
+                  <span>CREATE</span>
+                  <span className="text-aba-gold">ACCOUNT.</span>
                </h2>
                <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] max-w-xs mx-auto leading-relaxed mt-4">
-                  INITIALIZE NEW INDUSTRIAL <br/> IDENTITY PROTOCOL.
+                  Setup your account today.
                </p>
             </div>
 
@@ -217,7 +217,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                  className="w-full py-6 bg-aba-gold text-aba-dark rounded-full font-black uppercase text-[12px] tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4 group mt-10"
                >
                   {loading ? <Loader2 className="animate-spin" /> : <Zap size={22} className="text-aba-dark fill-current" />}
-                  INITIALIZE NODE
+                  CREATE ACCOUNT
                </button>
             </form>
 
@@ -226,7 +226,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
                  onClick={() => setView('login')}
                  className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-aba-gold transition-colors border-b border-white/10 pb-1"
                >
-                  ALREADY HAVE A NODE? ENTRY PORTAL
+                  ALREADY HAVE AN ACCOUNT? LOGIN
                </button>
             </div>
          </div>
@@ -234,7 +234,7 @@ const Signup: React.FC<SignupProps> = ({ setView, onAuthSuccess }) => {
 
       <footer className="p-12 text-center opacity-30 select-none grayscale shrink-0">
          <span className="text-[16px] font-black uppercase tracking-[1em]">SANDALSroyalle</span>
-         <p className="text-[8px] font-black uppercase tracking-widest mt-4">FIDELITY GATEWAY HANDSHAKE V19.2</p>
+         <p className="text-[8px] font-black uppercase tracking-widest mt-4">Connection Verified</p>
       </footer>
     </div>
   );

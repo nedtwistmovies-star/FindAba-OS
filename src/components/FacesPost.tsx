@@ -237,13 +237,16 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
         <div className="flex items-center gap-6">
           <button 
             onClick={handleLike}
-            aria-label={isLiked ? "Unlike post" : "Like post"}
+            aria-label={isLiked ? "Remove support" : "Show support"}
             className={`group flex items-center gap-2 transition-all ${isLiked ? 'text-aba-red' : 'text-white/40 hover:text-aba-red'}`}
           >
             <motion.div whileTap={{ scale: 1.5 }}>
               <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} className="transition-transform group-hover:scale-110" />
             </motion.div>
-            <span className="text-xs font-bold">{likesCount}</span>
+            <div className="flex flex-col items-start leading-none">
+              <span className="text-xs font-bold">{likesCount}</span>
+              <span className="text-[7px] font-black uppercase tracking-widest opacity-40">{isLiked ? 'Supported' : 'Support'}</span>
+            </div>
           </button>
           
           <button 

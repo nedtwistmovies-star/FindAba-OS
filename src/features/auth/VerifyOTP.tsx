@@ -62,7 +62,7 @@ const VerifyOTP: React.FC<Props> = ({
         <div className="text-center">
 
           <h1 className="text-4xl font-black text-white">
-            VERIFY NODE
+            VERIFY ACCOUNT
           </h1>
 
           <p className="text-white/50 text-sm mt-3">

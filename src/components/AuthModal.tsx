@@ -275,7 +275,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-aba-gold animate-pulse" />
-              <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">Aba System Node</p>
+              <p className="text-[10px] font-black uppercase text-aba-gold tracking-widest">FindAba Account</p>
             </div>
             <h3 className="text-2xl font-black uppercase tracking-tight text-white italic">
               {mode === 'signup' ? 'Join FindAba' : mode === 'verify_otp' ? 'Verify OTP' : 'Welcome Back'}

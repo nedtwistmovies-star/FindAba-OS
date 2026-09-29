@@ -83,14 +83,14 @@ export const MerchantSetup: React.FC<MerchantSetupProps> = ({ onComplete }) => {
             <div className="w-20 h-20 bg-aba-gold/10 border border-aba-gold/30 rounded-3xl flex items-center justify-center text-aba-gold mx-auto transform rotate-6">
                <Briefcase size={40} />
             </div>
-            <h2 className="text-4xl font-black tracking-tighter uppercase italic">Hub Specifications</h2>
-            <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em]">Industrial Enrollment Protocol</p>
+            <h2 className="text-4xl font-black tracking-tighter uppercase italic">Business Details</h2>
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em]">Business Setup</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4">Workshop Name</label>
+                <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4">Business Name</label>
                 <div className="relative">
                   <Briefcase className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20" size={20} />
                   <input 

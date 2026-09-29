@@ -13,9 +13,9 @@ import { generateDesignImage, generateIndustrialVideo, getSupportResponse } from
 import { saveVisionToCloud, fetchVisionHistory } from '../../services/supabaseService';
 
 const PRESENTERS = [
-  { id: 'p1', name: 'FindAba AI (Kalu)', style: 'Corporate Industrial', bio: 'Sophisticated trade envoy for international leather deals.' },
+  { id: 'p1', name: 'Kalu (Assistant)', style: 'Business Professional', bio: 'Helpful assistant for leather deals and market information.' },
   { id: 'p2', name: 'Master Amaka', style: 'Workshop Professional', bio: 'Expert craftswoman representing garments and textiles.' },
-  { id: 'p3', name: 'Global Envoy', style: 'Trade Representative', bio: 'Polished diplomatic figure for cross-border logistics.' }
+  { id: 'p3', name: 'Market Envoy', style: 'Trade Representative', bio: 'Helpful representative for logistics and trade.' }
 ];
 
 const CreativeLab: React.FC<any> = ({ onBack }) => {

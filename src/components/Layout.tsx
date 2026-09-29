@@ -78,6 +78,7 @@ import {
 } from "../services/signalService";
 import SystemStatusIndicator from "./SystemStatusIndicator";
 import { HealthCheck } from "./HealthCheck";
+import GitDiagnostics from "./GitDiagnostics";
 import VoiceSearchButton from "./VoiceSearchButton";
 import OfflineBanner from "./OfflineBanner";
 
@@ -272,6 +273,7 @@ const Layout: React.FC<LayoutProps> = ({
     }
   };
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isGitDiagnosticsOpen, setIsGitDiagnosticsOpen] = useState(false);
   const [isRegistryActive, setIsRegistryActive] = useState(false);
   const [isSignalHealthy, setIsSignalHealthy] = useState(true);
   const [healthMessage, setHealthMessage] = useState<string>("");
@@ -396,18 +398,18 @@ const Layout: React.FC<LayoutProps> = ({
 
   const menuItems = [
     {
-      label: t("City Registry", "City Registry"),
+      label: t("City Registry", "Businesses"),
       icon: <Layers size={20} />,
       view: "explore" as ViewState,
     },
     {
-      label: t("Oracle Hub", "Oracle Hub"),
+      label: t("Ask FindAba", "Ask FindAba"),
       icon: <Cpu size={20} />,
       view: "oracle" as ViewState,
     },
     {
       id: "home",
-      label: t("Home Node", "Home Node"),
+      label: t("Home", "Home"),
       icon: <Home size={20} />,
       view: "home" as ViewState,
     },
@@ -746,15 +748,15 @@ const Layout: React.FC<LayoutProps> = ({
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border text-xs font-bold leading-none select-none transition-all ${
                 !gitStatus.connected 
                   ? 'border-rose-500/40 hover:border-rose-500 cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.1)]' 
-                  : 'border-white/10 hover:border-white/30 cursor-help'
+                  : 'border-white/10 hover:border-white/30 cursor-pointer hover:bg-white/10'
               }`}
               onClick={() => {
-                setView('admin');
+                setIsGitDiagnosticsOpen(true);
               }}
               title={
                 !gitStatus.connected 
-                  ? `GIT PROTOCOL ERROR: ${gitStatus.error || "Registry Sync Interrupted"}. Click to open Admin Console and set Git credentials.` 
-                  : (gitSynced ? `Industrial Grid Synchronized: ${liveRepo || "Main Hub"}. Click to open Admin Console.` : `Local/Cloud Drift Detected! Active Repo: ${liveRepo}. Click to open Admin Console.`)
+                  ? `GIT PROTOCOL ERROR: ${gitStatus.error || "Registry Sync Interrupted"}. Click to open diagnostics.` 
+                  : (gitSynced ? `Industrial Grid Synchronized: ${liveRepo || "Main Hub"}. Click to view diagnostics.` : `Local/Cloud Drift Detected! Active Repo: ${liveRepo}. Click to view diagnostics.`)
               }
               id="git-repo-indicator"
             >
@@ -1000,13 +1002,13 @@ const Layout: React.FC<LayoutProps> = ({
                       onClick={() => setView("oracle")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
-                      Oracle AI
+                      FindAba Assistant
                     </button>
                     <button
                       onClick={() => setView("legal")}
                       className="block text-xs font-medium text-white/60 hover:text-aba-gold transition-standard uppercase tracking-widest"
                     >
-                      Safety Protocols
+                      Safety & Privacy
                     </button>
                     <button
                       onClick={() => setView("contact")}
@@ -1165,7 +1167,7 @@ const Layout: React.FC<LayoutProps> = ({
         {[
           { id: "home", icon: <Home size={18} />, label: "HOME" },
           { id: "faces", icon: <Users size={18} />, label: "FACES" },
-          { id: "oracle", icon: <Cpu size={18} />, label: "ORACLE" },
+          { id: "oracle", icon: <Cpu size={18} />, label: "ASK" },
           { id: "fidelity", icon: <Landmark size={18} />, label: "Fidelity" },
           isAdmin && { id: "admin", icon: <ShieldCheck size={18} />, label: "ADMIN" },
           { id: "profile", icon: <UserCircle size={18} />, label: "PROFILE" },
@@ -1313,6 +1315,10 @@ const Layout: React.FC<LayoutProps> = ({
       </div>
       <SystemStatusIndicator />
       <HealthCheck />
+      <GitDiagnostics 
+        isOpen={isGitDiagnosticsOpen}
+        onClose={() => setIsGitDiagnosticsOpen(false)}
+      />
     </div>
   );
 };

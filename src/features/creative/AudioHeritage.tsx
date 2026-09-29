@@ -229,21 +229,21 @@ const AudioHeritage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <div className="inline-flex items-center gap-3 px-8 py-2.5 bg-aba-green/10 rounded-full border border-aba-green/20 mb-1">
             <Waves size={18} className="text-aba-green animate-pulse" />
             <span className="text-[10px] font-black uppercase text-aba-green tracking-[0.3em]">
-              Glottal Resonance Synchronization
+              Voice Synchronization
             </span>
           </div>
           <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-white leading-tight min-h-[6rem] max-w-2xl mx-auto">
-            {loading ? `Recalling Oral Memory...` : (playing ? currentTopic.title : "Learned Heritage Engine")}
+            {loading ? `Recalling Oral Memory...` : (playing ? currentTopic.title : "Aba Heritage")}
           </h3>
           <p className="text-[11px] font-bold text-white/30 uppercase tracking-[0.4em] max-w-xl mx-auto text-center leading-relaxed italic">
-            {loading ? "FindAba AI is processing... Preparing a high-fidelity academic narrative of our lineage." : (playing ? `The Ogbuefi is narrating in ${selectedLanguage}. Hear the weight of the red earth.` : "Commence an oral session to hear the sophisticated wisdom of the Learned Ogbuefi.")}
+            {loading ? "Finding information... Preparing the story of our roots." : (playing ? `The Ogbuefi is narrating in ${selectedLanguage}. Hear the weight of the red earth.` : "Start listening to the sophisticated wisdom of the Learned Ogbuefi.")}
           </p>
         </div>
       </div>
 
-      {/* Heritage Pillar Matrix */}
+      {/* Heritage Stories */}
       <div className="px-8 space-y-28 pb-40 max-w-7xl mx-auto w-full">
-        {['The Origins', 'Industrial Code', 'Master Crafts', 'The Spirit', 'Wisdom'].map(era => (
+        {['The Origins', 'Business Heritage', 'Master Crafts', 'The Spirit', 'Wisdom'].map(era => (
           <section key={era} className="space-y-16">
             <div className="flex items-center gap-12">
               <h4 className="text-[16px] font-black uppercase text-aba-gold tracking-[1em] whitespace-nowrap">{era}</h4>

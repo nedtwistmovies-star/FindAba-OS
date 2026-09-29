@@ -98,7 +98,7 @@ export const GitHubSync: React.FC = () => {
       }
     } catch (error: any) {
       console.error('GitHub Connect Error:', error);
-      addToast(`Failed to start GitHub connection: ${error.message || 'Protocol Failure'}`, 'error');
+      addToast(`Failed to start GitHub connection: ${error.message || 'Connection Error'}`, 'error');
     }
   };
 
@@ -174,7 +174,7 @@ export const GitHubSync: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Sync Error:', error);
-      addToast(`Sync Error: ${error.message || 'Protocol Failure'}`, 'error');
+      addToast(`Sync Error: ${error.message || 'Connection Error'}`, 'error');
     } finally {
       setIsCommitting(false);
     }
@@ -229,7 +229,7 @@ export const GitHubSync: React.FC = () => {
             <img src={user.avatar_url} alt={user.login} className="w-10 h-10 rounded-xl border border-aba-gold/40 shrink-0" />
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-black text-white leading-none truncate">{user.name || user.login}</span>
-              <span className="text-[8px] font-bold text-aba-gold/60 uppercase tracking-widest mt-1">Industrial Node Active</span>
+              <span className="text-[8px] font-bold text-aba-gold/60 uppercase tracking-widest mt-1">Connected</span>
             </div>
           </div>
           
@@ -378,7 +378,7 @@ export const GitHubSync: React.FC = () => {
             <div className="p-2 bg-aba-gold/10 rounded-lg">
               <ShieldCheck size={16} />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest">Security Protocol</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Security</span>
           </div>
           
           <div className="space-y-2">

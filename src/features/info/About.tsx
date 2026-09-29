@@ -63,29 +63,29 @@ const About: React.FC<{ currentView: ViewState; setView: (v: ViewState) => void 
   const protocols = [
     { 
       id: 'discovery', 
-      title: 'Discovery Mesh', 
-      desc: 'High-fidelity indexing of verified master artisans and industrial nodes across Enyimba City.',
+      title: 'Business Search', 
+      desc: 'Connect with verified master artisans and top businesses across Enyimba City.',
       icon: <Globe size={24} />,
       color: 'text-blue-500'
     },
     { 
       id: 'logistics', 
-      title: 'Carry-Go Protocol', 
-      desc: 'Seamless hub-to-hub logistics intermediation for high-value industrial cargo and waybills.',
+      title: 'Cargo & Logistics', 
+      desc: 'Seamless point-to-point delivery for high-value cargo and waybills.',
       icon: <Factory size={24} />,
       color: 'text-aba-green'
     },
     { 
       id: 'intelligence', 
-      title: 'Oracle Wisdom', 
-      desc: 'Advanced trade intelligence and market signals powered by the FindAba AI core.',
+      title: 'FindAba Assistant', 
+      desc: 'Get helpful trade information and market updates from Kalu.',
       icon: <Cpu size={24} />,
       color: 'text-aba-gold'
     },
     { 
       id: 'settlement', 
-      title: 'Fidelity Mesh', 
-      desc: 'Encrypted financial settlements and merchant thrift protocols settled via Paystack.',
+      title: 'Secure Payments', 
+      desc: 'Safe and secure financial settlements and merchant thrift savings via Paystack.',
       icon: <Landmark size={24} />,
       color: 'text-blue-600'
     },

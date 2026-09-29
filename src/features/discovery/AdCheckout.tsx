@@ -82,13 +82,13 @@ const AdCheckout: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
             onClick={() => setView('oracle')}
             className="w-full bg-white/5 border border-white/10 text-white py-6 rounded-full font-black uppercase text-[10px] tracking-[0.4em] active:scale-95 transition-all hover:bg-white/10 flex items-center justify-center gap-3"
           >
-            <Sparkles size={18} /> Continue Oracle Dialogue
+            <Sparkles size={18} /> Continue Conversation
           </button>
         </div>
 
         <div className="mt-20 flex flex-col items-center gap-4 opacity-10 select-none grayscale">
            <span className="text-[16px] font-black uppercase tracking-[1.2em]">SANDALSroyalle</span>
-           <p className="text-[8px] font-black uppercase tracking-widest">Registry Protocol Handshake Verified</p>
+           <p className="text-[8px] font-black uppercase tracking-widest">Connection Verified</p>
         </div>
       </div>
     );

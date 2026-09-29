@@ -313,7 +313,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                         onUpload={(url: string) => updatePlatformConfig({ app_logo: url }).then(refreshData)}
                       />
                       <ImageUpload
-                        label="Oracle Avatar (FindAba AI)"
+                        label="Assistant Avatar"
                         currentImage={platformConfig.oracle_avatar}
                         onUpload={(url: string) => updatePlatformConfig({ oracle_avatar: url }).then(refreshData)}
                       />
@@ -494,7 +494,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Notification Mesh</label>
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Notifications</label>
                     <div className="flex flex-wrap gap-3">
                       {['email', 'sms', 'push'].map((type) => (
                         <button
@@ -510,7 +510,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                               await refreshData();
                               sendProfileUpdateNotification(profile.email, profile.full_name || 'Citizen').catch(console.error);
                             } catch (err) {
-                              addToast("Sync fault in protocol", "error");
+                              addToast("Could not update settings", "error");
                             } finally {
                               setLoading(false);
                             }
@@ -528,7 +528,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Protocol Interface</label>
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4 italic">Language & Display</label>
                     <div className="flex gap-3">
                       <button
                         onClick={async () => {
@@ -540,7 +540,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                             addToast(`Dark Mode ${updated ? 'ENABLED' : 'DISABLED'}`, "success");
                             await refreshData();
                           } catch (err) {
-                            addToast("Sync fault in logic", "error");
+                            addToast("Could not update settings", "error");
                           } finally {
                             setLoading(false);
                           }

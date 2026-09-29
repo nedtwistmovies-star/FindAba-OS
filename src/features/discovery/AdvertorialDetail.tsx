@@ -15,7 +15,7 @@ const AdvertorialDetail: React.FC<Props> = ({ post, onBack, setView }) => {
     trackAdvertorialView(post.id);
   }, [post.id]);
 
-  const isPulse = post.author_name === "FindAba AI Intelligence";
+  const isPulse = post.author_name === "FindAba Updates";
   const veracityMatch = post.content.match(/RELIABILITY SCORE: (\d+)%/);
   const veracityScore = veracityMatch ? parseInt(veracityMatch[1]) : null;
   const riskAssessmentMatch = post.content.match(/AI CONTEXT: (.*)/);

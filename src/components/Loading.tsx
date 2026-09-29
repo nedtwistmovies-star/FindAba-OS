@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShimmerBox } from './SkeletonLoader';
 
-const Loading: React.FC<{ message?: string }> = ({ message = "Synchronizing Enyimba Commercial Nodes..." }) => (
+const Loading: React.FC<{ message?: string }> = ({ message = "Getting everything ready for you..." }) => (
   <div className="flex flex-col items-center justify-center p-8 w-full max-w-xl mx-auto space-y-4 animate-fade-in">
     <div className="w-full space-y-3">
       <ShimmerBox className="h-4 w-1/2 mx-auto" />

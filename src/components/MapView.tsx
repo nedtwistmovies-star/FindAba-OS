@@ -270,7 +270,7 @@ const MapView: React.FC<MapViewProps> = ({ businesses, onBusinessClick, userLoca
               {userLocation ? 'Proximity Scan Active' : 'Live Registry Mapping'}
             </span>
          </div>
-         <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">Enyimba Spatial Protocol v6.0</p>
+         <p className="text-[8px] font-bold text-white/20 uppercase tracking-widest mt-1">FindAba Map v6.0</p>
       </div>
     </div>
   );

@@ -120,8 +120,8 @@ async function callServerOracle(payload: any) {
   if (!response) {
     throw new Error(
       lastError?.message === 'Failed to fetch'
-        ? "Network connection to Oracle server unavailable. Please try again."
-        : (lastError?.message || "Oracle Signal Fault")
+        ? "Network connection unavailable. Please check your internet and try again."
+        : (lastError?.message || "FindAba is busy right now. Please try again.")
     );
   }
 
@@ -130,7 +130,7 @@ async function callServerOracle(payload: any) {
   try { result = text && text.trim() ? JSON.parse(text) : {}; } catch {}
 
   if (!response.ok) {
-    throw new Error(result.error || "Oracle Signal Fault");
+    throw new Error(result.error || "FindAba is busy right now. Please try again.");
   }
 
   return result;
@@ -141,9 +141,11 @@ async function callServerOracle(payload: any) {
  */
 export const parseFlyerSignal = async (base64: string, mimeType: string = 'image/jpeg') => {
   try {
+    const primaryAi = (typeof localStorage !== 'undefined' && localStorage.getItem('findaba_primary_ai')) || 'openrouter';
     const result = await callServerOracle({
       prompt: { base64, mimeType },
       type: 'flyer',
+      provider: primaryAi,
     });
     if (typeof result === 'object' && result !== null) {
       return result;
@@ -162,10 +164,12 @@ export const analyzeFlyer = parseFlyerSignal;
  */
 export const analyzeHardwareSignal = async (base64: string) => {
   try {
+    const primaryAi = (typeof localStorage !== 'undefined' && localStorage.getItem('findaba_primary_ai')) || 'openrouter';
     const prompt = `Industrial Hardware Audit JSON ONLY: { "spec_summary": "string", "verdict": "Vanguard"|"Migration"|"Legacy", "performance_index": number, "recommendations": ["string"], "wisdom": "string" }`;
     const result = await callServerOracle({
       prompt: { base64, mimeType: 'image/jpeg' },
-      type: 'flyer'
+      type: 'flyer',
+      provider: primaryAi,
     });
     return result;
   } catch (e: any) {
@@ -178,8 +182,9 @@ export const analyzeHardwareSignal = async (base64: string) => {
  */
 export const analyzeHardwareTextSignal = async (text: string) => {
   try {
+    const primaryAi = (typeof localStorage !== 'undefined' && localStorage.getItem('findaba_primary_ai')) || 'openrouter';
     const prompt = `Industrial Hardware Audit for specs: "${text}". Return JSON ONLY: { "spec_summary": "string", "verdict": "Vanguard"|"Migration"|"Legacy", "performance_index": number, "recommendations": ["string"], "wisdom": "string" }`;
-    const result = await callServerOracle({ prompt, type: 'search' });
+    const result = await callServerOracle({ prompt, type: 'search', provider: primaryAi });
     return JSON.parse(cleanJSON(result.text || '{}'));
   } catch (e: any) {
     return { verdict: "Unknown", wisdom: "Oracle signal interrupted." };
@@ -187,21 +192,53 @@ export const analyzeHardwareTextSignal = async (text: string) => {
 };
 
 /**
- * ORACLE HUB: FindAba AI
+ * FINDABA ASSISTANT: Kalu
  */
 export const getOracleStream = async (
   prompt: string | { data: string, mimeType: string }, 
   history: any[], 
-  catalog: Business[]
+  catalog: Business[],
+  userLocation?: { latitude: number; longitude: number },
+  useSearch?: boolean,
+  taskType?: 'general' | 'complex' | 'fast' | 'search'
 ) => {
+  const primaryAi = (typeof localStorage !== 'undefined' && localStorage.getItem('findaba_primary_ai')) || 'openrouter';
+
   if (typeof prompt === 'string') {
-    return await getOpenRouterStream(prompt, history, catalog);
+    const result = await callServerOracle({
+      prompt,
+      history,
+      catalog,
+      type: 'search',
+      userLocation,
+      useSearch,
+      taskType,
+      provider: primaryAi,
+    });
+
+    const extractedText =
+      (typeof result.text === 'string' && result.text.trim()) ||
+      (typeof result.wisdom === 'string' && result.wisdom.trim()) ||
+      (typeof result.answer === 'string' && result.answer.trim()) ||
+      (typeof result.response === 'string' && result.response.trim()) ||
+      (typeof result.message === 'string' && result.message.trim()) ||
+      "I’m unable to complete that request right now. Please try again shortly.";
+
+    return {
+      text: extractedText,
+      thoughtProcess: result.thoughtProcess || result.thought_process,
+      dataPoints: result.dataPoints || result.data_points || { verified_facts: [], locations: [] },
+      suggestions: result.suggestions || result.trade_signals || [],
+      grounding: result.grounding,
+    };
   }
   
   // Flyer input
   const result = await callServerOracle({
     prompt: { base64: prompt.data, mimeType: prompt.mimeType },
-    type: 'flyer'
+    type: 'flyer',
+    userLocation,
+    provider: primaryAi,
   });
 
   return {
@@ -209,7 +246,7 @@ export const getOracleStream = async (
     thoughtProcess: "Analyzed flyer image content.",
     dataPoints: { verified_facts: [result.businessName, result.area].filter(Boolean), locations: [result.area].filter(Boolean) },
     suggestions: [],
-    grounding: undefined
+    grounding: result.grounding || undefined
   };
 };
 
@@ -230,11 +267,11 @@ export const generateAudioNarration = generateHistoryAudio;
 
 export const generateWelcomeMessage = async (name: string, id: string) => {
   try {
-    const prompt = `Generate a warm, human, and specific welcome message for ${name} (ID: ${id}) to the FindAba registry. Identity: FindAba AI (Kalu). Tone: Welcoming local Aba flavor (Igbo/Pidgin mix). Do NOT say 'God's Own State'. Keep under 3 sentences.`;
+    const prompt = `Generate a warm, human, and specific welcome message for ${name} (ID: ${id}) to the FindAba registry. Identity: Kalu (FindAba assistant). Tone: Welcoming local Aba flavor (Igbo/Pidgin mix). Do NOT say 'God's Own State'. Keep under 3 sentences.`;
     const result = await callServerOracle({ prompt, type: 'search' });
     return result.text || `Welcome to FindAba, ${name}! Your business is registered in Enyimba City.`;
   } catch (e) {
-    return `Welcome to the Hub, ${name}.`;
+    return `Welcome to FindAba, ${name}.`;
   }
 };
 

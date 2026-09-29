@@ -271,7 +271,7 @@ const Onboarding: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
             onClick={next}
             className="w-full max-w-sm py-6 bg-white text-aba-dark rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] flex items-center justify-center gap-4 shadow-2xl hover:bg-aba-gold transition-all active:scale-95 group"
           >
-            {currentStep === STEPS.length - 1 ? "INITIALIZE NODE" : "NEXT PROTOCOL"}
+            {currentStep === STEPS.length - 1 ? "GET STARTED" : "CONTINUE"}
             <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
           </button>
         </div>

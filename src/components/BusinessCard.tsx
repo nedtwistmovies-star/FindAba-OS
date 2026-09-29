@@ -138,7 +138,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
               </div>
               <div className="text-center">
                  <p className="text-[10px] font-bold uppercase text-aba-gold/60 tracking-widest mb-1">Volume</p>
-                 <h3 className="text-3xl font-bold tracking-tight text-white">₦{activeOrder.amount.toLocaleString()}</h3>
+                 <h3 className="text-3xl font-bold tracking-tight text-white">₦{ (activeOrder.amount || 0).toLocaleString() }</h3>
               </div>
            </div>
 
@@ -215,7 +215,7 @@ const BusinessCard: React.FC<BusinessCardProps> = ({
            <div className="flex items-center gap-2 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/20 text-white shadow-sm">
               <Star size={10} fill={business.review_count > 0 ? "var(--aba-gold)" : "none"} className={business.review_count > 0 ? "text-aba-gold" : "text-white/20"} />
               <span className="text-[10px] font-bold uppercase tracking-widest">
-                {business.review_count > 0 ? business.rating.toFixed(1) : 'New'}
+                {business.review_count > 0 && typeof business.rating === 'number' ? business.rating.toFixed(1) : 'New'}
               </span>
            </div>
            {features.sponsored_badge && (

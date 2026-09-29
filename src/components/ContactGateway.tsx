@@ -152,7 +152,7 @@ export const ContactGateway: React.FC<ContactGatewayProps> = ({ isOpen, onClose,
             <div className="p-8 pb-0 flex justify-between items-start">
                <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                     <span className="text-[10px] font-black text-aba-gold uppercase tracking-[0.3em]">Connectivity Node</span>
+                     <span className="text-[10px] font-black text-aba-gold uppercase tracking-[0.3em]">Connectivity</span>
                      <div className="w-1.5 h-1.5 rounded-full bg-aba-gold animate-pulse" />
                   </div>
                   <h2 className="text-2xl font-bold text-white uppercase tracking-tight leading-none">Contact {business.name}</h2>

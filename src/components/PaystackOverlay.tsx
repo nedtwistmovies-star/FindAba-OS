@@ -5,7 +5,7 @@ import {
   ShieldCheck, Loader2, X, Landmark, Lock, 
   Smartphone, CheckCircle2, ChevronRight, Zap, 
   Activity, AlertTriangle, Globe, ArrowRight, Copy, Check, CreditCard, Cpu, Search,
-  UploadCloud, FileText, Camera, ArrowLeft, QrCode
+  UploadCloud, FileText, Camera, ArrowLeft, QrCode, PhoneCall, ExternalLink
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { paymentService } from '../services/paymentService';
@@ -36,20 +36,37 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
   amount, email = 'support@findaba.com.ng', label, businessId, userId, bookingId, onSuccess, onCancel, isOpen 
 }) => {
   const { addToast } = useToast();
-  const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan' | 'qr_pay' | 'ussd_banks'>('initialize');
-  const [selectedBank, setSelectedBank] = useState<any>(null);
+  const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan' | 'qr_pay' | 'ussd_banks' | 'ussd_active'>('initialize');
+  const [selectedBank, setSelectedBank] = useState<NigerianBank | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string[] | null>(null);
   const [reference, setReference] = useState('');
   const [copied, setCopied] = useState(false);
   const [authStatus, setAuthStatus] = useState<string>('Initializing AI Sentinel...');
   const [isAiVerifiedLocal, setIsAiVerifiedLocal] = useState(false);
   const [aiVerdict, setAiVerdict] = useState<any>(null);
-  const isPaystackActive = paymentService.hasKey();
+  const [hasKeyActive, setHasKeyActive] = useState(() => paymentService.hasKey());
+  const isPaystackActive = hasKeyActive || paymentService.hasKey();
+
+  const [activeUssdData, setActiveUssdData] = useState<{
+    ussdCode: string;
+    displayText: string;
+    bankName: string;
+    reference: string;
+  } | null>(null);
+  const [isChargingUssd, setIsChargingUssd] = useState(false);
+  const [isVerifyingManual, setIsVerifyingManual] = useState(false);
+
+  useEffect(() => {
+    paymentService.initPublicKey().then(() => {
+      setHasKeyActive(paymentService.hasKey());
+    });
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
       setStep('initialize');
       setReference(`SIG-PS-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
+      setActiveUssdData(null);
       
       // Load Paystack Script
       const script = document.createElement('script');
@@ -64,19 +81,79 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
     return () => { document.body.style.overflow = 'auto'; };
   }, [isOpen]);
 
+  // Polling for USSD payment completion in the background
+  useEffect(() => {
+    if (step !== 'ussd_active' || !activeUssdData?.reference) return;
+
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const verifyRes = await paymentService.verifyWithBackend(activeUssdData.reference, {
+          orderId: bookingId,
+          userId,
+          amount,
+        });
+
+        if (isMounted && verifyRes && verifyRes.status === 'success') {
+          clearInterval(interval);
+          setStep('success');
+          addToast("USSD Payment Confirmed Successfully!", "success");
+          onSuccess({ reference: activeUssdData.reference, status: 'success', channel: 'ussd' });
+        }
+      } catch (e) {
+        // Continue polling
+      }
+    }, 4000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [step, activeUssdData?.reference]);
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const triggerPaystack = (channels?: string[]) => {
+  const checkUssdStatus = async (ref: string) => {
+    setIsVerifyingManual(true);
+    try {
+      const res = await paymentService.verifyWithBackend(ref, { orderId: bookingId, userId, amount });
+      if (res && res.status === 'success') {
+        setStep('success');
+        addToast("USSD Payment Verified Successfully!", "success");
+        onSuccess({ reference: ref, status: 'success', channel: 'ussd' });
+      } else {
+        addToast("Payment not received yet. Please dial the code on your phone and approve with PIN.", "info");
+      }
+    } catch {
+      addToast("Checked for settlement. Signal not yet confirmed.", "info");
+    } finally {
+      setIsVerifyingManual(false);
+    }
+  };
+
+  const triggerPaystack = (channels?: string[], bankOverride?: NigerianBank | null) => {
+    const bankToUse = bankOverride !== undefined ? bankOverride : selectedBank;
     if (isPaystackActive && window.PaystackPop) {
-      const config = paymentService.getPaystackConfig({ email, amount, label, businessId, userId, bookingId });
+      const config = paymentService.getPaystackConfig({ 
+        email, 
+        amount, 
+        label, 
+        businessId, 
+        userId, 
+        bookingId,
+        selectedBank: bankToUse || undefined,
+        channels: channels || ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
+      });
       
       const handler = window.PaystackPop.setup({
         ...config,
         channels: channels || ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
+        // Explicitly enforce the mapped ussd object in transaction initialization
+        ...(config.ussd ? { ussd: config.ussd } : {}),
         onClose: () => {
           console.log('[Paystack] Window closed by user.');
         },
@@ -86,11 +163,51 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
           setIsAiVerifiedLocal(false);
           setStep('success');
           addToast("Registry Settlement Confirmed via Paystack.", "success");
+          paymentService.verifyWithBackend(response.reference, { orderId: bookingId, userId, amount });
         }
       });
       handler.openIframe();
     } else {
       setStep('manual');
+    }
+  };
+
+  const handleUssdInitiate = async (bank: NigerianBank) => {
+    setSelectedBank(bank);
+    setIsChargingUssd(true);
+
+    try {
+      const res = await paymentService.chargeUssdWithPaystack({
+        email,
+        amount,
+        bankId: bank.id,
+        bankName: bank.name,
+        bankCode: bank.bankCode,
+        ussdType: bank.paystackUssdType || bank.id || '737',
+        ussdProvider: bank.id,
+        reference,
+        orderId: bookingId,
+        userId,
+      });
+
+      if (res && res.success && res.ussdCode) {
+        setActiveUssdData({
+          ussdCode: res.ussdCode,
+          displayText: res.displayText,
+          bankName: res.bankName || bank.name,
+          reference: res.reference || reference,
+        });
+        setReference(res.reference || reference);
+        setStep('ussd_active');
+      } else {
+        // Fallback to inline setup with proper bank provider metadata mapping
+        triggerPaystack(['ussd'], bank);
+      }
+    } catch (err: any) {
+      console.warn('[USSD Initiate] Error, falling back to popup:', err);
+      triggerPaystack(['ussd'], bank);
+    } finally {
+      setIsChargingUssd(false);
     }
   };
 
@@ -201,7 +318,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                   {isPaystackActive ? <ShieldCheck size={20} /> : <Zap size={20} />}
                   {isPaystackActive ? 'Select Payment Method' : 'Open Transfer Gateway'}
                 </button>
-                <button onClick={onCancel} className="w-full py-2 md:py-4 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors">Cancel Protocol</button>
+                <button onClick={onCancel} className="w-full py-2 md:py-4 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-aba-deep transition-colors">Cancel</button>
               </div>
             </div>
           )}
@@ -351,17 +468,118 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
           )}
 
           {step === 'ussd_banks' && (
-            <BankSelector
-              amount={amount}
-              isPaystackActive={isPaystackActive}
-              selectedBankId={selectedBank?.id}
-              onSelectBank={(bank) => setSelectedBank(bank)}
-              onProceedWithPaystack={(bank) => {
-                setSelectedBank(bank);
-                triggerPaystack(['ussd']);
-              }}
-              onBack={() => setStep('method_select')}
-            />
+            <div className="space-y-4">
+              {isChargingUssd && (
+                <div className="p-4 bg-aba-gold/10 border border-aba-gold/30 rounded-2xl flex items-center justify-center gap-3 text-aba-deep animate-pulse">
+                  <Loader2 size={16} className="animate-spin text-aba-gold" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">
+                    Connecting {selectedBank?.shortName || ''} USSD Gateway...
+                  </span>
+                </div>
+              )}
+              <BankSelector
+                amount={amount}
+                isPaystackActive={isPaystackActive}
+                selectedBankId={selectedBank?.id}
+                onSelectBank={(bank) => setSelectedBank(bank)}
+                onProceedWithPaystack={(bank, channels) => {
+                  setSelectedBank(bank);
+                  if (channels?.includes('ussd') && bank.paystackUssdSupported) {
+                    handleUssdInitiate(bank);
+                  } else {
+                    triggerPaystack(channels || ['bank_transfer'], bank);
+                  }
+                }}
+                onBack={() => setStep('method_select')}
+              />
+            </div>
+          )}
+
+          {step === 'ussd_active' && activeUssdData && (
+            <div className="space-y-6 md:space-y-8 animate-slide-up text-center pb-2">
+              <div className="space-y-2">
+                <div 
+                  className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-white font-black text-sm shadow-md"
+                  style={{ backgroundColor: selectedBank?.color || '#004B87' }}
+                >
+                  {selectedBank?.shortName?.substring(0, 2).toUpperCase() || 'BK'}
+                </div>
+                <h3 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-800">
+                  {activeUssdData.bankName} USSD Checkout
+                </h3>
+                <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                  Amount: ₦{amount.toLocaleString()} • Dial from registered phone
+                </p>
+              </div>
+
+              {/* Big USSD Code Display Box */}
+              <div className="p-5 md:p-6 bg-slate-900 rounded-3xl text-white space-y-3 shadow-xl border border-white/10">
+                <p className="text-[8px] font-mono uppercase tracking-[0.2em] text-slate-400">
+                  Dial This Exact Code on Your Phone:
+                </p>
+                <div className="p-3 bg-white/10 rounded-2xl border border-white/10 font-mono text-xl sm:text-2xl font-black text-aba-gold tracking-wider select-all break-all">
+                  {activeUssdData.ussdCode}
+                </div>
+                <p className="text-[8px] text-slate-400 leading-relaxed">
+                  {activeUssdData.displayText || `Dial the code above from the SIM card registered with your ${activeUssdData.bankName} account and enter your 4-digit PIN.`}
+                </p>
+              </div>
+
+              {/* Action Buttons: Dial on phone & Copy */}
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={`tel:${encodeURIComponent(activeUssdData.ussdCode)}`}
+                  className="py-3 px-4 bg-aba-gold text-aba-dark rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 shadow-md hover:bg-amber-400 active:scale-95 transition-all"
+                >
+                  <PhoneCall size={14} />
+                  <span>Dial on Phone</span>
+                </a>
+
+                <button
+                  onClick={() => handleCopy(activeUssdData.ussdCode)}
+                  className="py-3 px-4 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-700 flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                >
+                  {copied ? <Check size={14} className="text-aba-green" /> : <Copy size={14} />}
+                  <span>{copied ? 'Copied!' : 'Copy Code'}</span>
+                </button>
+              </div>
+
+              {/* Verification status & manual verify button */}
+              <div className="p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl space-y-2 text-left">
+                <div className="flex items-center gap-2 text-blue-700 text-[8px] font-black uppercase tracking-widest">
+                  <Loader2 size={12} className="animate-spin text-blue-600" />
+                  <span>Listening for confirmation...</span>
+                </div>
+                <p className="text-[7px] text-blue-600/80 leading-normal">
+                  Once authorized on your phone, settlement commits automatically.
+                </p>
+                <button
+                  onClick={() => checkUssdStatus(activeUssdData.reference)}
+                  disabled={isVerifyingManual}
+                  className="w-full py-2 bg-blue-600 text-white rounded-lg text-[8px] font-black uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-1"
+                >
+                  {isVerifyingManual ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={11} />}
+                  <span>Verify Status</span>
+                </button>
+              </div>
+
+              {/* Navigation */}
+              <div className="flex items-center justify-between text-[8px] text-slate-400 pt-1">
+                <button 
+                  onClick={() => setStep('ussd_banks')}
+                  className="hover:text-aba-dark hover:underline flex items-center gap-1 uppercase tracking-wider"
+                >
+                  <ArrowLeft size={10} /> Choose Another Bank
+                </button>
+
+                <button 
+                  onClick={() => triggerPaystack(['ussd'], selectedBank)}
+                  className="text-aba-gold hover:underline font-bold uppercase tracking-wider flex items-center gap-1"
+                >
+                  Paystack Popup <ExternalLink size={10} />
+                </button>
+              </div>
+            </div>
           )}
 
           {step === 'auth_scan' && (
@@ -372,7 +590,7 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                </div>
                <div className="space-y-2">
                  <p className="text-[9px] md:text-[10px] font-black text-aba-dark uppercase tracking-[0.4em] animate-pulse">{authStatus}</p>
-                 <p className="text-[6px] md:text-[7px] font-bold text-slate-300 uppercase tracking-widest">Industrial Trinity Protocol v20.0</p>
+                 <p className="text-[6px] md:text-[7px] font-bold text-slate-300 uppercase tracking-widest">Secure Payment Gateway v20.0</p>
                </div>
             </div>
           )}

@@ -30,7 +30,7 @@ const Pricing: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
   if (loading) return (
     <div className="h-full flex flex-col items-center justify-center bg-[#002113]">
        <Loader2 className="animate-spin text-aba-gold" size={48} />
-       <p className="text-[10px] font-black uppercase text-aba-gold tracking-[0.4em] mt-8 animate-pulse">Syncing Pricing Protocol...</p>
+       <p className="text-[10px] font-black uppercase text-aba-gold tracking-[0.4em] mt-8 animate-pulse">Checking prices...</p>
     </div>
   );
 
@@ -42,8 +42,8 @@ const Pricing: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => 
              <ArrowLeft size={22} />
           </button>
           <div>
-            <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">Industrial <span className="text-aba-gold">Tiers</span></h2>
-            <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em] mt-2">Executive Protocol v18.5</p>
+            <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">Business <span className="text-aba-gold">Plans</span></h2>
+            <p className="text-[8px] font-black text-aba-gold uppercase tracking-[0.4em] mt-2">Plan Options</p>
           </div>
         </div>
         <div className="px-6 py-3 bg-white/5 rounded-full border border-white/10 flex items-center gap-3">

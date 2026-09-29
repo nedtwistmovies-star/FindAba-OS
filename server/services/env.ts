@@ -50,7 +50,11 @@ export const env = {
 
   // Payments
   PAYSTACK_SECRET_KEY: optional("PAYSTACK_SECRET_KEY"),
-  PAYSTACK_PUBLIC_KEY: optional("PAYSTACK_PUBLIC_KEY", "VITE_PAYSTACK_PUBLIC_KEY"),
+  PAYSTACK_PUBLIC_KEY: (() => {
+    const raw = optional("PAYSTACK_PUBLIC_KEY", "VITE_PAYSTACK_PUBLIC_KEY") || "";
+    const match = raw.match(/(pk_(?:live|test)_[a-zA-Z0-9]+)/);
+    return match ? match[1] : raw.trim();
+  })(),
 
   // Email
   RESEND_API_KEY: optional("RESEND_API_KEY"),

@@ -36,6 +36,7 @@ import { BackButton } from './BackButton';
 import VoiceSearchButton from './VoiceSearchButton';
 import OfflineBanner, { cacheBusinessOffline, getOfflineCachedBusinesses } from './OfflineBanner';
 import BusinessQRCodeModal, { BusinessQRCode } from './BusinessQRCodeModal';
+import GitDiagnostics from './GitDiagnostics';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -76,5 +77,6 @@ export {
   BusinessQRCodeModal,
   BusinessQRCode,
   cacheBusinessOffline,
-  getOfflineCachedBusinesses
+  getOfflineCachedBusinesses,
+  GitDiagnostics
 };

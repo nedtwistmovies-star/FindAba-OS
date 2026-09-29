@@ -109,6 +109,16 @@ app.get("/api/health", (req, res) => {
     node: "FindAba-City-OS-V1",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    github: {
+      repo: env.GITHUB_REPO,
+      branch: env.GITHUB_BRANCH,
+      hasToken: !!env.GITHUB_TOKEN,
+      configured: !!(env.GITHUB_REPO && env.GITHUB_TOKEN)
+    },
+    database: {
+      hasUrl: !!env.SUPABASE_URL,
+      hasKey: !!env.SUPABASE_SERVICE_ROLE_KEY
+    },
     environment: envStatus
   });
 });
@@ -116,12 +126,23 @@ app.get("/api/health", (req, res) => {
 app.use("/api", adminRouter);
 app.use("/api", oracleRouter);
 app.use("/api/auth", authRouter);
-app.use("/api/github", authRouter);
+app.use("/api/github", githubRouter);
 app.use("/api/git", githubRouter);
 app.use("/api/whatsapp", whatsappRouter);
 app.use("/api", paymentRouter);
 app.use("/api", emailRouter);
 app.use("/api/stories", storiesRouter);
+
+// --- API 404 Handler ---
+// This ensures that missing API routes return JSON instead of the SPA HTML catch-all.
+app.use("/api/*", (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "API Route Not Found",
+    path: req.originalUrl || req.url,
+    message: "The requested industrial signal is not recognized by the City OS backbone."
+  });
+});
 
 // Launch background story scraper service on long-running node instances
 if (!env.IS_VERCEL) {

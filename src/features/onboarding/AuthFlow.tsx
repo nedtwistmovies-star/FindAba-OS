@@ -87,15 +87,15 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onSuccess, initialType = 'si
                <ShieldCheck size={32} />
             </div>
             <h2 className="text-3xl font-black tracking-tighter uppercase italic">
-              {type === 'signup' ? 'Create Account' : 'Registry Access'}
+              {type === 'signup' ? 'Create Account' : 'Login'}
             </h2>
-            <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em]">Identity Verification Protocol</p>
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em]">Verification</p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4">Credential (Email)</label>
+                <label className="text-[10px] font-black uppercase text-aba-gold tracking-widest ml-4">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20" size={20} />
                   <input 
@@ -131,7 +131,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onSuccess, initialType = 'si
             >
               {loading ? <Loader2 className="animate-spin" /> : (
                 <>
-                  {type === 'signup' ? 'INITIALIZE NODE' : 'ACCESS REGISTRY'}
+                  {type === 'signup' ? 'CREATE ACCOUNT' : 'LOGIN'}
                   <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
                 </>
               )}

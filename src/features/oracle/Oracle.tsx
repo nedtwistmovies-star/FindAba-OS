@@ -5,7 +5,7 @@ import {
   Plus, Zap, Image as ImageIcon, Code, Play, PanelRight,
   Activity, Sparkles, Loader2, Search, Camera, Smartphone, Info, AlertTriangle, Settings,
   Menu, SquarePen, Share, MoreHorizontal, ArrowDown, Mic, AudioLines,
-  Trash2, ArrowLeft, RefreshCcw, Paperclip, ArrowUp, Cpu
+  Trash2, ArrowLeft, RefreshCcw, Paperclip, ArrowUp, Cpu, MapPin, ExternalLink
 } from 'lucide-react';
 import { getOracleStream as askOracle, getSupportResponse, generateConversationTitle, syncGeminiConfig } from '../../services/geminiService';
 import IndustrialButton from '../../components/IndustrialButton';
@@ -84,6 +84,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [signalLocked, setSignalLocked] = useState(true);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [searchGroundingActive, setSearchGroundingActive] = useState(true);
   
   // Ensure OpenRouter is native and primary by default
   useEffect(() => {
@@ -158,6 +159,22 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [showOracleSetup, setShowOracleSetup] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+        },
+        () => {},
+        { timeout: 5000 }
+      );
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -334,7 +351,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
         ? { data: imgToSend.split(',')[1], mimeType: 'image/jpeg' } 
         : val;
 
-      const res = await askOracle(promptData, history, catalog);
+      const res = await askOracle(promptData, history, catalog, userLocation || undefined, searchGroundingActive);
       const modelMsg: OracleMessage = { 
         id: `m-${Date.now()}`, 
         role: 'model', 
@@ -387,17 +404,18 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
         }
       }
 
-      if (msg.toLowerCase().includes("failed to fetch")) {
+      if (msg && String(msg).toLowerCase().includes("failed to fetch")) {
         msg = "Unable to reach the Oracle service. Please check your network connection and try again.";
       }
 
+      const msgLower = String(msg || '').toLowerCase();
       const isQuota = 
-        msg.toLowerCase().includes("congestion") || 
+        msgLower.includes("congestion") || 
         msg.includes("429") || 
-        msg.toLowerCase().includes("quota") || 
-        msg.toLowerCase().includes("overloaded") ||
-        msg.toLowerCase().includes("depleted") ||
-        msg.toLowerCase().includes("exhausted");
+        msgLower.includes("quota") || 
+        msgLower.includes("overloaded") ||
+        msgLower.includes("depleted") ||
+        msgLower.includes("exhausted");
       
       setIsQuotaError(isQuota);
       setErrorNode(msg);
@@ -669,7 +687,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
               </div>
               <div className="flex flex-wrap justify-center gap-2 max-w-md pt-4">
                  {[
-                   "Market Prices?", "Ariaria Logistics?", "Verification?", "Trade Signals?"
+                   "Ariaria Market Map?", "Hotels in Aba?", "Leather Hubs near Faulks?", "Directions to Enyimba Stadium?", "Market Prices?", "Aba News?"
                  ].map(q => (
                    <button key={q} onClick={() => setInput(q)} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-aba-gold hover:text-aba-dark transition-all">
                      {q}
@@ -699,13 +717,13 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
               {m.role === 'model' && (
                 <div className="flex gap-4 group">
                   <div className="w-10 h-10 rounded-full overflow-hidden border border-aba-gold/30 shrink-0 mt-1 shadow-[0_0_15px_rgba(255,215,0,0.2)]">
-                    <img src={oracleAvatar} className="w-full h-full object-cover" alt="FindAba AI" />
+                    <img src={oracleAvatar} className="w-full h-full object-cover" alt="Kalu" />
                   </div>
                   <div className="flex-1 space-y-4 overflow-hidden">
                     {m.thoughtProcess && (
                       <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/5 rounded-full">
                         <Activity size={10} className="text-aba-gold" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-aba-gold/60">Thinking...</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-aba-gold/60">Checking...</span>
                         <button 
                           onClick={() => setShowThinkingId(showThinkingId === m.id ? null : m.id)}
                           className="ml-1 opacity-40 hover:opacity-100 transition-all"
@@ -726,12 +744,71 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                     </div>
                     
                     {m.grounding && m.grounding.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        {m.grounding.map((chunk, idx) => chunk.web && (
-                          <a key={idx} href={chunk.web.uri} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-aba-gold/80 hover:bg-aba-gold hover:text-aba-dark transition-all">
-                            <Globe size={12} /> {chunk.web.title || 'Source'}
-                          </a>
-                        ))}
+                      <div className="flex flex-col gap-2 pt-3">
+                        {/* Google Maps Grounded Places */}
+                        {m.grounding.some((c: any) => c.maps?.uri) && (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                              <MapPin size={12} className="text-emerald-400" />
+                              <span>Google Maps Places</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {m.grounding.map((chunk: any, idx: number) => {
+                                if (!chunk.maps?.uri) return null;
+                                const reviewSnippets = chunk.maps.placeAnswerSources?.reviewSnippets;
+                                const snippetText = Array.isArray(reviewSnippets) && reviewSnippets[0]?.reviewText;
+                                return (
+                                  <div key={`map-${idx}`} className="flex flex-col">
+                                    <a
+                                      href={chunk.maps.uri}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/30 hover:border-emerald-400 rounded-xl text-[11px] font-bold text-emerald-300 hover:text-white transition-all shadow-sm"
+                                      title={snippetText || chunk.maps.title}
+                                    >
+                                      <MapPin size={12} className="text-emerald-400 shrink-0" />
+                                      <span className="truncate max-w-[220px]">{chunk.maps.title || 'View on Google Maps'}</span>
+                                      <ExternalLink size={10} className="opacity-60 text-emerald-400 shrink-0" />
+                                    </a>
+                                    {snippetText && (
+                                      <p className="mt-1 text-[10px] text-white/50 italic pl-1 line-clamp-1 max-w-[240px]">
+                                        "{snippetText}"
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Web Sources / Google Search Grounding */}
+                        {m.grounding.some((c: any) => c.web?.uri) && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-sky-400">
+                              <Search size={12} className="text-sky-400" />
+                              <span>Google Search Grounding Sources</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {m.grounding.map((chunk: any, idx: number) => {
+                                if (!chunk.web?.uri) return null;
+                                return (
+                                  <a
+                                    key={`web-${idx}`}
+                                    href={chunk.web.uri}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-sky-950/40 hover:bg-sky-900/60 border border-sky-500/30 hover:border-sky-400 rounded-xl text-[11px] font-bold text-sky-300 hover:text-white transition-all shadow-sm"
+                                  >
+                                    <Globe size={12} className="text-sky-400 shrink-0" />
+                                    <span className="truncate max-w-[220px]">{chunk.web.title || 'Web Source'}</span>
+                                    <ExternalLink size={10} className="opacity-60 text-sky-400 shrink-0" />
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -743,7 +820,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
           {loading && (
             <div className="flex gap-4 animate-pulse">
               <div className="w-10 h-10 rounded-full overflow-hidden border border-aba-gold/30 shrink-0">
-                <img src={oracleAvatar} className="w-full h-full object-cover opacity-50" alt="FindAba AI" />
+                <img src={oracleAvatar} className="w-full h-full object-cover opacity-50" alt="Kalu" />
               </div>
               <div className="flex items-center gap-3 text-aba-gold">
                 <div className="flex gap-1">
@@ -751,7 +828,7 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                   <div className="w-1.5 h-1.5 bg-aba-gold rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <div className="w-1.5 h-1.5 bg-aba-gold rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Searching for answers...</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Checking...</span>
               </div>
             </div>
           )}
@@ -867,9 +944,27 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                 <label 
                   onClick={() => fileInputRef.current?.click()}
                   className="p-3 text-white/40 hover:text-aba-gold hover:bg-white/5 rounded-2xl cursor-pointer transition-all"
+                  title="Attach Flyer Image"
                 >
                   <Paperclip size={20} />
                 </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !searchGroundingActive;
+                    setSearchGroundingActive(next);
+                    addToast(next ? "Google Search Grounding enabled" : "Google Search Grounding paused", "info");
+                  }}
+                  title="Toggle Google Search Grounding"
+                  className={`p-2.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                    searchGroundingActive 
+                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40 shadow-sm' 
+                      : 'text-white/30 hover:text-white/60 hover:bg-white/5'
+                  }`}
+                >
+                  <Search size={16} />
+                  <span className="hidden md:inline text-[9px] font-black uppercase tracking-wider">Search Grounding</span>
+                </button>
               </div>
 
               <textarea

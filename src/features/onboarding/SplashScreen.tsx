@@ -8,15 +8,15 @@ interface SplashScreenProps {
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
-  const [loadingText, setLoadingText] = useState('Initializing Aba Industrial Network...');
+  const [loadingText, setLoadingText] = useState('Starting FindAba...');
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const messages = [
-      'Synchronizing Node Cluster...',
-      'Calibrating Industrial Matrix...',
-      'Securing Commercial Gateway...',
-      'Access Granted.'
+      'Starting FindAba...',
+      'Getting everything ready...',
+      'Connecting to market...',
+      'Welcome to FindAba.'
     ];
     
     let msgIndex = 0;
@@ -110,7 +110,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
       <div className="absolute bottom-10 right-10 w-20 h-20 border-b-2 border-r-2 border-aba-gold/20" />
       
       <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-center opacity-20">
-         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">Vanguard Security Protocol v9.4.2</p>
+         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">Secure Connection v9.4.2</p>
       </div>
     </div>
   );

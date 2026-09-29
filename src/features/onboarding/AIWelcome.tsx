@@ -40,7 +40,7 @@ export const AIWelcome: React.FC<AIWelcomeProps> = ({ onAction }) => {
                 </div>
               </div>
               <div className="space-y-1">
-                 <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-aba-gold">Industrial Oracle</h3>
+                 <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-aba-gold">FindAba Assistant</h3>
                  <h2 className="text-3xl font-black tracking-tighter uppercase italic">Elder Kalu</h2>
               </div>
             </div>
@@ -89,7 +89,7 @@ export const AIWelcome: React.FC<AIWelcomeProps> = ({ onAction }) => {
 
       {/* 🔹 HUD ACCENTS */}
       <div className="absolute bottom-12 left-12 opacity-20 pointer-events-none">
-         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">Registry Protocol: Active</p>
+         <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">System Active</p>
          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white">Signal Integrity: 99.8%</p>
       </div>
     </div>

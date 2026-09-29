@@ -154,9 +154,10 @@ export default function Feed() {
           <div className="flex items-center gap-4 mt-2">
             <button
               onClick={() => handleLike(post.id)}
-              className="text-sm text-gray-600 hover:text-red-500"
+              className="text-sm text-gray-600 hover:text-red-500 flex items-center gap-1"
             >
-              ❤️ {likesMap[post.id] || 0}
+              ❤️ <span className="font-bold">{likesMap[post.id] || 0}</span>
+              <span className="text-[10px] uppercase tracking-widest opacity-60 ml-1">Support</span>
             </button>
           </div>
 

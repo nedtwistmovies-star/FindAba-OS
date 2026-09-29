@@ -96,7 +96,7 @@ export const BusinessQRCodeModal: React.FC<BusinessQRCodeModalProps> = ({
       }
       const pngUrl = canvas.toDataURL('image/png');
       const downloadLink = document.createElement('a');
-      const slug = business.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const slug = String(business.name || 'business').toLowerCase().replace(/[^a-z0-9]/g, '-');
       downloadLink.href = pngUrl;
       downloadLink.download = `findaba-${slug}-qr.png`;
       document.body.appendChild(downloadLink);
