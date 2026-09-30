@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useGitSync } from "../../hooks/useGitSync";
+import { useRoleGuard } from "../../hooks/useRoleGuard";
 import { BackButton } from "../../components/BackButton";
 import {
   BarChart,
@@ -162,7 +163,8 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
     }
   };
 
-  const isAuthenticated = userRole === "admin" || userEmail === 'pastornelsonezi@gmail.com' || (profile && (profile.role === 'admin' || profile.role === 'superadmin'));
+  const { isAdmin } = useRoleGuard(['admin']);
+  const isAuthenticated = isAdmin;
 
   const [activeTab, setActiveTab] = useState<
     | "overview"

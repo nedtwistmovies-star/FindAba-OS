@@ -10,9 +10,16 @@ import {
 import { SANDALS_CORPORATE_BRANCHES, SANDALS_HQ_IMAGE, SANDALS_BRAND } from '../../constants';
 import { paymentService } from '../../services/paymentService';
 import { fetchAdminStats } from '../../services/supabaseService';
+import { useRoleGuard } from '../../hooks/useRoleGuard';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
 const SandalsOffice: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
+  const { isAdmin } = useRoleGuard(['admin']);
   const [selectedBranch, setSelectedBranch] = useState<any>(null);
+
+  if (!isAdmin) {
+    return <ProtectedRoute allowedRoles={['admin']}><div /></ProtectedRoute>;
+  }
   const [hubUptime, setHubUptime] = useState(99.98);
   const [dbStats, setDbStats] = useState({ businesses: 0, orders: 0, users: 0, drivers: 0 });
   const isMpActive = paymentService.hasKey();

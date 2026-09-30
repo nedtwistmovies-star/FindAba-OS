@@ -6,9 +6,16 @@ import { paymentService } from '../../services/paymentService';
 import { ARTISANS } from '../../constants';
 import React, { useState, useEffect } from 'react';
 import { useGitSync } from '../../hooks/useGitSync';
+import { useRoleGuard } from '../../hooks/useRoleGuard';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
 const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }> = ({ onBack, onComplete }) => {
+  const { isAdmin } = useRoleGuard(['admin']);
   const config = getRegistryConfig();
+
+  if (!isAdmin) {
+    return <ProtectedRoute allowedRoles={['admin']}><div /></ProtectedRoute>;
+  }
   const [step, setStep] = useState<'database' | 'git' | 'payment' | 'commit'>('database');
   
   const [url, setUrl] = useState(config.url);

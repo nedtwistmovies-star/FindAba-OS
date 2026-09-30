@@ -3,9 +3,16 @@ import React, { useState } from 'react';
 import { useToast } from '../../providers/ToastProvider';
 import { ArrowLeft, Cpu, Zap, ShieldCheck, AlertTriangle, Loader2, Send, History, HardDrive, Monitor, Speaker } from 'lucide-react';
 import { analyzeHardwareTextSignal } from '../../services/geminiService';
+import { useRoleGuard } from '../../hooks/useRoleGuard';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
 const HardwareAudit: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const { isAdmin } = useRoleGuard(['admin']);
   const { addToast } = useToast();
+
+  if (!isAdmin) {
+    return <ProtectedRoute allowedRoles={['admin']}><div /></ProtectedRoute>;
+  }
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);

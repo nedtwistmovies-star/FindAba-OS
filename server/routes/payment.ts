@@ -427,3 +427,66 @@ paymentRouter.post("/paystack-webhook", async (req, res) => {
 
   res.status(200).json({ status: "success" });
 });
+
+/**
+ * GET /api/payment-history
+ * Fetch transaction history for the authenticated user/merchant with strict ownership checks.
+ */
+paymentRouter.get("/payment-history", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ success: false, error: "Authentication required" });
+  }
+
+  const token = authHeader.replace("Bearer ", "").trim();
+  let user: any = null;
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      return res.status(401).json({ success: false, error: "Invalid or expired session" });
+    }
+    user = data.user;
+  } catch (err) {
+    return res.status(401).json({ success: false, error: "Session verification failed" });
+  }
+
+  const userEmail = (user.email || "").toLowerCase();
+  const masterAdminEmail = (process.env.MASTER_ADMIN_EMAIL || "pastornelsonezi@gmail.com").toLowerCase();
+  const isAdmin = userEmail === masterAdminEmail || user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin";
+
+  const requestedUserId = (req.query.userId as string) || user.id;
+
+  // Strict ownership check: ordinary user/merchant can only fetch their own transactions
+  if (!isAdmin && requestedUserId !== user.id) {
+    return res.status(403).json({ success: false, error: "Forbidden: You cannot access other users' transactions." });
+  }
+
+  try {
+    let query = supabase
+      .from("payments")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!isAdmin) {
+      query = query.eq("user_id", user.id);
+    } else if (req.query.userId) {
+      query = query.eq("user_id", req.query.userId);
+    }
+
+    const { data: payments, error } = await query.limit(50);
+    if (error) {
+      console.warn("[PaymentHistory] DB query warning:", error.message);
+      return res.json({ success: true, transactions: [] });
+    }
+
+    return res.json({
+      success: true,
+      count: payments?.length || 0,
+      transactions: payments || [],
+    });
+  } catch (err: any) {
+    console.error("[PaymentHistory] Error:", err.message);
+    return res.status(500).json({ success: false, error: "Could not retrieve transaction history" });
+  }
+});
+

@@ -884,15 +884,6 @@ const Oracle = ({ catalog, onBack, oracleAvatar, setView }: any) => {
                 <IndustrialButton 
                   variant="secondary" 
                   size="md" 
-                  icon={Settings} 
-                  onClick={() => setView('admin')}
-                  fullWidth
-                >
-                  Admin Console
-                </IndustrialButton>
-                <IndustrialButton 
-                  variant="secondary" 
-                  size="md" 
                   icon={ArrowLeft} 
                   onClick={onBack}
                   fullWidth

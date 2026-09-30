@@ -9,9 +9,16 @@ import {
 } from 'lucide-react';
 import { ViewState, ComplianceLevel } from '../../types';
 import MapView from '../../components/MapView';
+import { useRoleGuard } from '../../hooks/useRoleGuard';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
 const FleetAdmin: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
+  const { isAdmin } = useRoleGuard(['admin']);
   const [activeTab, setActiveTab] = useState<'monitor' | 'drivers' | 'queue' | 'incidents'>('monitor');
+
+  if (!isAdmin) {
+    return <ProtectedRoute allowedRoles={['admin']}><div /></ProtectedRoute>;
+  }
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');

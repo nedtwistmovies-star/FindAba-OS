@@ -644,11 +644,11 @@ const handleDiagnosticRequest = async (req: Request, res: Response) => {
   res.json(results);
 };
 
-githubRouter.all("/diagnostic", handleDiagnosticRequest);
-githubRouter.all("/diagnostics", handleDiagnosticRequest);
+githubRouter.all("/diagnostic", ensureAdmin, handleDiagnosticRequest);
+githubRouter.all("/diagnostics", ensureAdmin, handleDiagnosticRequest);
 
-/** Test GitHub repository & token connection */
-githubRouter.post("/test-connection", async (req, res) => {
+/** Test GitHub repository & token connection (admin only) */
+githubRouter.post("/test-connection", ensureAdmin, async (req, res) => {
   let { repo: inputRepo, token: inputToken } = req.body || {};
   let repo = inputRepo || req.query.repo || env.GITHUB_REPO;
   const token = (inputToken && inputToken.trim()) ? inputToken.trim() : resolveGithubToken(req);
@@ -737,8 +737,8 @@ githubRouter.post("/test-connection", async (req, res) => {
   }
 });
 
-/** Get current authoritative GitHub repository configuration */
-githubRouter.get("/config", async (_req, res) => {
+/** Get current authoritative GitHub repository configuration (admin only) */
+githubRouter.get("/config", ensureAdmin, async (_req, res) => {
   res.json({
     success: true,
     repo: env.GITHUB_REPO || "nedtwistmovies-star/FindAba-OS",
@@ -810,8 +810,8 @@ githubRouter.post("/config", ensureAdmin, async (req, res) => {
   });
 });
 
-/** Retrieve GitHub webhook integration logs */
-githubRouter.get("/webhook-logs", async (req, res) => {
+/** Retrieve GitHub webhook integration logs (admin only) */
+githubRouter.get("/webhook-logs", ensureAdmin, async (req, res) => {
   res.json({ success: true, logs: webhookLogs });
 });
 
@@ -849,8 +849,8 @@ githubRouter.post("/webhook/simulate", ensureAdmin, async (req, res) => {
   res.json({ success: true, log: simulatedEntry });
 });
 
-/** Fetch repository branches list using GITHUB_TOKEN */
-githubRouter.get("/branches", async (req, res) => {
+/** Fetch repository branches list using GITHUB_TOKEN (admin only) */
+githubRouter.get("/branches", ensureAdmin, async (req, res) => {
   let repo = (req.query.repo as string) || env.GITHUB_REPO;
   const token = resolveGithubToken(req);
 
@@ -891,8 +891,8 @@ githubRouter.get("/branches", async (req, res) => {
   }
 });
 
-/** Fetch repositories for a specified GitHub Organization (or user account) */
-githubRouter.get("/org-repos", async (req, res) => {
+/** Fetch repositories for a specified GitHub Organization (admin only) */
+githubRouter.get("/org-repos", ensureAdmin, async (req, res) => {
   const org = (req.query.org as string || "").trim();
   const token = resolveGithubToken(req);
 

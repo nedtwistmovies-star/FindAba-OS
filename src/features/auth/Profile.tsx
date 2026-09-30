@@ -23,10 +23,11 @@ import { MultiVideoUpload } from '../../components/VideoUpload';
 import { useToast } from '../../providers/ToastProvider';
 import { useLanguage, LanguageCode } from '../../providers/LanguageProvider';
 import { useTheme } from '../../providers/ThemeProvider';
+import { useRoleGuard } from '../../hooks/useRoleGuard';
 
 const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; userRole: string | null; myBusiness?: any }> = ({ setView, userEmail, userRole, myBusiness }) => {
   const isAuth = localStorage.getItem('findaba_is_auth') === 'true';
-  const isAdmin = true; // Always enable Admin Console access so repository credentials and sync can be managed
+  const { isAdmin, isMerchant } = useRoleGuard();
   
   const { addToast } = useToast();
   const { language, setLanguage, t } = useLanguage();
@@ -38,6 +39,36 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
   const [dbHealth, setDbHealth] = useState<{ status: 'healthy' | 'unhealthy' | 'unknown', message?: string }>({ status: 'unknown' });
   const [dbConfig, setDbConfig] = useState(getRegistryConfig());
   const [profile, setProfile] = useState<UserProfileType | null>(null);
+  const [personalFullName, setPersonalFullName] = useState('');
+  const [personalPhone, setPersonalPhone] = useState('');
+  const [personalAvatar, setPersonalAvatar] = useState('');
+  const [isSavingPersonal, setIsSavingPersonal] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setPersonalFullName(profile.full_name || '');
+      setPersonalPhone(profile.phone || '');
+      setPersonalAvatar(profile.avatar_url || '');
+    }
+  }, [profile]);
+
+  const handleSavePersonalProfile = async () => {
+    if (!profile?.id) return;
+    setIsSavingPersonal(true);
+    try {
+      await updateUserProfile(profile.id, {
+        full_name: personalFullName,
+        phone: personalPhone,
+        avatar_url: personalAvatar
+      });
+      addToast("Personal profile updated successfully!", "success");
+      await refreshData();
+    } catch (err: any) {
+      addToast(err?.message || "Failed to update profile", "error");
+    } finally {
+      setIsSavingPersonal(false);
+    }
+  };
 
   const refreshData = useCallback(async () => {
     setLoading(true);
@@ -133,8 +164,8 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
       <nav className="flex bg-black/20 border-b border-white/5 overflow-x-auto scrollbar-hide shrink-0 px-2 sm:px-6 touch-pan-x whitespace-nowrap">
         {[
           { id: 'overview', label: 'Overview', icon: <BarChart3 size={12} className="sm:size-[16px]" /> },
-          { id: 'identity', label: 'Identity', icon: <UserCheck size={12} className="sm:size-[16px]" /> },
-          { id: 'verification', label: 'Verification', icon: <ShieldCheck size={12} className="sm:size-[16px]" /> },
+          { id: 'identity', label: 'Personal Profile', icon: <UserCheck size={12} className="sm:size-[16px]" /> },
+          ...(isAdmin ? [{ id: 'verification', label: 'Verification Bureau', icon: <ShieldCheck size={12} className="sm:size-[16px]" /> }] : []),
           { id: 'settings', label: 'Settings', icon: <Settings size={12} className="sm:size-[16px]" /> },
         ].map((tab) => (
           <button
@@ -297,13 +328,64 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
           {activeTab === 'identity' && (
             <div className="animate-slide-up space-y-12">
               <SectionHeader 
-                title="Platform Identity" 
-                subtitle="Configure visual assets and social node connections"
+                title="Personal Identity" 
+                subtitle="Manage your citizen profile credentials and contact preferences"
                 icon={UserCheck}
               />
-              
-              {platformConfig ? (
-                <div className="space-y-12">
+
+              <div className="bg-white/5 p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-white/5 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Full Name</label>
+                    <input
+                      type="text"
+                      value={personalFullName}
+                      onChange={(e) => setPersonalFullName(e.target.value)}
+                      placeholder="e.g. Chief Nelson Ezi"
+                      className="w-full bg-black/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs text-white placeholder:text-white/20"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={personalPhone}
+                      onChange={(e) => setPersonalPhone(e.target.value)}
+                      placeholder="+234 800 000 0000"
+                      className="w-full bg-black/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs text-white placeholder:text-white/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Avatar Image URL</label>
+                  <input
+                    type="text"
+                    value={personalAvatar}
+                    onChange={(e) => setPersonalAvatar(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full bg-black/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-aba-gold transition-all text-xs text-white placeholder:text-white/20"
+                  />
+                </div>
+
+                <IndustrialButton
+                  variant="primary"
+                  size="md"
+                  loading={isSavingPersonal}
+                  onClick={handleSavePersonalProfile}
+                >
+                  Update Citizen Identity
+                </IndustrialButton>
+              </div>
+
+              {/* Platform Identity: Only visible to authorized administrators */}
+              {isAdmin && platformConfig && (
+                <div className="space-y-12 pt-8 border-t border-white/10">
+                  <SectionHeader 
+                    title="Platform Identity (Admin Only)" 
+                    subtitle="Platform-wide asset registry and brand configuration"
+                    icon={ImageIcon}
+                  />
                   <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-10">
                     <SectionHeader title="Visual Identity" icon={ImageIcon} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -361,7 +443,7 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                   <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-10">
                     <SectionHeader title="Hero Videos Registry" icon={Video} />
                     <MultiVideoUpload 
-                      label="App Hero Videos"
+                      label="App Hero Videos" 
                       videos={platformConfig.hero_videos || []}
                       onAdd={async (url: string, idx: number) => {
                         const current = [...(platformConfig.hero_videos || [])];
@@ -391,15 +473,11 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                     />
                   </div>
                 </div>
-              ) : (
-                <div className="p-20 text-center opacity-40 italic bg-white/5 rounded-[3rem] border border-dashed border-white/10">
-                  Registry Identity Partner Not Initialized.
-                </div>
               )}
             </div>
           )}
 
-          {activeTab === 'verification' && (
+          {activeTab === 'verification' && isAdmin && (
             <div className="animate-slide-up space-y-12">
               <SectionHeader 
                 title="Verification Bureau" 
@@ -559,40 +637,42 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                 </div>
               </div>
 
-              <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-10">
-                <SectionHeader title="Registry Connection" icon={Database} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Supabase URL</label>
-                    <input
-                      type="text"
-                      value={dbConfig.url}
-                      onChange={(e) => setDbConfig({ ...dbConfig, url: e.target.value })}
-                      className="w-full bg-black/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-aba-gold transition-all font-mono text-[10px] text-white placeholder:text-white/20"
-                      placeholder="https://your-project.supabase.co"
-                    />
+              {isAdmin && (
+                <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5 space-y-10">
+                  <SectionHeader title="Registry Connection" icon={Database} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Supabase URL</label>
+                      <input
+                        type="text"
+                        value={dbConfig.url}
+                        onChange={(e) => setDbConfig({ ...dbConfig, url: e.target.value })}
+                        className="w-full bg-black/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-aba-gold transition-all font-mono text-[10px] text-white placeholder:text-white/20"
+                        placeholder="https://your-project.supabase.co"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Anon Key</label>
+                      <input
+                        type="password"
+                        value={dbConfig.key}
+                        onChange={(e) => setDbConfig({ ...dbConfig, key: e.target.value })}
+                        className="w-full bg-black/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-aba-gold transition-all font-mono text-[10px] text-white placeholder:text-white/20"
+                        placeholder="your-anon-key"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-white/60 tracking-widest ml-4">Anon Key</label>
-                    <input
-                      type="password"
-                      value={dbConfig.key}
-                      onChange={(e) => setDbConfig({ ...dbConfig, key: e.target.value })}
-                      className="w-full bg-black/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-aba-gold transition-all font-mono text-[10px] text-white placeholder:text-white/20"
-                      placeholder="your-anon-key"
-                    />
+                  
+                  <div className="flex gap-4">
+                    <IndustrialButton variant="primary" size="md" icon={RefreshCcw} onClick={handleDbReconnect} fullWidth>
+                      Reconnect Signal
+                    </IndustrialButton>
+                    <IndustrialButton variant="danger" size="md" icon={Trash2} onClick={() => { purgeLocalRegistry(); setDbConfig({url:'', key:''}); }} fullWidth>
+                      Purge Local Partner
+                    </IndustrialButton>
                   </div>
                 </div>
-                
-                <div className="flex gap-4">
-                  <IndustrialButton variant="primary" size="md" icon={RefreshCcw} onClick={handleDbReconnect} fullWidth>
-                    Reconnect Signal
-                  </IndustrialButton>
-                  <IndustrialButton variant="danger" size="md" icon={Trash2} onClick={() => { purgeLocalRegistry(); setDbConfig({url:'', key:''}); }} fullWidth>
-                    Purge Local Partner
-                  </IndustrialButton>
-                </div>
-              </div>
+              )}
 
               {isAuth && (
                 <IndustrialButton

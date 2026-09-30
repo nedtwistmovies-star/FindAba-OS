@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { ensureAdmin } from "../middleware/admin";
 import { 
   getAggregatedStories, 
   scrapeAndAggregateStories, 
@@ -31,8 +32,9 @@ storiesRouter.get("/", async (req, res) => {
 /**
  * POST /api/stories/refresh
  * Triggers the background scraper job to pull fresh visual stories from connected feeds.
+ * Restricted to Administrators.
  */
-storiesRouter.post("/refresh", async (req, res) => {
+storiesRouter.post("/refresh", ensureAdmin, async (req, res) => {
   try {
     const result = await scrapeAndAggregateStories();
     const data = getAggregatedStories();

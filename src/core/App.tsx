@@ -12,12 +12,14 @@ import { AppProviders, useAuth, useConfig, useBusiness, useToast, useOracle } fr
 import { ROUTE_MAP } from './router';
 import { getSupabase, checkDatabaseHealth } from '../services/supabaseService';
 import { syncGeminiConfig } from '../services/geminiService';
-import { PUBLIC_VIEWS, PROTECTED_VIEWS } from '../constants/auth';
+import { PUBLIC_VIEWS, PROTECTED_VIEWS, ADMIN_VIEWS, MERCHANT_VIEWS, USER_PROTECTED_VIEWS } from '../constants/auth';
+import { useRoleGuard } from '../hooks/useRoleGuard';
 import { ViewState } from '../types';
 
 const AppContent: React.FC = () => {
   // 1. All Context/Hooks First
   const { isAuth, userRole, userIdentifier, user_id, profile, authLoading, handleAuthSuccess = () => {} } = useAuth();
+  const { isAdmin, isMerchant } = useRoleGuard();
   const { appLogo, oracleAvatar, heroImages, heroVideos, socialLinks } = useConfig();
   const { 
     businesses = [], 
@@ -83,9 +85,14 @@ const AppContent: React.FC = () => {
     }
     
     if (targetView && ROUTE_MAP[targetView as ViewState]) {
-      setView(targetView);
+      if (ADMIN_VIEWS.includes(targetView) && !isAdmin) {
+        console.warn(`[Security] Direct deep link to admin view '${targetView}' rejected for non-admin.`);
+        setView('home');
+      } else {
+        setView(targetView);
+      }
     }
-  }, [setView]);
+  }, [setView, isAdmin]);
 
   const handleBootComplete = React.useCallback(() => {
     console.log('[App] Boot complete triggered');
@@ -171,27 +178,41 @@ const AppContent: React.FC = () => {
 
   const RouteComponent = (ROUTE_MAP && view && ROUTE_MAP[view as ViewState]) || ROUTE_MAP['home'];
   
-  // 🔹 AUTH PROTECTION LAYER
+  // 🔹 AUTH & ROLE ACCESS CONTROL LAYER
   useEffect(() => {
     if (!authLoading && isBooted) {
-      const isProtected = PROTECTED_VIEWS.includes(view as ViewState);
-      const isPublic = PUBLIC_VIEWS.includes(view as ViewState);
-      
-      if (isProtected && !isAuth) {
-        console.warn(`[Guard] Protected view ${view} accessed without auth. Redirecting to login.`);
+      const current = view as ViewState;
+
+      // 1. Admin-Only Guard: Public users and merchants must NEVER enter
+      if (ADMIN_VIEWS.includes(current)) {
+        if (!isAdmin) {
+          console.warn(`[Security] Unauthorized access attempt to admin view '${current}' rejected.`);
+          setView('home');
+          return;
+        }
+      }
+
+      // 2. Merchant Guard: Only registered business owners or admins can enter
+      if (MERCHANT_VIEWS.includes(current)) {
+        if (!isAuth) {
+          setView('login');
+          return;
+        }
+        if (!isMerchant && !isAdmin) {
+          console.warn(`[Security] Citizen attempted to access merchant view '${current}'. Rerouting to registration.`);
+          setView('register');
+          return;
+        }
+      }
+
+      // 3. User Guard: Any authenticated view
+      if (USER_PROTECTED_VIEWS.includes(current) && !isAuth) {
+        console.warn(`[Security] Protected view '${current}' accessed without auth. Redirecting to login.`);
         setView('login');
         return;
       }
-
-      const isAdminOnly = view === 'admin' || view === 'tech-setup';
-      
-      if (isAdminOnly && userRole !== 'admin') {
-        console.warn(`[Guard] Admin view ${view} accessed by ${userRole}. Access denied.`);
-        setView('home');
-        return;
-      }
     }
-  }, [view, isAuth, authLoading, isBooted, userRole, setView]);
+  }, [view, isAuth, authLoading, isBooted, isAdmin, isMerchant, setView]);
 
   console.log('STEP_8_ROUTE_DECISION', view || 'home');
 

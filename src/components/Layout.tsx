@@ -66,6 +66,7 @@ import { useLanguage } from "../providers/LanguageProvider";
 import { useTheme } from "../providers/ThemeProvider";
 import { useBattery } from "../hooks/useBattery";
 import { useGitSync } from "../hooks/useGitSync";
+import { useRoleGuard } from "../hooks/useRoleGuard";
 import { SANDALS_BRAND } from "../constants";
 import NotificationCenter from "./NotificationCenter";
 import { LanguageSelector } from "./LanguageSelector";
@@ -252,6 +253,7 @@ const Layout: React.FC<LayoutProps> = ({
   const { addToast } = useToast();
   const { language, setLanguage, t } = useLanguage();
   const { userIdentifier, userName, isAuth, profile, userRole, user_id } = useAuth();
+  const { isAdmin, isMerchant } = useRoleGuard();
   const { theme, toggleTheme, isDark } = useTheme();
   const safeProfile = profile || {};
   const {
@@ -416,13 +418,19 @@ const Layout: React.FC<LayoutProps> = ({
   ];
 
   const visibleMenuItems = [...menuItems];
-  const isAdmin = true; // Always enable Admin Console access so repository credentials and sync can be managed in live/preview
   if (isAdmin) {
-    visibleMenuItems.unshift({
+    visibleMenuItems.push({
       id: "admin",
       label: t("Admin Console", "Admin Console"),
       icon: <ShieldCheck size={20} />,
       view: "admin" as ViewState,
+    });
+  } else if (isMerchant) {
+    visibleMenuItems.push({
+      id: "merchant-portal",
+      label: t("My Business", "My Business"),
+      icon: <Building2 size={20} />,
+      view: "merchant-portal" as ViewState,
     });
   }
 
@@ -743,43 +751,45 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
             </div>
 
-            {/* Git Repository Sync Indicator */}
-            <div 
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border text-xs font-bold leading-none select-none transition-all ${
-                !gitStatus.connected 
-                  ? 'border-rose-500/40 hover:border-rose-500 cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.1)]' 
-                  : 'border-white/10 hover:border-white/30 cursor-pointer hover:bg-white/10'
-              }`}
-              onClick={() => {
-                setIsGitDiagnosticsOpen(true);
-              }}
-              title={
-                !gitStatus.connected 
-                  ? `GIT PROTOCOL ERROR: ${gitStatus.error || "Registry Sync Interrupted"}. Click to open diagnostics.` 
-                  : (gitSynced ? `Industrial Grid Synchronized: ${liveRepo || "Main Hub"}. Click to view diagnostics.` : `Local/Cloud Drift Detected! Active Repo: ${liveRepo}. Click to view diagnostics.`)
-              }
-              id="git-repo-indicator"
-            >
-              {!gitStatus.connected ? (
-                <Activity size={13} className="text-rose-500 shrink-0 animate-pulse" />
-              ) : gitSynced ? (
-                <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-              ) : (
-                <AlertTriangle size={13} className="text-amber-500 shrink-0 animate-pulse" />
-              )}
-              <div className="flex flex-col items-start gap-0.5">
-                <span className={`text-[9px] uppercase tracking-wider font-black ${
-                  !gitStatus.connected ? 'text-rose-500' : (gitSynced ? 'text-white/60' : 'text-amber-500')
-                }`}>
-                  {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
-                </span>
-                {!gitStatus.connected && isAdmin && (
-                  <span className="text-[6px] text-rose-400/50 uppercase font-bold tracking-[0.2em] leading-none">
-                    Fix Connection
-                  </span>
+            {/* Git Repository Sync Indicator - Only visible to administrators */}
+            {isAdmin && (
+              <div 
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border text-xs font-bold leading-none select-none transition-all ${
+                  !gitStatus.connected 
+                    ? 'border-rose-500/40 hover:border-rose-500 cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.1)]' 
+                    : 'border-white/10 hover:border-white/30 cursor-pointer hover:bg-white/10'
+                }`}
+                onClick={() => {
+                  setIsGitDiagnosticsOpen(true);
+                }}
+                title={
+                  !gitStatus.connected 
+                    ? `GIT PROTOCOL ERROR: ${gitStatus.error || "Registry Sync Interrupted"}. Click to open diagnostics.` 
+                    : (gitSynced ? `Industrial Grid Synchronized: ${liveRepo || "Main Hub"}. Click to view diagnostics.` : `Local/Cloud Drift Detected! Active Repo: ${liveRepo}. Click to view diagnostics.`)
+                }
+                id="git-repo-indicator"
+              >
+                {!gitStatus.connected ? (
+                  <Activity size={13} className="text-rose-500 shrink-0 animate-pulse" />
+                ) : gitSynced ? (
+                  <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                ) : (
+                  <AlertTriangle size={13} className="text-amber-500 shrink-0 animate-pulse" />
                 )}
+                <div className="flex flex-col items-start gap-0.5">
+                  <span className={`text-[9px] uppercase tracking-wider font-black ${
+                    !gitStatus.connected ? 'text-rose-500' : (gitSynced ? 'text-white/60' : 'text-amber-500')
+                  }`}>
+                    {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
+                  </span>
+                  {!gitStatus.connected && (
+                    <span className="text-[6px] text-rose-400/50 uppercase font-bold tracking-[0.2em] leading-none">
+                      Fix Connection
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Battery Level Indicator */}
             <BatteryIndicator />
@@ -1313,12 +1323,14 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </div>
       </div>
-      <SystemStatusIndicator />
-      <HealthCheck />
-      <GitDiagnostics 
-        isOpen={isGitDiagnosticsOpen}
-        onClose={() => setIsGitDiagnosticsOpen(false)}
-      />
+      {isAdmin && <SystemStatusIndicator />}
+      {isAdmin && <HealthCheck />}
+      {isAdmin && (
+        <GitDiagnostics 
+          isOpen={isGitDiagnosticsOpen}
+          onClose={() => setIsGitDiagnosticsOpen(false)}
+        />
+      )}
     </div>
   );
 };

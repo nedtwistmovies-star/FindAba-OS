@@ -6,11 +6,12 @@ export type ViewState =
   | 'pricing' | 'ad-checkout' | 'about' | 'aba-stories' | 'reels'
   /* 🔹 COMPATIBILITY KEYS (DEPRECATED - REMOVE FROM CALLERS) */
   | 'about-who' | 'about-vision' | 'about-mission' | 'about-aba'
-  | 'faces' | 'fidelity' | 'thrift-dashboard' | 'wallet' | 'purple-fleet' | 'contact'
+  | 'faces' | 'feed' | 'fidelity' | 'thrift-dashboard' | 'srts-dashboard' | 'wallet' | 'purple-fleet' | 'contact'
   | 'editorial' | 'editorial-detail' | 'registry-setup' | 'srts-office'
-  | 'booking-ledger' | 'hotel-detail' | 'hotel-partner-control'
+  | 'booking-ledger' | 'hotel-detail' | 'sandals-hotels' | 'hotel-partner-control'
   | 'carry-me' | 'driver-registry' | 'driver-console' | 'fleet-admin'
   | 'carry-go-dash' | 'terminal' | 'terminal-pay' | 'hardware-audit'
+  | 'lab' | 'audio-heritage' | 'orders' | 'dispute-center'
   /* 🔹 END COMPATIBILITY KEYS */
   | 'login' | 'signup' | 'legal' | 'business-verification'
   | 'onboarding' | 'support' | 'splash';

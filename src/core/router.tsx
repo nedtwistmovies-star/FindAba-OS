@@ -1,6 +1,7 @@
 
+import React, { lazy } from 'react';
 import { ViewState } from '../types';
-import { lazy } from 'react';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 // Feature-based Lazy Loading
 export const Home = lazy(() => import('../features/discovery/Home'));
@@ -47,6 +48,7 @@ export const Contact = lazy(() => import('../features/info/Contact'));
 export const Legal = lazy(() => import('../features/info/Legal'));
 
 export const HardwareAudit = lazy(() => import('../features/tech/HardwareAudit'));
+export const SetupConnection = lazy(() => import('../features/tech/SetupConnection'));
 
 export const Oracle = lazy(() => import('../features/oracle/Oracle'));
 export const ChatView = lazy(() => import('../features/oracle/ChatView'));
@@ -58,37 +60,57 @@ export const Onboarding = lazy(() => import('../features/auth/Onboarding'));
 export const SupportCenter = lazy(() => import('../features/support/SupportCenter'));
 
 export const BuyerOrdersView = lazy(() => import('../features/finance/BuyerOrdersView'));
-export const ROUTE_MAP: Record<ViewState, any> = {
+
+// High-order Role Guard Wrappers
+const withAdmin = (Component: React.ComponentType<any>) => (props: any) => (
+  <ProtectedRoute allowedRoles={['admin']}>
+    <Component {...props} />
+  </ProtectedRoute>
+);
+
+const withMerchant = (Component: React.ComponentType<any>) => (props: any) => (
+  <ProtectedRoute allowedRoles={['merchant', 'admin']}>
+    <Component {...props} />
+  </ProtectedRoute>
+);
+
+const withUser = (Component: React.ComponentType<any>) => (props: any) => (
+  <ProtectedRoute allowedRoles={['user', 'merchant', 'admin']}>
+    <Component {...props} />
+  </ProtectedRoute>
+);
+
+export const ROUTE_MAP: Partial<Record<ViewState, any>> & Record<string, any> = {
   'home': Home,
   'discover': Discover,
   'explore': Explore,
   'detail': BusinessDetail,
   'feed': FacesFeed,
-  'wallet': WalletView,
+  'wallet': withUser(WalletView),
   'editorial': AdvertorialFeed,
   'editorial-detail': EditorialDetail,
   'ad-checkout': AdCheckout,
-  'merchant-portal': MerchantPortal,
+  'merchant-portal': withMerchant(MerchantPortal),
   'register': Register,
   'pricing': Pricing,
-  'business-verification': BusinessVerification,
-  'ad-manager': AdManager,
+  'business-verification': withMerchant(BusinessVerification),
+  'ad-manager': withMerchant(AdManager),
   'carry-me': CarryMe,
-  'driver-console': DriverConsole,
+  'driver-console': withUser(DriverConsole),
   'purple-fleet': PurpleFleet,
   'driver-registry': DriverRegistry,
   'cargo': Logistics,
-  'carry-go-dash': CarryGoDash,
-  'fleet-admin': FleetAdmin,
-  'admin': Admin,
-  'srts-office': SandalsOffice,
+  'carry-go-dash': withUser(CarryGoDash),
+  'fleet-admin': withAdmin(FleetAdmin),
+  'admin': withAdmin(Admin),
+  'srts-office': withAdmin(SandalsOffice),
   'lab': CreativeLab,
   'audio-heritage': AudioHeritage,
   'srts-dashboard': ThriftDashboard,
   'sandals-hotels': SandalsHotels,
-  'booking-ledger': HotelLedger,
+  'booking-ledger': withAdmin(HotelLedger),
   'hotel-detail': SandalsHotels,
-  'hotel-partner-control': HotelPartnerControl,
+  'hotel-partner-control': withAdmin(HotelPartnerControl),
   'about-aba': AboutAba,
   'about': About,
   'about-who': About,
@@ -96,19 +118,20 @@ export const ROUTE_MAP: Record<ViewState, any> = {
   'about-mission': About,
   'contact': Contact,
   'legal': Legal,
-  'hardware-audit': HardwareAudit,
+  'hardware-audit': withAdmin(HardwareAudit),
+  'tech-setup': withAdmin(SetupConnection),
   'oracle': Oracle,
   'messages': ChatView,
   'login': Login,
   'signup': Signup,
-  'profile': Profile,
+  'profile': withUser(Profile),
   'onboarding': Onboarding,
   'support': SupportCenter,
-  'buyer-portal': Profile,
-  'registry-setup': Register,
+  'buyer-portal': withUser(Profile),
+  'registry-setup': withAdmin(SetupConnection),
   'orders': (props: any) => {
     const isMerchant = props.userRole === 'verified_business' || props.userRole === 'business_owner';
-    return isMerchant ? <MerchantPortal {...props} /> : <BuyerOrdersView {...props} />;
+    return isMerchant ? withMerchant(MerchantPortal)(props) : withUser(BuyerOrdersView)(props);
   },
-  'dispute-center': MerchantPortal
+  'dispute-center': withMerchant(MerchantPortal)
 };

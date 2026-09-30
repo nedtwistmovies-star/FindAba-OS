@@ -15,9 +15,16 @@ import {
   updateRoomProtocol, addRoomToPartner, fetchHospitalityConfig
 } from '../../services/supabaseService';
 import { ImageUpload } from '../../components/ImageUpload';
+import { useRoleGuard } from '../../hooks/useRoleGuard';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
 const HotelPartnerControl: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
+  const { isAdmin } = useRoleGuard(['admin']);
   const [hotels, setHotels] = useState<Hotel[]>([]);
+
+  if (!isAdmin) {
+    return <ProtectedRoute allowedRoles={['admin']}><div /></ProtectedRoute>;
+  }
   const [loading, setLoading] = useState(true);
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);

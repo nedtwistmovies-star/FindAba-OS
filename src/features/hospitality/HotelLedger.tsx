@@ -11,9 +11,16 @@ import { ViewState, LedgerEntry, Booking, Hotel } from '../../types';
 // Added comment: Removed unused fetchAllGlobalBookings from imports.
 import { fetchLedgerEntries, fetchPartnerHotels, updateLedgerSettlement } from '../../services/supabaseService';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { useRoleGuard } from '../../hooks/useRoleGuard';
+import ProtectedRoute from '../../components/ProtectedRoute';
 
 const HotelLedger: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) => {
+  const { isAdmin } = useRoleGuard(['admin']);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+
+  if (!isAdmin) {
+    return <ProtectedRoute allowedRoles={['admin']}><div /></ProtectedRoute>;
+  }
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'paid'>('all');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);

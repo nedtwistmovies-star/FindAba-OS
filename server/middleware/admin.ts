@@ -21,37 +21,19 @@ export interface AdminVerificationResult {
 export async function verifyAdminRequest(req: Request): Promise<AdminVerificationResult> {
   const authHeader = req.headers.authorization;
   const customGithubToken = (req.headers["x-github-token"] as string || "").trim();
-  const adminEmailHeader = (req.headers["x-admin-email"] as string || "").toLowerCase().trim();
   const masterAdminEmail = (env.MASTER_ADMIN_EMAIL || "pastornelsonezi@gmail.com").toLowerCase();
-
-  if (adminEmailHeader && (adminEmailHeader === masterAdminEmail || adminEmailHeader === "pastornelsonezi@gmail.com")) {
-    return {
-      isAdmin: true,
-      user: { email: adminEmailHeader, role: "admin" },
-      method: "admin-email-header",
-    };
-  }
 
   // Check Supabase Auth Bearer Token
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.replace("Bearer ", "").trim();
-
-    if (token.startsWith("sandbox_") || token.startsWith("emergency_")) {
-      return {
-        isAdmin: true,
-        user: { email: env.MASTER_ADMIN_EMAIL || "pastornelsonezi@gmail.com", role: "admin" },
-        method: "sandbox-emergency-token",
-      };
-    }
 
     try {
       const { data, error } = await supabase.auth.getUser(token);
       if (!error && data?.user) {
         const user = data.user;
         const userEmail = (user.email || "").toLowerCase();
-        const masterAdminEmail = (env.MASTER_ADMIN_EMAIL || "pastornelsonezi@gmail.com").toLowerCase();
 
-        // 1. Direct email check
+        // 1. Direct master admin email check
         if (userEmail === masterAdminEmail || userEmail === "pastornelsonezi@gmail.com") {
           return { isAdmin: true, user, method: "master-admin-email" };
         }

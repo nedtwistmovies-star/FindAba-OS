@@ -179,8 +179,8 @@ const phoneOnlySchema = z.object({
   phone: z.string().min(1),
 });
 
-/** GET /api/whatsapp/events - Retrieve last 50 webhook events */
-whatsappRouter.get("/events", (req, res) => {
+/** GET /api/whatsapp/events - Retrieve last 50 webhook events (admin only) */
+whatsappRouter.get("/events", ensureAdmin, (req, res) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 50);
   const search = (req.query.search as string || "").toLowerCase();
   const statusFilter = req.query.status as string;
@@ -207,8 +207,8 @@ whatsappRouter.get("/events", (req, res) => {
   });
 });
 
-/** GET /api/whatsapp/events/stream - Real-time Server-Sent Events (SSE) stream */
-whatsappRouter.get("/events/stream", (req, res) => {
+/** GET /api/whatsapp/events/stream - Real-time Server-Sent Events (SSE) stream (admin only) */
+whatsappRouter.get("/events/stream", ensureAdmin, (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -223,8 +223,8 @@ whatsappRouter.get("/events/stream", (req, res) => {
   });
 });
 
-/** POST /api/whatsapp/events/simulate - Trigger a simulated incoming WhatsApp webhook event */
-whatsappRouter.post("/events/simulate", (req, res) => {
+/** POST /api/whatsapp/events/simulate - Trigger a simulated incoming WhatsApp webhook event (admin only) */
+whatsappRouter.post("/events/simulate", ensureAdmin, (req, res) => {
   const { senderName, senderPhone, messageText, status, eventType } = req.body || {};
   
   const phone = senderPhone || `+23480${Math.floor(10000000 + Math.random() * 90000000)}`;
@@ -282,8 +282,8 @@ whatsappRouter.post("/events/simulate", (req, res) => {
   res.json({ success: true, event: newEvent });
 });
 
-/** DELETE /api/whatsapp/events - Clear logged webhook events */
-whatsappRouter.delete("/events", (req, res) => {
+/** DELETE /api/whatsapp/events - Clear logged webhook events (admin only) */
+whatsappRouter.delete("/events", ensureAdmin, (req, res) => {
   eventsRingBuffer = [];
   res.json({ success: true, message: "Webhook events cleared", count: 0 });
 });
@@ -385,13 +385,13 @@ whatsappRouter.post("/notify", async (req, res) => {
   res.json(await WhatsApp.sendTemplateMessage(phone, template, "en_US", parameters || []));
 });
 
-whatsappRouter.post("/hello", async (req, res) => {
+whatsappRouter.post("/hello", ensureAdmin, async (req, res) => {
   const parsed = phoneOnlySchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ success: false, error: "Missing phone number" });
   res.json(await WhatsApp.sendHelloWorld(parsed.data.phone));
 });
 
-whatsappRouter.post("/test", async (req, res) => {
+whatsappRouter.post("/test", ensureAdmin, async (req, res) => {
   const parsed = phoneOnlySchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ success: false, error: "Missing phone number" });
   res.json(await WhatsApp.sendTextMessage(parsed.data.phone, "FindAba Meta WhatsApp Test Successful"));
