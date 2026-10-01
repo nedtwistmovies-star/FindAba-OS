@@ -73,13 +73,13 @@ const CitySignals: React.FC = () => {
 
       <div className="h-4 w-px bg-white/10 shrink-0" />
 
-      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1" title={weather ? `${weather.temp} • ${weather.condition}` : 'Syncing weather...'}>
+      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1" title={weather ? `${weather.temp} • ${weather.condition}` : 'Updating weather...'}>
         <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/5 rounded-lg flex items-center justify-center text-aba-green group-hover:bg-aba-green group-hover:text-white transition-standard border border-white/5 shadow-inner">
           <CloudSun size={12} strokeWidth={2.5} />
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wider">
-            {weather ? `${weather.temp} • ${weather.condition}` : 'Syncing...'}
+            {weather ? `${weather.temp} • ${weather.condition}` : 'Updating...'}
           </span>
           <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest leading-none">{t("Aba Weather", "Aba Weather")}</span>
         </div>
@@ -87,15 +87,15 @@ const CitySignals: React.FC = () => {
 
       <div className="h-4 w-px bg-white/10 shrink-0" />
 
-      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1" title={healthMessage || (registryStatus === 'online' ? 'System Mesh Stable' : 'System Connection Fault')}>
+      <div className="flex items-center gap-2.5 sm:gap-3 group shrink-0 py-1" title={healthMessage || (registryStatus === 'online' ? 'Everything is working fine' : 'We\'re having trouble connecting')}>
         <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-standard border border-white/5 shadow-inner ${registryStatus === 'online' ? 'bg-aba-green/10 text-aba-green' : 'bg-aba-red/10 text-aba-red'}`}>
           <Database size={12} strokeWidth={2.5} className={registryStatus === 'syncing' ? 'animate-spin' : ''} />
         </div>
         <div className="flex flex-col">
           <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-white leading-none">
-            {registryStatus === 'online' ? t("System Online", "System Online") : t("System Offline", "System Offline")}
+            {registryStatus === 'online' ? t("Live", "Live") : t("Unavailable", "Unavailable")}
           </span>
-          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">{t("System Status", "System Status")}</span>
+          <span className="text-[7px] sm:text-[9px] font-black text-white/40 uppercase tracking-widest mt-0.5">{t("Connection", "Connection")}</span>
         </div>
       </div>
     </div>
@@ -443,18 +443,18 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                     <Cpu size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Ask Assistant</h3>
-                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mt-1">Get help from AI</p>
+                    <h3 className="text-lg font-black uppercase tracking-tight text-white leading-none">Ask for Help</h3>
+                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mt-1">Aba Helper</p>
                   </div>
                   <p className="text-white/50 text-xs font-semibold leading-relaxed uppercase tracking-wide">
-                    Use our AI assistant to find verified hardware, shops, and resources.
+                    Ask for directions, find shops, or get help with anything in Aba.
                   </p>
                 </div>
                 <button 
                   onClick={() => setView('oracle')} 
                   className="w-full py-3.5 bg-white/5 hover:bg-blue-500 hover:text-white text-white font-black uppercase text-[10px] tracking-widest rounded-xl border border-white/5 transition-all relative z-10 cursor-pointer"
                 >
-                  Ask Assistant
+                  Ask for Help
                 </button>
               </div>
             </div>
@@ -680,26 +680,26 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
         </section>
       )}
 
-      {/* 2. PROTOCOL QUICK NAV */}
+      {/* 2. EXPLORE ABA QUICK NAV */}
       <section className="px-6 md:px-12 mt-12 mb-24 max-w-7xl mx-auto w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
         {[
-          { id: 'register', label: 'Join Now', icon: <Plus size={20} />, desc: 'Register Business', highlight: true },
-          { id: 'feed', label: 'Faces', icon: <Users size={20} />, desc: 'City Social' },
-          { id: 'purple-fleet', label: 'Fleet', icon: <Car size={20} />, desc: 'Purple Ride' },
-          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={20} />, desc: 'Hotels & Suites' },
+          { id: 'register', label: 'Join Now', icon: <Plus size={20} />, desc: 'Add Business', highlight: true },
+          { id: 'feed', label: 'People', icon: <Users size={20} />, desc: 'City Social' },
+          { id: 'purple-fleet', label: 'Rides', icon: <Car size={20} />, desc: 'Purple Ride' },
+          { id: 'sandals-hotels', label: 'Suites', icon: <Hotel size={20} />, desc: 'Hotels' },
           { id: 'cargo', label: 'Cargo', icon: <Truck size={20} />, desc: 'Carry-Go' },
-          { id: 'srts-dashboard', label: 'Thrift', icon: <Wallet size={20} />, desc: 'Fidelity' },
+          { id: 'srts-dashboard', label: 'Savings', icon: <Wallet size={20} />, desc: 'Fidelity' },
           { id: 'lab', label: 'Lab', icon: <Sparkles size={20} />, desc: 'Creative Hub' },
-          { id: 'hardware-audit', label: 'Sentinel', icon: <ShieldCheck size={20} />, desc: 'Tech Audit' },
-          { id: 'audio-heritage', label: 'Archive', icon: <Radio size={20} />, desc: 'Audio Intel' },
-          { id: 'about-aba', label: 'History', icon: <BookOpen size={20} />, desc: 'Aba Archive' },
-          { id: 'merchant-portal', label: 'Merchant', icon: <Building2 size={20} />, desc: 'Merchant Hub' },
+          { id: 'hardware-audit', label: 'Tech Help', icon: <ShieldCheck size={20} />, desc: 'Device Support' },
+          { id: 'audio-heritage', label: 'Voices', icon: <Radio size={20} />, desc: 'Aba Stories' },
+          { id: 'about-aba', label: 'History', icon: <BookOpen size={20} />, desc: 'City Archive' },
+          { id: 'merchant-portal', label: 'Merchant', icon: <Building2 size={20} />, desc: 'Seller Hub' },
           { id: 'buyer-portal', label: 'Buyer', icon: <Users size={20} />, desc: 'Buyer Hub' },
-          { id: 'oracle', label: 'Assistant', icon: <MessageSquare size={20} />, desc: 'AI Assistant' },
-          { id: 'editorial', label: 'News', icon: <Newspaper size={20} />, desc: 'Industrial News' },
-          { id: 'support', label: 'Support', icon: <LifeBuoy size={20} />, desc: 'System Help' },
-          { id: 'explore', label: 'Registry', icon: <Search size={20} />, desc: 'Full Directory' },
-          ...(isAdmin ? [{ id: 'admin', label: 'Infra', icon: <Globe size={20} />, desc: 'Infrastructure' }] : []),
+          { id: 'oracle', label: 'Help', icon: <MessageSquare size={20} />, desc: 'Ask Aba' },
+          { id: 'editorial', label: 'News', icon: <Newspaper size={20} />, desc: 'City Updates' },
+          { id: 'support', label: 'Support', icon: <LifeBuoy size={20} />, desc: 'Get Help' },
+          { id: 'explore', label: 'Directory', icon: <Search size={20} />, desc: 'Find Shops' },
+          ...(isAdmin ? [{ id: 'admin', label: 'System', icon: <Globe size={20} />, desc: 'Admin' }] : []),
         ].map(node => (
           <button 
             key={node.id} 

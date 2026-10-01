@@ -83,11 +83,8 @@ export class GithubService {
   ): Promise<CommitHistoryResponse> {
     try {
       const headers = await this.getAuthHeaders();
-      const savedRepo = localStorage.getItem('findaba_git_repo');
-      const savedBranch = localStorage.getItem('findaba_git_branch');
-
-      const targetRepo = customRepo || savedRepo || '';
-      const targetBranch = customBranch || savedBranch || '';
+      const targetRepo = customRepo;
+      const targetBranch = customBranch;
 
       const params = new URLSearchParams();
       params.append('limit', String(limit));
@@ -106,7 +103,7 @@ export class GithubService {
       return {
         success: data.success ?? true,
         repo: data.repo || targetRepo || 'nedtwistmovies-star/FindAba-OS',
-        branch: data.branch || targetBranch || 'prod-stabilize/phase1-foundation',
+        branch: data.branch || targetBranch || 'main',
         count: data.count || (data.commits ? data.commits.length : 0),
         tokenRejected: data.tokenRejected,
         commits: data.commits || [],
@@ -126,9 +123,9 @@ export class GithubService {
     customRepo?: string,
     customBranch?: string
   ): Promise<CommitHistoryResponse> {
-    const rawRepo = customRepo || localStorage.getItem('findaba_git_repo') || 'nedtwistmovies-star/FindAba-OS';
+    const rawRepo = customRepo || 'nedtwistmovies-star/FindAba-OS';
     const cleanRepo = rawRepo.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '').replace(/\.git$/i, '');
-    const branch = customBranch || localStorage.getItem('findaba_git_branch') || 'prod-stabilize/phase1-foundation';
+    const branch = customBranch || 'main';
 
     try {
       const res = await fetch(`https://api.github.com/repos/${cleanRepo}/commits?sha=${encodeURIComponent(branch)}&per_page=${limit}`, {

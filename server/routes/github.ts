@@ -6,6 +6,11 @@ import { ensureAdmin } from "../middleware/admin";
 import { env } from "../services/env";
 import { supabase } from "../services/supabase";
 import {
+  loadSystemConfig,
+  saveSystemConfig,
+  getSanitizedConfig,
+} from "../services/configService";
+import {
   githubClient,
   resolveGithubToken,
   authHeaders,
@@ -549,14 +554,14 @@ const handleDiagnosticRequest = async (req: Request, res: Response) => {
 
   const queryBranch = req.query.branch as string;
   const bodyBranch = (req.body as any)?.branch as string;
-  const branch = bodyBranch || queryBranch || env.GITHUB_BRANCH || "prod-stabilize/phase1-foundation";
+  const branch = bodyBranch || queryBranch || env.GITHUB_BRANCH || "main";
 
   const results: any = {
     success: true,
     repo: repo ? normalizeRepo(repo) : null,
     envRepo: env.GITHUB_REPO || null,
     branch,
-    envBranch: env.GITHUB_BRANCH || "prod-stabilize/phase1-foundation",
+    envBranch: env.GITHUB_BRANCH || "main",
     hasToken: !!token,
     repoValid: false,
     repositoryAccessible: false,
@@ -739,75 +744,93 @@ githubRouter.post("/test-connection", ensureAdmin, async (req, res) => {
 
 /** Get current authoritative GitHub repository configuration (admin only) */
 githubRouter.get("/config", ensureAdmin, async (_req, res) => {
+  const config = await loadSystemConfig();
   res.json({
     success: true,
-    repo: env.GITHUB_REPO || "nedtwistmovies-star/FindAba-OS",
-    branch: env.GITHUB_BRANCH || "prod-stabilize/phase1-foundation",
-    hasToken: Boolean(env.GITHUB_TOKEN),
+    repo: config.repository || env.GITHUB_REPO,
+    branch: config.branch || env.GITHUB_BRANCH,
+    hasToken: Boolean(config.githubToken || env.GITHUB_TOKEN),
+    connected: config.connected,
+    active: config.active,
+    lastSync: config.lastSync,
+    lastCommitSha: config.lastCommitSha,
+    source: config.id ? "supabase" : "environment",
   });
 });
 
-/** Update GITHUB_REPO environment setting directly */
+/** Update GITHUB_REPO and branch directly with persistent Supabase storage */
 githubRouter.post("/config", ensureAdmin, async (req, res) => {
-  const { repo, branch, token } = req.body || {};
-  
-  if (repo !== undefined) {
-    const cleanRepo = normalizeRepo(repo);
-    process.env.GITHUB_REPO = cleanRepo;
-    env.GITHUB_REPO = cleanRepo;
-  }
-  if (branch !== undefined) {
-    process.env.GITHUB_BRANCH = branch;
-    env.GITHUB_BRANCH = branch;
-  }
-  if (token !== undefined && token.trim()) {
-    process.env.GITHUB_TOKEN = token.trim();
-    env.GITHUB_TOKEN = token.trim();
-  }
+  const { repo, branch, token, connected, active, deployment } = req.body || {};
 
   try {
-    const envPath = path.join(process.cwd(), ".env");
-    let envContent = "";
-    try {
-      envContent = await fs.readFile(envPath, "utf-8");
-    } catch {
-      envContent = "";
-    }
+    const sanitized = await saveSystemConfig({
+      repository: repo,
+      branch,
+      githubToken: token,
+      connected: typeof connected === "boolean" ? connected : undefined,
+      active: typeof active === "boolean" ? active : undefined,
+      deployment,
+    });
 
-    if (repo !== undefined) {
-      const cleanRepo = normalizeRepo(repo);
-      if (envContent.includes("GITHUB_REPO=")) {
-        envContent = envContent.replace(/GITHUB_REPO=.*/g, `GITHUB_REPO=${cleanRepo}`);
-      } else {
-        envContent += `\nGITHUB_REPO=${cleanRepo}`;
-      }
-    }
-    if (branch !== undefined) {
-      if (envContent.includes("GITHUB_BRANCH=")) {
-        envContent = envContent.replace(/GITHUB_BRANCH=.*/g, `GITHUB_BRANCH=${branch}`);
-      } else {
-        envContent += `\nGITHUB_BRANCH=${branch}`;
-      }
-    }
-    if (token !== undefined && token.trim()) {
-      if (envContent.includes("GITHUB_TOKEN=")) {
-        envContent = envContent.replace(/GITHUB_TOKEN=.*/g, `GITHUB_TOKEN=${token.trim()}`);
-      } else {
-        envContent += `\nGITHUB_TOKEN=${token.trim()}`;
-      }
-    }
-    await fs.writeFile(envPath, envContent.trim() + "\n", "utf-8");
-  } catch (err) {
-    console.warn("[GitConfig] Could not write .env file:", err);
+    res.json({
+      success: true,
+      message: "GitHub repository environment and persistent Supabase configuration updated successfully!",
+      repo: sanitized.repository,
+      branch: sanitized.branch,
+      hasToken: sanitized.hasToken,
+      connected: sanitized.connected,
+      source: sanitized.source,
+    });
+  } catch (err: any) {
+    console.error("[GitConfig] Failed to save configuration:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to persist GitHub configuration to database",
+      details: err.message,
+    });
   }
+});
 
-  res.json({
-    success: true,
-    message: "GitHub repository environment settings updated!",
-    repo: env.GITHUB_REPO,
-    branch: env.GITHUB_BRANCH,
-    hasToken: !!env.GITHUB_TOKEN,
-  });
+/**
+ * Dedicated server-side endpoint for persisting GitHub repository, branch,
+ * and connection status into Supabase to survive deployments and restarts.
+ */
+githubRouter.post("/persist", ensureAdmin, async (req, res) => {
+  const { repository, repo, branch, token, githubToken, connected, active, deployment } = req.body || {};
+
+  try {
+    const targetRepo = repository || repo;
+    const targetToken = token || githubToken;
+
+    if (branch !== undefined && (typeof branch !== "string" || !branch.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: "Branch must be a non-empty string",
+      });
+    }
+
+    const sanitized = await saveSystemConfig({
+      repository: targetRepo,
+      branch: branch ? branch.trim() : undefined,
+      githubToken: targetToken,
+      connected: typeof connected === "boolean" ? connected : true,
+      active: typeof active === "boolean" ? active : true,
+      deployment,
+    });
+
+    res.json({
+      success: true,
+      message: "GitHub repository, branch, and connection status persisted reliably to Supabase.",
+      data: sanitized,
+    });
+  } catch (err: any) {
+    console.error("[GitPersist] Failed to persist GitHub connection status:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to persist GitHub connection",
+      details: err.message,
+    });
+  }
 });
 
 /** Retrieve GitHub webhook integration logs (admin only) */

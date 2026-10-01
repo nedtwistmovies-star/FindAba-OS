@@ -53,16 +53,6 @@ export const useGitSync = () => {
       headers['X-GitHub-Token'] = savedPat;
     }
 
-    const savedRepo = localStorage.getItem('findaba_git_repo')?.trim();
-    if (savedRepo) {
-      headers['X-GitHub-Repo'] = savedRepo;
-    }
-
-    const savedBranch = localStorage.getItem('findaba_git_branch')?.trim();
-    if (savedBranch) {
-      headers['X-GitHub-Branch'] = savedBranch;
-    }
-
     return headers;
   };
 
@@ -70,16 +60,11 @@ export const useGitSync = () => {
     setLoading(true);
     try {
       const authHeaders = await getAuthHeaders();
-      const savedRepo = localStorage.getItem('findaba_git_repo');
-      const savedBranch = localStorage.getItem('findaba_git_branch');
-      
-      const targetRepo = manualRepo !== undefined ? manualRepo : (savedRepo || '');
-      const targetBranch = manualBranch !== undefined ? manualBranch : (savedBranch || '');
       
       let url = '/api/git/sync';
       const params = new URLSearchParams();
-      if (targetRepo) params.append('repo', targetRepo);
-      if (targetBranch) params.append('branch', targetBranch);
+      if (manualRepo) params.append('repo', manualRepo);
+      if (manualBranch) params.append('branch', manualBranch);
       
       const queryString = params.toString();
       if (queryString) url += `?${queryString}`;
@@ -121,9 +106,9 @@ export const useGitSync = () => {
         if (response.status === 401 || response.status === 403) {
           errorMsg = "Authentication Failed: Please ensure your GITHUB_TOKEN is valid and has 'repo' scope permissions.";
         } else if (response.status === 404) {
-          errorMsg = `Repository Not Found: Ensure '${targetRepo || "configured repo"}' exists and is accessible.`;
+          errorMsg = `Repository Not Found: Ensure '${manualRepo || "configured repo"}' exists and is accessible.`;
         } else if (typeof errorMsg === 'string' && (errorMsg.includes('Unexpected end of JSON input') || errorMsg.includes('JSON'))) {
-          errorMsg = `GitHub API payload unreachable or invalid. Verify repository name '${targetRepo || "configured"}' and Personal Access Token.`;
+          errorMsg = `GitHub API payload unreachable or invalid. Verify repository name '${manualRepo || "configured"}' and Personal Access Token.`;
         }
         
         console.warn(`[GitSync] Handshake failed: ${errorMsg}`);
@@ -135,10 +120,7 @@ export const useGitSync = () => {
         return;
       }
       
-      const resolvedBranch = result.branch || targetBranch || 'prod-stabilize/phase1-foundation';
-      if (result.branch && result.branch !== localStorage.getItem('findaba_git_branch')) {
-        localStorage.setItem('findaba_git_branch', result.branch);
-      }
+      const resolvedBranch = result.branch || manualBranch || 'main';
 
       setStatus({
         connected: true,
@@ -150,7 +132,7 @@ export const useGitSync = () => {
         systemConfigured: result.systemConfigured,
         error: undefined
       });
-      console.log(`[GitSync] Handshake successful: ${targetRepo || 'default'} on branch ${resolvedBranch}`);
+      console.log(`[GitSync] Handshake successful: ${result.repo || 'default'} on branch ${resolvedBranch}`);
     } catch (err: any) {
       if (retriesLeft > 0 && err.message === 'Failed to fetch') {
         console.log(`[GitSync] Network fault during handshake. Retrying in 3s... (${retriesLeft} retries left)`);
@@ -171,16 +153,8 @@ export const useGitSync = () => {
     setLoading(true);
     try {
       const authHeaders = await getAuthHeaders();
-      const repo = localStorage.getItem('findaba_git_repo') || '';
-      const branch = localStorage.getItem('findaba_git_branch') || 'prod-stabilize/phase1-foundation';
       
-      let url = `/api/git/commit`;
-      const params = new URLSearchParams();
-      if (repo) params.append('repo', repo);
-      if (branch) params.append('branch', branch);
-      
-      const queryString = params.toString();
-      if (queryString) url += `?${queryString}`;
+      const url = `/api/git/commit`;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -188,7 +162,7 @@ export const useGitSync = () => {
           'Content-Type': 'application/json',
           ...authHeaders
         },
-        body: JSON.stringify({ files, message, repo, branch })
+        body: JSON.stringify({ files, message })
       });
       
       const text = await response.text();
@@ -236,16 +210,7 @@ export const useGitSync = () => {
 
     try {
       const authHeaders = await getAuthHeaders();
-      const repo = localStorage.getItem('findaba_git_repo') || '';
-      const branch = localStorage.getItem('findaba_git_branch') || '';
-      
-      let url = `/api/git/sync-full`;
-      const params = new URLSearchParams();
-      if (repo) params.append('repo', repo);
-      if (branch) params.append('branch', branch);
-      
-      const queryString = params.toString();
-      if (queryString) url += `?${queryString}`;
+      const url = `/api/git/sync-full`;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -313,10 +278,8 @@ export const useGitSync = () => {
     setLoading(true);
     try {
       const authHeaders = await getAuthHeaders();
-      const savedRepo = localStorage.getItem('findaba_git_repo') || '';
-      const savedBranch = localStorage.getItem('findaba_git_branch') || '';
-      const targetRepo = options?.repo || savedRepo;
-      const targetBranch = options?.branch || savedBranch;
+      const targetRepo = options?.repo;
+      const targetBranch = options?.branch;
 
       let url = `/api/git/push`;
       const params = new URLSearchParams();

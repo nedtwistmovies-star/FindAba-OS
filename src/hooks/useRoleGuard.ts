@@ -16,6 +16,7 @@ export interface RoleGuardResult {
   userRole: string | null;
   profile: any | null;
   checkAccess: (permittedRoles: Array<AppRole | string>) => boolean;
+  hasPermission: (requiredRoles: string[]) => boolean;
   reason?: string;
 }
 
@@ -120,6 +121,7 @@ export function useRoleGuard(allowedRoles: Array<AppRole | string> = []): RoleGu
     userRole,
     profile,
     checkAccess,
+    hasPermission: checkAccess,
     reason,
   };
 }

@@ -151,7 +151,7 @@ const GitDiagnostics: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ is
                 {status.repo || 'System Default'}
               </div>
               <p className="text-[10px] font-medium text-white/60">
-                Branch: <span className="text-aba-gold">{status.branch || 'prod-stabilize'}</span>
+                Branch: <span className="text-aba-gold">{status.branch || 'main'}</span>
               </p>
             </div>
 

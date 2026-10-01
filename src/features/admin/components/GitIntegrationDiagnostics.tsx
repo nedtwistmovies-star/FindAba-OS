@@ -57,7 +57,7 @@ export const GitIntegrationDiagnostics: React.FC = () => {
   // Push Changes Workflow State
   const [pushBranch, setPushBranch] = useState(() => {
     const saved = localStorage.getItem('findaba_git_branch')?.trim();
-    return (saved && saved !== 'main') ? saved : 'prod-stabilize/phase1-foundation';
+    return saved || 'main';
   });
   const [pushMessage, setPushMessage] = useState('chore(sync): update city registry and system state [Admin Push]');
   const [pushing, setPushing] = useState(false);
@@ -91,7 +91,7 @@ export const GitIntegrationDiagnostics: React.FC = () => {
     try {
       addToast(`Initiating authenticated push to branch '${pushBranch}'...`, 'info');
       const res = await pushChanges({
-        branch: pushBranch.trim() || 'prod-stabilize/phase1-foundation',
+        branch: pushBranch.trim() || 'main',
         message: pushMessage.trim() || 'Push changes via FindAba City OS',
       });
 
@@ -124,7 +124,7 @@ export const GitIntegrationDiagnostics: React.FC = () => {
     try {
       const savedPat = localStorage.getItem('findaba_github_pat')?.trim();
       const savedRepo = localStorage.getItem('findaba_git_repo')?.trim() || 'nedtwistmovies-star/FindAba-OS';
-      const savedBranch = localStorage.getItem('findaba_git_branch')?.trim() || 'prod-stabilize/phase1-foundation';
+      const savedBranch = localStorage.getItem('findaba_git_branch')?.trim() || 'main';
       
       const headers: Record<string, string> = {};
       if (savedPat) headers['X-GitHub-Token'] = savedPat;

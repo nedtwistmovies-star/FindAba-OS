@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { useGitSync } from '../../hooks/useGitSync';
 import { useRoleGuard } from '../../hooks/useRoleGuard';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import { saveSystemConfig, fetchSystemConfig } from '../../services/systemConfigService';
 
 const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }> = ({ onBack, onComplete }) => {
   const { isAdmin } = useRoleGuard(['admin']);
@@ -92,6 +93,13 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
   useEffect(() => {
     const autoSync = async () => {
       try {
+        // Load persistent Git configuration from Supabase
+        const sysCfg = await fetchSystemConfig();
+        if (sysCfg) {
+          if (sysCfg.repository) setGitRepo(sysCfg.repository);
+          if (sysCfg.branch) setGitBranch(sysCfg.branch);
+        }
+
         const result = await syncGeminiConfig();
         if (result.status === 'healthy') {
           // Re-load config after sync
@@ -153,6 +161,19 @@ const SetupConnection: React.FC<{ onBack?: () => void, onComplete?: () => void }
 
     localStorage.setItem('findaba_git_repo', gitRepo.trim());
     localStorage.setItem('findaba_git_branch', gitBranch.trim());
+
+    // Persist reliably to Supabase and server
+    try {
+      await saveSystemConfig({
+        repository: gitRepo.trim(),
+        branch: gitBranch.trim(),
+        githubToken: gitPat.trim() || undefined,
+        connected: true,
+      });
+    } catch (saveErr) {
+      console.warn("[SetupConnection] Cloud save note:", saveErr);
+    }
+
     await syncGit(gitRepo.trim(), gitBranch.trim());
     setStep('payment');
   };

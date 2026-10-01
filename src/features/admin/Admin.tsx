@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useGitSync } from "../../hooks/useGitSync";
+import { usePersistentConfig } from "../../hooks/usePersistentConfig";
 import { useRoleGuard } from "../../hooks/useRoleGuard";
 import { BackButton } from "../../components/BackButton";
 import {
@@ -78,33 +79,28 @@ import TasksManager from "./components/TasksManager";
 import WhatsAppWebhookDashboard from "./components/WhatsAppWebhookDashboard";
 import GitSyncSupabaseCommit from "./components/GitSyncSupabaseCommit";
 import { GitIntegrationDiagnostics } from "./components/GitIntegrationDiagnostics";
+import { PersistentDeploymentConfig } from "./components/PersistentDeploymentConfig";
+import { saveSystemConfig } from "../../services/systemConfigService";
 
 const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
   const { addToast } = useToast();
   const { refreshData } = useBusiness();
+  const { config, update: updateConfig } = usePersistentConfig();
   const { status: gitStatus, loading: gitLoading, fullSync, sync: syncGit, clearError } = useGitSync();
 
-  const [inputRepo, setInputRepo] = useState(() => localStorage.getItem('findaba_git_repo') || '');
-  const [inputBranch, setInputBranch] = useState(() => {
-    const saved = localStorage.getItem('findaba_git_branch')?.trim();
-    return (saved && saved !== 'main') ? saved : 'prod-stabilize/phase1-foundation';
-  });
-  const [inputPat, setInputPat] = useState(() => localStorage.getItem('findaba_github_pat') || '');
+  const [inputRepo, setInputRepo] = useState('');
+  const [inputBranch, setInputBranch] = useState('main');
+  const [inputPat, setInputPat] = useState('');
   const [showPat, setShowPat] = useState(false);
   const [isSavingGit, setIsSavingGit] = useState(false);
 
-  // Sync form state when gitStatus updates
+  // Sync form state when config updates
   useEffect(() => {
-    if (gitStatus.repo && !inputRepo) {
-      setInputRepo(gitStatus.repo);
+    if (config) {
+      if (config.repository) setInputRepo(config.repository);
+      if (config.branch) setInputBranch(config.branch);
     }
-  }, [gitStatus.repo]);
-
-  useEffect(() => {
-    if (gitStatus.branch && gitStatus.branch !== inputBranch) {
-      setInputBranch(gitStatus.branch);
-    }
-  }, [gitStatus.branch]);
+  }, [config]);
 
   const handleSaveGitConfig = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -115,42 +111,47 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
     let cleanRepo = inputRepo.trim();
     cleanRepo = cleanRepo.replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '');
 
-    if (cleanRepo) {
-      localStorage.setItem('findaba_git_repo', cleanRepo);
-      setInputRepo(cleanRepo);
-    } else {
-      localStorage.removeItem('findaba_git_repo');
-    }
-
-    const branchToUse = inputBranch.trim() || 'prod-stabilize/phase1-foundation';
-    localStorage.setItem('findaba_git_branch', branchToUse);
-
-    if (inputPat.trim()) {
-      localStorage.setItem('findaba_github_pat', inputPat.trim());
-    } else {
-      localStorage.removeItem('findaba_github_pat');
-    }
+    const branchToUse = inputBranch.trim() || 'main';
 
     try {
+      await updateConfig({
+        repository: cleanRepo,
+        branch: branchToUse,
+        githubToken: inputPat.trim() || undefined,
+        connected: true,
+      });
       await syncGit(cleanRepo, branchToUse);
-      addToast("Git repository configuration saved and tested!", "success");
+      addToast("Git repository configuration saved and persisted to Supabase!", "success");
+      if (inputPat.trim()) setInputPat(''); // Clear PAT input after successful save
     } catch (err: any) {
-      addToast("Git configuration saved, connection test: " + (err.message || "Failed"), "info");
+      addToast("Git configuration update failed: " + (err.message || "Unknown error"), "error");
     } finally {
       setIsSavingGit(false);
     }
   };
 
-  const handleClearGitConfig = () => {
-    localStorage.removeItem('findaba_git_repo');
-    localStorage.removeItem('findaba_git_branch');
-    localStorage.removeItem('findaba_github_pat');
-    setInputRepo('');
-    setInputBranch('prod-stabilize/phase1-foundation');
-    setInputPat('');
-    clearError();
-    syncGit('', 'prod-stabilize/phase1-foundation');
-    addToast("Git configuration cleared.", "info");
+  const handleClearGitConfig = async () => {
+    if (!confirm("Are you sure you want to clear the system Git configuration?")) return;
+    
+    setIsSavingGit(true);
+    try {
+      await updateConfig({
+        repository: 'nedtwistmovies-star/FindAba-OS',
+        branch: 'main',
+        githubToken: '',
+        connected: false
+      });
+      setInputRepo('nedtwistmovies-star/FindAba-OS');
+      setInputBranch('main');
+      setInputPat('');
+      clearError();
+      syncGit('nedtwistmovies-star/FindAba-OS', 'main');
+      addToast("Git configuration reset to defaults.", "info");
+    } catch (err: any) {
+      addToast("Failed to reset config: " + err.message, "error");
+    } finally {
+      setIsSavingGit(false);
+    }
   };
   
   const handleFullSync = async (reason: string) => {
@@ -437,10 +438,11 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
 
           {activeTab === 'git' && (
             <div className="space-y-12">
-              <SectionHeader title="GitHub Integration Diagnostics" subtitle="Connection integrity and webhook monitoring" />
-              <GitIntegrationDiagnostics />
+              <PersistentDeploymentConfig />
               <SectionHeader title="Repository Synchronization" subtitle="Commit registry data and system files to GitHub" />
               <GitSyncSupabaseCommit />
+              <SectionHeader title="GitHub Integration Diagnostics" subtitle="Connection integrity and webhook monitoring" />
+              <GitIntegrationDiagnostics />
             </div>
           )}
 

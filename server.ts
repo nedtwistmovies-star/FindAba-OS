@@ -12,6 +12,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import { env } from "./server/services/env";
+import { loadSystemConfig } from "./server/services/configService";
 import { adminRouter } from "./server/routes/admin";
 import { oracleRouter } from "./server/routes/oracle";
 import { authRouter } from "./server/routes/auth";
@@ -61,6 +62,15 @@ function validateEnvironment() {
 
 // Run validation
 validateEnvironment();
+
+// Asynchronously load persistent configuration from Supabase and cache
+loadSystemConfig()
+  .then((cfg) => {
+    console.log(`[FindAba] Authoritative persistent config loaded: ${cfg.repository} (${cfg.branch}) - Connected: ${cfg.connected}`);
+  })
+  .catch((err) => {
+    console.warn("[FindAba] Initial config load note:", err.message);
+  });
 
 // --- Core Middleware ---
 app.use(

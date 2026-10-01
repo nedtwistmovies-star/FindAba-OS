@@ -40,64 +40,87 @@ export function cleanRepositoryName(url: string): string {
   return cleaned;
 }
 
-export const AUTHORITATIVE_DEFAULT_BRANCH = 'prod-stabilize/phase1-foundation';
+export const AUTHORITATIVE_DEFAULT_BRANCH = 'main';
 export const AUTHORITATIVE_DEFAULT_REPO = 'nedtwistmovies-star/FindAba-OS';
 
 /**
  * Initializes and synchronizes the Git Repository configuration.
- * Queries /api/git/config as the primary authoritative source of truth,
- * with fallback to /metadata.json and built-in defaults.
+ * Queries /api/admin/config and /api/git/config as the primary authoritative sources of truth,
+ * with fallback to /metadata.json and localStorage.
+ * Ensures configured branches ('main', 'master', 'production', 'release', etc.) persist reliably.
  */
 export async function initializeRepositoryConfig(): Promise<{ repo: string; branch: string }> {
   let targetRepo = AUTHORITATIVE_DEFAULT_REPO;
   let targetBranch = AUTHORITATIVE_DEFAULT_BRANCH;
+  let loadedFromServer = false;
 
-  // 1. Try fetching authoritative config from server
+  // 1. Try fetching authoritative config from server (admin/config or git/config)
   try {
-    const configRes = await fetch('/api/git/config');
+    const configRes = await fetch('/api/admin/config');
     if (configRes.ok) {
       const configData = await configRes.json();
       if (configData.success) {
-        if (configData.repo) targetRepo = cleanRepositoryName(configData.repo);
-        if (configData.branch) targetBranch = configData.branch.trim();
+        if (configData.repository) targetRepo = cleanRepositoryName(configData.repository);
+        if (configData.branch) {
+          targetBranch = configData.branch.trim();
+          loadedFromServer = true;
+        }
+      }
+    } else {
+      // Fallback to /api/git/config
+      const gitRes = await fetch('/api/git/config');
+      if (gitRes.ok) {
+        const gitData = await gitRes.json();
+        if (gitData.success) {
+          if (gitData.repo) targetRepo = cleanRepositoryName(gitData.repo);
+          if (gitData.branch) {
+            targetBranch = gitData.branch.trim();
+            loadedFromServer = true;
+          }
+        }
       }
     }
   } catch (apiErr) {
-    console.warn('[GitConfigService] /api/git/config not reachable, falling back to metadata.json:', apiErr);
+    console.warn('[GitConfigService] Server config not reachable, checking local sources:', apiErr);
   }
 
-  // 2. Supplement/fallback from metadata.json if needed
-  try {
-    const metaRes = await fetch('/metadata.json');
-    if (metaRes.ok) {
-      const metadata: AppMetadata = await metaRes.json();
-      if (metadata.repository?.url && (!targetRepo || targetRepo === AUTHORITATIVE_DEFAULT_REPO)) {
-        const parsed = cleanRepositoryName(metadata.repository.url);
-        if (parsed) targetRepo = parsed;
+  // 2. Supplement/fallback from metadata.json if not loaded from server
+  if (!loadedFromServer) {
+    try {
+      const metaRes = await fetch('/metadata.json');
+      if (metaRes.ok) {
+        const metadata: AppMetadata = await metaRes.json();
+        if (metadata.repository?.url && (!targetRepo || targetRepo === AUTHORITATIVE_DEFAULT_REPO)) {
+          const parsed = cleanRepositoryName(metadata.repository.url);
+          if (parsed) targetRepo = parsed;
+        }
+        if (metadata.repository?.branch) {
+          targetBranch = metadata.repository.branch.trim();
+        }
       }
-      if (metadata.repository?.branch && targetBranch === AUTHORITATIVE_DEFAULT_BRANCH) {
-        targetBranch = metadata.repository.branch.trim();
-      }
+    } catch (metaErr) {
+      console.warn('[GitConfigService] metadata.json read error:', metaErr);
     }
-  } catch (metaErr) {
-    console.warn('[GitConfigService] metadata.json read error:', metaErr);
   }
 
-  // 3. Authoritative sync with localStorage
-  // If stored branch is 'main' while authoritative target is prod-stabilize/phase1-foundation,
-  // promote to the authoritative branch so UI and API never mismatch.
+  // 3. Sync with localStorage: if loaded from server, update localStorage.
+  // If not loaded from server, read from localStorage.
   const currentLocalBranch = localStorage.getItem('findaba_git_branch')?.trim();
-  if (!currentLocalBranch || currentLocalBranch === 'main') {
+  if (loadedFromServer) {
     localStorage.setItem('findaba_git_branch', targetBranch);
-  } else {
+  } else if (currentLocalBranch) {
     targetBranch = currentLocalBranch;
+  } else {
+    localStorage.setItem('findaba_git_branch', targetBranch);
   }
 
   const currentLocalRepo = localStorage.getItem('findaba_git_repo')?.trim();
-  if (!currentLocalRepo) {
+  if (loadedFromServer) {
     localStorage.setItem('findaba_git_repo', targetRepo);
-  } else {
+  } else if (currentLocalRepo) {
     targetRepo = currentLocalRepo;
+  } else {
+    localStorage.setItem('findaba_git_repo', targetRepo);
   }
 
   // 4. Dispatch event so active UI components react immediately

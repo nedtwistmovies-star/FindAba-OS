@@ -221,7 +221,7 @@ const AIWelcomeSection: React.FC<{ light?: boolean }> = ({ light }) => {
       <div className="flex items-center justify-center gap-2 opacity-30">
         <ShieldCheck size={12} className="text-aba-green" />
         <span className="text-[9px] font-bold uppercase tracking-widest">
-          Handshake Verified
+          Secure & Verified
         </span>
       </div>
     </div>
@@ -266,12 +266,12 @@ const Layout: React.FC<LayoutProps> = ({
   } = useBusiness();
   const { status: gitStatus, loading: gitLoading, sync: syncGit, fullSync } = useGitSync();
   const handleFullSync = async (reason: string) => {
-    addToast("Initiating GitHub synchronization...", "info");
+    addToast("Updating system...", "info");
     const result = await fullSync(reason);
     if (result && result.success) {
-      addToast("Repository synced successfully!", "success");
+      addToast("Update complete!", "success");
     } else {
-      addToast(result?.error || "Synchronization completed with warning alerts or error status.", "error");
+      addToast(result?.error || "We couldn't finish the update. Please try again.", "error");
     }
   };
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -289,16 +289,16 @@ const Layout: React.FC<LayoutProps> = ({
   const [notifications, setNotifications] = useState<AppNotification[]>([
     {
       id: "1",
-      title: "Registry Synchronized",
-      message: "Industrial Partner v6.0 mesh established.",
+      title: "System Updated",
+      message: "FindAba is ready and up to date.",
       type: "info",
       read: false,
       timestamp: new Date().toISOString(),
     },
     {
       id: "2",
-      title: "Security Protocol",
-      message: "Fidelity Handshake verified via Paystack.",
+      title: "Payment Secure",
+      message: "Payment connection verified.",
       type: "success",
       read: false,
       timestamp: new Date().toISOString(),
@@ -532,7 +532,7 @@ const Layout: React.FC<LayoutProps> = ({
           {isAdmin && (
             <div className="pt-6 pb-2 space-y-2">
               <div className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white/20">
-                Industrial Control
+                Admin Tools
               </div>
               <button
                 onClick={() => handleFullSync("Manual Sidebar Sync")}
@@ -545,7 +545,7 @@ const Layout: React.FC<LayoutProps> = ({
                     className="text-aba-gold group-hover:scale-110 transition-transform shrink-0"
                   />
                   {!isSidebarCollapsed && (
-                    <span className="truncate tracking-tight">GitHub Sync</span>
+                    <span className="truncate tracking-tight">System Update</span>
                   )}
                 </div>
                 {!isSidebarCollapsed && (
@@ -553,8 +553,8 @@ const Layout: React.FC<LayoutProps> = ({
                     className="flex items-center select-none shrink-0 pr-1"
                     title={
                       gitSynced
-                        ? `Repository In-Sync: ${liveRepo || "System Default"}`
-                        : `Repository Out of Sync: ${liveRepo}`
+                        ? `System is up to date: ${liveRepo || "Main Hub"}`
+                        : `Update available for: ${liveRepo}`
                     }
                   >
                     <span
@@ -573,7 +573,7 @@ const Layout: React.FC<LayoutProps> = ({
                 />
                 {!isSidebarCollapsed && (
                   <span className="truncate tracking-tight">
-                    Supabase Commit
+                    Save to Cloud
                   </span>
                 )}
               </button>
@@ -650,7 +650,7 @@ const Layout: React.FC<LayoutProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Universal Industrial Search..."
+                  placeholder="Search for anything..."
                   className="w-full pl-12 pr-12 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs outline-none focus:border-aba-gold/50 transition-all font-bold tracking-tight"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
@@ -671,7 +671,7 @@ const Layout: React.FC<LayoutProps> = ({
                           size={24}
                         />
                         <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
-                          Syncing Registry...
+                          Looking for businesses...
                         </span>
                       </div>
                     ) : searchResults.length > 0 ? (
@@ -725,11 +725,10 @@ const Layout: React.FC<LayoutProps> = ({
                         </div>
                         <div className="space-y-2">
                           <h6 className="text-sm font-black uppercase tracking-widest">
-                            No Matches Found
+                            Nothing Found
                           </h6>
                           <p className="text-[10px] font-medium text-white/40">
-                            The industrial signal for "{searchQuery}" is not
-                            present in the verified mesh.
+                            We couldn't find anything matching "{searchQuery}" in our directory.
                           </p>
                         </div>
                       </div>
@@ -737,13 +736,13 @@ const Layout: React.FC<LayoutProps> = ({
 
                     <div className="p-4 bg-white/5 border-t border-white/5 flex justify-between items-center">
                       <span className="text-[9px] font-black uppercase tracking-widest text-white/20">
-                        FindAba OS Search Engine
+                        FindAba Search
                       </span>
                       <button
                         onClick={() => setSearchQuery("")}
                         className="text-[9px] font-black uppercase tracking-widest text-aba-gold hover:underline"
                       >
-                        Clear Signal
+                        Clear Search
                       </button>
                     </div>
                   </div>
@@ -764,8 +763,8 @@ const Layout: React.FC<LayoutProps> = ({
                 }}
                 title={
                   !gitStatus.connected 
-                    ? `GIT PROTOCOL ERROR: ${gitStatus.error || "Registry Sync Interrupted"}. Click to open diagnostics.` 
-                    : (gitSynced ? `Industrial Grid Synchronized: ${liveRepo || "Main Hub"}. Click to view diagnostics.` : `Local/Cloud Drift Detected! Active Repo: ${liveRepo}. Click to view diagnostics.`)
+                    ? `CONNECTION ERROR: ${gitStatus.error || "Unable to update businesses"}. Click for more details.` 
+                    : (gitSynced ? `System is up to date: ${liveRepo || "Main Hub"}. Click for details.` : `New updates found! Active: ${liveRepo}. Click for details.`)
                 }
                 id="git-repo-indicator"
               >
@@ -780,11 +779,11 @@ const Layout: React.FC<LayoutProps> = ({
                   <span className={`text-[9px] uppercase tracking-wider font-black ${
                     !gitStatus.connected ? 'text-rose-500' : (gitSynced ? 'text-white/60' : 'text-amber-500')
                   }`}>
-                    {!gitStatus.connected ? 'Git Offline' : (gitSynced ? 'Repo Match' : 'Repo Diff')}
+                    {!gitStatus.connected ? 'Offline' : (gitSynced ? 'Updated' : 'New Update')}
                   </span>
                   {!gitStatus.connected && (
                     <span className="text-[6px] text-rose-400/50 uppercase font-bold tracking-[0.2em] leading-none">
-                      Fix Connection
+                      Reconnect
                     </span>
                   )}
                 </div>
@@ -795,17 +794,17 @@ const Layout: React.FC<LayoutProps> = ({
             <BatteryIndicator />
 
             {/* Daylight Mode Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className={`p-2.5 rounded-xl border transition-all flex items-center justify-center ${
-                isDarkThemeActive 
-                  ? "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-aba-gold" 
-                  : "bg-black/5 border-black/10 text-aba-deep hover:bg-black/10 hover:border-aba-green"
-              }`}
-              title={isDarkThemeActive ? "Switch to Daylight Mode" : "Switch to Dark OS Mode"}
-              aria-label="Toggle Theme"
-              id="theme-toggle-btn"
-            >
+              <button
+                onClick={toggleTheme}
+                className={`p-2.5 rounded-xl border transition-all flex items-center justify-center ${
+                  isDarkThemeActive 
+                    ? "bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-aba-gold" 
+                    : "bg-black/5 border-black/10 text-aba-deep hover:bg-black/10 hover:border-aba-green"
+                }`}
+                title={isDarkThemeActive ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                aria-label="Toggle Theme"
+                id="theme-toggle-btn"
+              >
               {isDarkThemeActive ? (
                 <Sun size={15} className="text-aba-gold" />
               ) : (

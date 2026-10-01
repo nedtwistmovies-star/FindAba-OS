@@ -28,69 +28,29 @@ import {
 } from "lucide-react";
 import IndustrialButton from "../../../components/IndustrialButton";
 import { useGitSync } from "../../../hooks/useGitSync";
+import { usePersistentConfig } from "../../../hooks/usePersistentConfig";
 import { useToast } from "../../../providers/ToastProvider";
 import { getSupabase } from "../../../services/supabaseService";
+import { saveSystemConfig } from "../../../services/systemConfigService";
 
 export const GitSyncSupabaseCommit: React.FC = () => {
   const { addToast } = useToast();
+  const { config, update: updateConfig } = usePersistentConfig();
   const { status: gitStatus, loading: gitLoading, fullSync, commit, sync: syncGit, clearError } = useGitSync();
 
   // Settings State
-  const [repo, setRepo] = useState(() => localStorage.getItem('findaba_git_repo') || 'nedtwistmovies-star/FindAba-OS');
-  const [branch, setBranch] = useState(() => {
-    const saved = localStorage.getItem('findaba_git_branch')?.trim();
-    return (saved && saved !== 'main') ? saved : 'prod-stabilize/phase1-foundation';
-  });
-  const [token, setToken] = useState(() => localStorage.getItem('findaba_github_pat') || '');
+  const [repo, setRepo] = useState('nedtwistmovies-star/FindAba-OS');
+  const [branch, setBranch] = useState('main');
+  const [token, setToken] = useState('');
   const [showToken, setShowToken] = useState(false);
 
-  // Connection Test State
-  const [testingConnection, setTestingConnection] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    repo?: string;
-    exists?: boolean;
-    private?: boolean;
-    defaultBranch?: string;
-    rateLimitRemaining?: number;
-    authStatus?: string;
-    htmlUrl?: string;
-    message?: string;
-    details?: string;
-  } | null>(null);
-
-  const [diagnostics, setDiagnostics] = useState<any>(null);
-  const [runningDiagnostics, setRunningDiagnostics] = useState(false);
-
-  // Synchronize with server authoritative Git config on mount
+  // Synchronize with server authoritative Git config
   useEffect(() => {
-    let isMounted = true;
-    const loadAuthoritativeConfig = async () => {
-      try {
-        const res = await fetch('/api/git/config');
-        if (res.ok) {
-          const cfg = await res.json();
-          if (cfg.success && isMounted) {
-            if (cfg.repo && cfg.repo !== repo) {
-              setRepo(cfg.repo);
-              localStorage.setItem('findaba_git_repo', cfg.repo);
-            }
-            if (cfg.branch) {
-              const currentLocal = localStorage.getItem('findaba_git_branch');
-              if (!currentLocal || currentLocal === 'main' || currentLocal !== cfg.branch) {
-                setBranch(cfg.branch);
-                localStorage.setItem('findaba_git_branch', cfg.branch);
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('[GitSyncSupabaseCommit] Could not load /api/git/config:', err);
-      }
-    };
-    loadAuthoritativeConfig();
-    return () => { isMounted = false; };
-  }, []);
+    if (config) {
+      if (config.repository) setRepo(config.repository);
+      if (config.branch) setBranch(config.branch);
+    }
+  }, [config]);
 
   // Listen to system git config update events
   useEffect(() => {
@@ -312,37 +272,20 @@ export const GitSyncSupabaseCommit: React.FC = () => {
     let cleanBranch = branch.trim() || 'main';
     let cleanToken = token.trim();
 
-    // Store in LocalStorage
-    if (cleanRepo) localStorage.setItem('findaba_git_repo', cleanRepo);
-    else localStorage.removeItem('findaba_git_repo');
-
-    localStorage.setItem('findaba_git_branch', cleanBranch);
-
-    if (cleanToken) localStorage.setItem('findaba_github_pat', cleanToken);
-    else localStorage.removeItem('findaba_github_pat');
-
     try {
-      // Save directly to server process.env and .env file
-      const res = await fetch('/api/git/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(cleanToken ? { 'X-GitHub-Token': cleanToken } : {})
-        },
-        body: JSON.stringify({
-          repo: cleanRepo,
-          branch: cleanBranch,
-          token: cleanToken
-        })
+      // Save reliably to Supabase, server environment, and durable config
+      await updateConfig({
+        repository: cleanRepo,
+        branch: cleanBranch,
+        githubToken: cleanToken || undefined,
+        connected: true,
       });
 
-      if (res.ok) {
-        addToast("GITHUB_REPO environment variable & credentials saved!", "success");
-      }
-
+      addToast("Repository configuration persisted reliably to Supabase and environment!", "success");
       await syncGit(cleanRepo, cleanBranch);
+      if (cleanToken) setToken(''); // Clear token input after save
     } catch (err: any) {
-      addToast(`Config updated locally. Server update note: ${err.message}`, "info");
+      addToast(`Config updated failed: ${err.message}`, "error");
     } finally {
       setSavingEnv(false);
     }
