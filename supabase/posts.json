@@ -115,5 +115,18 @@
     "likes_count": 0,
     "comments_count": 0,
     "created_at": "2026-06-15T15:56:17.949649+00:00"
+  },
+  {
+    "id": "6df5afb6-41bc-4c19-bbd9-b4bd8789f6ea",
+    "user_id": "dcb290fc-e51c-4000-8675-fad90660b703",
+    "content": "ABA WHATSUP",
+    "media_url": null,
+    "media_type": null,
+    "action_type": "none",
+    "action_label": null,
+    "price": null,
+    "likes_count": 0,
+    "comments_count": 0,
+    "created_at": "2026-09-13T18:50:36.790121+00:00"
   }
 ]
