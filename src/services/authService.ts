@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { processReferral, generateReferralCode } from './supabaseService';
 import { sendWelcomeEmail } from './emailService';
 
-const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
+const FUNCTIONS_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_FUNCTIONS_URL) || (typeof process !== 'undefined' && process.env ? process.env.VITE_SUPABASE_FUNCTIONS_URL : '') || '';
 
 export const sendOtp = async (phone: string) => {
   try {

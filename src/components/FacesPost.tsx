@@ -110,7 +110,7 @@ const FacesPostComponent: React.FC<FacesPostProps> = ({ post, onPostAction }) =>
       const paystack = (window as any).PaystackPop;
       if (paystack) {
         paystack.setup({
-          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+          key: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PAYSTACK_PUBLIC_KEY) || '',
           email: post.author?.email || 'customer@findaba.com.ng',
           amount: (post.price || 0) * 100,
           currency: 'NGN',

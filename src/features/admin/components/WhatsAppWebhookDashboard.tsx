@@ -42,10 +42,21 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }
   failed: { bg: "bg-rose-500/10", text: "text-rose-400", border: "border-rose-500/30" },
 };
 
+export type WebhookStatusFilter = "received" | "processed" | "failed" | "delivered" | "read" | "sent";
+
+const PRIMARY_STATUS_FILTERS: { id: WebhookStatusFilter; label: string; dotColor: string; activeBadge: string }[] = [
+  { id: "received", label: "Received", dotColor: "bg-sky-400", activeBadge: "bg-sky-500/20 text-sky-300 border-sky-500/40" },
+  { id: "processed", label: "Processed", dotColor: "bg-amber-400", activeBadge: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
+  { id: "failed", label: "Failed", dotColor: "bg-rose-500", activeBadge: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
+  { id: "delivered", label: "Delivered", dotColor: "bg-emerald-400", activeBadge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
+  { id: "read", label: "Read", dotColor: "bg-teal-300", activeBadge: "bg-teal-500/20 text-teal-200 border-teal-500/40" },
+];
+
 export const WhatsAppWebhookDashboard: React.FC = () => {
   const { addToast } = useToast();
   const [search, setSearch] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  // Multi-select status filter: empty array means ALL statuses active
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSimulateOpen, setIsSimulateOpen] = useState<boolean>(false);
@@ -117,11 +128,53 @@ export const WhatsAppWebhookDashboard: React.FC = () => {
     addToast("Webhook events buffer cleared", "info");
   };
 
+  // Status toggle handler for multi-select
+  const toggleStatus = (status: string) => {
+    setSelectedStatuses((prev) => {
+      if (prev.includes(status)) {
+        return prev.filter((s) => s !== status);
+      } else {
+        return [...prev, status];
+      }
+    });
+  };
+
+  const clearStatusFilters = () => {
+    setSelectedStatuses([]);
+  };
+
+  const selectOnlyStatus = (status: string) => {
+    setSelectedStatuses([status]);
+  };
+
+  const selectCorePipeline = () => {
+    setSelectedStatuses(["received", "processed", "failed"]);
+  };
+
+  // Real-time count of events per status
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      received: 0,
+      processed: 0,
+      failed: 0,
+      delivered: 0,
+      read: 0,
+      sent: 0,
+    };
+    events.forEach((evt) => {
+      counts[evt.status] = (counts[evt.status] || 0) + 1;
+    });
+    return counts;
+  }, [events]);
+
   const filteredEvents = useMemo(() => {
     return events.filter((evt) => {
-      const matchesStatus = selectedStatus === "all" || evt.status === selectedStatus;
+      const matchesStatus =
+        selectedStatuses.length === 0 || selectedStatuses.includes(evt.status);
+      if (!matchesStatus) return false;
+
       const query = search.toLowerCase().trim();
-      if (!query) return matchesStatus;
+      if (!query) return true;
 
       const senderStr = (evt.sender || "").toLowerCase();
       const senderNameStr = (evt.senderName || "").toLowerCase();
@@ -130,17 +183,16 @@ export const WhatsAppWebhookDashboard: React.FC = () => {
       const idStr = (evt.id || "").toLowerCase();
       const payloadStr = JSON.stringify(evt.payload || {}).toLowerCase();
 
-      const matchesQuery =
+      return (
         senderStr.includes(query) ||
         senderNameStr.includes(query) ||
         senderPhoneStr.includes(query) ||
         summaryStr.includes(query) ||
         idStr.includes(query) ||
-        payloadStr.includes(query);
-
-      return matchesStatus && matchesQuery;
+        payloadStr.includes(query)
+      );
     });
-  }, [events, selectedStatus, search]);
+  }, [events, selectedStatuses, search]);
 
   const stats = useMemo(() => {
     const total = events.length;
@@ -240,63 +292,159 @@ export const WhatsAppWebhookDashboard: React.FC = () => {
         />
       </div>
 
-      {/* Controls & Filter Bar */}
-      <div className="space-y-3">
-        <div className="flex flex-col md:flex-row justify-between gap-4 p-4 bg-white/5 rounded-3xl border border-white/5">
+      {/* Controls & Multi-Select Status Filter Bar */}
+      <div className="space-y-4">
+        {/* Search & Main Multi-Select Bar */}
+        <div className="flex flex-col lg:flex-row justify-between gap-4 p-4 bg-white/5 rounded-3xl border border-white/5 backdrop-blur-md">
+          {/* Text Search Input */}
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={16} />
             <input
               id="whatsapp-event-search-input"
               type="text"
-              placeholder="Filter by sender name, sender phone, or payload content..."
+              placeholder="Search by sender, phone, message content or payload JSON..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-10 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:border-aba-gold/50 transition-colors"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-10 py-3 text-xs text-white placeholder-white/30 focus:outline-none focus:border-aba-gold/50 transition-colors font-medium"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-colors"
-                title="Clear filter"
-                aria-label="Clear filter"
+                title="Clear text search"
+                aria-label="Clear text search"
               >
                 <X size={14} />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
-            {["all", "received", "processed", "delivered", "read", "failed"].map((st) => (
-              <button
-                key={st}
-                onClick={() => setSelectedStatus(st)}
-                className={`px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${
-                  selectedStatus === st
-                    ? "bg-white text-aba-dark shadow-lg scale-[1.02]"
-                    : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                {st}
-              </button>
-            ))}
+          {/* Multi-Select Status Filter Chips */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* "All Events" button */}
+            <button
+              type="button"
+              onClick={clearStatusFilters}
+              className={`px-3.5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                selectedStatuses.length === 0
+                  ? "bg-white text-aba-dark shadow-lg shadow-white/10 scale-[1.02]"
+                  : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10 border border-white/5"
+              }`}
+            >
+              <span>All Events</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+                selectedStatuses.length === 0 ? "bg-aba-dark/15 text-aba-dark" : "bg-white/10 text-white/60"
+              }`}>
+                {events.length}
+              </span>
+            </button>
+
+            {/* Individual Status Multi-Select Toggle Buttons */}
+            {PRIMARY_STATUS_FILTERS.map((item) => {
+              const isSelected = selectedStatuses.includes(item.id);
+              const count = statusCounts[item.id] || 0;
+              return (
+                <button
+                  type="button"
+                  key={item.id}
+                  onClick={() => toggleStatus(item.id)}
+                  aria-pressed={isSelected}
+                  className={`px-3.5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 border ${
+                    isSelected
+                      ? `${item.activeBadge} shadow-md scale-[1.02]`
+                      : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10 border-white/5"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${item.dotColor} ${isSelected ? "animate-pulse" : "opacity-60"}`} />
+                  {isSelected && <Check size={11} className="stroke-[3]" />}
+                  <span>{item.label}</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold ${
+                    isSelected ? "bg-black/20 text-current" : "bg-white/10 text-white/60"
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Active Filter & Count Status */}
-        {search.trim() && (
-          <div className="flex items-center justify-between px-4 py-2 bg-aba-gold/10 border border-aba-gold/20 rounded-2xl text-xs text-aba-gold">
-            <div className="flex items-center gap-2">
-              <Filter size={13} />
-              <span className="font-bold">
-                Filtering by: <span className="font-mono text-white underline">"{search.trim()}"</span>
-              </span>
-            </div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-aba-gold/80">
-              Showing {filteredEvents.length} of {events.length} events
+        {/* Quick Filter Presets & Active Filters Summary */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-2">
+          {/* Quick Shortcuts */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1.5 mr-1">
+              <Filter size={11} className="text-aba-gold" /> Filter Shortcuts:
             </span>
+            <button
+              type="button"
+              onClick={selectCorePipeline}
+              className={`px-3 py-1 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all border ${
+                selectedStatuses.length === 3 &&
+                selectedStatuses.includes("received") &&
+                selectedStatuses.includes("processed") &&
+                selectedStatuses.includes("failed")
+                  ? "bg-aba-gold text-aba-dark border-aba-gold font-black shadow-md shadow-aba-gold/10"
+                  : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10 border-white/10"
+              }`}
+            >
+              Core Pipeline (Received, Processed, Failed)
+            </button>
+            <button
+              type="button"
+              onClick={() => selectOnlyStatus("failed")}
+              className={`px-3 py-1 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all border ${
+                selectedStatuses.length === 1 && selectedStatuses[0] === "failed"
+                  ? "bg-rose-500 text-white border-rose-500 font-black shadow-md shadow-rose-500/20"
+                  : "bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border-rose-500/20"
+              }`}
+            >
+              Only Failed ({statusCounts.failed || 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => selectOnlyStatus("received")}
+              className={`px-3 py-1 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all border ${
+                selectedStatuses.length === 1 && selectedStatuses[0] === "received"
+                  ? "bg-sky-500 text-white border-sky-500 font-black shadow-md shadow-sky-500/20"
+                  : "bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 border-sky-500/20"
+              }`}
+            >
+              Only Received ({statusCounts.received || 0})
+            </button>
+            <button
+              type="button"
+              onClick={() => selectOnlyStatus("processed")}
+              className={`px-3 py-1 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all border ${
+                selectedStatuses.length === 1 && selectedStatuses[0] === "processed"
+                  ? "bg-amber-500 text-aba-dark border-amber-500 font-black shadow-md shadow-amber-500/20"
+                  : "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border-amber-500/20"
+              }`}
+            >
+              Only Processed ({statusCounts.processed || 0})
+            </button>
           </div>
-        )}
+
+          {/* Active status indicator & Clear All */}
+          {(selectedStatuses.length > 0 || search.trim()) && (
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-white/50 font-medium font-mono">
+                Showing <strong className="text-white">{filteredEvents.length}</strong> of {events.length} events
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  clearStatusFilters();
+                  setSearch("");
+                }}
+                className="text-[10px] font-bold uppercase tracking-wider text-rose-400 hover:text-rose-300 flex items-center gap-1 hover:underline"
+              >
+                <X size={12} /> Reset Filters
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Real-time SSE Stream Banner / Flash Indicator */}

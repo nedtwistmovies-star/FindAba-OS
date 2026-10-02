@@ -44,6 +44,24 @@ export const GitSyncSupabaseCommit: React.FC = () => {
   const [token, setToken] = useState('');
   const [showToken, setShowToken] = useState(false);
 
+  // Connection Test & Diagnostics State
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    repo?: string;
+    exists?: boolean;
+    private?: boolean;
+    defaultBranch?: string;
+    rateLimitRemaining?: number;
+    authStatus?: string;
+    htmlUrl?: string;
+    message?: string;
+    details?: string;
+  } | null>(null);
+
+  const [diagnostics, setDiagnostics] = useState<any>(null);
+  const [runningDiagnostics, setRunningDiagnostics] = useState(false);
+
   // Synchronize with server authoritative Git config
   useEffect(() => {
     if (config) {

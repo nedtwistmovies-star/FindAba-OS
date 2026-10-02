@@ -90,7 +90,7 @@ const SenderBooking: React.FC = () => {
 
         // 2. Initialize Paystack
         const handler = (window as any).PaystackPop.setup({
-            key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+            key: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PAYSTACK_PUBLIC_KEY) || '',
             email: profile?.email || 'customer@findaba.com',
             amount: quote.amount * 100, // Kobo
             metadata: {

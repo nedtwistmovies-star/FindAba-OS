@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-const API = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || '';
+const API = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_FUNCTIONS_URL) || (typeof process !== 'undefined' && process.env ? process.env.VITE_SUPABASE_FUNCTIONS_URL : '') || '';
 
 export async function signInWithEmail(email: string) {
   const { error } = await supabase.auth.signInWithOtp({
