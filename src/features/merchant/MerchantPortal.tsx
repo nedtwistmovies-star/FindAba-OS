@@ -13,7 +13,7 @@ import {
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile, updateOrderStatus, fetchDisputes, updateDisputeEvidence, fetchMerchantStats } from '../../services/supabaseService';
+import { fetchMerchantOrders, updateBusinessInDB, fetchReferrals, fetchUserProfile, updateOrderStatus, fetchDisputes, updateDisputeEvidence, fetchMerchantStats, adminDelistBusiness, adminDeleteBusiness } from '../../services/supabaseService';
 import { generateWaybillPDF } from '../../utils/pdfGenerator';
 import { MultiImageUpload, ImageUpload } from '../../components/ImageUpload';
 import { MultiVideoUpload } from '../../components/VideoUpload';
@@ -271,12 +271,19 @@ const MerchantPortal: React.FC<{
         amount={selectedUpgradePlan?.price || 0}
         email={business?.email || 'support@findaba.com.ng'}
         label={`Upgrade to ${selectedUpgradePlan?.name}`}
-        onSuccess={async () => {
+        businessId={business?.id}
+        userId={user_id || undefined}
+        tier={selectedUpgradePlan?.id}
+        onSuccess={async (res: any) => {
           setSyncing(true);
           try {
-            await updateBusinessInDB(business.id, { subscription_tier: selectedUpgradePlan.id });
-            setBusiness({ ...business, subscription_tier: selectedUpgradePlan.id });
-            addToast(`Partner Upgraded to ${selectedUpgradePlan.name} Tier.`, "success");
+            if (res?.business) {
+              setBusiness(res.business);
+            } else if (business?.id && selectedUpgradePlan?.id) {
+              setBusiness({ ...business, subscription_tier: selectedUpgradePlan.id });
+            }
+            if (onRefresh) await onRefresh();
+            addToast(`Partner Upgraded to ${res?.tierName || selectedUpgradePlan?.name || 'Selected'} Tier.`, "success");
           } catch (e) {
             addToast("Upgrade Signal Failed. Check Connectivity.", "error");
           } finally {

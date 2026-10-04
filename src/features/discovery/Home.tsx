@@ -112,7 +112,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
   const { userRole, userIdentifier } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isAdmin = userRole === 'admin' || userIdentifier === 'pastornelsonezi@gmail.com';
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
   const [isSearching, setIsSearching] = useState(false);
 
   // 🔹 Long-Press Context Menu Setup
@@ -187,15 +187,16 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
 
   // 🔹 Business of the Day Logic
   const businessOfTheDay = useMemo(() => {
-    if (businesses.length === 0) return null;
+    const activeBusinesses = businesses.filter(b => b.status !== 'delisted');
+    if (activeBusinesses.length === 0) return null;
     const today = new Date();
-    const index = (today.getFullYear() + today.getMonth() + today.getDate()) % businesses.length;
-    return businesses[index];
+    const index = (today.getFullYear() + today.getMonth() + today.getDate()) % activeBusinesses.length;
+    return activeBusinesses[index];
   }, [businesses]);
 
   // 🔹 Hidden Gems Logic
   const hiddenGems = useMemo(() => {
-    return businesses.filter(b => b.is_hidden_gem).slice(0, 4);
+    return businesses.filter(b => b.is_hidden_gem && b.status !== 'delisted').slice(0, 4);
   }, [businesses]);
 
   // 🔹 Artisan Tabs Logic
@@ -204,7 +205,8 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
   const filteredArtisans = useMemo(() => {
     // Only use mock data if we have absolutely no businesses in the registry
     const allArtisans = businesses.length > 0 ? businesses : ARTISANS;
-    const uniqueArtisans = Array.from(new Map(allArtisans.map(item => [item.id, item])).values());
+    const activeArtisans = allArtisans.filter(b => b.status !== 'delisted');
+    const uniqueArtisans = Array.from(new Map(activeArtisans.map(item => [item.id, item])).values());
 
     switch (artisanTab) {
       case 'new':

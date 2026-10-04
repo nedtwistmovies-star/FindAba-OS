@@ -1084,30 +1084,37 @@ const Layout: React.FC<LayoutProps> = ({
                   </h4>
                   <div className="flex gap-4">
                     {[
-                      { icon: <Facebook size={18} />, key: "facebook" },
-                      { icon: <Instagram size={18} />, key: "instagram" },
-                      { icon: <Twitter size={18} />, key: "twitter" },
-                      { icon: <Music size={18} />, key: "tiktok" },
+                      { 
+                        icon: <Facebook size={18} />, 
+                        name: "Facebook", 
+                        url: "https://web.facebook.com/photo/?fbid=122098470273280931&set=a.122096793267280931" 
+                      },
+                      { 
+                        icon: <Instagram size={18} />, 
+                        name: "Instagram", 
+                        url: "https://www.instagram.com/find.aba/" 
+                      },
+                      { 
+                        icon: <Twitter size={18} />, 
+                        name: "X (Twitter)", 
+                        url: "https://x.com/home" 
+                      },
+                      { 
+                        icon: <Music size={18} />, 
+                        name: "TikTok", 
+                        url: (socialLinks as any)?.tiktok || (SANDALS_BRAND as any)?.tiktok || "https://www.tiktok.com" 
+                      },
                     ].map((social, i) => (
-                      <button
+                      <a
                         key={i}
-                        onClick={() => {
-                          const url =
-                            (socialLinks as any)?.[social.key] ||
-                            (SANDALS_BRAND as any)[social.key];
-                          if (url)
-                            window.open(
-                              url.startsWith("http")
-                                ? url
-                                : `https://${social.key}.com/${url}`,
-                              "_blank",
-                            );
-                          else addToast(`${social.key} Link not set.`, "info");
-                        }}
-                        className="p-3 bg-white/5 rounded-lg hover:text-aba-gold transition-standard border border-white/5 hover:border-white/20"
+                        href={social.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`FindAba on ${social.name}`}
+                        className="p-3 bg-white/5 rounded-lg hover:text-aba-gold hover:bg-white/10 transition-standard border border-white/5 hover:border-white/20 inline-flex items-center justify-center cursor-pointer text-white/70 hover:scale-105 active:scale-95"
                       >
                         {social.icon}
-                      </button>
+                      </a>
                     ))}
                   </div>
                 </div>

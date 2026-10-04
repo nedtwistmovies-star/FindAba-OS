@@ -36,16 +36,9 @@ export const useGitSync = () => {
     const userRole = localStorage.getItem('findaba_auth_role');
     const isAdminAuth = localStorage.getItem('findaba_admin_auth') === 'true';
 
-    // If no Supabase session token exists but client has admin state, provide emergency admin header
-    if (!headers['Authorization']) {
-      const emailForToken = userEmail || 'pastornelsonezi@gmail.com';
-      if (emailForToken === 'pastornelsonezi@gmail.com' || userRole === 'admin' || userRole === 'superadmin' || isAdminAuth) {
-        headers['Authorization'] = `Bearer emergency_admin_${btoa(emailForToken)}`;
-      }
-    }
-
-    if (userEmail) {
-      headers['X-Admin-Email'] = userEmail;
+    // If no Supabase session token exists but client has verified admin state
+    if (!headers['Authorization'] && (userRole === 'admin' || userRole === 'superadmin' || isAdminAuth) && userEmail) {
+      headers['Authorization'] = `Bearer emergency_admin_${btoa(userEmail)}`;
     }
 
     const savedPat = localStorage.getItem('findaba_github_pat')?.trim();

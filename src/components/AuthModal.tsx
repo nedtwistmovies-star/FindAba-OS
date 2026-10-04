@@ -40,12 +40,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleBypassLogin = () => {
     localStorage.setItem('findaba_is_auth', 'true');
     handleAuthSuccess(
-      email || "pastornelsonezi@gmail.com",
-      "Sandbox Citizen",
-      "admin",
-      "sandbox-bypass-uuid"
+      email || "guest@findaba.com.ng",
+      "Guest User",
+      "user",
+      "guest-session-uuid"
     );
-    addToast("Emergency sandbox access authorized securely.", "success");
+    addToast("Guest access active.", "info");
     if (setView) {
       setView("home");
     }

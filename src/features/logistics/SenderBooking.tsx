@@ -244,7 +244,7 @@ const SenderBooking: React.FC = () => {
                     </div>
                     <div>
                         <h2 className="text-4xl font-black tracking-tighter">₦{quote.amount.toLocaleString()}</h2>
-                        <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mt-2">{quote.distance}KM • ESCROW PROTECTED</p>
+                        <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mt-2">{quote.distance}KM • SIMULATED ESTIMATE</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-left">

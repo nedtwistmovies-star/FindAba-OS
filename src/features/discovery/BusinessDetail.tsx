@@ -380,6 +380,26 @@ const BusinessDetail: React.FC<BusinessDetailProps> = ({ business, onBack, onTog
                         <p className="text-sm font-bold text-white uppercase tracking-tight">{business.phone_whatsapp}</p>
                      </div>
                   </button>
+
+                  {business.digital_postcode && (
+                    <div className="w-full flex items-center gap-5 p-5 bg-white/5 rounded-2xl border border-aba-gold/20 hover:bg-white/10 transition-standard group">
+                       <div className="w-10 h-10 bg-aba-gold/20 text-aba-gold rounded-xl flex items-center justify-center group-hover:scale-110 transition-standard">
+                          <MapPin size={18} />
+                       </div>
+                       <div className="text-left">
+                          <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1.5">
+                            Digital Postcode
+                            {business.postcode_verified && (
+                              <span className="flex items-center gap-0.5 text-aba-green bg-aba-green/10 px-1 rounded-sm text-[6px] font-black uppercase border border-aba-green/20">
+                                <ShieldCheck size={6} /> Verified
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-sm font-bold text-white font-mono tracking-wider">{business.digital_postcode}</p>
+                       </div>
+                    </div>
+                  )}
+
                   {business.primary_product_or_service && (
                     <button 
                       onClick={() => setView('explore')}

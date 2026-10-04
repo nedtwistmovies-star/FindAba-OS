@@ -24,7 +24,7 @@ export const sendEmail = async (options: EmailOptions): Promise<{ success: boole
         ...options,
         from: options.from || 'onboarding@findaba.com.ng',
         name: options.name || 'FindAba City OS',
-        apiKey: options.apiKey || localStorage.getItem('findaba_resend_api_key') || undefined
+        apiKey: options.apiKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_resend_api_key') : undefined) || undefined
       }),
     });
 

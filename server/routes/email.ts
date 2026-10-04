@@ -19,7 +19,6 @@ const sendEmailSchema = z.object({
   html: z.string().min(1),
   from: z.string().optional(),
   name: z.string().optional(),
-  apiKey: z.string().optional(),
 });
 
 emailRouter.post("/send-email", emailRateLimit, async (req, res) => {
@@ -27,10 +26,10 @@ emailRouter.post("/send-email", emailRateLimit, async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid request body", details: parsed.error.flatten() });
   }
-  const { to, subject, html, from, name, apiKey } = parsed.data;
+  const { to, subject, html, from, name } = parsed.data;
 
   try {
-    const data = await sendEmail({ to, subject, html, from, name, apiKeyOverride: apiKey });
+    const data = await sendEmail({ to, subject, html, from, name });
     res.json({ success: true, id: (data as any)?.id });
   } catch (err: any) {
     console.error("[Email] Send failure:", err.message);

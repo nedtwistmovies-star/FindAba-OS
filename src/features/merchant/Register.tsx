@@ -13,8 +13,10 @@ import { ImageUpload } from '../../components/ImageUpload';
 import PaystackOverlay from '../../components/PaystackOverlay';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
 import { sendBusinessRegistrationEmail } from '../../services/emailService';
+import { paymentService } from '../../services/paymentService';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToast } from '../../providers/ToastProvider';
+import { useBusiness } from '../../providers/BusinessProvider';
 import IndustrialButton from '../../components/IndustrialButton';
 
 interface RegisterProps {
@@ -25,6 +27,7 @@ interface RegisterProps {
 
 const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess }) => {
   const { userIdentifier, user_id, isAuth } = useAuth();
+  const { refreshData } = useBusiness();
   const { addToast } = useToast();
   const [step, setStep] = useState<'plan' | 'form' | 'success'>('plan');
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionTier>(SubscriptionTier.FREE);
@@ -32,6 +35,8 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
   const [loading, setLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [registeredBusiness, setRegisteredBusiness] = useState<Business | null>(null);
+  const [paymentReference, setPaymentReference] = useState<string>('');
+  const [pendingBusinessId, setPendingBusinessId] = useState<string>('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -103,7 +108,28 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         throw new Error('Authentication session not found. Please login again.');
       }
 
-      // Pre-flight check: email uniqueness
+      // If completing via payment confirmation reference:
+      if (paymentRef && selectedPlan !== SubscriptionTier.FREE) {
+        const verifyRes = await paymentService.verifyWithBackend(paymentRef, {
+          userId: activeUserId,
+          businessId: pendingBusinessId || undefined,
+          tier: selectedPlan,
+          amount: planCost,
+        });
+
+        if (verifyRes && verifyRes.verified && verifyRes.business) {
+          setRegisteredBusiness(verifyRes.business);
+          setStep('success');
+          onRegister(verifyRes.business);
+          await refreshData(verifyRes.business);
+          sendBusinessRegistrationEmail(verifyRes.business.email, verifyRes.business.name, verifyRes.business.subscription_tier || selectedPlan)
+            .catch(e => console.warn("[FindAba] Email deferred:", e));
+          addToast(`Payment confirmed! Business registered at ${verifyRes.business.subscription_tier} tier.`, "success");
+          return;
+        }
+      }
+
+      // Pre-flight check: email uniqueness for direct Free registration
       const { data: existingBiz } = await supabase
         .from('businesses')
         .select('id, name')
@@ -128,6 +154,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
             primary_product_or_service: formData.primary_product_or_service.trim() || formData.category,
             area: formData.area,
             address: formData.address.trim(),
+            digital_postcode: (formData as any).digital_postcode?.trim() || null,
             phone_whatsapp: formData.phone_whatsapp.trim(),
             description: formData.description.trim() || `${formData.name.trim()} is an active business operating in ${formData.area}, Aba.`,
             image_url: formData.image_url || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800',
@@ -161,6 +188,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
         setRegisteredBusiness(data as any);
         setStep('success');
         onRegister(data as any);
+        await refreshData(data as any);
         addToast("Your business has been registered successfully!", "success");
       }
     } catch (error: any) {
@@ -195,6 +223,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
     if (selectedPlan === SubscriptionTier.FREE) {
       await completeRegistration();
     } else {
+      setLoading(true);
       // Pre-flight check on duplicate email before opening payment overlay
       const supabase = getSupabase();
       if (supabase) {
@@ -206,6 +235,7 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
             .maybeSingle();
 
           if (existingBiz) {
+            setLoading(false);
             addToast(`A business with email "${formData.email}" is already enrolled ("${existingBiz.name}"). Please use a different email.`, "error");
             return;
           }
@@ -213,12 +243,75 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
           // Proceed if pre-flight check fails
         }
       }
-      setShowCheckout(true);
+
+      try {
+        let activeUserId = user_id;
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.id) activeUserId = session.user.id;
+        }
+
+        const generatedRef = `FINDABA-REG-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        setPaymentReference(generatedRef);
+
+        // Pre-register intent on server with selected tier
+        const intent = await paymentService.createTierPayment({
+          reference: generatedRef,
+          userId: activeUserId || undefined,
+          tier: selectedPlan,
+          amount: planCost,
+          email: formData.email,
+          businessData: {
+            ...formData,
+            digital_postcode: (formData as any).digital_postcode,
+            user_id: activeUserId,
+          },
+        });
+
+        if (intent?.businessId) {
+          setPendingBusinessId(intent.businessId);
+        }
+        setShowCheckout(true);
+      } catch (err: any) {
+        console.error("Failed to initialize tier payment intent:", err);
+        addToast("Could not prepare payment checkout. Please try again.", "error");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handlePaymentSuccess = () => {
-    completeRegistration();
+  const handlePaymentSuccess = async (res: any) => {
+    setShowCheckout(false);
+    setLoading(true);
+
+    try {
+      if (res?.business) {
+        // Authoritatively confirmed and upgraded business returned from backend
+        setRegisteredBusiness(res.business);
+        setStep('success');
+        onRegister(res.business);
+        await refreshData(res.business);
+        
+        sendBusinessRegistrationEmail(res.business.email, res.business.name, res.business.subscription_tier || selectedPlan)
+          .catch(e => console.warn("[FindAba] Email notification deferred or failed:", e));
+
+        window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_UPDATED', { detail: res.business }));
+        if (res.profile) {
+          window.dispatchEvent(new CustomEvent('FINDABA_PROFILE_UPDATED', { detail: res.profile }));
+        }
+
+        addToast(`Payment genuinely confirmed! Business automatically upgraded to ${res.business.subscription_tier} tier.`, "success");
+      } else {
+        await completeRegistration(res?.reference || paymentReference);
+      }
+    } catch (e: any) {
+      console.error("Payment success processing error:", e);
+      addToast("Business registered. Syncing dashboard...", "info");
+      setStep('success');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (step === 'plan') {
@@ -320,6 +413,10 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
           amount={planCost}
           email={formData.email || userIdentifier || 'billing@findaba.com'}
           userId={user_id || undefined}
+          businessId={pendingBusinessId || undefined}
+          tier={selectedPlan}
+          reference={paymentReference}
+          businessData={formData}
           label={`Business Registration: ${formData.name || 'New Business'} (${selectedPlanObj.name})`}
           onSuccess={handlePaymentSuccess}
           onCancel={() => {
@@ -488,7 +585,19 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1">Street / Shop Address *</label>
+                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1">NIPOST Digital Postcode (11 Digits)</label>
+                  <input 
+                    value={(formData as any).digital_postcode || ''}
+                    onChange={e => setFormData({...formData, digital_postcode: e.target.value} as any)}
+                    placeholder="e.g. 45010100101"
+                    maxLength={11}
+                    className="w-full p-4 md:p-5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-white/20 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest ml-1">Street / Shop Address *</label>
                   <input 
                     required
                     value={formData.address}
@@ -496,7 +605,6 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
                     placeholder="e.g. Line 4, Shop 22, Ariaria Market"
                     className="w-full p-4 md:p-5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder:text-white/20 focus:border-aba-gold/50 focus:bg-white/10 transition-standard outline-none text-sm font-bold uppercase tracking-tight"
                   />
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -573,9 +681,20 @@ const Register: React.FC<RegisterProps> = ({ setView, onRegister, onAuthSuccess 
           </div>
 
           <div className="space-y-6 md:space-y-8">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-aba-gold/15 border border-aba-gold/30 rounded-full text-aba-gold shadow-lg">
+              <Zap size={16} className="fill-current" />
+              <span className="text-xs font-black uppercase tracking-widest">
+                Tier: {registeredBusiness?.subscription_tier || selectedPlanObj.name}
+              </span>
+              <span className="text-white/40">•</span>
+              <span className="text-xs font-black uppercase tracking-widest text-aba-green">
+                {registeredBusiness?.verification_status || 'Verified'}
+              </span>
+            </div>
+
             <h2 className="text-3xl md:text-6xl font-bold text-white uppercase tracking-tighter leading-none">Welcome to FindAba!</h2>
             <p className="text-sm md:text-lg text-white/40 font-bold uppercase tracking-widest leading-relaxed max-w-lg mx-auto">
-              {registeredBusiness?.name || 'Your business'} is now enrolled. Buyers and traders across Aba can now discover your hub.
+              <span className="text-white font-bold">{registeredBusiness?.name || formData.name}</span> is now officially enrolled at <span className="text-aba-gold font-bold">{registeredBusiness?.subscription_tier || selectedPlanObj.name}</span> tier. Your digital storefront and verified tools are live.
             </p>
           </div>
 

@@ -4,8 +4,42 @@ import axios from "axios";
 import { env } from "../services/env";
 import { supabase } from "../services/supabase";
 import { sendPaymentSuccessEmail } from "../../src/services/emailService";
+import { 
+  createTierPaymentIntent, 
+  confirmTierPaymentAndUpgrade, 
+  getAdminPaymentsWithBusinesses,
+  normalizeTier 
+} from "../services/tierUpgradeService";
 
 export const paymentRouter = Router();
+
+/**
+ * Pre-register a business registration tier payment intent.
+ * Saves pending transaction and creates pending business record if needed.
+ */
+paymentRouter.post("/create-tier-payment", async (req, res) => {
+  const { reference, userId, businessId, tier, amount, email, businessData } = req.body;
+
+  if (!reference || !tier) {
+    return res.status(400).json({ success: false, error: "Reference and tier are required" });
+  }
+
+  try {
+    const result = await createTierPaymentIntent({
+      reference,
+      userId,
+      businessId,
+      tier,
+      amount: Number(amount) || 0,
+      email,
+      businessData,
+    });
+    return res.json(result);
+  } catch (err: any) {
+    console.error("[Payment Route] create-tier-payment error:", err.message);
+    return res.status(500).json({ success: false, error: err.message || "Failed to initialize tier payment" });
+  }
+});
 
 /**
  * Return Paystack public key if configured on server, enabling frontend client initialization.
@@ -264,26 +298,57 @@ paymentRouter.post("/paystack-initialize", async (req, res) => {
 
 /**
  * Direct transaction verification endpoint using Paystack Secret Key.
+ * Triggers authoritative tier upgrade if transaction is a registration or tier upgrade.
  */
 paymentRouter.post("/verify-payment", async (req, res) => {
-  const { reference, orderId, userId, amount } = req.body;
+  const { reference, orderId, userId, amount, businessId, tier } = req.body;
 
   if (!reference) {
     return res.status(400).json({ error: "Transaction reference is required" });
   }
 
-  const secret = env.PAYSTACK_SECRET_KEY;
-  if (!secret) {
-    // If secret key is not set, log and return optimistic status if simulated or client verified
-    console.warn("[Payment Verify] PAYSTACK_SECRET_KEY not set in environment. Checking local records.");
-    return res.json({
-      verified: true,
-      reference,
-      note: "Verified via client signal (Secret key unconfigured on server).",
-    });
-  }
-
   try {
+    // Check if this reference is a tier payment
+    let isTierPayment = !!tier || !!businessId;
+    if (!isTierPayment) {
+      const { data: payRecord } = await supabase
+        .from('payments')
+        .select('plan_id, user_id')
+        .eq('reference', reference)
+        .maybeSingle();
+
+      if (payRecord?.plan_id) {
+        isTierPayment = true;
+      }
+    }
+
+    if (isTierPayment) {
+      const tierResult = await confirmTierPaymentAndUpgrade(reference, {
+        businessId,
+        tier,
+        userId,
+        amount: Number(amount) || undefined,
+      });
+
+      if (!tierResult.verified) {
+        return res.status(400).json(tierResult);
+      }
+
+      return res.json(tierResult);
+    }
+
+    // Standard Order / Booking Verification
+    const secret = env.PAYSTACK_SECRET_KEY;
+    if (!secret) {
+      console.warn("[Payment Verify] PAYSTACK_SECRET_KEY not set in environment. Cannot verify transaction.");
+      return res.status(400).json({
+        verified: false,
+        reference,
+        status: "unconfigured",
+        error: "Paystack secret key is not configured on the server. Unable to verify payment.",
+      });
+    }
+
     const paystackRes = await axios.get(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: {
         Authorization: `Bearer ${secret}`,
@@ -297,20 +362,31 @@ paymentRouter.post("/verify-payment", async (req, res) => {
       const verifiedAmount = data.amount / 100;
       const targetUserId = userId || data.metadata?.user_id;
       const targetOrderId = orderId || data.metadata?.order_id;
+      const targetBizId = businessId || data.metadata?.business_id;
+      const detectedTier = data.metadata?.tier || data.metadata?.plan_id;
 
-      // Update Supabase records
+      // If metadata actually contained tier info, upgrade business now!
+      if (detectedTier || targetBizId) {
+        const tierResult = await confirmTierPaymentAndUpgrade(reference, {
+          businessId: targetBizId,
+          tier: detectedTier,
+          userId: targetUserId,
+          amount: verifiedAmount,
+          paystackData: data,
+        });
+        return res.json(tierResult);
+      }
+
+      // Safe update to payments table (only valid columns)
       try {
         await supabase.from("payments").upsert(
           {
             reference,
             amount: verifiedAmount,
-            user_id: targetUserId,
-            order_id: targetOrderId,
+            user_id: targetUserId || null,
             status: "success",
             provider: "paystack",
-            channel: data.channel,
-            paid_at: data.paid_at || new Date().toISOString(),
-            metadata: data,
+            created_at: data.paid_at || new Date().toISOString(),
           },
           { onConflict: "reference" }
         );
@@ -330,7 +406,6 @@ paymentRouter.post("/verify-payment", async (req, res) => {
         status: "success",
         reference,
         amount: verifiedAmount,
-        channel: data.channel,
         gateway_response: data.gateway_response,
       });
     } else {
@@ -369,45 +444,49 @@ paymentRouter.post("/paystack-webhook", async (req, res) => {
   if (event.event === "charge.success") {
     const { reference, amount, metadata } = event.data;
     const userId = metadata?.user_id;
-    const bookingId = metadata?.booking_id;
     const orderId = metadata?.order_id;
-
-    if (!userId && !orderId) {
-      return res.status(400).json({ error: "Missing user/order identification" });
-    }
+    const businessId = metadata?.business_id;
+    const tier = metadata?.tier || metadata?.plan_id;
 
     try {
-      const paymentData: any = {
-        user_id: userId,
-        amount: amount / 100,
-        reference,
-        status: "success",
-        provider: "paystack",
-        metadata: event.data,
-        created_at: new Date().toISOString(),
-      };
-      if (bookingId) paymentData.booking_id = bookingId;
-      if (orderId) paymentData.order_id = orderId;
+      // 1. Authoritative Tier Upgrade via Webhook
+      if (tier || businessId) {
+        await confirmTierPaymentAndUpgrade(reference, {
+          businessId,
+          tier,
+          userId,
+          amount: amount / 100,
+          paystackData: event.data,
+        });
+      } else {
+        // Safe standard payment update
+        await supabase.from("payments").upsert({
+          reference,
+          user_id: userId || null,
+          amount: amount / 100,
+          status: "success",
+          provider: "paystack",
+          created_at: new Date().toISOString(),
+        }, { onConflict: "reference" });
+      }
 
-      const { error: paymentError } = await supabase.from("payments").upsert(paymentData, { onConflict: "reference" });
-      if (paymentError) throw paymentError;
-
+      // 2. Order update if orderId present
       if (orderId) {
-        const { error: orderError } = await supabase
+        await supabase
           .from("orders")
           .update({ status: "paid", updated_at: new Date().toISOString() })
           .eq("id", orderId);
-        if (orderError) console.error("[Paystack Webhook] Order update failed:", orderError.message);
       }
 
+      // 3. User email receipt & Make.com trigger
       if (userId) {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from("profiles")
           .select("tier_level, email, full_name")
           .eq("id", userId)
           .single();
 
-        if (!profileError && profile?.email) {
+        if (profile?.email) {
           sendPaymentSuccessEmail(profile.email, reference, amount / 100).catch((err) =>
             console.error("[Email] Payment success email failed:", err.message)
           );
@@ -415,7 +494,15 @@ paymentRouter.post("/paystack-webhook", async (req, res) => {
 
         if (env.MAKE_WEBHOOK_URL) {
           axios
-            .post(env.MAKE_WEBHOOK_URL, { user_id: userId, order_id: orderId, amount: amount / 100, reference, timestamp: new Date().toISOString() })
+            .post(env.MAKE_WEBHOOK_URL, {
+              user_id: userId,
+              order_id: orderId,
+              business_id: businessId,
+              tier: tier || 'Verified',
+              amount: amount / 100,
+              reference,
+              timestamp: new Date().toISOString()
+            })
             .catch((err) => console.error("[Paystack Webhook] Make.com trigger failed:", err.message));
         }
       }
@@ -426,6 +513,45 @@ paymentRouter.post("/paystack-webhook", async (req, res) => {
   }
 
   res.status(200).json({ status: "success" });
+});
+
+/**
+ * GET /api/admin/payments
+ * Administrative view of all payment transactions with business & tier details.
+ */
+paymentRouter.get("/admin/payments", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ success: false, error: "Authentication required" });
+  }
+
+  const token = authHeader.replace("Bearer ", "").trim();
+  let user: any = null;
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      return res.status(401).json({ success: false, error: "Invalid or expired session" });
+    }
+    user = data.user;
+  } catch (err) {
+    return res.status(401).json({ success: false, error: "Session verification failed" });
+  }
+
+  const userEmail = (user.email || "").toLowerCase();
+  const masterAdminEmail = (process.env.MASTER_ADMIN_EMAIL || env.MASTER_ADMIN_EMAIL || "").trim().toLowerCase();
+  const isAdmin = (masterAdminEmail && userEmail === masterAdminEmail) || user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin";
+
+  if (!isAdmin) {
+    return res.status(403).json({ success: false, error: "Forbidden: Administrator access required." });
+  }
+
+  try {
+    const payments = await getAdminPaymentsWithBusinesses(100);
+    return res.json({ success: true, count: payments.length, payments });
+  } catch (err: any) {
+    console.error("[Admin Payments] Error:", err.message);
+    return res.status(500).json({ success: false, error: "Failed to retrieve payments" });
+  }
 });
 
 /**
@@ -451,8 +577,8 @@ paymentRouter.get("/payment-history", async (req, res) => {
   }
 
   const userEmail = (user.email || "").toLowerCase();
-  const masterAdminEmail = (process.env.MASTER_ADMIN_EMAIL || "pastornelsonezi@gmail.com").toLowerCase();
-  const isAdmin = userEmail === masterAdminEmail || user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin";
+  const masterAdminEmail = (process.env.MASTER_ADMIN_EMAIL || env.MASTER_ADMIN_EMAIL || "").trim().toLowerCase();
+  const isAdmin = (masterAdminEmail && userEmail === masterAdminEmail) || user.app_metadata?.role === "admin" || user.user_metadata?.role === "admin";
 
   const requestedUserId = (req.query.userId as string) || user.id;
 

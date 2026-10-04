@@ -9,9 +9,9 @@ export const SANDALS_BRAND = {
   category: "Business Service / Industrial Company",
   location: "Aba, Abia State, Nigeria",
   website: "https://findaba.app",
-  twitter: "https://twitter.com/Find_Aba",
-  facebook: "https://www.facebook.com/profile.php?id=61588427943743&mibextid=rS40aB7S9Ucbxw6v",
-  instagram: "https://instagram.com/find_aba",
+  twitter: "https://x.com/home",
+  facebook: "https://web.facebook.com/photo/?fbid=122098470273280931&set=a.122096793267280931",
+  instagram: "https://www.instagram.com/find.aba/",
   accent: "#FFD700",
   email: "suite@sandalsroyalle.com",
   country: "Nigeria"

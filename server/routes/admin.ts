@@ -186,3 +186,159 @@ adminRouter.post("/metadata", ensureAdmin, async (req, res) => {
     res.status(500).json({ error: "Failed to update metadata", details: error.message });
   }
 });
+
+/**
+ * POST /api/admin/businesses/:id/verify
+ * Authoritatively verify a business in the registry.
+ */
+adminRouter.post("/admin/businesses/:id/verify", ensureAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { level } = req.body || {};
+    if (!id) return res.status(400).json({ success: false, error: "Missing business ID" });
+
+    const updates = {
+      verification_status: "Verified",
+      status: "approved",
+      verification_level: level || "Document Verified",
+      is_verified: true,
+      integrity_grade: "B",
+    };
+
+    const { data, error } = await supabase
+      .from("businesses")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: `Business ${data.name || id} verified successfully`,
+      business: data,
+    });
+  } catch (error: any) {
+    console.error("[AdminBusinesses] Verify error:", error);
+    res.status(500).json({ success: false, error: error.message || "Failed to verify business" });
+  }
+});
+
+/**
+ * POST /api/admin/businesses/:id/unverify
+ * Authoritatively unverify a business in the registry.
+ */
+adminRouter.post("/admin/businesses/:id/unverify", ensureAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, error: "Missing business ID" });
+
+    const updates = {
+      verification_status: "Unverified",
+      verification_level: "Listed",
+      is_verified: false,
+      status: "pending",
+      premium_features_enabled: false,
+    };
+
+    const { data, error } = await supabase
+      .from("businesses")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: `Business ${data.name || id} unverified successfully`,
+      business: data,
+    });
+  } catch (error: any) {
+    console.error("[AdminBusinesses] Unverify error:", error);
+    res.status(500).json({ success: false, error: error.message || "Failed to unverify business" });
+  }
+});
+
+/**
+ * POST /api/admin/businesses/:id/delist
+ * Delist or relist a business in the registry.
+ * Body: { delist: boolean } (default true)
+ */
+adminRouter.post("/admin/businesses/:id/delist", ensureAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const shouldDelist = req.body.delist !== false;
+    if (!id) return res.status(400).json({ success: false, error: "Missing business ID" });
+
+    const updates = shouldDelist
+      ? {
+          status: "delisted",
+          verification_status: "Delisted",
+          is_verified: false,
+        }
+      : {
+          status: "approved",
+          verification_status: "Unverified",
+          is_verified: false,
+        };
+
+    const { data, error } = await supabase
+      .from("businesses")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: `Business ${data.name || id} ${shouldDelist ? "delisted" : "relisted"} successfully`,
+      business: data,
+    });
+  } catch (error: any) {
+    console.error("[AdminBusinesses] Delist error:", error);
+    res.status(500).json({ success: false, error: error.message || "Failed to update business delist status" });
+  }
+});
+
+/**
+ * DELETE /api/admin/businesses/:id
+ * Permanently delete a business and clean up references.
+ */
+adminRouter.delete("/admin/businesses/:id", ensureAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, error: "Missing business ID" });
+
+    // Clean up any referencing rows if necessary
+    try {
+      await supabase.from("products").delete().eq("business_id", id);
+    } catch {}
+    try {
+      await supabase.from("favorites").delete().eq("business_id", id);
+    } catch {}
+    try {
+      await supabase.from("reviews").delete().eq("business_id", id);
+    } catch {}
+
+    const { error } = await supabase
+      .from("businesses")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      message: `Business ${id} permanently deleted`,
+      id,
+    });
+  } catch (error: any) {
+    console.error("[AdminBusinesses] Delete error:", error);
+    res.status(500).json({ success: false, error: error.message || "Failed to delete business" });
+  }
+});

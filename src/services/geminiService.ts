@@ -121,7 +121,7 @@ async function callServerOracle(payload: any) {
     throw new Error(
       lastError?.message === 'Failed to fetch'
         ? "Network connection unavailable. Please check your internet and try again."
-        : (lastError?.message || "FindAba is busy right now. Please try again.")
+        : (lastError?.message || "FindAba is currently handling many requests. Please try again in a few seconds.")
     );
   }
 
@@ -130,7 +130,7 @@ async function callServerOracle(payload: any) {
   try { result = text && text.trim() ? JSON.parse(text) : {}; } catch {}
 
   if (!response.ok) {
-    throw new Error(result.error || "FindAba is busy right now. Please try again.");
+    throw new Error(result.error || "FindAba is currently handling many requests. Please try again in a few seconds.");
   }
 
   return result;
@@ -296,8 +296,9 @@ export const generateImageCaption = async (base64: string, mimeType: string) => 
 
 export const findArtisansAI = async (query: string, businesses: Business[]) => {
   try {
+    const activeBusinesses = businesses.filter(b => b.status !== 'delisted');
     const prompt = `Search Aba artisans for: "${query}". Return JSON ONLY: { "recommendations": [{ "business_id": "string", "reason": "string", "match_score": 90 }], "oracle_wisdom": "string" }`;
-    const result = await callServerOracle({ prompt, catalog: businesses, type: 'search' });
+    const result = await callServerOracle({ prompt, catalog: activeBusinesses, type: 'search' });
     if (typeof result.text === 'string') {
       try {
         return JSON.parse(cleanJSON(result.text));

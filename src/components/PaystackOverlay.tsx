@@ -21,6 +21,9 @@ interface PaystackOverlayProps {
   businessId?: string;
   userId?: string;
   bookingId?: string;
+  tier?: string;
+  reference?: string;
+  businessData?: any;
   onSuccess: (res: any) => void;
   onCancel: () => void;
   isOpen: boolean;
@@ -33,19 +36,24 @@ declare global {
 }
 
 const PaystackOverlay: React.FC<PaystackOverlayProps> = ({ 
-  amount, email = 'support@findaba.com.ng', label, businessId, userId, bookingId, onSuccess, onCancel, isOpen 
+  amount, email = 'support@findaba.com.ng', label, businessId, userId, bookingId, tier, reference: initialReference, businessData, onSuccess, onCancel, isOpen 
 }) => {
   const { addToast } = useToast();
   const [step, setStep] = useState<'initialize' | 'method_select' | 'processing' | 'success' | 'manual' | 'auth_scan' | 'qr_pay' | 'ussd_banks' | 'ussd_active'>('initialize');
   const [selectedBank, setSelectedBank] = useState<NigerianBank | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string[] | null>(null);
-  const [reference, setReference] = useState('');
+  const [reference, setReference] = useState(initialReference || '');
   const [copied, setCopied] = useState(false);
   const [authStatus, setAuthStatus] = useState<string>('Initializing AI Sentinel...');
   const [isAiVerifiedLocal, setIsAiVerifiedLocal] = useState(false);
   const [aiVerdict, setAiVerdict] = useState<any>(null);
+  const [verificationResult, setVerificationResult] = useState<any>(null);
   const [hasKeyActive, setHasKeyActive] = useState(() => paymentService.hasKey());
   const isPaystackActive = hasKeyActive || paymentService.hasKey();
+
+  useEffect(() => {
+    if (initialReference) setReference(initialReference);
+  }, [initialReference]);
 
   const [activeUssdData, setActiveUssdData] = useState<{
     ussdCode: string;
@@ -120,11 +128,28 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
   const checkUssdStatus = async (ref: string) => {
     setIsVerifyingManual(true);
     try {
-      const res = await paymentService.verifyWithBackend(ref, { orderId: bookingId, userId, amount });
-      if (res && res.status === 'success') {
+      const res = await paymentService.verifyWithBackend(ref, { 
+        orderId: bookingId, 
+        userId, 
+        amount, 
+        businessId, 
+        tier 
+      });
+      if (res && res.verified) {
+        setVerificationResult(res);
         setStep('success');
-        addToast("USSD Payment Verified Successfully!", "success");
-        onSuccess({ reference: ref, status: 'success', channel: 'ussd' });
+        addToast(res.message || "USSD Payment Verified Successfully!", "success");
+        onSuccess({ 
+          reference: ref, 
+          status: 'success', 
+          channel: 'ussd', 
+          verified: true,
+          tier: res.tier,
+          tierName: res.tierName,
+          business: res.business,
+          profile: res.profile,
+          amount: res.amount
+        });
       } else {
         addToast("Payment not received yet. Please dial the code on your phone and approve with PIN.", "info");
       }
@@ -145,6 +170,8 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
         businessId, 
         userId, 
         bookingId,
+        tier,
+        reference: initialReference || reference || undefined,
         selectedBank: bankToUse || undefined,
         channels: channels || ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
       });
@@ -157,13 +184,47 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
         onClose: () => {
           console.log('[Paystack] Window closed by user.');
         },
-        callback: (response: any) => {
-          console.log('[Paystack] Payment Successful:', response.reference);
-          setReference(response.reference);
+        callback: async (response: any) => {
+          const confirmedRef = response.reference || config.ref || reference;
+          console.log('[Paystack] Payment Received from gateway:', confirmedRef);
+          setReference(confirmedRef);
           setIsAiVerifiedLocal(false);
-          setStep('success');
-          addToast("Registry Settlement Confirmed via Paystack.", "success");
-          paymentService.verifyWithBackend(response.reference, { orderId: bookingId, userId, amount });
+          setStep('processing');
+          setAuthStatus('Authoritatively verifying payment & upgrading tier...');
+
+          try {
+            const verifyResult = await paymentService.verifyWithBackend(confirmedRef, { 
+              orderId: bookingId, 
+              userId, 
+              amount, 
+              businessId, 
+              tier 
+            });
+
+            if (verifyResult && verifyResult.verified) {
+              setVerificationResult(verifyResult);
+              setStep('success');
+              addToast(verifyResult.message || `Payment verified! Tier upgraded to ${verifyResult.tierName || verifyResult.tier || 'Paid'}.`, "success");
+              onSuccess({ 
+                reference: confirmedRef, 
+                status: 'success', 
+                verified: true,
+                tier: verifyResult.tier,
+                tierName: verifyResult.tierName,
+                business: verifyResult.business,
+                profile: verifyResult.profile,
+                amount: verifyResult.amount,
+                ai_verified: false
+              });
+            } else {
+              setStep('initialize');
+              addToast(`Payment verification unconfirmed: ${verifyResult?.error || 'Transaction not approved by Paystack'}`, "error");
+            }
+          } catch (err: any) {
+            console.error('[Paystack Overlay] Verification error:', err);
+            setStep('initialize');
+            addToast(`Verification error: ${err.message || 'Could not verify transaction'}`, "error");
+          }
         }
       });
       handler.openIframe();
@@ -616,7 +677,13 @@ const PaystackOverlay: React.FC<PaystackOverlayProps> = ({
                     reference, 
                     status: 'success', 
                     ai_verified: isAiVerifiedLocal, 
-                    verdict: aiVerdict 
+                    verdict: aiVerdict,
+                    verified: true,
+                    tier: verificationResult?.tier,
+                    tierName: verificationResult?.tierName,
+                    business: verificationResult?.business,
+                    profile: verificationResult?.profile,
+                    amount: verificationResult?.amount,
                  })} 
                  className="w-full bg-aba-dark text-white py-5 md:py-6 rounded-2xl md:rounded-[1.5rem] font-black uppercase text-[9px] md:text-[10px] tracking-[0.3em] shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                >

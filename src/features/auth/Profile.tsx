@@ -11,7 +11,7 @@ import { sendProfileUpdateNotification } from '../../services/emailService';
 import { 
   authSignOut, fetchPlatformConfig, updatePlatformConfig, fetchAllBusinesses, 
   getSupabase, checkDatabaseHealth, reconnectRegistry, getRegistryConfig, purgeLocalRegistry,
-  fetchUserProfile, updateUserProfile 
+  fetchUserProfile, updateUserProfile, adminVerifyBusiness, adminUnverifyBusiness, adminDelistBusiness 
 } from '../../services/supabaseService';
 import IndustrialButton from '../../components/IndustrialButton';
 import SectionHeader from '../../components/SectionHeader';
@@ -503,8 +503,36 @@ const Profile: React.FC<{ setView: (v: ViewState) => void; userEmail: string; us
                           </div>
                         </div>
                         <div className="flex gap-3">
-                          <IndustrialButton variant="primary" size="sm" onClick={() => {/* Approve logic */}}>Approve</IndustrialButton>
-                          <IndustrialButton variant="danger" size="sm" onClick={() => {/* Reject logic */}}>Reject</IndustrialButton>
+                          <IndustrialButton 
+                            variant="primary" 
+                            size="sm" 
+                            onClick={async () => {
+                              try {
+                                await adminVerifyBusiness(b.id);
+                                addToast(`"${b.name}" approved and verified!`, "success");
+                                refreshData();
+                              } catch (err: any) {
+                                addToast(err.message || "Failed to approve", "error");
+                              }
+                            }}
+                          >
+                            Approve
+                          </IndustrialButton>
+                          <IndustrialButton 
+                            variant="danger" 
+                            size="sm" 
+                            onClick={async () => {
+                              try {
+                                await adminDelistBusiness(b.id, true);
+                                addToast(`"${b.name}" rejected and delisted.`, "info");
+                                refreshData();
+                              } catch (err: any) {
+                                addToast(err.message || "Failed to delist", "error");
+                              }
+                            }}
+                          >
+                            Delist
+                          </IndustrialButton>
                         </div>
                       </div>
                     ))}

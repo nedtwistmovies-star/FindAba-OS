@@ -80,6 +80,7 @@ import WhatsAppWebhookDashboard from "./components/WhatsAppWebhookDashboard";
 import GitSyncSupabaseCommit from "./components/GitSyncSupabaseCommit";
 import { GitIntegrationDiagnostics } from "./components/GitIntegrationDiagnostics";
 import { PersistentDeploymentConfig } from "./components/PersistentDeploymentConfig";
+import { RegistryManager } from "./components/RegistryManager";
 import { saveSystemConfig } from "../../services/systemConfigService";
 
 const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
@@ -450,8 +451,12 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
             <WhatsAppWebhookDashboard />
           )}
 
-          {/* Simple Registry View as Fallback if not extracted yet */}
-          {(activeTab === 'registry' || activeTab === 'signals' || activeTab === 'users') && (
+          {activeTab === 'registry' && (
+            <RegistryManager businesses={businesses} onRefresh={refreshAllData} />
+          )}
+
+          {/* Simple View as Fallback for signals and users if not extracted yet */}
+          {(activeTab === 'signals' || activeTab === 'users') && (
             <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5">
               <div className="p-20 text-center text-white/20 space-y-4">
                 <Database size={40} className="mx-auto" />

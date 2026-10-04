@@ -279,9 +279,6 @@ const AppContent: React.FC = () => {
               userName={profile?.full_name || userIdentifier?.split('@')[0] || 'Citizen'}
               onClose={() => {
                 localStorage.removeItem('findaba_show_welcome');
-                if (userRole === 'admin') setView('admin');
-                else if (myBusiness) setView('merchant-portal');
-                else setView('explore');
               }}
             />
           )}

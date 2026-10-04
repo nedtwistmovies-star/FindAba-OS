@@ -329,7 +329,8 @@ export enum Category {
 export enum VerificationStatus {
   UNVERIFIED = 'Unverified',
   PENDING = 'Pending',
-  VERIFIED = 'Verified'
+  VERIFIED = 'Verified',
+  DELISTED = 'Delisted'
 }
 
 export enum IntegrityGrade {
@@ -378,7 +379,7 @@ export interface Business {
   image_url: string;
   rating: number;
   review_count: number;
-  status: 'pending' | 'approved' | 'rejected' | 'active' | 'suspended';
+  status: 'pending' | 'approved' | 'rejected' | 'active' | 'suspended' | 'delisted';
   verification_status: VerificationStatus;
   verification_level: VerificationLevel;
   integrity_grade: IntegrityGrade;
@@ -401,6 +402,9 @@ export interface Business {
   products: Product[];
   latitude?: number;
   longitude?: number;
+  digital_postcode?: string;
+  postcode_metadata?: any;
+  postcode_verified?: boolean;
   video_caption?: string;
   created_at: string;
   description?: string;
@@ -448,6 +452,8 @@ export interface LogisticsOrder {
   status: ShipmentStatus;
   pickupAddress: string;
   deliveryAddress: string;
+  pickup_postcode?: string;
+  delivery_postcode?: string;
   totalFee: number;
   riderPayout: number;
   timestamp: string;

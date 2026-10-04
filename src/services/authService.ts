@@ -259,8 +259,7 @@ export const getCurrentUser = async () => {
 export const syncProfile = async (user: any, attempts: number = 2): Promise<any> => {
   if (!user) return null;
 
-  const isPastor = user.email === 'pastornelsonezi@gmail.com';
-  const defaultRole = isPastor ? 'admin' : (user.user_metadata?.role || 'registered');
+  const defaultRole = user.app_metadata?.role || user.user_metadata?.role || 'registered';
 
   // 1. Try instant recovery from local cached profile
   try {
@@ -268,9 +267,6 @@ export const syncProfile = async (user: any, attempts: number = 2): Promise<any>
     if (cached) {
       const parsed = JSON.parse(cached);
       if (parsed && parsed.id === user.id) {
-        if (isPastor && parsed.role !== 'admin') {
-          parsed.role = 'admin';
-        }
         return parsed;
       }
     }
@@ -333,9 +329,6 @@ export const syncProfile = async (user: any, attempts: number = 2): Promise<any>
         return newProfile;
       }
 
-      if (isPastor && profile.role !== 'admin') {
-        profile.role = 'admin';
-      }
       try { localStorage.setItem(`findaba_profile_${user.id}`, JSON.stringify(profile)); } catch {}
       return profile;
     } catch {

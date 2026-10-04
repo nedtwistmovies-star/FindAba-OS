@@ -13,6 +13,8 @@ interface AuthContextType {
   isAuth: boolean;
   authLoading: boolean;
   handleAuthSuccess: (identifier: string, name: string, role?: string, uuid?: string) => void;
+  updateProfileLocally: (updates: any) => void;
+  refreshProfile: () => Promise<any>;
   logout: () => void;
   bootDiagnostics: BootDiagnostics;
 }
@@ -104,6 +106,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('findaba_auth_name', name);
     localStorage.setItem('findaba_auth_role', role);
   }, []);
+
+  const updateProfileLocally = useCallback((updates: any) => {
+    if (!updates) return;
+    setProfile((prev: any) => {
+      const merged = { ...(prev || {}), ...updates };
+      if (updates.role) {
+        setUserRole(updates.role);
+        localStorage.setItem('findaba_auth_role', updates.role);
+      }
+      return merged;
+    });
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    const sb = getSupabase();
+    if (!sb) return null;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session?.user) {
+        const prof = await syncProfile(session.user);
+        if (prof) {
+          setProfile(prof);
+          if (prof.role) {
+            setUserRole(prof.role);
+            localStorage.setItem('findaba_auth_role', prof.role);
+          }
+          return prof;
+        }
+      }
+    } catch (e) {
+      console.warn("[AuthProvider] refreshProfile error:", e);
+    }
+    return null;
+  }, []);
+
+  useEffect(() => {
+    const handleProfileUpdate = (e: any) => {
+      if (e?.detail) updateProfileLocally(e.detail);
+    };
+    window.addEventListener('FINDABA_PROFILE_UPDATED', handleProfileUpdate);
+    return () => window.removeEventListener('FINDABA_PROFILE_UPDATED', handleProfileUpdate);
+  }, [updateProfileLocally]);
 
   const logout = useCallback(async () => {
     const sb = getSupabase();
@@ -214,9 +258,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // 🔹 ASYNCHRONOUS BACKGROUND ASSETS
         if (session?.user) {
           // 1. Immediate optimistic auth success using session data and cached role
-          const isPastor = session.user.email === 'pastornelsonezi@gmail.com';
           const storedRole = localStorage.getItem('findaba_auth_role');
-          const initialRole = isPastor ? 'admin' : (session.user.user_metadata?.role || storedRole || 'registered');
+          const initialRole = session.user.app_metadata?.role || session.user.user_metadata?.role || storedRole || 'registered';
           const initialName = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
 
           handleAuthSuccess(
@@ -322,6 +365,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuth, 
       authLoading,
       handleAuthSuccess, 
+      updateProfileLocally,
+      refreshProfile,
       logout,
       bootDiagnostics
     }}>

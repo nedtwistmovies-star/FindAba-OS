@@ -21,7 +21,7 @@ export interface AdminVerificationResult {
 export async function verifyAdminRequest(req: Request): Promise<AdminVerificationResult> {
   const authHeader = req.headers.authorization;
   const customGithubToken = (req.headers["x-github-token"] as string || "").trim();
-  const masterAdminEmail = (env.MASTER_ADMIN_EMAIL || "pastornelsonezi@gmail.com").toLowerCase();
+  const masterAdminEmail = (env.MASTER_ADMIN_EMAIL || process.env.MASTER_ADMIN_EMAIL || "").trim().toLowerCase();
 
   // Check Supabase Auth Bearer Token
   if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -33,8 +33,8 @@ export async function verifyAdminRequest(req: Request): Promise<AdminVerificatio
         const user = data.user;
         const userEmail = (user.email || "").toLowerCase();
 
-        // 1. Direct master admin email check
-        if (userEmail === masterAdminEmail || userEmail === "pastornelsonezi@gmail.com") {
+        // 1. Direct master admin email check (only if MASTER_ADMIN_EMAIL is configured)
+        if (masterAdminEmail && userEmail === masterAdminEmail) {
           return { isAdmin: true, user, method: "master-admin-email" };
         }
 

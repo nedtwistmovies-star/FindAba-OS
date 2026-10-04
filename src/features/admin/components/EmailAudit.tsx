@@ -8,7 +8,7 @@ import { sendWelcomeEmail } from "../../../services/emailService";
 export const EmailAudit: React.FC = () => {
   const { addToast } = useToast();
   const [sending, setSending] = useState(false);
-  const [testEmail, setTestEmail] = useState('pastornelsonezi@gmail.com');
+  const [testEmail, setTestEmail] = useState('');
   const [resendKey, setResendKey] = useState(localStorage.getItem('findaba_resend_api_key') || '');
   const [status, setStatus] = useState<{ status: string, message: string }>({ status: 'unknown', message: 'Email system audit not yet performed.' });
 

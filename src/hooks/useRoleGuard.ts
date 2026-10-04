@@ -20,8 +20,6 @@ export interface RoleGuardResult {
   reason?: string;
 }
 
-const MASTER_ADMIN_EMAIL = 'pastornelsonezi@gmail.com';
-
 /**
  * useRoleGuard
  * Authoritative role verification hook.
@@ -32,16 +30,13 @@ export function useRoleGuard(allowedRoles: Array<AppRole | string> = []): RoleGu
   const { isAuth, authLoading, userRole, userIdentifier, user_id, profile } = useAuth();
   const { businesses = [] } = useBusiness();
 
-  const email = (userIdentifier || profile?.email || '').toLowerCase().trim();
-
-  // 1. Authoritative Admin Determination
+  // 1. Authoritative Admin Determination based on verified session and database profile roles
   const isAdmin = useMemo(() => {
     if (!isAuth) return false;
-    if (email === MASTER_ADMIN_EMAIL) return true;
     if (userRole === 'admin' || userRole === 'superadmin') return true;
     if (profile && (profile.role === 'admin' || profile.role === 'superadmin')) return true;
     return false;
-  }, [isAuth, email, userRole, profile]);
+  }, [isAuth, userRole, profile]);
 
   // 2. Authoritative Merchant Determination
   const isMerchant = useMemo(() => {

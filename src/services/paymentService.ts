@@ -118,7 +118,7 @@ export const paymentService = {
   /**
    * Verify transaction with backend server.
    */
-  verifyWithBackend: async (reference: string, metadata?: { orderId?: string; userId?: string; amount?: number }) => {
+  verifyWithBackend: async (reference: string, metadata?: { orderId?: string; userId?: string; amount?: number; businessId?: string; tier?: string }) => {
     try {
       const res = await fetch('/api/verify-payment', {
         method: 'POST',
@@ -128,10 +128,41 @@ export const paymentService = {
       if (res.ok) {
         return await res.json();
       }
-    } catch (err) {
+      const errData = await res.json().catch(() => ({}));
+      return { verified: false, reference, error: errData.error || errData.message || 'Payment verification failed' };
+    } catch (err: any) {
       console.warn('[PaymentService] Backend verification request failed:', err);
+      return { verified: false, reference, error: err.message || 'Network error during payment verification' };
     }
-    return { verified: true, reference };
+  },
+
+  /**
+   * Authoritatively pre-register a tier payment intent before launching Paystack checkout.
+   */
+  createTierPayment: async (params: {
+    reference: string;
+    userId?: string;
+    businessId?: string;
+    tier: string;
+    amount: number;
+    email?: string;
+    businessData?: any;
+  }) => {
+    try {
+      const res = await fetch('/api/create-tier-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || errData.message || 'Failed to initialize tier payment intent');
+    } catch (err: any) {
+      console.error('[PaymentService] createTierPayment error:', err);
+      throw err;
+    }
   },
 
   /**
@@ -185,6 +216,8 @@ export const paymentService = {
     businessId?: string; 
     userId?: string; 
     bookingId?: string;
+    tier?: string;
+    reference?: string;
     selectedBank?: { name: string; shortName?: string; bankCode?: string; paystackUssdType?: string; id?: string } | null;
     ussdProvider?: string;
     channels?: string[];
@@ -201,6 +234,14 @@ export const paymentService = {
         value: config.businessId || "Registry_Enrollment"
       }
     ];
+
+    if (config.tier) {
+      customFields.push({
+        display_name: "Subscription Tier",
+        variable_name: "tier",
+        value: config.tier
+      });
+    }
 
     // Explicitly resolve the selected USSD provider code (e.g. OPay, GTB, Zenith, UBA)
     const mappedUssdCode = paymentService.mapUssdProvider(config.selectedBank || config.ussdProvider);
@@ -235,7 +276,7 @@ export const paymentService = {
       key: paymentService.getApiKey(),
       email: config.email,
       amount: Math.round(config.amount * 100), // Paystack uses kobo
-      ref: `SIG-PS-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
+      ref: config.reference || `SIG-PS-${Date.now()}-${Math.floor(Math.random() * 1000000)}`,
       currency: "NGN",
       channels: config.channels,
       // Explicitly map selected USSD provider to the 'ussd' object in transaction request
@@ -243,6 +284,10 @@ export const paymentService = {
       metadata: {
         user_id: config.userId,
         booking_id: config.bookingId,
+        business_id: config.businessId,
+        tier: config.tier,
+        plan_id: config.tier,
+        subscription_tier: config.tier,
         selected_bank: config.selectedBank?.name,
         bank_code: config.selectedBank?.bankCode,
         ussd_type: mappedUssdCode || config.selectedBank?.paystackUssdType,

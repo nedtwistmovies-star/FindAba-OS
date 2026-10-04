@@ -33,10 +33,10 @@ export async function ensureMerchantOrAdmin(req: Request, res: Response, next: N
     if (!user) return res.status(401).json({ error: "Authentication required" });
 
     const userEmail = (user.email || "").toLowerCase();
-    const masterAdminEmail = (process.env.MASTER_ADMIN_EMAIL || "pastornelsonezi@gmail.com").toLowerCase();
+    const masterAdminEmail = (process.env.MASTER_ADMIN_EMAIL || "").trim().toLowerCase();
 
     // Check if user is admin
-    if (userEmail === masterAdminEmail) {
+    if (masterAdminEmail && userEmail === masterAdminEmail) {
       (req as any).isAdmin = true;
       return next();
     }

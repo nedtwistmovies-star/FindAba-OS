@@ -84,9 +84,9 @@ export const isRegistryConfigured = () => {
 
 export const ensureAuth = async () => {
   const isLocalBypassActive = typeof localStorage !== 'undefined' && localStorage.getItem('findaba_is_auth') === 'true';
-  const localBypassEmail = typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_auth_email') || 'pastornelsonezi@gmail.com' : 'pastornelsonezi@gmail.com';
-  const localBypassName = typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_auth_name') || 'Sandbox Citizen' : 'Sandbox Citizen';
-  const localBypassId = typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_auth_userid') || 'sandbox-bypass-uuid' : 'sandbox-bypass-uuid';
+  const localBypassEmail = typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_auth_email') || 'guest@findaba.com.ng' : 'guest@findaba.com.ng';
+  const localBypassName = typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_auth_name') || 'Guest User' : 'Guest User';
+  const localBypassId = typeof localStorage !== 'undefined' ? localStorage.getItem('findaba_auth_userid') || 'guest-session-uuid' : 'guest-session-uuid';
 
   const sb = getSupabase();
   if (!sb) {
@@ -97,7 +97,7 @@ export const ensureAuth = async () => {
           email: localBypassEmail,
           user_metadata: {
             full_name: localBypassName,
-            role: 'admin'
+            role: 'user'
           }
         }
       };
@@ -622,9 +622,9 @@ export const fetchPlatformConfig = async (): Promise<PlatformConfig | null> => {
       "/assets/images/aba_city_pulse_1780607936713.png"
     ],
     hero_videos: [],
-    facebook_url: 'https://facebook.com/findaba',
-    instagram_url: 'https://instagram.com/find_aba',
-    twitter_url: 'https://twitter.com/findaba',
+    facebook_url: 'https://web.facebook.com/photo/?fbid=122098470273280931&set=a.122096793267280931',
+    instagram_url: 'https://www.instagram.com/find.aba/',
+    twitter_url: 'https://x.com/home',
     tiktok_url: '',
     updated_at: new Date().toISOString()
   };
@@ -847,19 +847,29 @@ export const fetchAllBusinesses = async (abortSignal?: AbortSignal): Promise<Bus
   }
 };
 
-export const updateBusinessTier = async (businessId: string, tier: HubTier) => {
+export const updateBusinessTier = async (businessId: string, tier: HubTier | SubscriptionTier | string) => {
   const client = getSupabase();
   if (!client) throw new Error("Registry Offline");
+  
+  const subTier = 
+    tier === HubTier.STARTER || tier === SubscriptionTier.FREE || tier === 'Free' ? SubscriptionTier.FREE :
+    tier === HubTier.LOCAL_TRUST || tier === SubscriptionTier.VERIFIED || tier === 'Verified' ? SubscriptionTier.VERIFIED :
+    tier === HubTier.GROWTH_ENGINE || tier === SubscriptionTier.GROWTH || tier === 'Growth' ? SubscriptionTier.GROWTH :
+    SubscriptionTier.PREMIUM;
+
+  const isPaid = subTier !== SubscriptionTier.FREE;
   
   const { error } = await client
     .from('businesses')
     .update({ 
-      hub_tier: tier,
-      subscription_tier: tier === HubTier.STARTER ? SubscriptionTier.FREE :
-                        tier === HubTier.LOCAL_TRUST ? SubscriptionTier.VERIFIED :
-                        tier === HubTier.GROWTH_ENGINE ? SubscriptionTier.GROWTH :
-                        SubscriptionTier.PREMIUM,
-      premium_features_enabled: tier !== HubTier.STARTER
+      subscription_tier: subTier,
+      status: 'approved',
+      verification_status: isPaid ? 'Verified' : 'Unverified',
+      verification_level: subTier === SubscriptionTier.PREMIUM ? 'Physically Verified' : isPaid ? 'Document Verified' : 'Listed',
+      premium_features_enabled: isPaid,
+      is_verified: isPaid,
+      integrity_grade: subTier === SubscriptionTier.PREMIUM ? 'A' : isPaid ? 'B' : 'C',
+      is_export_ready: subTier === SubscriptionTier.PREMIUM,
     })
     .eq('id', businessId);
     
@@ -2031,6 +2041,7 @@ export const searchBusinesses = async (query: string): Promise<Business[]> => {
     const { data, error } = await client
       .from('businesses')
       .select('*')
+      .neq('status', 'delisted')
       .or(`name.ilike.%${query}%,category.ilike.%${query}%,description.ilike.%${query}%,area.ilike.%${query}%`)
       .limit(10);
 
@@ -2473,3 +2484,160 @@ export const verifyBusinessClaim = async (businessId: string, otp: string): Prom
 
   return true;
 };
+
+/** Helper to build admin authorization headers from current session or email */
+const getAdminHeaders = async (): Promise<Record<string, string>> => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  try {
+    const sb = getSupabase();
+    if (sb) {
+      const { data } = await sb.auth.getSession();
+      if (data?.session?.access_token) {
+        headers['Authorization'] = `Bearer ${data.session.access_token}`;
+      }
+    }
+  } catch {}
+  const customPat = localStorage.getItem('findaba_github_pat');
+  if (customPat) {
+    headers['X-GitHub-Token'] = customPat;
+  }
+  return headers;
+};
+
+export const adminVerifyBusiness = async (businessId: string, level: string = 'Document Verified'): Promise<Business> => {
+  const headers = await getAdminHeaders();
+  try {
+    const res = await fetch(`/api/admin/businesses/${encodeURIComponent(businessId)}/verify`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ level }),
+    });
+    if (res.ok) {
+      const result = await res.json();
+      if (result.business) {
+        window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_UPDATED', { detail: result.business }));
+        return result.business;
+      }
+    }
+  } catch (err) {
+    console.warn("[AdminService] API verify endpoint error, falling back to direct client:", err);
+  }
+
+  // Fallback to direct client
+  const sb = getSupabase();
+  if (!sb) throw new Error("Database offline");
+  const updates = {
+    verification_status: 'Verified',
+    status: 'approved',
+    verification_level: level,
+    is_verified: true,
+    integrity_grade: 'B',
+  };
+  const { data, error } = await sb.from('businesses').update(updates).eq('id', businessId).select().single();
+  if (error) throw error;
+  window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_UPDATED', { detail: data }));
+  return data;
+};
+
+export const adminUnverifyBusiness = async (businessId: string): Promise<Business> => {
+  const headers = await getAdminHeaders();
+  try {
+    const res = await fetch(`/api/admin/businesses/${encodeURIComponent(businessId)}/unverify`, {
+      method: 'POST',
+      headers,
+    });
+    if (res.ok) {
+      const result = await res.json();
+      if (result.business) {
+        window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_UPDATED', { detail: result.business }));
+        return result.business;
+      }
+    }
+  } catch (err) {
+    console.warn("[AdminService] API unverify endpoint error, falling back to direct client:", err);
+  }
+
+  // Fallback to direct client
+  const sb = getSupabase();
+  if (!sb) throw new Error("Database offline");
+  const updates = {
+    verification_status: 'Unverified',
+    verification_level: 'Listed',
+    is_verified: false,
+    status: 'pending',
+    premium_features_enabled: false,
+  };
+  const { data, error } = await sb.from('businesses').update(updates).eq('id', businessId).select().single();
+  if (error) throw error;
+  window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_UPDATED', { detail: data }));
+  return data;
+};
+
+export const adminDelistBusiness = async (businessId: string, delist: boolean = true): Promise<Business> => {
+  const headers = await getAdminHeaders();
+  try {
+    const res = await fetch(`/api/admin/businesses/${encodeURIComponent(businessId)}/delist`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ delist }),
+    });
+    if (res.ok) {
+      const result = await res.json();
+      if (result.business) {
+        window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_UPDATED', { detail: result.business }));
+        return result.business;
+      }
+    }
+  } catch (err) {
+    console.warn("[AdminService] API delist endpoint error, falling back to direct client:", err);
+  }
+
+  // Fallback to direct client
+  const sb = getSupabase();
+  if (!sb) throw new Error("Database offline");
+  const updates = delist
+    ? {
+        status: 'delisted' as any,
+        verification_status: 'Delisted' as any,
+        is_verified: false,
+      }
+    : {
+        status: 'approved' as any,
+        verification_status: 'Unverified' as any,
+        is_verified: false,
+      };
+  const { data, error } = await sb.from('businesses').update(updates).eq('id', businessId).select().single();
+  if (error) throw error;
+  window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_UPDATED', { detail: data }));
+  return data;
+};
+
+export const adminDeleteBusiness = async (businessId: string): Promise<boolean> => {
+  const headers = await getAdminHeaders();
+  try {
+    const res = await fetch(`/api/admin/businesses/${encodeURIComponent(businessId)}`, {
+      method: 'DELETE',
+      headers,
+    });
+    if (res.ok) {
+      window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_DELETED', { detail: { id: businessId } }));
+      return true;
+    }
+  } catch (err) {
+    console.warn("[AdminService] API delete endpoint error, falling back to direct client:", err);
+  }
+
+  // Fallback to direct client
+  const sb = getSupabase();
+  if (!sb) throw new Error("Database offline");
+  try { await sb.from('products').delete().eq('business_id', businessId); } catch {}
+  try { await sb.from('favorites').delete().eq('business_id', businessId); } catch {}
+  try { await sb.from('reviews').delete().eq('business_id', businessId); } catch {}
+  const { error } = await sb.from('businesses').delete().eq('id', businessId);
+  if (error) throw error;
+  window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_DELETED', { detail: { id: businessId } }));
+  return true;
+};
+

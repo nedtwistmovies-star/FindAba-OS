@@ -4,6 +4,7 @@
  * Single source of truth for environment variables.
  * Required vars throw at startup (fail fast, no silent fallback secrets).
  */
+import "dotenv/config";
 
 function getEnv(name: string, fallbackName?: string): string | undefined {
   const val = process.env[name] || (fallbackName ? process.env[fallbackName] : undefined);
@@ -65,8 +66,8 @@ export const env = {
   // Automation
   MAKE_WEBHOOK_URL: optional("MAKE_WEBHOOK_URL"),
 
-  // Admin bootstrap — master admin email
-  MASTER_ADMIN_EMAIL: optional("MASTER_ADMIN_EMAIL") || "pastornelsonezi@gmail.com",
+  // Admin bootstrap — master admin email (must be configured via environment, no code fallback)
+  MASTER_ADMIN_EMAIL: optional("MASTER_ADMIN_EMAIL") || "",
 
   APP_URL: optional("APP_URL"),
 };

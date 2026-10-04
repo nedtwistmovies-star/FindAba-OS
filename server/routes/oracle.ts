@@ -1,7 +1,7 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
-import { aiProviderManager, BusinessContextItem } from "../services/ai";
+import { aiProviderManager, BusinessContextItem, generateLocalAbaResponse } from "../services/ai";
 import { newsService } from "../services/newsService";
 
 export const oracleRouter = Router();
@@ -220,6 +220,9 @@ oracleRouter.post("/oracle", oracleRateLimit, async (req, res) => {
   }
   const { prompt, history, catalog, type, provider, useSearch: reqUseSearch, taskType: reqTaskType, userLocation } = parsed.data;
 
+  let businessContext: BusinessContextItem[] = [];
+  let newsContext: string | undefined;
+
   try {
     const rawCatalog = Array.isArray(catalog) ? catalog : [];
 
@@ -253,7 +256,7 @@ oracleRouter.post("/oracle", oracleRateLimit, async (req, res) => {
       }
     }
 
-    const businessContext: BusinessContextItem[] = filteredCatalog.slice(0, 50).map((b: any) => ({
+    businessContext = filteredCatalog.slice(0, 50).map((b: any) => ({
       name: b.name,
       category: b.category,
       product: b.primary_product_or_service || b.product || "",
@@ -278,7 +281,6 @@ oracleRouter.post("/oracle", oracleRateLimit, async (req, res) => {
     }
 
     // NEWS INTENT DETECTION & VERIFIED RETRIEVAL
-    let newsContext: string | undefined;
     let newsGrounding: any[] | undefined;
 
     const intent = detectNewsIntent(prompt);
@@ -325,19 +327,10 @@ oracleRouter.post("/oracle", oracleRateLimit, async (req, res) => {
     );
     return res.json(result);
   } catch (err: any) {
-    console.error("[Oracle] Fault:", err);
+    console.warn("[Oracle] Service warning, recovering via city intelligence:", err.message);
 
-    if (err.message?.includes("429") || err.message?.includes("RESOURCE_EXHAUSTED") || err.status === 429) {
-      return res.status(429).json({
-        error: "FindAba is busy right now. Please try again.",
-        text: "FindAba is busy right now. Please try asking again in a moment.",
-        details: "Wait a moment and try again.",
-      });
-    }
-
-    res.status(500).json({ 
-      error: "FindAba is busy right now. Please try again.",
-      text: "FindAba is busy right now. Please try asking again in a moment."
-    });
+    const promptStr = typeof prompt === "string" ? prompt : JSON.stringify(prompt);
+    const fallbackResult = generateLocalAbaResponse(promptStr, businessContext, newsContext);
+    return res.json(fallbackResult);
   }
 });

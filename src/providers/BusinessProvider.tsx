@@ -18,7 +18,7 @@ interface BusinessContextType {
   selectedAdvertorial: any | null;
   setSelectedAdvertorial: (p: any | null) => void;
   toggleFavorite: (id: string) => Promise<void>;
-  refreshData: () => Promise<void>;
+  refreshData: (newBiz?: Business) => Promise<void>;
   commitAll: () => Promise<void>;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
@@ -89,6 +89,41 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
   }, [gitStatus, addToast]);
+
+  // Handle immediate tier and registry update signals across components
+  useEffect(() => {
+    const handleBusinessUpdate = (e: any) => {
+      const updatedBiz = e?.detail;
+      if (updatedBiz && updatedBiz.id) {
+        setBusinesses(prev => {
+          const exists = prev.some(b => b.id === updatedBiz.id);
+          const updated = exists ? prev.map(b => b.id === updatedBiz.id ? { ...b, ...updatedBiz } : b) : [{ ...updatedBiz }, ...prev];
+          localStorage.setItem('findaba_businesses_cache', JSON.stringify(updated));
+          return updated;
+        });
+        setSelectedBusiness(prev => prev && prev.id === updatedBiz.id ? { ...prev, ...updatedBiz } : prev);
+      }
+    };
+
+    const handleBusinessDeleted = (e: any) => {
+      const deletedId = e?.detail?.id || e?.detail;
+      if (deletedId) {
+        setBusinesses(prev => {
+          const updated = prev.filter(b => b.id !== deletedId);
+          localStorage.setItem('findaba_businesses_cache', JSON.stringify(updated));
+          return updated;
+        });
+        setSelectedBusiness(prev => prev && prev.id === deletedId ? null : prev);
+      }
+    };
+
+    window.addEventListener('FINDABA_BUSINESS_UPDATED', handleBusinessUpdate);
+    window.addEventListener('FINDABA_BUSINESS_DELETED', handleBusinessDeleted);
+    return () => {
+      window.removeEventListener('FINDABA_BUSINESS_UPDATED', handleBusinessUpdate);
+      window.removeEventListener('FINDABA_BUSINESS_DELETED', handleBusinessDeleted);
+    };
+  }, []);
 
   const toggleFavorite = async (id: string) => {
     if (!effectiveUserId) {

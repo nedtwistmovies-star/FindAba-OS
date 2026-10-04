@@ -102,6 +102,7 @@ const AdCheckout: React.FC<{ setView: (v: ViewState) => void }> = ({ setView }) 
         email={userEmail}
         label={`Activate 45-Day Hub: ${plan.name}`}
         businessId={myBusinessId || undefined}
+        tier={plan.id}
         onSuccess={handlePaymentSuccess}
         onCancel={() => setShowCheckout(false)}
       />

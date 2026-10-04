@@ -30,13 +30,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onSuccess, initi
   const handleBypassLogin = () => {
     localStorage.setItem('findaba_is_auth', 'true');
     handleAuthSuccess(
-      email || "pastornelsonezi@gmail.com",
-      fullName || username || "Sandbox Citizen",
-      "admin",
-      "sandbox-bypass-uuid"
+      email || "guest@findaba.com.ng",
+      fullName || username || "Guest User",
+      "user",
+      "guest-session-uuid"
     );
-    addToast("Emergency sandbox onboarding bypass active.", "success");
-    onSuccess('signin', email || "pastornelsonezi@gmail.com");
+    addToast("Guest onboarding access active.", "info");
+    onSuccess('signin', email || "guest@findaba.com.ng");
   };
 
   const handleAuth = async (e: React.FormEvent) => {

@@ -48,6 +48,9 @@ const Explore = ({
 
   const filtered = useMemo(() => {
     return bizList.filter(b => {
+      // Exclude delisted businesses from public discovery
+      if (b.status === 'delisted') return false;
+
       const searchLower = String(searchQuery ?? '').toLowerCase().trim();
 
 const matchesSearch =
