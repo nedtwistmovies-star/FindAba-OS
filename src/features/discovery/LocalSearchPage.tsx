@@ -1,7 +1,7 @@
 
 import React, { useMemo, useEffect } from 'react';
 import { Business } from '../../types';
-import { searchLocalBusinesses, SearchResult } from '../../services/localSearchService';
+import { searchLocalBusinesses, SearchResult, recordSearchTelemetry } from '../../services/localSearchService';
 import { BusinessCard, SectionHeader, IndustrialButton } from '../../components';
 import { Search, MapPin, ArrowLeft, Globe, ShieldCheck } from 'lucide-react';
 
@@ -35,7 +35,7 @@ const LocalSearchPage: React.FC<LocalSearchPageProps> = ({
   const results = searchRes.results;
   const topResult = results[0]?.business;
 
-  // SEO Metadata update
+  // SEO Metadata update & Telemetry
   useEffect(() => {
     if (query) {
       const title = `${query.charAt(0).toUpperCase() + query.slice(1)} | FindAba Local Search`;
@@ -58,8 +58,11 @@ const LocalSearchPage: React.FC<LocalSearchPageProps> = ({
       
       let ogDesc = document.querySelector('meta[property="og:description"]');
       if (ogDesc) ogDesc.setAttribute('content', description);
+
+      // Record telemetry for SEO landing page hits
+      recordSearchTelemetry(query, results.length);
     }
-  }, [query]);
+  }, [query, results.length]);
 
   if (searchRes.noResults || results.length === 0) {
      return (

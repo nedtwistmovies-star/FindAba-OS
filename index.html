@@ -139,18 +139,11 @@
         }
       })();
 
-      // CLEANUP STALE SERVICE WORKERS IN PREVIEW & EVICT DEPRECATED CACHES
-      if ('serviceWorker' in navigator && window.location.hostname.includes('run.app')) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          for (let registration of registrations) {
-            registration.unregister();
-          }
-        });
-      }
+      // EVICT DEPRECATED LEGACY CACHES
       if ('caches' in window) {
         caches.keys().then(keys => {
           for (const key of keys) {
-            if (key.includes('v110.0') || key.includes('trinity') || key.includes('v111.0')) {
+            if (key.includes('v110.0') || key.includes('trinity') || key.includes('v111.0') || key.includes('v112.0')) {
               caches.delete(key);
             }
           }

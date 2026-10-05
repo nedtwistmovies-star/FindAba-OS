@@ -21,6 +21,8 @@ import { whatsappRouter } from "./server/routes/whatsapp";
 import { paymentRouter } from "./server/routes/payment";
 import { emailRouter } from "./server/routes/email";
 import { storiesRouter } from "./server/routes/stories";
+import { searchRouter } from "./server/routes/search";
+import { businessesRouter } from "./server/routes/businesses";
 import { startStoryScraperService } from "./server/services/storyScraper";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -142,6 +144,9 @@ app.use("/api/whatsapp", whatsappRouter);
 app.use("/api", paymentRouter);
 app.use("/api", emailRouter);
 app.use("/api/stories", storiesRouter);
+app.use("/api/search", searchRouter);
+app.use("/api/businesses", businessesRouter);
+app.use("/api/directory", businessesRouter);
 
 // --- API 404 Handler ---
 // This ensures that missing API routes return JSON instead of the SPA HTML catch-all.

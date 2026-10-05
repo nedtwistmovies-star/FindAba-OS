@@ -138,6 +138,16 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+const CATEGORY_NEGATIVES: Record<string, string[]> = {
+  'Schools & Training Centers': ['shoe', 'footwear', 'sandal', 'tailor', 'plumber', 'repair', 'food', 'restaurant', 'parts', 'spare parts', 'welder', 'barber', 'salon', 'meat', 'grocery', 'drink'],
+  'Transportation': ['shoe', 'footwear', 'sandal', 'tailor', 'plumber', 'repair', 'food', 'restaurant', 'parts', 'spare parts', 'welder', 'school', 'barber', 'salon', 'meat', 'grocery', 'drink'],
+  'Health & Medical': ['shoe', 'footwear', 'sandal', 'tailor', 'plumber', 'repair', 'food', 'restaurant', 'parts', 'spare parts', 'welder', 'barber', 'salon', 'meat', 'grocery', 'drink'],
+  'Government & Public': ['shoe', 'footwear', 'sandal', 'tailor', 'plumber', 'repair', 'food', 'restaurant', 'parts', 'spare parts', 'welder', 'barber', 'salon', 'meat', 'grocery', 'drink'],
+  'Faith-Based Organizations': ['shoe', 'footwear', 'sandal', 'tailor', 'plumber', 'repair', 'food', 'restaurant', 'parts', 'spare parts', 'welder', 'barber', 'salon', 'meat', 'grocery', 'drink'],
+  'Artisans & Plumbers': ['school', 'bank', 'hospital', 'government'],
+  'Auto Spare Parts': ['school', 'bank', 'hospital', 'food', 'restaurant'],
+};
+
 export function searchLocalBusinesses(
   businesses: Business[],
   query: string,
@@ -179,6 +189,12 @@ export function searchLocalBusinesses(
       const dataText = `${bName} ${bCat} ${bProd} ${bDesc} ${bSkills.join(' ')}`;
       const dataStems = dataText.split(/\s+/).map(stem);
 
+      // 0. Negative Category Match (Explicit irrelevance)
+      const negatives = CATEGORY_NEGATIVES[b.category as string] || [];
+      if (negatives.some(neg => normalized.includes(neg))) {
+         return null; 
+      }
+
       // 1. Exact phrase match
       if (normalized.length > 2) {
         if (bName === normalized || bName.includes(normalized)) { relevanceScore += (bName === normalized ? 200 : 120); matchedFields.push('name'); }
@@ -187,10 +203,23 @@ export function searchLocalBusinesses(
       }
 
       // 2. Intent-Aware Stemmed Keyword Matching
+      const hasShoeInQuery = queryTokens.some(t => t.includes('shoe') || t.includes('footwear') || t.includes('sandal'));
+      const hasTailorInQuery = queryTokens.some(t => t.includes('tailor') || t.includes('fashion') || t.includes('cloth'));
+      const hasRepairInQuery = queryTokens.some(t => t.includes('repair') || t.includes('fix'));
+
       queryTokens.forEach((token, idx) => {
         const qStem = queryStems[idx];
-        const isShoeQuery = token.includes('shoe');
-        const isSchoolQuery = token.includes('school');
+        const isShoeQuery = token.includes('shoe') || token.includes('footwear') || token.includes('sandal');
+        const isSchoolQuery = token.includes('school') || token.includes('train');
+        const isTailorQuery = token.includes('tailor') || token.includes('fashion') || token.includes('cloth');
+
+        // RELEVANCE OVERRIDE: Prevent "school shoes" matching a school
+        if (hasShoeInQuery && !dataText.includes('shoe') && !dataText.includes('footwear') && !dataText.includes('sandal')) {
+           if (isSchoolQuery) return; // Ignore "school" match if business has no shoes but query wanted shoes
+        }
+        if (hasTailorInQuery && !dataText.includes('tailor') && !dataText.includes('fashion') && !dataText.includes('design') && !dataText.includes('sew')) {
+           if (isSchoolQuery) return;
+        }
 
         // Check name, category, product, skills specifically
         const nameMatch = bName.split(' ').some(t => t === token || t === qStem);
@@ -207,8 +236,11 @@ export function searchLocalBusinesses(
           const matched = dataStems.some(s => s === qStem || (qStem.length > 3 && s.includes(qStem))) || (token.length > 3 && dataText.includes(token));
 
           if (matched) {
+            // Further intent gating for stemmed matches
             if (isShoeQuery && dataText.includes('school') && !dataText.includes('shoe') && !dataText.includes('leather') && !dataText.includes('footwear')) {
+               // Skip
             } else if (isSchoolQuery && dataText.includes('shoe') && !dataText.includes('school') && !dataText.includes('education') && !dataText.includes('learning')) {
+               // Skip
             } else {
                 relevanceScore += 20;
                 matchedFields.push('keyword');
@@ -239,25 +271,26 @@ export function searchLocalBusinesses(
            }
         } else {
           const locLower = locationFocus.toLowerCase();
-          if (bArea.includes(locLower) || bAddr.includes(locLower)) {
+          const aliases = ABA_LOCATIONS[locationFocus] || [];
+          if (bArea.includes(locLower) || bAddr.includes(locLower) || aliases.some(a => bArea.includes(a) || bAddr.includes(a))) {
             locationRelevance += 50;
             matchedFields.push('location');
           }
         }
       }
 
-      // GATE: If user provided keywords, they MUST match something (relevanceScore > 0)
-      // unless it's a pure location search
+      // 🔹 RELEVANCE GATE REFINEMENT
+      // If user provided keywords (normalized), they MUST match something in the CONTENT
+      // (relevanceScore > 0), UNLESS the keywords are just the location name itself.
+      const locationKeywords = locationFocus ? (ABA_LOCATIONS[locationFocus] || []).join(' ') : '';
+      const hasNonLocationKeywords = queryTokens.some(t => !locationKeywords.includes(t));
+
+      if (hasNonLocationKeywords && relevanceScore <= 0) {
+        return null; // Query had "shoes" but business didn't match "shoes", even if it's in the right location
+      }
+
       if (normalized.length > 0 && relevanceScore <= 0 && locationRelevance <= 0) {
         return null;
-      }
-      
-      // If we have a location focus but no keyword match, and the intent isn't market/place, 
-      // we should be very careful not to return every business in that location.
-      if (normalized.length > 0 && relevanceScore <= 0 && locationRelevance > 0) {
-        if (intent !== 'market' && intent !== 'place') {
-          return null; 
-        }
       }
 
       // 4. Ranking Boosts (Small increments compared to relevance)
@@ -319,4 +352,27 @@ export function searchLocalBusinesses(
   }
 
   return { query, normalizedQuery: normalized, intent, locationFocus, results, suggestions: Array.from(new Set(suggestions)).slice(0, 3), noResults: results.length === 0 };
+}
+
+/**
+ * Records search telemetry to identify demand and zero-result queries.
+ */
+export async function recordSearchTelemetry(query: string, resultsCount: number, location?: { lat: number; lng: number }) {
+  if (!query || query.length < 3) return;
+  
+  try {
+    await fetch('/api/search/telemetry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        resultsCount,
+        location,
+        timestamp: new Date().toISOString()
+      })
+    });
+  } catch (e) {
+    // Silent fail for telemetry
+    console.warn('[Telemetry] Failed to record search demand', e);
+  }
 }

@@ -35,6 +35,7 @@ import { BankSelector, NIGERIAN_BANKS } from './BankSelector';
 import { BackButton } from './BackButton';
 import VoiceSearchButton from './VoiceSearchButton';
 import OfflineBanner, { cacheBusinessOffline, getOfflineCachedBusinesses } from './OfflineBanner';
+import PWAInstallButton from './PWAInstallButton';
 import BusinessQRCodeModal, { BusinessQRCode } from './BusinessQRCodeModal';
 import GitDiagnostics from './GitDiagnostics';
 export {
@@ -74,6 +75,7 @@ export {
   BackButton,
   VoiceSearchButton,
   OfflineBanner,
+  PWAInstallButton,
   BusinessQRCodeModal,
   BusinessQRCode,
   cacheBusinessOffline,

@@ -82,6 +82,7 @@ import { HealthCheck } from "./HealthCheck";
 import GitDiagnostics from "./GitDiagnostics";
 import VoiceSearchButton from "./VoiceSearchButton";
 import OfflineBanner from "./OfflineBanner";
+import PWAInstallButton from "./PWAInstallButton";
 
 const SystemClock: React.FC = () => {
   const [time, setTime] = useState(new Date());
@@ -790,6 +791,9 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
             )}
 
+            {/* In-App PWA Install Button for Offline Use */}
+            <PWAInstallButton className="hidden sm:flex" />
+
             {/* Battery Level Indicator */}
             <BatteryIndicator />
 
@@ -817,6 +821,7 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             <div className="lg:hidden flex items-center gap-1">
+              <PWAInstallButton className="flex sm:hidden mr-1" />
               <LanguageSelector />
               <button
                 onClick={() => {

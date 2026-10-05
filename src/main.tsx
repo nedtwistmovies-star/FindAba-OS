@@ -18,19 +18,18 @@ if (container) {
   root.render(<App />);
 }
 
-// REGISTER SERVICE WORKER FOR MOBILE INSTALLATION (PWA PROTOCOL)
-// Disabled in preview environment to prevent ServiceWorker state errors
-if ('serviceWorker' in navigator && !window.location.hostname.includes('run.app')) {
+// REGISTER SERVICE WORKER FOR OFFLINE CAPABILITIES & PWA INSTALLATION
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then(reg => {
-        console.log('Registry Signal Active:', reg.scope);
-        // Prompt immediate update check to ensure latest shell is running
+        console.log('[SW] FindAba Offline Directory Signal Active:', reg.scope);
+        // Prompt immediate update check to ensure latest shell and directory cache are running
         reg.update().catch(() => {});
         if (reg.waiting) {
           reg.waiting.postMessage({ type: 'SKIP_WAITING' });
         }
       })
-      .catch(err => console.warn('Registry Signal Blocked:', err));
+      .catch(err => console.warn('[SW] Registration warning:', err));
   });
 }

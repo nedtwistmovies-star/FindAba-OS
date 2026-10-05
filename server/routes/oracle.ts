@@ -26,6 +26,9 @@ export function detectNewsIntent(prompt: string): { isNews: boolean; locationFoc
     // Natural short queries such as "how aba today", "aba lately", "aba now"
     /^\s*(?:how\s+)?(?:is|about)?\s*(?:aba|abia|ariaria|ugwunagbo|ukwa|osisioma|aba north|aba south)\s+(?:today|now|currently|lately|recently|these days)\s*$/i,
 
+    // Natural queries like "the latest", "what's the latest", "what is the latest"
+    /^\s*(?:what(?:'s| is| are)?\s+)?(?:the\s+)?latest(?:\s+(?:in|for|around)\s+[a-z0-9\s-]+)?\s*$/i,
+
     // "What is the government doing lately/currently..."
     /\bwhat(?:'s| is| are)?\s+(?:the\s+)?(?:government|govt|government\s+officials?|state\s+government)\s+(?:doing|up\s+to|working\s+on|planning|announcing|implementing)\b/i,
 

@@ -24,24 +24,45 @@ export const cacheBusinessOffline = (business: Business) => {
 };
 
 /**
- * Retrieves list of all offline cached businesses
+ * Retrieves list of all offline cached businesses from localStorage and Service Worker cache
  */
 export const getOfflineCachedBusinesses = (): Business[] => {
   try {
+    // 1. Check general directory cache first (full directory)
+    const generalCache = localStorage.getItem(BUSINESSES_CACHE_KEY);
+    if (generalCache) {
+      const parsed = JSON.parse(generalCache);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+
+    // 2. Check offline last-viewed cache
     const offlineStr = localStorage.getItem(OFFLINE_CACHE_KEY);
     if (offlineStr) {
       const parsed = JSON.parse(offlineStr);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-    const generalCache = localStorage.getItem(BUSINESSES_CACHE_KEY);
-    if (generalCache) {
-      const parsed = JSON.parse(generalCache);
-      if (Array.isArray(parsed)) return parsed;
-    }
   } catch (err) {
     console.warn('Error reading offline cached data:', err);
   }
   return [];
+};
+
+/**
+ * Asynchronously query the Service Worker Cache Storage for directory count
+ */
+export const getServiceWorkerCachedDirectoryCount = async (): Promise<number> => {
+  if (typeof window === 'undefined' || !('caches' in window)) return 0;
+  try {
+    const dirCache = await caches.open('findaba-directory-v113.0');
+    const resp = await dirCache.match('/api/businesses');
+    if (resp) {
+      const data = await resp.clone().json();
+      if (Array.isArray(data)) return data.length;
+    }
+  } catch (e) {
+    // Non-fatal cache probe
+  }
+  return 0;
 };
 
 export const OfflineBanner: React.FC = () => {
@@ -50,9 +71,16 @@ export const OfflineBanner: React.FC = () => {
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const [cachedCount, setCachedCount] = useState<number>(0);
 
-  const updateCacheCount = useCallback(() => {
-    const cached = getOfflineCachedBusinesses();
-    setCachedCount(cached.length);
+  const updateCacheCount = useCallback(async () => {
+    const localCached = getOfflineCachedBusinesses();
+    if (localCached.length > 0) {
+      setCachedCount(localCached.length);
+      return;
+    }
+    const swCount = await getServiceWorkerCachedDirectoryCount();
+    if (swCount > 0) {
+      setCachedCount(swCount);
+    }
   }, []);
 
   useEffect(() => {

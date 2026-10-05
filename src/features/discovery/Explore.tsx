@@ -5,7 +5,7 @@ import { BusinessCard, MapView, IndustrialButton, VoiceSearchButton, BusinessLis
 import { Business, VerificationStatus } from '../../types';
 import { CATEGORIES } from '../../constants';
 import { useOracle } from '../../providers';
-import { searchLocalBusinesses } from '../../services/localSearchService';
+import { searchLocalBusinesses, recordSearchTelemetry } from '../../services/localSearchService';
 import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
 import { useEffect, useRef } from 'react';
 
@@ -107,18 +107,29 @@ const Explore = ({
   }, [searchQuery]);
 
   // Telemetry for no-results to signal acquisition opportunities
-  const lastReportedEmptyQuery = useRef<string>('');
+  const lastReportedQuery = useRef<string>('');
   useEffect(() => {
-    if (searchQuery.trim() && searchData.noResults && searchQuery !== lastReportedEmptyQuery.current) {
-      lastReportedEmptyQuery.current = searchQuery;
-      triggerWebhook(WebhookEvent.SEARCH_QUERY, {
-        query: searchQuery,
-        results_count: 0,
-        user_email: localStorage.getItem('findaba_user_email') || 'anonymous',
-        note: 'ZERO_RESULTS_SIGNAL'
-      }).catch(() => {});
+    const q = searchQuery.trim();
+    if (q && q !== lastReportedQuery.current) {
+      lastReportedQuery.current = q;
+      
+      // Internal demand tracking
+      recordSearchTelemetry(q, filtered.length, (window as any)._userLocation ? { 
+        lat: (window as any)._userLocation.latitude, 
+        lng: (window as any)._userLocation.longitude 
+      } : undefined);
+
+      // Webhook legacy support
+      if (searchData.noResults) {
+        triggerWebhook(WebhookEvent.SEARCH_QUERY, {
+          query: q,
+          results_count: 0,
+          user_email: localStorage.getItem('findaba_user_email') || 'anonymous',
+          note: 'ZERO_RESULTS_SIGNAL'
+        }).catch(() => {});
+      }
     }
-  }, [searchData.noResults, searchQuery]);
+  }, [searchData.noResults, searchQuery, filtered.length]);
 
   const activeFilterCount = (categoryFilter !== 'All Categories' ? 1 : 0) + (statusFilter !== 'All' ? 1 : 0) + (areaFilter !== 'All Areas' ? 1 : 0);
 

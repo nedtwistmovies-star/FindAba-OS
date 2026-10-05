@@ -818,33 +818,70 @@ export const uploadImage = async (file: File, bucket: string): Promise<string | 
 };
 
 export const fetchAllBusinesses = async (abortSignal?: AbortSignal): Promise<Business[]> => {
-  const client = getSupabase();
-  if (!client) return [];
+  // 1. Try dedicated directory endpoint first (intercepted and served offline by Service Worker)
   try {
-    console.log("[Registry] Pulling latest nodes from industrial grid...");
-    let query = client
-      .from('businesses')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (abortSignal) {
-      query = query.abortSignal(abortSignal);
-    }
+    const apiResponse = await fetch('/api/businesses', { 
+      signal: abortSignal,
+      headers: { 'Accept': 'application/json' }
+    });
 
-    const { data, error } = await query;
-      
-    if (error) {
-      console.warn(`[Registry] Cloud Fetch Issue: ${error.message} (${error.code})`);
-      if (error.code === '42P01') {
-        console.warn("[Registry] Schema missing: 'businesses' table not found.");
+    if (apiResponse.ok) {
+      const data = await apiResponse.json();
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.businesses) ? data.businesses : []);
+      if (list.length > 0) {
+        try {
+          localStorage.setItem('findaba_businesses_cache', JSON.stringify(list));
+        } catch {}
+        return list;
       }
-      return [];
     }
-    return data || [];
-  } catch (e: any) { 
-    console.error("[Registry] Hardware fault during fetch:", e.message);
-    return []; 
+  } catch (apiErr: any) {
+    console.log("[Registry] /api/businesses fetch deferred or offline:", apiErr.message);
   }
+
+  // 2. Direct Supabase PostgREST query as secondary cloud path
+  const client = getSupabase();
+  if (client) {
+    try {
+      console.log("[Registry] Pulling latest nodes from industrial grid...");
+      let query = client
+        .from('businesses')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (abortSignal) {
+        query = query.abortSignal(abortSignal);
+      }
+
+      const { data, error } = await query;
+        
+      if (!error && Array.isArray(data) && data.length > 0) {
+        try {
+          localStorage.setItem('findaba_businesses_cache', JSON.stringify(data));
+        } catch {}
+        return data;
+      }
+      if (error) {
+        console.warn(`[Registry] Cloud Fetch Issue: ${error.message} (${error.code})`);
+      }
+    } catch (e: any) { 
+      console.warn("[Registry] Supabase direct fetch deferred:", e.message);
+    }
+  }
+
+  // 3. Fallback to localStorage offline snapshot
+  try {
+    const cached = localStorage.getItem('findaba_businesses_cache');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        console.log(`[Registry] Operating in Offline Mesh mode with ${parsed.length} cached nodes.`);
+        return parsed;
+      }
+    }
+  } catch {}
+
+  return [];
 };
 
 export const updateBusinessTier = async (businessId: string, tier: HubTier | SubscriptionTier | string) => {
@@ -2612,6 +2649,21 @@ export const adminDelistBusiness = async (businessId: string, delist: boolean = 
   if (error) throw error;
   window.dispatchEvent(new CustomEvent('FINDABA_BUSINESS_UPDATED', { detail: data }));
   return data;
+};
+
+export const fetchSearchDemand = async (): Promise<any[]> => {
+  await ensureAuth();
+  const client = getSupabase();
+  if (!client) return [];
+  try {
+    const { data, error } = await client
+      .from('automation_logs')
+      .select('*')
+      .eq('event_type', 'search_query')
+      .order('created_at', { ascending: false });
+    if (error && error.code === '42P01') return [];
+    return data || [];
+  } catch (e) { return []; }
 };
 
 export const adminDeleteBusiness = async (businessId: string): Promise<boolean> => {
