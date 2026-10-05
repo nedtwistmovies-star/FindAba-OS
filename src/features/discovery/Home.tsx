@@ -318,7 +318,7 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
               <Search size={18} className="text-aba-gold mr-3 sm:mr-4 shrink-0" strokeWidth={3} />
               <input 
                 type="text"
-                placeholder="Search for businesses in Aba..."
+                placeholder="What do you want to find in Aba?"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="text-xs sm:text-sm md:text-lg font-black tracking-widest flex-1 bg-transparent border-none outline-none text-white placeholder:text-white/20 uppercase"
@@ -341,6 +341,18 @@ const Home: React.FC<HomeProps> = ({ setView, businesses = [], heroImages = [], 
                 )}
               </div>
             </form>
+
+            <div className="flex flex-wrap justify-center gap-2 mt-4 sm:mt-6">
+               {['Shoes', 'Tailors', 'Restaurants', 'Phone Repair', 'Spare Parts', 'Plumbers'].map(example => (
+                 <button 
+                   key={example}
+                   onClick={() => { setSearchQuery(example); setGlobalSearchQuery(example); setView('explore'); }}
+                   className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-bold text-white/40 uppercase tracking-widest hover:text-aba-gold hover:border-aba-gold/50 transition-standard"
+                 >
+                   {example}
+                 </button>
+               ))}
+            </div>
           </div>
         </motion.div>
 

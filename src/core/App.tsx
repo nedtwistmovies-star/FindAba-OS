@@ -72,11 +72,23 @@ const AppContent: React.FC = () => {
 
   // 2. State Declarations
   const [isBooted, setIsBooted] = useState(false);
+  const [slug, setSlug] = useState<string | null>(null);
+
   // 🔹 DEEP LINKING & REFERRAL SIGNAL CAPTURED ON MOUNT
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const referralCode = params.get('ref');
     const targetView = params.get('view') as ViewState;
+
+    // Capture Local Search SEO Pathnames: /find/shoe-sellers-in-aba
+    const path = window.location.pathname;
+    if (path.startsWith('/find/')) {
+      const capturedSlug = path.replace('/find/', '').replace(/\/$/, '');
+      if (capturedSlug) {
+        setSlug(capturedSlug);
+        setView('find');
+      }
+    }
     
     if (referralCode) {
       localStorage.setItem('findaba_referral_code', referralCode);
@@ -246,6 +258,7 @@ const AppContent: React.FC = () => {
                   setView={setView} 
                   onBack={handleBack}
                   {...extraProps}
+                  slug={slug}
                   businesses={businesses} 
                   heroImages={heroImages} 
                   heroVideos={heroVideos} 

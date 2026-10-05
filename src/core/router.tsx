@@ -102,6 +102,7 @@ export const Signup = resilientLazy(() => import('../pages/Signup'));
 export const Profile = resilientLazy(() => import('../features/auth/Profile'));
 export const Onboarding = resilientLazy(() => import('../features/auth/Onboarding'));
 export const SupportCenter = resilientLazy(() => import('../features/support/SupportCenter'));
+export const LocalSearchPage = resilientLazy(() => import('../features/discovery/LocalSearchPage'));
 
 export const BuyerOrdersView = resilientLazy(() => import('../features/finance/BuyerOrdersView'));
 
@@ -171,6 +172,7 @@ export const ROUTE_MAP: Partial<Record<ViewState, any>> & Record<string, any> = 
   'profile': withUser(Profile),
   'onboarding': Onboarding,
   'support': SupportCenter,
+  'find': LocalSearchPage,
   'buyer-portal': withUser(Profile),
   'registry-setup': withAdmin(SetupConnection),
   'orders': (props: any) => {

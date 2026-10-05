@@ -5,6 +5,9 @@ import { BusinessCard, MapView, IndustrialButton, VoiceSearchButton, BusinessLis
 import { Business, VerificationStatus } from '../../types';
 import { CATEGORIES } from '../../constants';
 import { useOracle } from '../../providers';
+import { searchLocalBusinesses } from '../../services/localSearchService';
+import { triggerWebhook, WebhookEvent } from '../../services/webhookService';
+import { useEffect, useRef } from 'react';
 
 interface ExploreProps {
   businesses?: Business[];
@@ -46,33 +49,76 @@ const Explore = ({
   ).sort();
 }, [bizList]);
 
-  const filtered = useMemo(() => {
-    return bizList.filter(b => {
-      // Exclude delisted businesses from public discovery
-      if (b.status === 'delisted') return false;
+  const searchData = useMemo(() => {
+    // 1. Initial status/delisted filtering
+    let list = bizList.filter(b => b.status !== 'delisted');
 
-      const searchLower = String(searchQuery ?? '').toLowerCase().trim();
+    // 2. Category/Status/Area filters (pre-search)
+    if (categoryFilter !== 'All Categories') {
+      list = list.filter(b => b.category === categoryFilter);
+    }
+    if (statusFilter !== 'All') {
+      list = list.filter(b => b.verification_status === statusFilter);
+    }
+    if (areaFilter !== 'All Areas') {
+      list = list.filter(b => b.area === areaFilter);
+    }
 
-const matchesSearch =
-  String(b.name ?? '').toLowerCase().includes(searchLower) ||
-  String(b.category ?? '').toLowerCase().includes(searchLower) ||
-  String(b.primary_product_or_service ?? '').toLowerCase().includes(searchLower) ||
-  String(b.area ?? '').toLowerCase().includes(searchLower) ||
-  (Array.isArray(b.skills) &&
-    b.skills.some(s =>
-      String(s ?? '').toLowerCase().includes(searchLower)
-    ));
-      
-      const matchesCategory = categoryFilter === 'All Categories' || b.category === categoryFilter;
-      const matchesStatus = statusFilter === 'All' || b.verification_status === statusFilter;
-      const matchesArea = areaFilter === 'All Areas' || b.area === areaFilter;
-      
-      return matchesSearch && matchesCategory && matchesStatus && matchesArea;
-    }).sort((a, b) => {
-      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
-      return (a.name || '').localeCompare(b.name || '');
-    });
+    let suggestions: string[] = [];
+    let noResults = false;
+
+    // 3. Search Engine Ranking
+    if (searchQuery.trim()) {
+      const searchRes = searchLocalBusinesses(list, searchQuery, {
+        userLocation: typeof window !== 'undefined' && (window as any)._userLocation ? (window as any)._userLocation : undefined
+      });
+      list = searchRes.results.map(r => r.business);
+      suggestions = searchRes.suggestions;
+      noResults = searchRes.noResults;
+    } else {
+      // 4. Default Sorting if no search
+      list = [...list].sort((a, b) => {
+        if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+        return (a.name || '').localeCompare(b.name || '');
+      });
+    }
+
+    return { list, suggestions, noResults };
   }, [bizList, searchQuery, categoryFilter, statusFilter, areaFilter, sortBy]);
+
+  const filtered = searchData.list;
+
+  // Geolocation handling for "near me"
+  useEffect(() => {
+    if (searchQuery.toLowerCase().includes('near me') && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          (window as any)._userLocation = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
+          };
+          // Re-trigger search by updating dummy state or just rely on memo if dependencies change
+          setSortBy(prev => prev); // Trigger re-memo
+        },
+        (err) => console.warn('Location access denied', err),
+        { timeout: 5000 }
+      );
+    }
+  }, [searchQuery]);
+
+  // Telemetry for no-results to signal acquisition opportunities
+  const lastReportedEmptyQuery = useRef<string>('');
+  useEffect(() => {
+    if (searchQuery.trim() && searchData.noResults && searchQuery !== lastReportedEmptyQuery.current) {
+      lastReportedEmptyQuery.current = searchQuery;
+      triggerWebhook(WebhookEvent.SEARCH_QUERY, {
+        query: searchQuery,
+        results_count: 0,
+        user_email: localStorage.getItem('findaba_user_email') || 'anonymous',
+        note: 'ZERO_RESULTS_SIGNAL'
+      }).catch(() => {});
+    }
+  }, [searchData.noResults, searchQuery]);
 
   const activeFilterCount = (categoryFilter !== 'All Categories' ? 1 : 0) + (statusFilter !== 'All' ? 1 : 0) + (areaFilter !== 'All Areas' ? 1 : 0);
 
@@ -116,7 +162,7 @@ const matchesSearch =
             <div className="relative flex-1 group">
                <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-aba-gold transition-standard w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                <input 
-                 placeholder="Search for businesses..." 
+                 placeholder="What do you want to find in Aba?" 
                  className="w-full pl-10 sm:pl-12 pr-12 sm:pr-14 py-3 sm:py-4 bg-white/5 border border-white/10 rounded-2xl text-xs sm:text-sm font-bold outline-none focus:border-aba-gold/50 transition-standard text-white placeholder:text-white/20 uppercase"
                  value={searchQuery}
                  onChange={e => setSearchQuery(e.target.value)}
@@ -250,18 +296,37 @@ const matchesSearch =
                 />
               </div>
             ))}
-            {filtered.length === 0 && (
+             {filtered.length === 0 && (
               <div className="col-span-full py-20 sm:py-40 text-center flex flex-col items-center animate-fade-in">
                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/5 rounded-3xl flex items-center justify-center text-aba-gold mb-6 sm:mb-8 border border-white/5">
                    <Search className="w-8 h-8 sm:w-10 sm:h-10" />
                  </div>
-                 <h3 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-white leading-none">No Businesses Found</h3>
-                 <p className="text-[9px] sm:text-[10px] font-bold uppercase mt-3 sm:mt-4 text-aba-gold/60 tracking-widest">Try adjusting your filters or search terms.</p>
+                 <h3 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-white leading-none">We couldn't find a good match yet</h3>
+                 <p className="text-[9px] sm:text-[10px] font-bold uppercase mt-3 sm:mt-4 text-aba-gold/60 tracking-widest max-w-xs mx-auto leading-relaxed">
+                   Try a different word, a nearby area, or search for a specific product like "shoes" or service like "tailor".
+                 </p>
+                 
+                 {searchData.suggestions.length > 0 && (
+                   <div className="mt-8">
+                     <p className="text-[8px] font-black uppercase text-white/30 tracking-[0.2em] mb-4">Suggested Categories</p>
+                     <div className="flex flex-wrap justify-center gap-2">
+                       {searchData.suggestions.map(s => (
+                         <button
+                           key={s}
+                           onClick={() => setSearchQuery(s)}
+                           className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-bold text-aba-gold uppercase tracking-widest hover:bg-aba-gold hover:text-aba-deep transition-standard active:scale-95"
+                         >
+                           {s}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+                 )}
                  <button 
                    onClick={() => { setCategoryFilter('All Categories'); setStatusFilter('All'); setSearchQuery(''); }}
                    className="mt-8 sm:mt-10 px-6 sm:px-8 py-3 sm:py-4 bg-white/5 text-white/40 rounded-xl font-bold uppercase text-[9px] sm:text-[10px] tracking-widest border border-white/10 hover:text-white transition-standard"
                  >
-                   Reset Filters
+                   Reset Search
                  </button>
               </div>
             )}

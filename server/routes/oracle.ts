@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { aiProviderManager, BusinessContextItem, generateLocalAbaResponse } from "../services/ai";
 import { newsService } from "../services/newsService";
+import { searchLocalBusinesses } from "../../src/services/localSearchService";
 
 export const oracleRouter = Router();
 
@@ -256,16 +257,33 @@ oracleRouter.post("/oracle", oracleRateLimit, async (req, res) => {
       }
     }
 
-    businessContext = filteredCatalog.slice(0, 50).map((b: any) => ({
-      name: b.name,
-      category: b.category,
-      product: b.primary_product_or_service || b.product || "",
-      area: b.area || "",
-      address: b.address || "",
-      phone: b.phone_whatsapp || b.phone || "",
-      latitude: typeof b.latitude === "number" ? b.latitude : undefined,
-      longitude: typeof b.longitude === "number" ? b.longitude : undefined,
+    businessContext = searchLocalBusinesses(filteredCatalog, typeof prompt === "string" ? prompt : "", { 
+      userLocation,
+      limit: 25 
+    }).results.map(r => ({
+      name: r.business.name,
+      category: r.business.category,
+      product: r.business.primary_product_or_service || "",
+      area: r.business.area || "",
+      address: r.business.address || "",
+      phone: r.business.phone_whatsapp || r.business.phone || "",
+      latitude: typeof r.business.latitude === "number" ? r.business.latitude : undefined,
+      longitude: typeof r.business.longitude === "number" ? r.business.longitude : undefined,
     }));
+
+    if (businessContext.length === 0 && filteredCatalog.length > 0) {
+      // Fallback if search engine was too strict for a general query
+      businessContext = filteredCatalog.slice(0, 20).map((b: any) => ({
+        name: b.name,
+        category: b.category,
+        product: b.primary_product_or_service || b.product || "",
+        area: b.area || "",
+        address: b.address || "",
+        phone: b.phone_whatsapp || b.phone || "",
+        latitude: typeof b.latitude === "number" ? b.latitude : undefined,
+        longitude: typeof b.longitude === "number" ? b.longitude : undefined,
+      }));
+    }
 
     if (type === "flyer") {
       if (typeof prompt !== "object" || !prompt || !(prompt as Record<string, any>).base64) {
