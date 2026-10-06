@@ -78,6 +78,7 @@ import MetadataEditor from "./components/MetadataEditor";
 import TasksManager from "./components/TasksManager";
 import WhatsAppWebhookDashboard from "./components/WhatsAppWebhookDashboard";
 import GitSyncSupabaseCommit from "./components/GitSyncSupabaseCommit";
+import DemandDashboard from "./components/DemandDashboard";
 import { GitIntegrationDiagnostics } from "./components/GitIntegrationDiagnostics";
 import { PersistentDeploymentConfig } from "./components/PersistentDeploymentConfig";
 import { RegistryManager } from "./components/RegistryManager";
@@ -178,6 +179,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
     | "tasks"
     | "email"
     | "metadata"
+    | "demand"
     | "supabase"
     | "infrastructure"
     | "git"
@@ -354,6 +356,7 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
             { id: 'tasks', label: 'Roadmap', icon: ListTodo },
             { id: 'email', label: 'Email', icon: Mail },
             { id: 'metadata', label: 'Manifest', icon: Globe },
+            { id: 'demand', label: 'Search Demand', icon: TrendingUp },
             { id: 'git', label: 'Git Sync & Supabase Commit', icon: Github },
           ].map(tab => (
             <button
@@ -434,6 +437,8 @@ const Admin: React.FC<any> = ({ setView, userRole, userEmail, profile }) => {
           {activeTab === 'email' && <EmailAudit />}
 
           {activeTab === 'metadata' && <MetadataEditor />}
+
+          {activeTab === 'demand' && <DemandDashboard />}
 
           {activeTab === 'tasks' && <TasksManager />}
 

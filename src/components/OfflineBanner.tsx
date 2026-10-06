@@ -53,11 +53,16 @@ export const getOfflineCachedBusinesses = (): Business[] => {
 export const getServiceWorkerCachedDirectoryCount = async (): Promise<number> => {
   if (typeof window === 'undefined' || !('caches' in window)) return 0;
   try {
-    const dirCache = await caches.open('findaba-directory-v113.0');
-    const resp = await dirCache.match('/api/businesses');
-    if (resp) {
-      const data = await resp.clone().json();
-      if (Array.isArray(data)) return data.length;
+    const cacheKeys = ['findaba-critical-data-v114.0', 'findaba-directory-v113.0'];
+    for (const key of cacheKeys) {
+      if (await caches.has(key)) {
+        const dirCache = await caches.open(key);
+        const resp = await dirCache.match('/api/businesses');
+        if (resp) {
+          const data = await resp.clone().json();
+          if (Array.isArray(data)) return data.length;
+        }
+      }
     }
   } catch (e) {
     // Non-fatal cache probe

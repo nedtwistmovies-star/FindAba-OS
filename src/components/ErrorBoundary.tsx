@@ -102,7 +102,7 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">
-              FindAba City OS
+              FindAba
             </p>
           </div>
         </div>

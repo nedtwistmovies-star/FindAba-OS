@@ -129,7 +129,7 @@ export const triggerWebhook = async (
         },
         body: JSON.stringify({
           ...standardizedData,
-          app: 'FindAba City OS',
+          app: 'FindAba',
           version: '7.0'
         }),
       });
@@ -237,7 +237,7 @@ export const getSamplePayload = (event: WebhookEvent) => {
     reference: 'REF-SAMPLE-999',
     tier_level: 'premium',
     timestamp: new Date().toISOString(),
-    app: 'FindAba City OS',
+    app: 'FindAba',
     version: '7.0'
   };
 

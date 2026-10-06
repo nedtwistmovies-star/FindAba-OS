@@ -4,8 +4,8 @@ import { Business, Category, VerificationStatus, VerificationLevel, IntegrityGra
 export const SANDALS_BRAND = {
   name: "FindAba",
   brandOwner: "SANDALSroyalle",
-  fullName: "FindAba by SANDALSroyalle • Industrial Operating System",
-  logo: "/assets/images/findaba_logo_official_1780607887279.png",
+  fullName: "FindAba",
+  logo: "/icon.png",
   category: "Business Service / Industrial Company",
   location: "Aba, Abia State, Nigeria",
   website: "https://findaba.app",

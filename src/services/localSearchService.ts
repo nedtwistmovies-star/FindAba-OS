@@ -354,10 +354,51 @@ export function searchLocalBusinesses(
   return { query, normalizedQuery: normalized, intent, locationFocus, results, suggestions: Array.from(new Set(suggestions)).slice(0, 3), noResults: results.length === 0 };
 }
 
+export interface DemandOpportunity {
+  query: string;
+  count: number;
+  avgResults: number;
+  lastSearched: string;
+  locations: string[];
+  score: number;
+  level: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+/**
+ * Calculates a demand score for a specific query based on frequency and result counts.
+ */
+export function calculateDemandScore(query: string, entries: any[]): DemandOpportunity {
+  const queryEntries = entries.filter(e => e.query.toLowerCase().trim() === query.toLowerCase().trim());
+  const count = queryEntries.length;
+  const avgResults = queryEntries.reduce((acc, curr) => acc + (curr.resultsCount || 0), 0) / count;
+  const latest = queryEntries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+  
+  const locations = Array.from(new Set(queryEntries.map(e => e.locationFocus).filter(Boolean))) as string[];
+  
+  // Scoring formula: (frequency * 10) - (avgResults * 20) + recencyBonus
+  // High score = many searches + few results
+  const recencyBonus = (Date.now() - new Date(latest.timestamp).getTime()) < (24 * 60 * 60 * 1000) ? 20 : 0;
+  const score = (count * 15) - (avgResults * 10) + recencyBonus;
+  
+  let level: DemandOpportunity['level'] = 'LOW';
+  if (score > 100 || (count > 5 && avgResults < 1)) level = 'HIGH';
+  else if (score > 40 || (count > 2 && avgResults < 3)) level = 'MEDIUM';
+
+  return {
+    query,
+    count,
+    avgResults,
+    lastSearched: latest.timestamp,
+    locations,
+    score,
+    level
+  };
+}
+
 /**
  * Records search telemetry to identify demand and zero-result queries.
  */
-export async function recordSearchTelemetry(query: string, resultsCount: number, location?: { lat: number; lng: number }) {
+export async function recordSearchTelemetry(query: string, resultsCount: number, location?: { lat: number; lng: number }, locationFocus?: string) {
   if (!query || query.length < 3) return;
   
   try {
@@ -368,6 +409,7 @@ export async function recordSearchTelemetry(query: string, resultsCount: number,
         query,
         resultsCount,
         location,
+        locationFocus,
         timestamp: new Date().toISOString()
       })
     });

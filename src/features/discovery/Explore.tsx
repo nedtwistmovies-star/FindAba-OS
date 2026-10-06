@@ -75,15 +75,17 @@ const Explore = ({
       list = searchRes.results.map(r => r.business);
       suggestions = searchRes.suggestions;
       noResults = searchRes.noResults;
+      const locationFocus = searchRes.locationFocus;
+      
+      return { list, suggestions, noResults, locationFocus };
     } else {
       // 4. Default Sorting if no search
       list = [...list].sort((a, b) => {
         if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
         return (a.name || '').localeCompare(b.name || '');
       });
+      return { list, suggestions: [], noResults: false, locationFocus: undefined };
     }
-
-    return { list, suggestions, noResults };
   }, [bizList, searchQuery, categoryFilter, statusFilter, areaFilter, sortBy]);
 
   const filtered = searchData.list;
@@ -117,7 +119,7 @@ const Explore = ({
       recordSearchTelemetry(q, filtered.length, (window as any)._userLocation ? { 
         lat: (window as any)._userLocation.latitude, 
         lng: (window as any)._userLocation.longitude 
-      } : undefined);
+      } : undefined, searchData.locationFocus);
 
       // Webhook legacy support
       if (searchData.noResults) {

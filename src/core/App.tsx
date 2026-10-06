@@ -3,8 +3,17 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 console.log('[App.tsx] Module loading...');
-import { Loader2, AlertTriangle, Globe } from 'lucide-react';
-import { ErrorBoundary, LoadingScreen, Layout, FeedbackToast, AuthModal, ContactGateway, WelcomeOverlay } from '../components';
+import { Loader2, AlertTriangle, Globe, WifiOff, Wifi, RefreshCw } from 'lucide-react';
+import { 
+  ErrorBoundary, 
+  LoadingScreen, 
+  Layout, 
+  FeedbackToast, 
+  AuthModal, 
+  ContactGateway, 
+  WelcomeOverlay,
+  OfflineBanner 
+} from '../components';
 import { SplashScreen } from '../components/SplashScreen';
 import AuthLoadingScreen from '../components/AuthLoadingScreen';
 import { AuthErrorBoundary } from './AuthErrorBoundary';
@@ -33,7 +42,7 @@ const AppContent: React.FC = () => {
     setSelectedBusiness,
     setSelectedStory
   } = useBusiness();
-  const { toasts = [], removeToast = () => {} } = useToast();
+  const { toasts = [], addToast, removeToast = () => {} } = useToast();
   const { 
     isOracleOpen, 
     setIsOracleOpen, 
@@ -73,6 +82,45 @@ const AppContent: React.FC = () => {
   // 2. State Declarations
   const [isBooted, setIsBooted] = useState(false);
   const [slug, setSlug] = useState<string | null>(null);
+
+  // 🔹 ONLINE / OFFLINE STATUS OBSERVER (window.navigator.onLine)
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.navigator.onLine : true;
+  });
+  const [wasOffline, setWasOffline] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      const currentStatus = typeof window !== 'undefined' ? window.navigator.onLine : true;
+      console.log('[App] Network status changed: ONLINE', { currentStatus });
+      setIsOnline(currentStatus);
+      if (wasOffline) {
+        addToast?.("Network connection restored. Live city data reconnected.", "success");
+      }
+    };
+
+    const handleOffline = () => {
+      const currentStatus = typeof window !== 'undefined' ? window.navigator.onLine : false;
+      console.log('[App] Network status changed: OFFLINE', { currentStatus });
+      setIsOnline(currentStatus);
+      setWasOffline(true);
+      addToast?.("Network connection lost. Operating in offline mode with cached business data.", "info");
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check on mount
+    if (typeof window !== 'undefined' && !window.navigator.onLine) {
+      setIsOnline(false);
+      setWasOffline(true);
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [addToast, wasOffline]);
 
   // 🔹 DEEP LINKING & REFERRAL SIGNAL CAPTURED ON MOUNT
   useEffect(() => {
@@ -311,6 +359,9 @@ const AppContent: React.FC = () => {
           onClose={() => setIsContactModalOpen(false)}
           business={businesses.find(b => b.id === contactBusinessId) || null}
         />
+
+        {/* 🔹 CONNECTIVITY STATUS OBSERVER FEEDBACK */}
+        <OfflineBanner />
 
         {isOracleOpen && (
           <div className="fixed inset-0 z-[9999] animate-fade-in">

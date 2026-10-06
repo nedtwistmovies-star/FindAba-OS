@@ -11,6 +11,7 @@ const telemetrySchema = z.object({
   query: z.string(),
   resultsCount: z.number(),
   timestamp: z.string().optional(),
+  locationFocus: z.string().optional(),
   location: z.object({
     lat: z.number().optional(),
     lng: z.number().optional()

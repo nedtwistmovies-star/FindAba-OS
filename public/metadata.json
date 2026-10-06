@@ -10,9 +10,9 @@
     "type": "git",
     "url": "https://github.com/nedtwistmovies-star/FindAba-OS.git"
   },
-  "description": "FindAba connects the markets of Aba and the products of Abia State to the world. We help traders, artisans, and businesses manage orders, reach new customers, and grow their trade community.",
-  "theme_color": "#020617",
-  "background_color": "#020617",
+  "description": "Find businesses, products and services around Aba.",
+  "theme_color": "#002113",
+  "background_color": "#002113",
   "contact_email": "inquiries@findaba.com",
   "account_number": "0000000000",
   "social_media_links": {

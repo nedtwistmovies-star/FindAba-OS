@@ -21,7 +21,7 @@ if (container) {
 // REGISTER SERVICE WORKER FOR OFFLINE CAPABILITIES & PWA INSTALLATION
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register('/service-worker.js')
       .then(reg => {
         console.log('[SW] FindAba Offline Directory Signal Active:', reg.scope);
         // Prompt immediate update check to ensure latest shell and directory cache are running

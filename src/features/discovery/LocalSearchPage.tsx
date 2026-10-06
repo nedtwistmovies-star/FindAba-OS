@@ -60,7 +60,7 @@ const LocalSearchPage: React.FC<LocalSearchPageProps> = ({
       if (ogDesc) ogDesc.setAttribute('content', description);
 
       // Record telemetry for SEO landing page hits
-      recordSearchTelemetry(query, results.length);
+      recordSearchTelemetry(query, results.length, undefined, searchRes.locationFocus);
     }
   }, [query, results.length]);
 
