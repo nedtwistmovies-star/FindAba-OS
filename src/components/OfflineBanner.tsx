@@ -53,15 +53,19 @@ export const getOfflineCachedBusinesses = (): Business[] => {
 export const getServiceWorkerCachedDirectoryCount = async (): Promise<number> => {
   if (typeof window === 'undefined' || !('caches' in window)) return 0;
   try {
-    const cacheKeys = ['findaba-critical-data-v114.0', 'findaba-directory-v113.0'];
-    for (const key of cacheKeys) {
-      if (await caches.has(key)) {
-        const dirCache = await caches.open(key);
-        const resp = await dirCache.match('/api/businesses');
-        if (resp) {
-          const data = await resp.clone().json();
-          if (Array.isArray(data)) return data.length;
-        }
+    const keys = await caches.keys();
+    // Look for the most recent directory cache (e.g. findaba-directory-v117.0)
+    const directoryCacheKey = keys
+      .filter(k => k.startsWith('findaba-directory-'))
+      .sort()
+      .reverse()[0];
+
+    if (directoryCacheKey) {
+      const dirCache = await caches.open(directoryCacheKey);
+      const resp = await dirCache.match('/api/businesses');
+      if (resp) {
+        const data = await resp.clone().json();
+        if (Array.isArray(data)) return data.length;
       }
     }
   } catch (e) {
