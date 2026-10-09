@@ -25,6 +25,11 @@ export interface AbaStory {
   id: string;
   title: string;
   type: 'video_documentary' | 'pictorial_story' | 'community_extracted';
+  contentType?: 'news_report' | 'original_feature' | 'documentary' | 'opinion' | 'community_submission';
+  publicationStatus?: 'draft' | 'awaiting_verification' | 'awaiting_editorial_review' | 'approved' | 'published' | 'updated' | 'corrected' | 'retracted';
+  isEditorialVerified?: boolean;
+  editorialNotes?: string;
+  is_illustrative_media?: boolean;
   author_name: string;
   author_role?: string;
   author_avatar?: string;
@@ -51,106 +56,106 @@ export interface AbaStory {
 const SEEDED_ABA_STORIES: AbaStory[] = [
   {
     id: 'story-doc-1',
-    title: 'The Master Shoemakers of Ariaria: Crafting West Africa’s Footwear',
+    title: 'Ariaria Footwear Artisans: Crafting West Africa’s Leather Heritage',
     type: 'video_documentary',
-    author_name: 'Mazi Nnamdi Kalu',
-    author_role: 'Master Craftsman & Leather Guild Leader',
+    contentType: 'original_feature',
+    publicationStatus: 'awaiting_verification',
+    isEditorialVerified: false,
+    editorialNotes: 'Proposed feature concept. Specific claims regarding individual artisan names, guild numbers, and export metrics are pending on-the-ground guild verification. Media imagery is illustrative.',
+    is_illustrative_media: true,
+    author_name: 'FindAba Cultural Archive Desk',
+    author_role: 'Local Industry Research',
     author_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300',
     location: 'Ariaria International Market, Zone B, Aba',
     media_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200',
     media_type: 'image',
     thumbnail_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200',
     duration: '04:45',
-    description: 'Inside the humming workshops of Ariaria where over 80,000 artisans handcraft premium leather shoes, boots, and sandals exported across Africa and Europe.',
-    full_story: 'For over four decades, Ariaria International Market in Aba has stood as the undisputable shoe-making capital of West Africa. Every day, tons of high-grade raw leather arrive at the workshops. Craftsmen like Mazi Nnamdi utilize precision cutting tools, custom lasts, and heat-curing presses to turn raw hides into world-class footwear. With the FindAba digital registry, these artisans now secure international export compliance and digital trade verification.',
+    description: 'Inside the bustling workshops of Ariaria where generations of artisans handcraft leather footwear distributed across West Africa.',
+    full_story: 'For decades, Ariaria International Market in Aba has represented a premier hub for indigenous shoe manufacturing in West Africa. Artisans utilize cutting equipment, precision lasts, and cementing techniques to produce footwear ranging from formal sandals to school shoes. FindAba is conducting on-the-ground guild audits to document authentic artisan registries.',
     category: 'Leather & Footwear',
-    likes_count: 1840,
-    views_count: 12450,
-    created_at: '2026-08-01T10:00:00Z',
-    is_verified: true,
-    business_id: 'biz-ariaria-leather-guild',
-    business_name: 'Kalu Leather Crafts & Export Guild',
-    contact_phone: '+2348031234567',
-    contact_whatsapp: '2348031234567',
-    contact_email: 'kaluleather@findaba.com.ng',
-    source_feed: 'FindAba Industrial Archive'
+    likes_count: 320,
+    views_count: 2450,
+    created_at: '2026-09-15T10:00:00Z',
+    is_verified: false,
+    source_feed: 'FindAba Cultural Archive'
   },
   {
     id: 'story-doc-2',
-    title: 'Ngwa Road Textile Revolution: Custom Garments & High Fashion',
+    title: 'Ngwa Road Textile & Fashion Ecosystem: Custom Tailoring Hub',
     type: 'video_documentary',
-    author_name: 'Chief Mrs. Adaora Okeke',
-    author_role: 'Founder, Royale Garment Mills',
+    contentType: 'original_feature',
+    publicationStatus: 'awaiting_verification',
+    isEditorialVerified: false,
+    editorialNotes: 'Feature concept focusing on the garment and tailoring cluster along Ngwa Road. Specific named workshop owners and machinery counts pending field verification.',
+    is_illustrative_media: true,
+    author_name: 'FindAba Editorial Team',
+    author_role: 'Fashion & Textile Desk',
     author_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300',
     location: 'Ngwa Road Fashion Cluster, Aba',
     media_url: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1200',
     media_type: 'image',
     thumbnail_url: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1200',
     duration: '06:12',
-    description: 'Witnessing high-speed embroidery machines and textile tailors weaving bespoke ceremonial attires, uniforms, and modern streetwear for global clientele.',
-    full_story: 'From industrial sewing machines to hand-beaded lace, the Ngwa Road fashion ecosystem powers thousands of garment labels across Nigeria. In this documentary story, Chief Mrs. Adaora shares how her mill expanded from 2 pedal machines to a fully digitized 50-workstation factory servicing orders from Lagos, London, and Atlanta.',
+    description: 'High-speed embroidery, bespoke ceremonial attire, and ready-to-wear garments produced in Aba’s vibrant textile district.',
+    full_story: 'From industrial sewing machines to hand-beaded lace, the Ngwa Road fashion district powers garment retailers across Nigeria. Tailors craft ceremonial attires, school uniforms, and modern streetwear. Field research is underway to profile accredited designers and tailoring associations.',
     category: 'Textile & Fashion',
-    likes_count: 1290,
-    views_count: 8910,
-    created_at: '2026-08-03T14:20:00Z',
-    is_verified: true,
-    business_id: 'biz-royale-garments',
-    business_name: 'Royale Garment Mills & Textile Hub',
-    contact_phone: '+2348029876543',
-    contact_whatsapp: '2348029876543',
-    contact_email: 'adaora@royalegarments.ng',
-    source_feed: 'Aba Fashion Feed'
+    likes_count: 280,
+    views_count: 1890,
+    created_at: '2026-09-18T14:20:00Z',
+    is_verified: false,
+    source_feed: 'Aba Fashion Desk'
   },
   {
     id: 'story-doc-3',
     title: 'Precision Metal Casting & Machine Fabrication in Osisioma',
     type: 'video_documentary',
-    author_name: 'Engr. Emeka Nwosu',
-    author_role: 'Chief Engineer, Osisioma Metallurgy',
+    contentType: 'original_feature',
+    publicationStatus: 'awaiting_verification',
+    isEditorialVerified: false,
+    editorialNotes: 'Industrial profile of agro-processing machinery fabrication. Quantitative capacity figures pending engineering association review.',
+    is_illustrative_media: true,
+    author_name: 'Industrial Documentation Unit',
+    author_role: 'Engineering Researcher',
     author_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300',
     location: 'Osisioma Industrial Zone, Aba',
     media_url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200',
     media_type: 'image',
     thumbnail_url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200',
     duration: '03:30',
-    description: 'A journey through the foundry fires, lathes, and CNC metal workshops of Osisioma where local engineers build food processing machines and vehicle spares from scratch.',
-    full_story: 'Osisioma Industrial Zone represents the resilient backbone of Aba metallurgy. Local engineers cast iron, weld structural steel, and machine precision gears for palm oil mills, cassava processors, and heavy commercial vehicles.',
+    description: 'A study of foundries, lathes, and fabrication workshops where local machinists fabricate agro-processing tools and replacement parts.',
+    full_story: 'The Osisioma industrial axis hosts indigenous fabricators who cast iron, weld structural steel, and turn gears for cassava graters, oil palm presses, and vehicle components. This profile highlights the resilience of Aba engineering workshops.',
     category: 'Heavy Engineering',
-    likes_count: 940,
-    views_count: 6700,
-    created_at: '2026-08-05T09:15:00Z',
-    is_verified: true,
-    business_id: 'biz-osisioma-metallurgy',
-    business_name: 'Osisioma Heavy Engineering Works',
-    contact_phone: '+2348055512345',
-    contact_whatsapp: '2348055512345',
-    contact_email: 'emeka@osisiomaheavy.com',
-    source_feed: 'Osisioma Tech Wire'
+    likes_count: 195,
+    views_count: 1420,
+    created_at: '2026-09-22T09:15:00Z',
+    is_verified: false,
+    source_feed: 'Osisioma Engineering Archive'
   },
   {
     id: 'story-pic-1',
-    title: 'Voices of Ekeoha Shopping Center: Solar & Micro-Electronics',
+    title: 'Ekeoha Shopping Center: Solar & Micro-Electronics Exchange',
     type: 'pictorial_story',
-    author_name: 'Grace Ibe',
-    author_role: 'Tech Hardware Merchant',
+    contentType: 'original_feature',
+    publicationStatus: 'awaiting_verification',
+    isEditorialVerified: false,
+    editorialNotes: 'Trading overview of consumer electronics and renewable power equipment at Ekeoha. Illustrative media.',
+    is_illustrative_media: true,
+    author_name: 'Commerce & Tech Desk',
+    author_role: 'Market Analyst',
     author_avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=300',
     location: 'Ekeoha Shopping Center, Aba',
     media_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200',
     media_type: 'image',
     thumbnail_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200',
-    description: 'Exploring Ekeoha market where young tech minds assemble solar power systems, repair micro-electronics, and trade mobile hardware accessories.',
-    full_story: 'Ekeoha Shopping Center is Aba’s premier tech trading exchange. Here, solar panel distributors, micro-chip repair technicians, and hardware importers collaborate to energize Eastern Nigeria’s digital economy.',
+    description: 'Exploring Ekeoha market where technicians assemble solar backup solutions and distribute mobile and computer hardware.',
+    full_story: 'Ekeoha Shopping Center serves as Aba’s electronic commerce hub. Merchants distribute solar power components, inverter batteries, and computer peripherals connecting rural and urban buyers with modern energy and communications tech.',
     category: 'Tech & Hardware',
-    likes_count: 1120,
-    views_count: 7890,
-    created_at: '2026-08-06T16:45:00Z',
-    is_verified: true,
-    business_id: 'biz-ekeoha-tech',
-    business_name: 'Ekeoha Solar & Electronics Hub',
-    contact_phone: '+2348066677889',
-    contact_whatsapp: '2348066677889',
-    contact_email: 'grace@ekeohatech.ng',
-    source_feed: 'Ekeoha Merchants Guild'
+    likes_count: 240,
+    views_count: 1780,
+    created_at: '2026-09-25T11:30:00Z',
+    is_verified: false,
+    source_feed: 'Ekeoha Commerce Log'
   }
 ];
 
@@ -569,9 +574,13 @@ export const AdvertorialFeed: React.FC<Props> = ({ onBack, setView, onPostClick 
                       <span className="px-2.5 py-0.5 bg-aba-gold/10 text-aba-gold border border-aba-gold/20 rounded-md text-[9px] font-bold uppercase tracking-widest">
                         {featuredStories[carouselIndex].category}
                       </span>
-                      {featuredStories[carouselIndex].is_verified && (
+                      {featuredStories[carouselIndex].isEditorialVerified ? (
                         <span className="text-[9px] text-emerald-400 font-bold uppercase flex items-center gap-1">
                           <CheckCircle2 size={12} /> Verified Trade
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-amber-400 font-bold uppercase flex items-center gap-1">
+                          <Sparkles size={12} /> Feature Concept
                         </span>
                       )}
                     </div>
@@ -810,9 +819,11 @@ export const AdvertorialFeed: React.FC<Props> = ({ onBack, setView, onPostClick 
                     <div className="absolute bottom-4 left-4 right-4 space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold text-white/90">{story.author_name}</span>
-                        {story.is_verified && (
-                          <CheckCircle2 size={12} className="text-aba-gold" />
-                        )}
+                        {story.isEditorialVerified ? (
+                          <CheckCircle2 size={12} className="text-emerald-400" />
+                        ) : story.is_illustrative_media ? (
+                          <span className="text-[8px] text-amber-400/90 font-bold uppercase px-1 py-0.5 bg-black/40 rounded border border-amber-400/30">Concept</span>
+                        ) : null}
                       </div>
                       {story.location && (
                         <p className="text-[9px] text-aba-gold flex items-center gap-1 uppercase tracking-wider font-bold">

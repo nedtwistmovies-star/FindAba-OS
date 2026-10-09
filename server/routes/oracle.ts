@@ -11,7 +11,11 @@ export const oracleRouter = Router();
  * Detect if the user is explicitly asking for current news, breaking updates,
  * recent developments, today's events, or current activities in Aba/Abia.
  */
-export function detectNewsIntent(prompt: string): { isNews: boolean; locationFocus?: string } {
+export function detectNewsIntent(prompt: string): { 
+  isNews: boolean; 
+  locationFocus?: string;
+  timeframe?: "today" | "yesterday" | "recent" | "any";
+} {
   const p = prompt.trim().toLowerCase();
 
   // Exclude static/general informational and navigation queries that may
@@ -104,7 +108,16 @@ export function detectNewsIntent(prompt: string): { isNews: boolean; locationFoc
     locationFocus = "Abia-wide";
   }
 
-  return { isNews: true, locationFocus };
+  let timeframe: "today" | "yesterday" | "recent" | "any" = "any";
+  if (/\b(today|today's|this morning|this afternoon|this evening|now|currently|right now)\b/i.test(p)) {
+    timeframe = "today";
+  } else if (/\byesterday\b/i.test(p)) {
+    timeframe = "yesterday";
+  } else if (/\b(this week|recently|lately|few days)\b/i.test(p)) {
+    timeframe = "recent";
+  }
+
+  return { isNews: true, locationFocus, timeframe };
 }
 
 /**
@@ -306,7 +319,7 @@ oracleRouter.post("/oracle", oracleRateLimit, async (req, res) => {
 
     const intent = detectNewsIntent(prompt);
     if (intent.isNews) {
-      const newsResult = await newsService.getLatestAbaNews(intent.locationFocus);
+      const newsResult = await newsService.getLatestAbaNews(intent.locationFocus, intent.timeframe);
       newsContext = newsResult.context;
       newsGrounding = newsResult.grounding;
     }

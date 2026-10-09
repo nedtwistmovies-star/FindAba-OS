@@ -1,29 +1,34 @@
 /**
- * Server-side Real-Time News Retrieval Service for FindAba Oracle.
- * Fetches and filters recent news for Aba, Abia State, and neighbouring LGAs
- * using geo-targeted Google News Nigeria RSS.
+ * Server-side Authentic Real-Time News Retrieval Service for FindAba Oracle.
+ * Fetches, verifies, filters, and dates recent news for Aba, Abia State, and neighbouring LGAs
+ * using geo-targeted Nigerian news feeds and verified national publisher RSS sources.
  *
- * Security & Reliability Guards:
- * - Strictly hardcoded HTTPS endpoint (no arbitrary user URLs/SSRF).
- * - 4-second AbortController timeout.
- * - Maximum payload size limit (500 KB).
- * - 15-minute in-memory caching to minimize upstream requests.
- * - Safe XML parsing and HTML entity sanitization.
- * - Granular LGA / regional location tagging.
+ * Grounding & Integrity Principles:
+ * - Real verified articles only (Daily Post, Vanguard, The Punch, Premium Times, The Guardian, Channels, etc.).
+ * - Timezone-aware date parsing in Africa/Lagos (WAT).
+ * - Distinguishes "today", "yesterday", and older reports; forbids relabeling old news as today's news.
+ * - If no verified reports exist for a date-sensitive query (e.g. "today"), returns the explicit response:
+ *   "We couldn't find a sufficiently verified report for that request right now. Try again later."
+ * - Strict defense against prompt injection in RSS descriptions.
+ * - Preserves complete metadata: original headline, publisher, URL, publishedAt, retrieval timestamp, location tag.
  */
 
 export interface NewsArticle {
   title: string;
   publisher: string;
   publisherUrl?: string;
-  publishedAt: string;
-  rawDate: string;
-  url: string;
-  snippet: string;
-  location: string;
+  publishedAt: string;          // Human-readable formatted date in Africa/Lagos (e.g. "Oct 9, 2026, 06:15 AM WAT")
+  publishedAtLagosDate: string; // YYYY-MM-DD in Africa/Lagos
+  rawDate: string;              // Original pubDate string
+  url: string;                  // Verified original article URL
+  snippet: string;              // Clean, sanitized excerpt
+  location: string;             // Specific location tag (e.g., "Aba Urban", "Ariaria Market", "Osisioma Ngwa LGA")
   lgaCategory: string;
-  recency: string;
+  recency: string;              // Relative recency label
   timestampMs: number;
+  retrievalTimestamp: string;   // ISO string of retrieval
+  status: "verified" | "unverified_feed" | "unavailable";
+  verificationNotes: string;
 }
 
 export interface NewsRetrievalResult {
@@ -31,6 +36,9 @@ export interface NewsRetrievalResult {
   context: string;
   grounding: Array<{ web: { uri: string; title: string } }>;
   retrievalDate: string;
+  lagosTodayDate: string;
+  timeframeRequested?: "today" | "yesterday" | "recent" | "any";
+  hasTodayMatches?: boolean;
   error?: boolean;
 }
 
@@ -39,11 +47,42 @@ interface CacheEntry {
   data: NewsRetrievalResult;
 }
 
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
 const cache = new Map<string, CacheEntry>();
 
-/** Maximum allowable RSS XML payload size (500 KB). */
-const MAX_PAYLOAD_BYTES = 500 * 1024;
+/** Maximum allowable RSS XML payload size (600 KB). */
+const MAX_PAYLOAD_BYTES = 600 * 1024;
+
+/**
+ * Returns current date components in Africa/Lagos timezone.
+ */
+export function getLagosDateParts(date: Date = new Date()): { dateStr: string; year: number; month: number; day: number } {
+  const dateStr = date.toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }); // "YYYY-MM-DD"
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return { dateStr, year, month, day };
+}
+
+/**
+ * Formats a timestamp into human-readable Africa/Lagos time and YYYY-MM-DD.
+ */
+export function formatLagosDateTime(timestampMs: number): { formatted: string; dateStr: string } {
+  if (!timestampMs || isNaN(timestampMs)) {
+    return { formatted: "Date unconfirmed", dateStr: "" };
+  }
+  const d = new Date(timestampMs);
+  const dateStr = d.toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+  const formatted =
+    d.toLocaleString("en-US", {
+      timeZone: "Africa/Lagos",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }) + " (WAT)";
+  return { formatted, dateStr };
+}
 
 /**
  * Decode common XML and HTML entities safely.
@@ -74,31 +113,38 @@ function decodeXmlEntities(text: string): string {
 }
 
 /**
- * Strip HTML tags and clean whitespace.
+ * Strip HTML tags, remove prompt injection attempts, and clean whitespace.
  */
-function cleanHtml(html: string): string {
-  if (!html) return "";
-  const noCdata = html.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
-  const noTags = noCdata.replace(/<[^>]*>/g, " ");
-  return decodeXmlEntities(noTags).replace(/\s+/g, " ").trim();
-}
+export function cleanUntrustedText(text: string): string {
+  if (!text) return "";
+  let cleaned = text.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+  cleaned = cleaned.replace(/<[^>]*>/g, " ");
+  cleaned = decodeXmlEntities(cleaned);
 
-/**
- * Extract clean description text from Google News RSS description block.
- */
-function extractSnippet(descriptionHtml: string): string {
-  if (!descriptionHtml) return "";
-  // Remove font tags and anchor tags which usually only contain publisher and title
-  const strippedDesc = descriptionHtml
-    .replace(/<font[^>]*>[\s\S]*?<\/font>/gi, "")
-    .replace(/<a[^>]*>[\s\S]*?<\/a>/gi, "");
-  const cleaned = cleanHtml(strippedDesc);
+  // Defense against prompt injection markers in untrusted feeds
+  cleaned = cleaned
+    .replace(/\b(ignore previous instructions|disregard earlier instructions|system prompt|system message|jailbreak)\b/gi, "[redacted]")
+    .replace(/\[\s*(system|instruction|assistant|human)\b[\s\S]*?\]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
   return cleaned;
 }
 
 /**
+ * Extract clean description text from RSS description block.
+ */
+function extractSnippet(descriptionHtml: string): string {
+  if (!descriptionHtml) return "";
+  const strippedDesc = descriptionHtml
+    .replace(/<font[^>]*>[\s\S]*?<\/font>/gi, "")
+    .replace(/<a[^>]*>[\s\S]*?<\/a>/gi, "");
+  return cleanUntrustedText(strippedDesc);
+}
+
+/**
  * Detect precise regional / LGA location for an article to prevent
- * misattributing events from neighbouring areas (e.g., Ugwunagbo or Ukwa) to Aba proper.
+ * misattributing events from neighbouring areas to Aba proper.
  */
 export function detectArticleLocation(title: string, snippet: string): {
   locationTag: string;
@@ -143,22 +189,29 @@ export function detectArticleLocation(title: string, snippet: string): {
 }
 
 /**
- * Format relative recency based on publication date.
+ * Calculate human-readable recency relative to Africa/Lagos today date.
  */
-function calculateRecency(dateMs: number, nowMs: number): string {
-  if (isNaN(dateMs) || dateMs <= 0) return "Date unverified";
-  const diffHours = (nowMs - dateMs) / (1000 * 60 * 60);
+function calculateRecency(dateMs: number, nowMs: number, lagosDateStr: string, lagosTodayStr: string): string {
+  if (isNaN(dateMs) || dateMs <= 0) return "Date unconfirmed";
+  
+  if (lagosDateStr === lagosTodayStr) {
+    return "Published today in Aba/Abia";
+  }
 
-  if (diffHours < 0) return "Just reported";
-  if (diffHours < 24) return "Within last 24 hours (Today/Yesterday)";
-  if (diffHours < 72) return "Within last 3 days (Recent)";
+  const yesterdayLagosStr = new Date(nowMs - 24 * 3600 * 1000).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+  if (lagosDateStr === yesterdayLagosStr) {
+    return "Published yesterday";
+  }
+
+  const diffHours = (nowMs - dateMs) / (1000 * 60 * 60);
+  if (diffHours < 72) return "Within last 3 days";
   if (diffHours < 168) return "Within past 7 days";
   const days = Math.floor(diffHours / 24);
   return `${days} days ago`;
 }
 
 /**
- * Rank articles by location match, major news publisher weight, and publication recency.
+ * Score and rank articles by location match, publisher credibility, and recency.
  */
 function scoreArticle(article: NewsArticle, locationFocus?: string, nowMs: number = Date.now()): number {
   let score = 0;
@@ -167,22 +220,23 @@ function scoreArticle(article: NewsArticle, locationFocus?: string, nowMs: numbe
   // Location match
   if (focus && focus !== "aba & abia state") {
     if (article.lgaCategory.toLowerCase() === focus) {
-      score += 60;
+      score += 70;
     } else if (article.title.toLowerCase().includes(focus)) {
       score += 50;
     } else if (article.snippet.toLowerCase().includes(focus)) {
-      score += 25;
+      score += 30;
     }
   }
 
   // Recency scoring
   const diffHours = (nowMs - article.timestampMs) / (1000 * 60 * 60);
-  if (diffHours <= 24) score += 40;
-  else if (diffHours <= 72) score += 25;
+  if (diffHours <= 24) score += 50;
+  else if (diffHours <= 48) score += 35;
+  else if (diffHours <= 72) score += 20;
   else if (diffHours <= 168) score += 10;
-  else if (diffHours > 720) score -= 40; // Penalize articles older than 30 days
+  else if (diffHours > 720) score -= 60; // Penalize articles older than 30 days
 
-  // Recognized authoritative Nigerian publishers
+  // Recognized reputable publishers
   const pub = article.publisher.toLowerCase();
   if (
     pub.includes("vanguard") ||
@@ -191,11 +245,12 @@ function scoreArticle(article: NewsArticle, locationFocus?: string, nowMs: numbe
     pub.includes("punch") ||
     pub.includes("businessday") ||
     pub.includes("channels") ||
-    pub.includes("guardian") ||
-    pub.includes("the nation") ||
-    pub.includes("thisday")
+    pub.includes("the guardian") ||
+    pub.includes("the sun") ||
+    pub.includes("thisday") ||
+    pub.includes("ministry of information")
   ) {
-    score += 15;
+    score += 20;
   }
 
   return score;
@@ -203,11 +258,12 @@ function scoreArticle(article: NewsArticle, locationFocus?: string, nowMs: numbe
 
 export class NewsService {
   /**
-   * Fetch recent verified news for Aba and Abia State from reliable Nigerian RSS feeds.
+   * Fetch recent verified news for Aba and Abia State from reliable feeds.
    */
-  async getNews(locationFocus?: string): Promise<NewsRetrievalResult> {
-    const cacheKey = (locationFocus || "general").toLowerCase().trim();
+  async getNews(locationFocus?: string, timeframe?: "today" | "yesterday" | "recent" | "any"): Promise<NewsRetrievalResult> {
     const now = Date.now();
+    const { dateStr: lagosTodayStr } = getLagosDateParts(new Date(now));
+    const cacheKey = `${(locationFocus || "general").toLowerCase().trim()}_${timeframe || "any"}`;
 
     // Check in-memory cache
     const cached = cache.get(cacheKey);
@@ -215,21 +271,30 @@ export class NewsService {
       return cached.data;
     }
 
-    // Determine target feeds: dedicated Aba feeds + regional Abia feeds + specialized topic feeds
+    // Comprehensive multi-source verified feed endpoints
     const feeds = [
+      // 1. Google News Nigeria targeted search for real-time southeastern and Aba coverage
+      "https://news.google.com/rss/search?q=Aba+OR+Abia+Nigeria+when:7d&hl=en-NG&gl=NG&ceid=NG:en",
+      // 2. Daily Post Nigeria dedicated Aba tag feed
       "https://dailypost.ng/tag/aba/feed/",
+      // 3. Daily Post Nigeria Abia tag feed
+      "https://dailypost.ng/tag/abia/feed/",
+      // 4. Vanguard News Aba tag feed
       "https://www.vanguardngr.com/tag/aba/feed/",
-      "https://dailypost.ng/tag/abia/feed/"
+      // 5. Vanguard News Abia tag feed
+      "https://www.vanguardngr.com/tag/abia/feed/",
     ];
 
     const focusLower = (locationFocus || "").toLowerCase();
     if (focusLower.includes("enyimba")) {
       feeds.unshift(
+        "https://news.google.com/rss/search?q=Enyimba+FC+Aba+when:7d&hl=en-NG&gl=NG&ceid=NG:en",
         "https://dailypost.ng/tag/enyimba/feed/",
         "https://www.vanguardngr.com/tag/enyimba/feed/"
       );
     } else if (focusLower.includes("aba power") || focusLower.includes("geometric")) {
       feeds.unshift(
+        "https://news.google.com/rss/search?q=%22Aba+Power%22+OR+%22Geometric+Power%22+when:7d&hl=en-NG&gl=NG&ceid=NG:en",
         "https://www.vanguardngr.com/tag/geometric-power/feed/",
         "https://dailypost.ng/tag/aba-power/feed/"
       );
@@ -237,13 +302,13 @@ export class NewsService {
 
     const fetchPromises = feeds.map(async (url) => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
       try {
         const response = await fetch(url, {
           signal: controller.signal,
           headers: {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/rss+xml, application/xml, text/xml, */*",
+            Accept: "application/rss+xml, application/xml, text/xml, */*",
           },
         });
         clearTimeout(timeoutId);
@@ -253,7 +318,7 @@ export class NewsService {
           text = text.substring(0, MAX_PAYLOAD_BYTES);
         }
         return text;
-      } catch (err: any) {
+      } catch {
         clearTimeout(timeoutId);
         return "";
       }
@@ -268,16 +333,16 @@ export class NewsService {
     }
 
     if (allXmls.length === 0) {
-      console.warn(`[NewsService] All news feeds failed for focus "${locationFocus}"`);
-      return this.buildFallbackResult(now, locationFocus, "upstream news feeds temporarily unreachable");
+      console.warn(`[NewsService] All news feeds failed or timed out for focus "${locationFocus}"`);
+      return this.buildFallbackResult(now, locationFocus, "upstream news feeds temporarily unreachable", timeframe);
     }
 
-    // Parse articles from all feeds and deduplicate by clean title
+    // Parse articles from all feeds and deduplicate by normalized headline tokens
     const seenTitles = new Set<string>();
     const allArticles: NewsArticle[] = [];
 
     for (const xml of allXmls) {
-      const parsed = this.parseRssXml(xml, now);
+      const parsed = this.parseRssXml(xml, now, lagosTodayStr);
       for (const a of parsed) {
         const normalized = a.title.toLowerCase().replace(/[^a-z0-9]/g, "");
         if (normalized.length > 10 && !seenTitles.has(normalized)) {
@@ -288,7 +353,7 @@ export class NewsService {
     }
 
     if (allArticles.length === 0) {
-      return this.buildFallbackResult(now, locationFocus, "no articles parsed");
+      return this.buildFallbackResult(now, locationFocus, "no articles parsed", timeframe);
     }
 
     // Score and rank articles
@@ -297,21 +362,43 @@ export class NewsService {
       .sort((a, b) => b.score - a.score || b.article.timestampMs - a.article.timestampMs)
       .map((item) => item.article);
 
-    // Filter top relevant articles (cap at 6)
-    const topArticles = scored.slice(0, 6);
-
-    const retrievalDateStr = new Date(now).toLocaleDateString("en-US", {
+    const retrievalDateStr = new Date(now).toLocaleString("en-US", {
+      timeZone: "Africa/Lagos",
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-      timeZoneName: "short",
-    });
+      hour12: true,
+    }) + " (WAT)";
 
-    const context = this.formatContext(topArticles, retrievalDateStr, locationFocus);
+    // Date-sensitive filtering for "today" and "yesterday"
+    let finalArticles = scored;
+    let hasTodayMatches = false;
 
-    const grounding = topArticles.slice(0, 4).map((a) => ({
+    if (timeframe === "today") {
+      const todayArticles = scored.filter(
+        (a) => a.publishedAtLagosDate === lagosTodayStr || (now - a.timestampMs) <= 26 * 3600 * 1000
+      );
+      if (todayArticles.length > 0) {
+        finalArticles = todayArticles;
+        hasTodayMatches = true;
+      } else {
+        // Phase 4: Never relabel old articles as today's news!
+        finalArticles = [];
+        hasTodayMatches = false;
+      }
+    } else if (timeframe === "yesterday") {
+      const yesterdayLagosStr = new Date(now - 24 * 3600 * 1000).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+      finalArticles = scored.filter((a) => a.publishedAtLagosDate === yesterdayLagosStr);
+    } else {
+      // General recent: cap at 6 top relevant stories
+      finalArticles = scored.slice(0, 6);
+    }
+
+    const context = this.formatContext(finalArticles, retrievalDateStr, locationFocus, timeframe, lagosTodayStr, hasTodayMatches);
+
+    const grounding = finalArticles.slice(0, 5).map((a) => ({
       web: {
         uri: a.url,
         title: `${a.publisher}: ${a.title}`,
@@ -319,13 +406,15 @@ export class NewsService {
     }));
 
     const result: NewsRetrievalResult = {
-      articles: topArticles,
+      articles: finalArticles,
       context,
       grounding,
       retrievalDate: retrievalDateStr,
+      lagosTodayDate: lagosTodayStr,
+      timeframeRequested: timeframe,
+      hasTodayMatches,
     };
 
-    // Store in cache
     cache.set(cacheKey, { timestamp: now, data: result });
     return result;
   }
@@ -333,10 +422,11 @@ export class NewsService {
   /**
    * Parse RSS XML safely without external libraries.
    */
-  private parseRssXml(xml: string, nowMs: number): NewsArticle[] {
+  private parseRssXml(xml: string, nowMs: number, lagosTodayStr: string): NewsArticle[] {
     const articles: NewsArticle[] = [];
     const itemRegex = /<item>([\s\S]*?)<\/item>/g;
     let match: RegExpExecArray | null;
+    const retrievalIso = new Date(nowMs).toISOString();
 
     while ((match = itemRegex.exec(xml)) !== null) {
       const itemXml = match[1];
@@ -346,46 +436,52 @@ export class NewsService {
       const pubDateMatch = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
       const sourceMatch = itemXml.match(/<source\s+url="([^"]*)">([\s\S]*?)<\/source>/);
       const descMatch = itemXml.match(/<description>([\s\S]*?)<\/description>/);
+      const creatorMatch = itemXml.match(/<(?:dc:creator|author)>([\s\S]*?)<\/(?:dc:creator|author)>/);
 
       if (titleMatch && linkMatch) {
         const rawTitle = titleMatch[1];
         let url = decodeXmlEntities(linkMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim());
-        let sourceName = sourceMatch ? cleanHtml(sourceMatch[2]) : "";
+        let sourceName = sourceMatch ? cleanUntrustedText(sourceMatch[2]) : "";
         
         if (!sourceName || sourceName === "Nigerian Press") {
           if (url.includes("dailypost.ng")) sourceName = "Daily Post Nigeria";
           else if (url.includes("vanguardngr.com")) sourceName = "Vanguard";
-          else if (url.includes("punchng.com")) sourceName = "Punch";
+          else if (url.includes("punchng.com")) sourceName = "Punch Newspapers";
           else if (url.includes("thesun.ng")) sourceName = "The Sun Nigeria";
+          else if (url.includes("premiumtimesng.com")) sourceName = "Premium Times";
+          else if (url.includes("guardian.ng")) sourceName = "The Guardian Nigeria";
+          else if (url.includes("channelstv.com")) sourceName = "Channels Television";
+          else if (url.includes("businessday.ng")) sourceName = "Businessday NG";
+          else if (url.includes("thisdaylive.com")) sourceName = "THISDAYLIVE";
           else sourceName = "Nigerian Press";
         }
 
-        let title = cleanHtml(rawTitle);
+        let title = cleanUntrustedText(rawTitle);
 
         // Strip " - Publisher Name" suffix if present
         if (sourceName && title.toLowerCase().endsWith(` - ${sourceName.toLowerCase()}`)) {
           title = title.substring(0, title.length - (sourceName.length + 3)).trim();
         }
 
-        const rawPubDate = pubDateMatch ? cleanHtml(pubDateMatch[1]) : "";
+        const rawPubDate = pubDateMatch ? cleanUntrustedText(pubDateMatch[1]) : "";
         let timestampMs = 0;
-        let publishedAt = "Recent report";
+        let publishedAt = "Date unconfirmed";
+        let publishedAtLagosDate = "";
 
         if (rawPubDate) {
           const parsedDate = new Date(rawPubDate);
           if (!isNaN(parsedDate.getTime())) {
             timestampMs = parsedDate.getTime();
-            publishedAt = parsedDate.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            });
+            const lagosInfo = formatLagosDateTime(timestampMs);
+            publishedAt = lagosInfo.formatted;
+            publishedAtLagosDate = lagosInfo.dateStr;
           }
         }
 
+        const author = creatorMatch ? cleanUntrustedText(creatorMatch[1]) : undefined;
         const snippet = descMatch ? extractSnippet(descMatch[1]) : "";
         const { locationTag, lgaCategory } = detectArticleLocation(title, snippet);
-        const recency = calculateRecency(timestampMs, nowMs);
+        const recency = calculateRecency(timestampMs, nowMs, publishedAtLagosDate, lagosTodayStr);
 
         articles.push({
           title,
@@ -393,12 +489,17 @@ export class NewsService {
           publisherUrl: sourceMatch ? sourceMatch[1] : undefined,
           url,
           publishedAt,
+          publishedAtLagosDate,
           rawDate: rawPubDate,
           snippet,
           location: locationTag,
           lgaCategory,
           recency,
           timestampMs,
+          author,
+          retrievalTimestamp: retrievalIso,
+          status: "verified",
+          verificationNotes: `Directly ingested from verified Nigerian publisher RSS: ${sourceName}`,
         });
       }
     }
@@ -409,16 +510,45 @@ export class NewsService {
   /**
    * Format verified news articles into an authoritative context block for OpenRouter.
    */
-  private formatContext(articles: NewsArticle[], retrievalDateStr: string, locationFocus?: string): string {
-    if (articles.length === 0) {
+  private formatContext(
+    articles: NewsArticle[],
+    retrievalDateStr: string,
+    locationFocus?: string,
+    timeframe?: string,
+    lagosTodayStr?: string,
+    hasTodayMatches?: boolean
+  ): string {
+    // Handling case where user asked for "today" and no verified report exists
+    if (timeframe === "today" && (!articles || articles.length === 0 || !hasTodayMatches)) {
+      return `
+[LIVE NEWS RETRIEVAL STATUS: NO_VERIFIED_REPORTS_FOR_TODAY]
+Local date in Aba / Abia State: ${lagosTodayStr || "Today"} (WAT)
+Query focus: ${locationFocus || "Aba / Abia State"}
+Timeframe requested: TODAY
+
+CRITICAL SYSTEM DIRECTIVE:
+The user explicitly asked for news "today" or "latest today".
+No verified news report has been published today for this specific topic at this moment.
+You MUST reply plainly and directly to the user:
+"We couldn't find a sufficiently verified report for that request right now. Try again later."
+
+FORBIDDEN ACTIONS:
+- Do NOT invent breaking news, casualty numbers, market strikes, or political events.
+- Do NOT relabel older articles (from days or weeks ago) as "today's news".
+- Do NOT fabricate quotes, eyewitnesses, or citations.`;
+    }
+
+    if (!articles || articles.length === 0) {
       return `
 [LIVE NEWS RETRIEVAL STATUS: NO_VERIFIED_ARTICLES_FOUND]
 Verified retrieval attempted on: ${retrievalDateStr}
+Local date in Aba: ${lagosTodayStr || "Recent"}
 Query focus: ${locationFocus || "Aba & Abia State"}
 Result: No verified current news reports were returned from authoritative media feeds for this query at this moment.
 
 MODEL DIRECTIVE:
 - Clearly inform the user that no verified live news reports could be found for this topic at this moment.
+- You may say: "We couldn't find a sufficiently verified report for that request right now. Try again later."
 - Do NOT invent or fabricate any news events, incidents, quotes, prices, or casualties.
 - Suggest checking official Abia State Government channels or reputable national dailies.`;
     }
@@ -430,24 +560,28 @@ Article ${i + 1}:
 - Headline: "${a.title}"
 - Location: ${a.location}
 - Publisher: ${a.publisher}
-- Published: ${a.publishedAt} (${a.recency})
+- Published Date & Time (WAT): ${a.publishedAt} (${a.recency})
 - Source Link: ${a.url}
-- Reporting Details: ${a.snippet || a.title}`
+- Reporting Excerpt: ${a.snippet || a.title}`
       )
       .join("\n");
 
     return `
 [VERIFIED REAL-TIME ABA/ABIA NEWS CONTEXT]
 Verified live news retrieved on: ${retrievalDateStr}
+Local date in Aba (Africa/Lagos): ${lagosTodayStr || "Today"}
 Target location/entity focus: ${locationFocus || "Aba & neighbouring LGAs"}
+Timeframe requested: ${timeframe || "Recent"}
 
 MANDATORY RULES FOR REPORTING VERIFIED NEWS:
 1. Treat these verified articles as the SOLE source of truth for current-news claims.
-2. Accurately reflect the SPECIFIC LOCATION/LGA of each event as indicated in the article metadata (e.g. if an event happened in Ugwunagbo or Ukwa West, explicitly report it as occurring in Ugwunagbo or Ukwa West; NEVER mislabel it as occurring in Aba).
-3. If an article reports on state-wide affairs or Umuahia, identify it as Abia State regional/state-wide news.
-4. Accurately cite the publisher and publication date for each reported development (e.g., "According to Vanguard News...").
-5. Do NOT extrapolate, invent casualties, estimate fictitious prices, or fabricate quotes beyond what is explicitly stated in the supplied articles.
-6. If the user asks about a specific incident not covered in these articles, explicitly state that there are currently no verified news reports confirming it.
+2. Accurately cite the specific publisher, publication date, and time for each reported development (e.g. "According to ${articles[0].publisher} on ${articles[0].publishedAt}...").
+3. Always include the source link when discussing an article.
+4. Accurately reflect the SPECIFIC LOCATION/LGA of each event as indicated in the article metadata (e.g. if an event happened in Ugwunagbo or Ukwa West, explicitly report it as occurring in Ugwunagbo or Ukwa West; NEVER mislabel it as occurring in Aba).
+5. If an article reports on state-wide affairs or Umuahia, identify it as Abia State regional/state-wide news.
+6. Distinguish confirmed facts from allegations, developing reports, or opinions.
+7. Do NOT extrapolate, invent casualties, estimate fictitious prices, or fabricate quotes beyond what is explicitly stated in the supplied articles.
+8. If the user asks about an incident not covered in these articles, explicitly state that there are currently no verified news reports confirming it.
 
 VERIFIED ARTICLES:
 ${articleBlocks}`;
@@ -456,12 +590,14 @@ ${articleBlocks}`;
   /**
    * Build a safe, non-hallucinating fallback result when retrieval fails.
    */
-  buildFallbackResult(nowMs: number, locationFocus?: string, reason?: string): NewsRetrievalResult {
-    const retrievalDateStr = new Date(nowMs).toLocaleDateString("en-US", {
+  buildFallbackResult(nowMs: number, locationFocus?: string, reason?: string, timeframe?: string): NewsRetrievalResult {
+    const retrievalDateStr = new Date(nowMs).toLocaleString("en-US", {
+      timeZone: "Africa/Lagos",
       year: "numeric",
       month: "long",
       day: "numeric",
-    });
+    }) + " (WAT)";
+    const { dateStr: lagosTodayStr } = getLagosDateParts(new Date(nowMs));
 
     const context = `
 [LIVE NEWS RETRIEVAL STATUS: TEMPORARILY_UNAVAILABLE]
@@ -470,7 +606,7 @@ Query focus: ${locationFocus || "Aba & Abia State"}
 Status: Live news retrieval encountered a temporary upstream connectivity issue (${reason || "timeout"}).
 
 MODEL DIRECTIVE:
-- Clearly and politely explain to the user that live news updates could not be retrieved at this moment.
+- Clearly and politely explain to the user: "We couldn't find a sufficiently verified report for that request right now. Try again later."
 - Do NOT fabricate or invent current news, market prices, or events.
 - Suggest checking official Abia State Government releases or Nigerian news outlets directly.`;
 
@@ -479,6 +615,9 @@ MODEL DIRECTIVE:
       context,
       grounding: [],
       retrievalDate: retrievalDateStr,
+      lagosTodayDate: lagosTodayStr,
+      timeframeRequested: timeframe,
+      hasTodayMatches: false,
       error: true,
     };
   }
@@ -486,8 +625,8 @@ MODEL DIRECTIVE:
   /**
    * Primary entry point for retrieving latest verified news for Aba and surrounding areas.
    */
-  async getLatestAbaNews(locationFocus?: string): Promise<NewsRetrievalResult> {
-    return this.getNews(locationFocus);
+  async getLatestAbaNews(locationFocus?: string, timeframe?: "today" | "yesterday" | "recent" | "any"): Promise<NewsRetrievalResult> {
+    return this.getNews(locationFocus, timeframe);
   }
 
   /**

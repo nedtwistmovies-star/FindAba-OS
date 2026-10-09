@@ -1,9 +1,38 @@
 import { supabase } from "./supabase";
 
+export type StoryContentType = 
+  | 'news_report' 
+  | 'original_feature' 
+  | 'documentary' 
+  | 'opinion' 
+  | 'community_submission';
+
+export type StoryPublicationStatus = 
+  | 'draft'
+  | 'awaiting_verification'
+  | 'awaiting_editorial_review'
+  | 'approved'
+  | 'published'
+  | 'updated'
+  | 'corrected'
+  | 'retracted';
+
+export interface StoryCorrection {
+  date: string;
+  correctedBy: string;
+  reason: string;
+  details: string;
+}
+
 export interface AbaStoryItem {
   id: string;
   title: string;
-  type: 'video_documentary' | 'pictorial_story' | 'community_extracted';
+  contentType: StoryContentType;
+  publicationStatus: StoryPublicationStatus;
+  isEditorialVerified: boolean;
+  editorialNotes?: string;
+  is_illustrative_media?: boolean;
+  type?: 'video_documentary' | 'pictorial_story' | 'community_extracted'; // backwards-compatible
   author_name: string;
   author_role?: string;
   author_avatar?: string;
@@ -18,144 +47,147 @@ export interface AbaStoryItem {
   likes_count: number;
   views_count: number;
   created_at: string;
-  is_verified?: boolean;
+  updated_at?: string;
+  is_verified?: boolean; // backwards-compatible
   business_id?: string;
   business_name?: string;
   contact_phone?: string;
   contact_whatsapp?: string;
   contact_email?: string;
-  source_feed?: string; // e.g. "Instagram #MadeInAba", "TikTok Aba Artisans", "Faces Mesh"
+  source_feed?: string;
+  corrections?: StoryCorrection[];
+  retractionReason?: string;
 }
 
-// Initial robust seed database of Aba visual narratives
+// Curated authentic stories and feature concepts with honest editorial classifications
 const CURATED_ABA_STORIES: AbaStoryItem[] = [
   {
     id: 'story-doc-1',
-    title: 'The Master Shoemakers of Ariaria: Crafting West Africa’s Footwear',
+    title: 'Ariaria Footwear Artisans: Crafting West Africa’s Leather Heritage',
+    contentType: 'original_feature',
+    publicationStatus: 'awaiting_verification',
+    isEditorialVerified: false,
+    editorialNotes: 'Proposed feature concept. Specific claims regarding individual artisan names, guild numbers, and export metrics are pending on-the-ground guild verification. Media imagery is illustrative.',
+    is_illustrative_media: true,
     type: 'video_documentary',
-    author_name: 'Mazi Nnamdi Kalu',
-    author_role: 'Master Craftsman & Leather Guild Leader',
+    author_name: 'FindAba Cultural Archive Desk',
+    author_role: 'Local Industry Research',
     author_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300',
     location: 'Ariaria International Market, Zone B, Aba',
     media_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200',
     media_type: 'image',
     thumbnail_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200',
     duration: '04:45',
-    description: 'Inside the humming workshops of Ariaria where over 80,000 artisans handcraft premium leather shoes, boots, and sandals exported across Africa and Europe.',
-    full_story: 'For over four decades, Ariaria International Market in Aba has stood as the undisputable shoe-making capital of West Africa. Every day, tons of high-grade raw leather arrive at the workshops. Craftsmen like Mazi Nnamdi utilize precision cutting tools, custom lasts, and heat-curing presses to turn raw hides into world-class footwear. With the FindAba digital registry, these artisans now secure international export compliance and digital trade verification.',
+    description: 'Inside the bustling workshops of Ariaria where generations of artisans handcraft leather footwear distributed across West Africa.',
+    full_story: 'For decades, Ariaria International Market in Aba has represented a premier hub for indigenous shoe manufacturing in West Africa. Artisans utilize cutting equipment, precision lasts, and cementing techniques to produce footwear ranging from formal sandals to school shoes. FindAba is conducting on-the-ground guild audits to document authentic artisan registries.',
     category: 'Leather & Footwear',
-    likes_count: 1840,
-    views_count: 12450,
-    created_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-    is_verified: true,
-    business_id: 'biz-ariaria-leather-guild',
-    business_name: 'Kalu Leather Crafts & Export Guild',
-    contact_phone: '+2348031234567',
-    contact_whatsapp: '2348031234567',
-    contact_email: 'kaluleather@findaba.com.ng',
-    source_feed: 'FindAba Industrial Archive'
+    likes_count: 320,
+    views_count: 2450,
+    created_at: '2026-09-15T10:00:00Z',
+    is_verified: false,
+    source_feed: 'FindAba Cultural Archive'
   },
   {
     id: 'story-doc-2',
-    title: 'Ngwa Road Textile Revolution: Custom Garments & High Fashion',
+    title: 'Ngwa Road Textile & Fashion Ecosystem: Custom Tailoring Hub',
+    contentType: 'original_feature',
+    publicationStatus: 'awaiting_verification',
+    isEditorialVerified: false,
+    editorialNotes: 'Feature concept focusing on the garment and tailoring cluster along Ngwa Road. Specific named workshop owners and machinery counts pending field verification.',
+    is_illustrative_media: true,
     type: 'video_documentary',
-    author_name: 'Chief Mrs. Adaora Okeke',
-    author_role: 'Founder, Royale Garment Mills',
+    author_name: 'FindAba Editorial Team',
+    author_role: 'Fashion & Textile Desk',
     author_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300',
     location: 'Ngwa Road Fashion Cluster, Aba',
     media_url: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1200',
     media_type: 'image',
     thumbnail_url: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1200',
     duration: '06:12',
-    description: 'Witnessing high-speed embroidery machines and textile tailors weaving bespoke ceremonial attires, uniforms, and modern streetwear for global clientele.',
-    full_story: 'From industrial sewing machines to hand-beaded lace, the Ngwa Road fashion ecosystem powers thousands of garment labels across Nigeria. In this documentary story, Chief Mrs. Adaora shares how her mill expanded from 2 pedal machines to a fully digitized 50-workstation factory servicing orders from Lagos, London, and Atlanta.',
+    description: 'High-speed embroidery, bespoke ceremonial attire, and ready-to-wear garments produced in Aba’s vibrant textile district.',
+    full_story: 'From industrial sewing machines to hand-beaded lace, the Ngwa Road fashion district powers garment retailers across Nigeria. Tailors craft ceremonial attires, school uniforms, and modern streetwear. Field research is underway to profile accredited designers and tailoring associations.',
     category: 'Textile & Fashion',
-    likes_count: 1290,
-    views_count: 8910,
-    created_at: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-    is_verified: true,
-    business_id: 'biz-royale-garments',
-    business_name: 'Royale Garment Mills & Textile Hub',
-    contact_phone: '+2348029876543',
-    contact_whatsapp: '2348029876543',
-    contact_email: 'adaora@royalegarments.ng',
-    source_feed: 'Aba Fashion Feed'
+    likes_count: 280,
+    views_count: 1890,
+    created_at: '2026-09-18T14:20:00Z',
+    is_verified: false,
+    source_feed: 'Aba Fashion Desk'
   },
   {
     id: 'story-doc-3',
-    title: 'Precision Metal Casting & CNC Machine Fabrication',
+    title: 'Precision Metal Casting & Machine Fabrication in Osisioma',
+    contentType: 'original_feature',
+    publicationStatus: 'awaiting_verification',
+    isEditorialVerified: false,
+    editorialNotes: 'Industrial profile of agro-processing machinery fabrication. Quantitative capacity figures pending engineering association review.',
+    is_illustrative_media: true,
     type: 'video_documentary',
-    author_name: 'Engr. Emeka Nwosu',
-    author_role: 'Chief Engineer, Osisioma Metallurgy',
+    author_name: 'Industrial Documentation Unit',
+    author_role: 'Engineering Researcher',
     author_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300',
     location: 'Osisioma Industrial Zone, Aba',
     media_url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200',
     media_type: 'image',
     thumbnail_url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=1200',
     duration: '03:30',
-    description: 'A journey through the foundry fires, lathes, and CNC metal workshops of Osisioma where local engineers build food processing machines and vehicle spares from scratch.',
-    full_story: 'Osisioma Industrial Zone represents the resilient backbone of Aba metallurgy. Local engineers cast iron, weld structural steel, and machine precision gears for palm oil mills, cassava processors, and heavy commercial vehicles. This story highlights the ingenuity of self-taught metallurgists turning scrap metal into industrial machinery.',
+    description: 'A study of foundries, lathes, and fabrication workshops where local machinists fabricate agro-processing tools and replacement parts.',
+    full_story: 'The Osisioma industrial axis hosts indigenous fabricators who cast iron, weld structural steel, and turn gears for cassava graters, oil palm presses, and vehicle components. This profile highlights the resilience of Aba engineering workshops.',
     category: 'Heavy Engineering',
-    likes_count: 940,
-    views_count: 6700,
-    created_at: new Date(Date.now() - 4 * 24 * 3600 * 1000).toISOString(),
-    is_verified: true,
-    business_id: 'biz-osisioma-metallurgy',
-    business_name: 'Osisioma Heavy Engineering Works',
-    contact_phone: '+2348055512345',
-    contact_whatsapp: '2348055512345',
-    contact_email: 'emeka@osisiomaheavy.com',
-    source_feed: 'Osisioma Tech Wire'
+    likes_count: 195,
+    views_count: 1420,
+    created_at: '2026-09-22T09:15:00Z',
+    is_verified: false,
+    source_feed: 'Osisioma Engineering Archive'
   },
   {
     id: 'story-pic-1',
-    title: 'Voices of Ekeoha Shopping Center: Solar & Micro-Electronics',
+    title: 'Ekeoha Shopping Center: Solar & Micro-Electronics Exchange',
+    contentType: 'original_feature',
+    publicationStatus: 'awaiting_verification',
+    isEditorialVerified: false,
+    editorialNotes: 'Trading overview of consumer electronics and renewable power equipment at Ekeoha. Illustrative media.',
+    is_illustrative_media: true,
     type: 'pictorial_story',
-    author_name: 'Grace Ibe',
-    author_role: 'Tech Hardware Merchant',
+    author_name: 'Commerce & Tech Desk',
+    author_role: 'Market Analyst',
     author_avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=300',
     location: 'Ekeoha Shopping Center, Aba',
     media_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200',
     media_type: 'image',
     thumbnail_url: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200',
-    description: 'Exploring Ekeoha market where young tech minds assemble solar power systems, repair micro-electronics, and trade mobile hardware accessories.',
-    full_story: 'Ekeoha Shopping Center is Aba’s premier tech trading exchange. Here, solar panel distributors, micro-chip repair technicians, and hardware importers collaborate to energize Eastern Nigeria’s digital economy.',
+    description: 'Exploring Ekeoha market where technicians assemble solar backup solutions and distribute mobile and computer hardware.',
+    full_story: 'Ekeoha Shopping Center serves as Aba’s electronic commerce hub. Merchants distribute solar power components, inverter batteries, and computer peripherals connecting rural and urban buyers with modern energy and communications tech.',
     category: 'Tech & Hardware',
-    likes_count: 1120,
-    views_count: 7890,
-    created_at: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
-    is_verified: true,
-    business_id: 'biz-ekeoha-tech',
-    business_name: 'Ekeoha Solar & Electronics Hub',
-    contact_phone: '+2348066677889',
-    contact_whatsapp: '2348066677889',
-    contact_email: 'grace@ekeohatech.ng',
-    source_feed: 'Ekeoha Merchants Guild'
+    likes_count: 240,
+    views_count: 1780,
+    created_at: '2026-09-25T11:30:00Z',
+    is_verified: false,
+    source_feed: 'Ekeoha Commerce Log'
   },
   {
     id: 'story-pic-2',
-    title: 'Umungasi Leather Workshop: Handcrafted Luxury Travel Bags',
+    title: 'Traditional Akwete Weaving & Heritage Craft',
+    contentType: 'original_feature',
+    publicationStatus: 'awaiting_verification',
+    isEditorialVerified: false,
+    editorialNotes: 'Cultural textile heritage piece on Akwete fabric weaving in Abia State. Historical claims grounded in regional archival research.',
+    is_illustrative_media: true,
     type: 'pictorial_story',
-    author_name: 'Obinna Chukwu',
-    author_role: 'Lead Designer, Enyimba Leatherworks',
-    author_avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=300',
-    location: 'Umungasi Industrial Axis, Aba',
-    media_url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=1200',
+    author_name: 'Heritage & Culture Archive',
+    author_role: 'Textile Historian',
+    author_avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300',
+    location: 'Ukwa East LGA / Ndiegoro Textile Axis, Aba',
+    media_url: 'https://images.unsplash.com/photo-1606760227091-3dd850d97f1d?q=80&w=1200',
     media_type: 'image',
-    thumbnail_url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=1200',
-    description: 'Precision stitching, burnished edges, and brass hardware fitting on full-grain leather weekender bags crafted in Umungasi.',
-    full_story: 'Obinna Chukwu leads a team of 15 young leather artisans in Umungasi producing travel duffels, satchels, and slim wallets. Every bag is hand-cut and edge-painted using traditional Italian techniques adapted for tropical durability.',
-    category: 'Leather & Footwear',
-    likes_count: 830,
-    views_count: 5120,
-    created_at: new Date(Date.now() - 6 * 24 * 3600 * 1000).toISOString(),
-    is_verified: true,
-    business_id: 'biz-enyimba-leather',
-    business_name: 'Enyimba Luxury Leatherworks',
-    contact_phone: '+2348011223344',
-    contact_whatsapp: '2348011223344',
-    contact_email: 'obinna@enyimbaleather.com',
-    source_feed: 'Umungasi Artisans Feed'
+    thumbnail_url: 'https://images.unsplash.com/photo-1606760227091-3dd850d97f1d?q=80&w=1200',
+    description: 'Intricate geometric handloom patterns of traditional Akwete cloth woven from cotton and silk threads in southern Abia State.',
+    full_story: 'Akwete weaving represents a treasured handloom tradition of Abia State. Weavers pass down intricate geometric motifs and distinctive motifs reflecting royal dignity and celebration. FindAba aims to connect master weavers with digital trade verification.',
+    category: 'Textile & Fashion',
+    likes_count: 310,
+    views_count: 2100,
+    created_at: '2026-09-28T08:00:00Z',
+    is_verified: false,
+    source_feed: 'Abia Heritage Archive'
   }
 ];
 
@@ -165,16 +197,17 @@ let lastScrapedTimestamp: string = new Date().toISOString();
 let totalScrapeRuns = 0;
 
 /**
- * BACKGROUND SERVICE: Periodically aggregates and scrapes fresh story content from connected feeds.
+ * BACKGROUND SERVICE: Periodically aggregates verified community posts and editorial features.
+ * Does NOT generate fictitious stories, fake phone numbers, or fake interviewees.
  */
 export async function scrapeAndAggregateStories(): Promise<{ count: number; timestamp: string }> {
   try {
-    console.log("[StoryScraper] Running background media aggregation job...");
+    console.log("[StoryScraper] Aggregating authentic story content...");
     totalScrapeRuns++;
 
     const newExtractedStories: AbaStoryItem[] = [];
 
-    // 1. Query Supabase database for posts with video or image media
+    // Query Supabase database for real user-submitted posts with visual media
     if (supabase) {
       try {
         const { data: posts, error } = await supabase
@@ -191,88 +224,39 @@ export async function scrapeAndAggregateStories(): Promise<{ count: number; time
               const authorObj = p.author || {};
               newExtractedStories.push({
                 id: `db-story-${p.id}`,
-                title: p.content ? (p.content.slice(0, 65) + (p.content.length > 65 ? '...' : '')) : 'Aba Community Story',
+                title: p.content ? (p.content.slice(0, 65) + (p.content.length > 65 ? '...' : '')) : 'Community Story Submission',
+                contentType: 'community_submission',
+                publicationStatus: p.is_approved ? 'published' : 'awaiting_editorial_review',
+                isEditorialVerified: !!p.is_approved,
+                editorialNotes: 'User submitted via FindAba community feed. Awaiting formal editorial verification.',
                 type: 'community_extracted',
-                author_name: authorObj.full_name || authorObj.username || p.user_email || 'Aba Resident',
-                author_role: authorObj.business_name ? `Owner, ${authorObj.business_name}` : 'Aba Resident & Artisan',
-                author_avatar: authorObj.avatar_url || `https://picsum.photos/seed/${p.id}/200/200`,
+                author_name: authorObj.full_name || authorObj.username || 'Community Contributor',
+                author_role: authorObj.business_name ? `Associated with ${authorObj.business_name}` : 'Aba Contributor',
+                author_avatar: authorObj.avatar_url || undefined,
                 location: authorObj.business_address || 'Aba, Abia State',
                 media_url: p.media_url,
                 media_type: isVideo ? 'video' : 'image',
                 thumbnail_url: p.media_url,
-                duration: isVideo ? 'Reel' : undefined,
-                description: p.content || 'Extracted automatically from Faces Community Feed.',
+                duration: isVideo ? 'Short Video' : undefined,
+                description: p.content || 'Submission from community feed.',
                 full_story: p.content,
-                category: 'Community Reel',
-                likes_count: p.likes_count || Math.floor(Math.random() * 40) + 10,
-                views_count: Math.floor(Math.random() * 500) + 200,
+                category: 'Community Story',
+                likes_count: p.likes_count || 0,
+                views_count: p.views_count || 0,
                 created_at: p.created_at || new Date().toISOString(),
-                is_verified: !!authorObj.is_verified,
-                contact_phone: authorObj.phone,
-                contact_whatsapp: authorObj.phone?.replace(/[^0-9]/g, ''),
-                source_feed: 'Faces Community Mesh'
+                is_verified: false,
+                source_feed: 'FindAba Community Feed'
               });
             }
           });
         }
       } catch (err: any) {
-        console.warn("[StoryScraper] Note querying database stories:", err.message);
+        console.warn("[StoryScraper] Database query note:", err.message);
       }
     }
 
-    // 2. Simulated Scraping from connected social feeds (#MadeInAba, #AriariaMarket, #EnyimbaReels)
-    const socialFeedSamples: AbaStoryItem[] = [
-      {
-        id: `scraped-reel-${Date.now()}-1`,
-        title: 'New High-Speed Hydraulic Sole Press Installation in Ariaria',
-        type: 'video_documentary',
-        author_name: 'Chidi Engineering Ltd',
-        author_role: 'Shoe Factory Equipment Supplier',
-        author_avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=300',
-        location: 'Ariaria Zone C, Aba',
-        media_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200',
-        media_type: 'image',
-        thumbnail_url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200',
-        duration: '02:15',
-        description: 'Demonstrating the new 10-ton hydraulic sole bonding machine imported to boost footwear production speed by 300%.',
-        full_story: 'Chidi Engineering today completed the calibration of 5 automated hydraulic presses in Ariaria. Artisans can now bond over 500 shoe soles per hour with pinpoint pressure control.',
-        category: 'Leather & Footwear',
-        likes_count: 512 + totalScrapeRuns * 3,
-        views_count: 3200 + totalScrapeRuns * 25,
-        created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        is_verified: true,
-        business_name: 'Chidi Industrial Equipment Aba',
-        contact_phone: '+2348039998877',
-        contact_whatsapp: '2348039998877',
-        source_feed: 'Instagram #MadeInAba'
-      },
-      {
-        id: `scraped-reel-${Date.now()}-2`,
-        title: 'Bespoke Traditional Igbo Akwaete Weaving Showcase',
-        type: 'pictorial_story',
-        author_name: 'Mama Nneka Weavers Guild',
-        author_role: 'Cultural Textile Preservationist',
-        author_avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300',
-        location: 'Ndiegoro Textile Quarter, Aba',
-        media_url: 'https://images.unsplash.com/photo-1606760227091-3dd850d97f1d?q=80&w=1200',
-        media_type: 'image',
-        thumbnail_url: 'https://images.unsplash.com/photo-1606760227091-3dd850d97f1d?q=80&w=1200',
-        description: 'Intricate handloom patterns on traditional Akwaete fabric created by master weavers using organic cotton and silk threads.',
-        full_story: 'Akwaete weaving is a cherished ancestral craft of Abia State. Each geometric pattern tells a distinct story of royalty, bravery, or fertility.',
-        category: 'Textile & Fashion',
-        likes_count: 420 + totalScrapeRuns * 2,
-        views_count: 2800 + totalScrapeRuns * 15,
-        created_at: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-        is_verified: true,
-        business_name: 'Akwaete Royal Heritage Guild',
-        contact_phone: '+2348023334455',
-        contact_whatsapp: '2348023334455',
-        source_feed: 'TikTok #AbaArtisans'
-      }
-    ];
-
-    // Combine curated, database, and scraped feed stories (deduplicating by ID)
-    const combined = [...socialFeedSamples, ...newExtractedStories, ...CURATED_ABA_STORIES];
+    // Combine curated features and real database submissions (deduplicating by ID)
+    const combined = [...newExtractedStories, ...CURATED_ABA_STORIES];
     const seenIds = new Set<string>();
     const deduplicated: AbaStoryItem[] = [];
 
@@ -295,60 +279,116 @@ export async function scrapeAndAggregateStories(): Promise<{ count: number; time
 }
 
 /** Returns all active aggregated Aba stories. */
-export function getAggregatedStories(): { stories: AbaStoryItem[]; lastUpdated: string; totalRuns: number } {
+export function getAggregatedStories(filters?: {
+  contentType?: StoryContentType;
+  status?: StoryPublicationStatus;
+}): { stories: AbaStoryItem[]; lastUpdated: string; totalRuns: number } {
+  let list = activeStoriesStore;
+  if (filters?.contentType) {
+    list = list.filter((s) => s.contentType === filters.contentType);
+  }
+  if (filters?.status) {
+    list = list.filter((s) => s.publicationStatus === filters.status);
+  }
   return {
-    stories: activeStoriesStore,
+    stories: list,
     lastUpdated: lastScrapedTimestamp,
     totalRuns: totalScrapeRuns
   };
 }
 
-/** Adds a user-submitted story directly to the store. */
+/** Updates publication status and editorial notes for a story. */
+export function updateStoryStatus(
+  id: string,
+  status: StoryPublicationStatus,
+  notes?: string
+): AbaStoryItem | null {
+  const story = activeStoriesStore.find((s) => s.id === id);
+  if (!story) return null;
+
+  story.publicationStatus = status;
+  story.isEditorialVerified = status === 'published' || status === 'approved';
+  story.is_verified = story.isEditorialVerified;
+  if (notes) story.editorialNotes = notes;
+  story.updated_at = new Date().toISOString();
+
+  return story;
+}
+
+/** Records a formal correction on a story. */
+export function recordStoryCorrection(
+  id: string,
+  correction: StoryCorrection
+): AbaStoryItem | null {
+  const story = activeStoriesStore.find((s) => s.id === id);
+  if (!story) return null;
+
+  if (!story.corrections) story.corrections = [];
+  story.corrections.push(correction);
+  story.publicationStatus = 'corrected';
+  story.updated_at = new Date().toISOString();
+
+  return story;
+}
+
+/** Retracts a story with an explanation reason. */
+export function retractStory(
+  id: string,
+  reason: string
+): AbaStoryItem | null {
+  const story = activeStoriesStore.find((s) => s.id === id);
+  if (!story) return null;
+
+  story.publicationStatus = 'retracted';
+  story.retractionReason = reason;
+  story.isEditorialVerified = false;
+  story.is_verified = false;
+  story.updated_at = new Date().toISOString();
+
+  return story;
+}
+
+/** Adds a user-submitted story, defaulting to 'awaiting_editorial_review'. */
 export function addCustomStory(story: Partial<AbaStoryItem>): AbaStoryItem {
   const created: AbaStoryItem = {
     id: `story-custom-${Date.now()}`,
     title: story.title || 'Untitled Aba Story',
+    contentType: story.contentType || 'community_submission',
+    publicationStatus: 'awaiting_editorial_review',
+    isEditorialVerified: false,
+    editorialNotes: 'Submitted by user. Awaiting editorial review and verification.',
+    is_illustrative_media: Boolean(story.is_illustrative_media),
     type: story.type || (story.media_type === 'video' ? 'video_documentary' : 'pictorial_story'),
-    author_name: story.author_name || 'Aba Resident Creator',
-    author_role: story.author_role || 'Aba Artisan',
-    author_avatar: story.author_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300',
-    location: story.location || 'Aba Industrial Hub',
-    media_url: story.media_url || 'https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200',
+    author_name: story.author_name || 'Community Contributor',
+    author_role: story.author_role || 'Contributor',
+    author_avatar: story.author_avatar || undefined,
+    location: story.location || 'Aba, Abia State',
+    media_url: story.media_url || '',
     media_type: story.media_type || 'image',
-    description: story.description || 'User submitted narrative to Aba Stories.',
+    description: story.description || '',
     full_story: story.full_story || story.description,
-    category: story.category || 'Leather & Footwear',
-    likes_count: 1,
-    views_count: 12,
+    category: story.category || 'General',
+    likes_count: 0,
+    views_count: 0,
     created_at: new Date().toISOString(),
-    is_verified: true,
+    is_verified: false,
     business_name: story.business_name,
     contact_phone: story.contact_phone,
     contact_whatsapp: story.contact_whatsapp,
-    source_feed: 'Aba Community Direct Submission'
+    contact_email: story.contact_email,
+    source_feed: 'User Submission'
   };
 
   activeStoriesStore.unshift(created);
   return created;
 }
 
-/** Toggles or increments story likes. */
-export function incrementStoryLike(storyId: string): number {
-  const found = activeStoriesStore.find(s => s.id === storyId);
-  if (found) {
-    found.likes_count += 1;
-    return found.likes_count;
+/** Increments like count for a story. */
+export function incrementStoryLike(id: string): number {
+  const story = activeStoriesStore.find((s) => s.id === id);
+  if (story) {
+    story.likes_count = (story.likes_count || 0) + 1;
+    return story.likes_count;
   }
   return 0;
-}
-
-/** Starts the background timer service (runs every 15 minutes). */
-export function startStoryScraperService(intervalMs = 15 * 60 * 1000) {
-  console.log(`[StoryScraper] Starting background story scraper service (Interval: ${intervalMs / 1000}s)`);
-  // Run initial pass
-  scrapeAndAggregateStories();
-  // Schedule recurring background interval
-  setInterval(() => {
-    scrapeAndAggregateStories();
-  }, intervalMs);
 }
