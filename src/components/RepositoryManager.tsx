@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Github, X, Save, RefreshCw, FileCode, Check, AlertTriangle, Copy, Eye, EyeOff, Key } from 'lucide-react';
+import { Github, X, Save, RefreshCw, FileCode, Check, AlertTriangle, Copy, Eye, EyeOff, Key, GitBranch, Layers } from 'lucide-react';
 import { useToast } from '../providers/ToastProvider';
-import { cleanRepositoryName, AppMetadata } from '../services/gitConfigService';
+import { cleanRepositoryName, AppMetadata, switchBranch } from '../services/gitConfigService';
 import { useGitSync } from '../hooks/useGitSync';
+import { fetchRemoteBranches, selectTargetBranch } from '../services/systemConfigService';
 
 interface RepositoryManagerProps {
   isOpen: boolean;
@@ -29,6 +30,10 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
   const { status: gitStatus, sync: forceSyncGit } = useGitSync();
   const [loading, setLoading] = useState(false);
   const [repoUrl, setRepoUrl] = useState('');
+  const [workingBranch, setWorkingBranch] = useState('main');
+  const [deploymentBranch, setDeploymentBranch] = useState('main');
+  const [availableBranches, setAvailableBranches] = useState<Array<{ name: string; protected: boolean; sha: string }>>([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
   const [gitToken, setGitToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [metadataDefault, setMetadataDefault] = useState('');
@@ -100,11 +105,36 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
     setErrorStatus(null);
     try {
       // 1. Get from localStorage
-      const localValue = localStorage.getItem('findaba_git_repo') || '';
-      const localToken = localStorage.getItem('findaba_git_token') || '';
+      const localRepo = localStorage.getItem('findaba_git_repo') || '';
+      const localBranch = localStorage.getItem('findaba_git_branch') || 'main';
+      const localDeploy = localStorage.getItem('findaba_git_deploy_branch') || 'main';
+      const localToken = localStorage.getItem('findaba_git_token') || localStorage.getItem('findaba_github_pat') || '';
       setGitToken(localToken);
+      setWorkingBranch(localBranch);
+      setDeploymentBranch(localDeploy);
       
-      // 2. Load metadata default as fallback
+      // 2. Fetch authoritative config from server
+      let activeRepo = localRepo;
+      try {
+        const configRes = await fetch('/api/git/config');
+        if (configRes.ok) {
+          const cfg = await configRes.json();
+          if (cfg.repository) {
+            activeRepo = cfg.repository;
+            setRepoUrl(cfg.repository);
+          }
+          if (cfg.workingBranch || cfg.branch) {
+            setWorkingBranch(cfg.workingBranch || cfg.branch);
+          }
+          if (cfg.deploymentBranch) {
+            setDeploymentBranch(cfg.deploymentBranch);
+          }
+        }
+      } catch (cErr) {
+        console.warn('[RepositoryManager] Could not query /api/git/config:', cErr);
+      }
+
+      // 3. Load metadata default as fallback
       const response = await fetch('/metadata.json');
       let fallback = 'nedtwistmovies-star/FindAba-OS';
       if (response.ok) {
@@ -118,8 +148,15 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
       }
       setMetadataDefault(fallback);
 
-      // 3. Set standard input value
-      setRepoUrl(localValue || fallback);
+      // 4. Set standard input value
+      if (!activeRepo) setRepoUrl(fallback);
+      else setRepoUrl(activeRepo);
+
+      // 5. Load remote branches if repo is known
+      const targetCleanRepo = cleanRepositoryName(activeRepo || fallback);
+      if (targetCleanRepo && targetCleanRepo.includes('/')) {
+        loadBranches(targetCleanRepo);
+      }
     } catch (err: any) {
       console.error('[RepositoryManager] Error loading config:', err);
       setErrorStatus('Failed to retrieve full metadata parameters');
@@ -128,7 +165,21 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
     }
   };
 
-  const handleSave = () => {
+  const loadBranches = async (repoName: string) => {
+    setLoadingBranches(true);
+    try {
+      const data = await fetchRemoteBranches(repoName);
+      if (data && Array.isArray(data.branches) && data.branches.length > 0) {
+        setAvailableBranches(data.branches);
+      }
+    } catch (bErr) {
+      console.warn('[RepositoryManager] Remote branches query note:', bErr);
+    } finally {
+      setLoadingBranches(false);
+    }
+  };
+
+  const handleSave = async () => {
     const trimmedInput = repoUrl.trim();
     if (!trimmedInput) {
       addToast('Repository path cannot be empty', 'error');
@@ -149,36 +200,81 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
       return;
     }
 
+    const cleanWorkingBranch = workingBranch.trim() || 'main';
+    const cleanDeployBranch = deploymentBranch.trim() || 'main';
+
     try {
-      // Persist immediately to localStorage
+      setLoading(true);
+      // Persist to localStorage
       localStorage.setItem('findaba_git_repo', cleanedRepo);
+      localStorage.setItem('findaba_git_branch', cleanWorkingBranch);
+      localStorage.setItem('findaba_git_deploy_branch', cleanDeployBranch);
       if (gitToken.trim()) {
         localStorage.setItem('findaba_git_token', gitToken.trim());
+        localStorage.setItem('findaba_github_pat', gitToken.trim());
       } else {
         localStorage.removeItem('findaba_git_token');
+        localStorage.removeItem('findaba_github_pat');
       }
-      
-      // Dispatch storage event to notify other components immediately
+
+      // Persist to server backend (Supabase + server-persistent-config.json)
+      try {
+        await fetch('/api/git/persist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            repository: cleanedRepo,
+            branch: cleanWorkingBranch,
+            workingBranch: cleanWorkingBranch,
+            deploymentBranch: cleanDeployBranch,
+            githubToken: gitToken.trim() || undefined,
+            connected: true,
+          }),
+        });
+      } catch (apiErr) {
+        console.warn('[RepositoryManager] Direct persist note:', apiErr);
+      }
+
+      // Also ensure working branch selection endpoint is invoked
+      await switchBranch(cleanWorkingBranch, 'working');
+      if (cleanDeployBranch !== cleanWorkingBranch) {
+        await switchBranch(cleanDeployBranch, 'deployment');
+      }
+
+      // Dispatch event to notify other components immediately
+      window.dispatchEvent(new CustomEvent('findaba:git_config_updated', {
+        detail: {
+          repo: cleanedRepo,
+          branch: cleanWorkingBranch,
+          workingBranch: cleanWorkingBranch,
+          deploymentBranch: cleanDeployBranch,
+          connected: true,
+        },
+      }));
       window.dispatchEvent(new Event('storage'));
       
-      addToast('repo synced successfully', 'success');
-      addSyncEvent(cleanedRepo, 'success', 'Save Settings');
+      addToast('Repository and branches synced successfully!', 'success');
+      addSyncEvent(cleanedRepo, 'success', `Saved: ${cleanWorkingBranch}`);
       
       if (onUpdate) {
         onUpdate(cleanedRepo);
       }
       onClose();
     } catch (err: any) {
-      addToast('Failed to save settings', 'error');
+      addToast(`Failed to save settings: ${err.message}`, 'error');
       addSyncEvent(cleanedRepo, 'failed', 'Save Settings', err.message || 'Unknown save error');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleResetToDefault = () => {
     if (metadataDefault) {
       setRepoUrl(metadataDefault);
+      setWorkingBranch('main');
       try {
         localStorage.setItem('findaba_git_repo', metadataDefault);
+        localStorage.setItem('findaba_git_branch', 'main');
         window.dispatchEvent(new Event('storage'));
         if (onUpdate) {
           onUpdate(metadataDefault);
@@ -290,6 +386,72 @@ export const RepositoryManager: React.FC<RepositoryManagerProps> = ({
                   Please enter a valid GitHub repository path (owner/repo) or URL.
                 </div>
               )}
+            </div>
+
+            {/* Target Branch Selection */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Working Branch */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center ml-1">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-white/50 flex items-center gap-1">
+                    <GitBranch size={11} className="text-aba-gold" /> Working Branch
+                  </label>
+                  {loadingBranches && <span className="text-[8px] text-aba-gold animate-pulse">fetching...</span>}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={workingBranch}
+                    onChange={(e) => setWorkingBranch(e.target.value)}
+                    placeholder="e.g. main, develop"
+                    className="w-full bg-black/40 border border-white/10 p-3.5 rounded-xl outline-none focus:border-aba-gold/50 transition-all text-xs font-mono text-white"
+                  />
+                  {availableBranches.length > 0 && (
+                    <select
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-800 text-white text-[10px] font-mono border border-white/10 rounded px-1.5 py-1 outline-none max-w-[100px]"
+                      value={availableBranches.some(b => b.name === workingBranch) ? workingBranch : ''}
+                      onChange={(e) => {
+                        if (e.target.value) setWorkingBranch(e.target.value);
+                      }}
+                    >
+                      <option value="">pick...</option>
+                      {availableBranches.map((b) => (
+                        <option key={b.name} value={b.name}>{b.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              {/* Deployment Branch */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-white/50 flex items-center gap-1 ml-1">
+                  <Layers size={11} className="text-emerald-400" /> Deployment Branch
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={deploymentBranch}
+                    onChange={(e) => setDeploymentBranch(e.target.value)}
+                    placeholder="e.g. main, production"
+                    className="w-full bg-black/40 border border-white/10 p-3.5 rounded-xl outline-none focus:border-emerald-500/50 transition-all text-xs font-mono text-white"
+                  />
+                  {availableBranches.length > 0 && (
+                    <select
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-800 text-white text-[10px] font-mono border border-white/10 rounded px-1.5 py-1 outline-none max-w-[100px]"
+                      value={availableBranches.some(b => b.name === deploymentBranch) ? deploymentBranch : ''}
+                      onChange={(e) => {
+                        if (e.target.value) setDeploymentBranch(e.target.value);
+                      }}
+                    >
+                      <option value="">pick...</option>
+                      {availableBranches.map((b) => (
+                        <option key={b.name} value={b.name}>{b.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* GitHub Personal Access Token (PAT) Field */}

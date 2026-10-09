@@ -43,59 +43,106 @@ export function cleanRepositoryName(url: string): string {
 export const AUTHORITATIVE_DEFAULT_BRANCH = 'main';
 export const AUTHORITATIVE_DEFAULT_REPO = 'nedtwistmovies-star/FindAba-OS';
 
+export interface GitConfigState {
+  repo: string;
+  branch: string;
+  workingBranch: string;
+  deploymentBranch: string;
+  defaultBranch: string;
+  connected: boolean;
+  username?: string;
+  lastCommitSha?: string;
+  lastValidatedAt?: string;
+}
+
 /**
  * Initializes and synchronizes the Git Repository configuration.
- * Queries /api/admin/config and /api/git/config as the primary authoritative sources of truth,
- * with fallback to /metadata.json and localStorage.
- * Ensures configured branches ('main', 'master', 'production', 'release', etc.) persist reliably.
+ * Queries /api/git/config and /api/git/status as the primary authoritative sources of truth,
+ * with fallback to localStorage and /metadata.json.
+ * Guarantees user-selected working and deployment branches survive page refreshes,
+ * browser restarts, and session changes without silent reverts to 'main'.
  */
-export async function initializeRepositoryConfig(): Promise<{ repo: string; branch: string }> {
-  let targetRepo = AUTHORITATIVE_DEFAULT_REPO;
-  let targetBranch = AUTHORITATIVE_DEFAULT_BRANCH;
+export async function initializeRepositoryConfig(): Promise<GitConfigState> {
+  let targetRepo = localStorage.getItem('findaba_git_repo')?.trim() || AUTHORITATIVE_DEFAULT_REPO;
+  let targetWorkingBranch = localStorage.getItem('findaba_git_branch')?.trim() || AUTHORITATIVE_DEFAULT_BRANCH;
+  let targetDeployBranch = localStorage.getItem('findaba_git_deploy_branch')?.trim() || AUTHORITATIVE_DEFAULT_BRANCH;
+  let defaultBranch = localStorage.getItem('findaba_git_default_branch')?.trim() || AUTHORITATIVE_DEFAULT_BRANCH;
+  let isConnected = localStorage.getItem('findaba_git_connected') === 'true';
+  let ghUsername = localStorage.getItem('findaba_git_username') || undefined;
+  let lastCommitSha: string | undefined = undefined;
+  let lastValidatedAt: string | undefined = undefined;
   let loadedFromServer = false;
 
-  // 1. Try fetching authoritative config from server (admin/config or git/config)
+  // 1. Fetch authoritative config from server (/api/git/config or /api/admin/config)
   try {
-    const configRes = await fetch('/api/admin/config');
+    const configRes = await fetch('/api/git/config');
     if (configRes.ok) {
       const configData = await configRes.json();
       if (configData.success) {
         if (configData.repository) targetRepo = cleanRepositoryName(configData.repository);
-        if (configData.branch) {
-          targetBranch = configData.branch.trim();
-          loadedFromServer = true;
+        if (configData.workingBranch || configData.branch) {
+          targetWorkingBranch = (configData.workingBranch || configData.branch).trim();
         }
-      }
-    } else {
-      // Fallback to /api/git/config
-      const gitRes = await fetch('/api/git/config');
-      if (gitRes.ok) {
-        const gitData = await gitRes.json();
-        if (gitData.success) {
-          if (gitData.repo) targetRepo = cleanRepositoryName(gitData.repo);
-          if (gitData.branch) {
-            targetBranch = gitData.branch.trim();
-            loadedFromServer = true;
-          }
+        if (configData.deploymentBranch) {
+          targetDeployBranch = configData.deploymentBranch.trim();
         }
+        if (configData.defaultBranch) {
+          defaultBranch = configData.defaultBranch.trim();
+        }
+        if (typeof configData.connected === 'boolean') {
+          isConnected = configData.connected;
+        }
+        if (configData.githubUsername) {
+          ghUsername = configData.githubUsername;
+        }
+        if (configData.lastCommitSha) {
+          lastCommitSha = configData.lastCommitSha;
+        }
+        if (configData.lastValidatedAt) {
+          lastValidatedAt = configData.lastValidatedAt;
+        }
+        loadedFromServer = true;
       }
     }
   } catch (apiErr) {
-    console.warn('[GitConfigService] Server config not reachable, checking local sources:', apiErr);
+    console.warn('[GitConfigService] /api/git/config unreachable, trying admin route:', apiErr);
   }
 
-  // 2. Supplement/fallback from metadata.json if not loaded from server
+  // 2. If not yet loaded from server, try /api/admin/config
   if (!loadedFromServer) {
+    try {
+      const adminRes = await fetch('/api/admin/config');
+      if (adminRes.ok) {
+        const adminData = await adminRes.json();
+        if (adminData.success) {
+          if (adminData.repository) targetRepo = cleanRepositoryName(adminData.repository);
+          if (adminData.workingBranch || adminData.branch) {
+            targetWorkingBranch = (adminData.workingBranch || adminData.branch).trim();
+          }
+          if (adminData.deploymentBranch) targetDeployBranch = adminData.deploymentBranch.trim();
+          if (adminData.defaultBranch) defaultBranch = adminData.defaultBranch.trim();
+          if (typeof adminData.connected === 'boolean') isConnected = adminData.connected;
+          if (adminData.githubUsername) ghUsername = adminData.githubUsername;
+          loadedFromServer = true;
+        }
+      }
+    } catch {
+      // Ignored
+    }
+  }
+
+  // 3. Fallback from metadata.json only if repo is unconfigured
+  if (!loadedFromServer && (!targetRepo || targetRepo === AUTHORITATIVE_DEFAULT_REPO)) {
     try {
       const metaRes = await fetch('/metadata.json');
       if (metaRes.ok) {
         const metadata: AppMetadata = await metaRes.json();
-        if (metadata.repository?.url && (!targetRepo || targetRepo === AUTHORITATIVE_DEFAULT_REPO)) {
+        if (metadata.repository?.url) {
           const parsed = cleanRepositoryName(metadata.repository.url);
           if (parsed) targetRepo = parsed;
         }
-        if (metadata.repository?.branch) {
-          targetBranch = metadata.repository.branch.trim();
+        if (metadata.repository?.branch && !localStorage.getItem('findaba_git_branch')) {
+          targetWorkingBranch = metadata.repository.branch.trim();
         }
       }
     } catch (metaErr) {
@@ -103,32 +150,83 @@ export async function initializeRepositoryConfig(): Promise<{ repo: string; bran
     }
   }
 
-  // 3. Sync with localStorage: if loaded from server, update localStorage.
-  // If not loaded from server, read from localStorage.
-  const currentLocalBranch = localStorage.getItem('findaba_git_branch')?.trim();
-  if (loadedFromServer) {
-    localStorage.setItem('findaba_git_branch', targetBranch);
-  } else if (currentLocalBranch) {
-    targetBranch = currentLocalBranch;
-  } else {
-    localStorage.setItem('findaba_git_branch', targetBranch);
-  }
+  // 4. Update localStorage cache with authoritative parameters
+  localStorage.setItem('findaba_git_repo', targetRepo);
+  localStorage.setItem('findaba_git_branch', targetWorkingBranch);
+  localStorage.setItem('findaba_git_deploy_branch', targetDeployBranch);
+  localStorage.setItem('findaba_git_default_branch', defaultBranch);
+  localStorage.setItem('findaba_git_connected', String(isConnected));
+  if (ghUsername) localStorage.setItem('findaba_git_username', ghUsername);
 
-  const currentLocalRepo = localStorage.getItem('findaba_git_repo')?.trim();
-  if (loadedFromServer) {
-    localStorage.setItem('findaba_git_repo', targetRepo);
-  } else if (currentLocalRepo) {
-    targetRepo = currentLocalRepo;
-  } else {
-    localStorage.setItem('findaba_git_repo', targetRepo);
-  }
+  const resultState: GitConfigState = {
+    repo: targetRepo,
+    branch: targetWorkingBranch,
+    workingBranch: targetWorkingBranch,
+    deploymentBranch: targetDeployBranch,
+    defaultBranch,
+    connected: isConnected,
+    username: ghUsername,
+    lastCommitSha,
+    lastValidatedAt,
+  };
 
-  // 4. Dispatch event so active UI components react immediately
+  // 5. Dispatch event so active UI components update immediately
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('findaba:git_config_updated', {
-      detail: { repo: targetRepo, branch: targetBranch }
+      detail: resultState,
     }));
   }
 
-  return { repo: targetRepo, branch: targetBranch };
+  return resultState;
+}
+
+/**
+ * Persists user-selected working branch or deployment branch immediately to server & storage.
+ */
+export async function switchBranch(
+  branch: string,
+  type: 'working' | 'deployment' = 'working'
+): Promise<{ success: boolean; branch: string; error?: string }> {
+  const clean = branch.trim();
+  if (!clean) return { success: false, branch: '', error: 'Branch name cannot be empty' };
+
+  if (type === 'deployment') {
+    localStorage.setItem('findaba_git_deploy_branch', clean);
+  } else {
+    localStorage.setItem('findaba_git_branch', clean);
+  }
+
+  try {
+    const res = await fetch('/api/git/branch/select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ branch: clean, type }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('findaba:git_config_updated', {
+          detail: {
+            branch: clean,
+            workingBranch: data.workingBranch || clean,
+            deploymentBranch: data.deploymentBranch,
+            repo: data.repo,
+          },
+        }));
+      }
+      return { success: true, branch: clean };
+    }
+  } catch (err: any) {
+    console.warn('[GitConfigService] Branch select API note:', err.message);
+  }
+
+  // Local dispatch fallback if network temporarily unavailable
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('findaba:git_config_updated', {
+      detail: { branch: clean, [type === 'deployment' ? 'deploymentBranch' : 'workingBranch']: clean },
+    }));
+  }
+
+  return { success: true, branch: clean };
 }

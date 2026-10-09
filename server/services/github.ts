@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { env } from "./env";
+import { getInMemoryConfig } from "./configService";
 
 /** Shared axios instance for GitHub API calls. */
 export const githubClient: AxiosInstance = axios.create({
@@ -14,19 +15,25 @@ export const githubClient: AxiosInstance = axios.create({
 
 export interface GenericRequest {
   headers?: Record<string, string | string[] | undefined>;
+  cookies?: Record<string, string | undefined>;
   body?: any;
 }
 
 /**
- * Resolves the GitHub token strictly from server environment or secure headers/body.
+ * Resolves the GitHub token strictly from server environment or secure headers/body/cookies.
  * Query string tokens are explicitly rejected for security.
  */
 export function resolveGithubToken(req?: GenericRequest): string | null {
   const headerToken = req?.headers?.["x-github-token"];
   const resolvedHeaderToken = Array.isArray(headerToken) ? headerToken[0] : headerToken;
+  const cookieToken = req?.cookies?.github_token;
   const bodyToken = req?.body?.githubToken || req?.body?.token;
+  let inMemToken = "";
+  try {
+    inMemToken = getInMemoryConfig()?.githubToken || "";
+  } catch {}
   const envToken = env.GITHUB_TOKEN || process.env.GITHUB_TOKEN;
-  const token = (resolvedHeaderToken || bodyToken || envToken || "")?.trim();
+  const token = (resolvedHeaderToken || cookieToken || bodyToken || inMemToken || envToken || "")?.trim();
   return token || null;
 }
 

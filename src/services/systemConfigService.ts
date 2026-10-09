@@ -29,13 +29,23 @@ export interface SystemConfigResponse {
   configured: boolean;
   repository: string;
   branch: string;
+  workingBranch: string;
+  deploymentBranch: string;
+  defaultBranch: string;
   owner: string;
+  repoName?: string;
   connected: boolean;
   active: boolean;
   hasToken: boolean;
   tokenMasked: string | null;
+  githubUsername?: string | null;
+  githubEmail?: string | null;
   lastSync: string | null;
   lastCommitSha: string | null;
+  lastSyncedSha?: string | null;
+  lastValidatedAt?: string | null;
+  validationError?: string | null;
+  vercelProjectId?: string | null;
   deployment: SystemDeploymentConfig;
   externalServices: {
     supabase: {
@@ -48,11 +58,18 @@ export interface SystemConfigResponse {
       connected: boolean;
       repository: string;
       branch: string;
+      workingBranch?: string;
+      deploymentBranch?: string;
+      defaultBranch?: string;
+      username?: string | null;
       hasToken: boolean;
+      lastValidatedAt?: string | null;
     };
     vercel: {
       isVercel: boolean;
       connected: boolean;
+      projectId?: string | null;
+      deployTarget?: string;
     };
     paystack: {
       configured: boolean;
@@ -103,22 +120,106 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 export async function fetchSystemConfig(): Promise<SystemConfigResponse> {
   const headers = await getAuthHeaders();
 
-  // Try /api/admin/config first
+  // 1. Try /api/git/config first (accessible and non-gated)
+  try {
+    const gitRes = await fetch('/api/git/config', { headers });
+    if (gitRes.ok) {
+      const gitData = await gitRes.json();
+      if (gitData && gitData.success) {
+        const repo = gitData.repository || gitData.repo || localStorage.getItem('findaba_git_repo') || 'nedtwistmovies-star/FindAba-OS';
+        const workingBranch = gitData.workingBranch || gitData.branch || localStorage.getItem('findaba_git_branch') || 'main';
+        const deploymentBranch = gitData.deploymentBranch || localStorage.getItem('findaba_git_deploy_branch') || 'main';
+        const defaultBranch = gitData.defaultBranch || 'main';
+
+        const configResponse: SystemConfigResponse = {
+          success: true,
+          configured: Boolean(repo && (gitData.hasToken || Boolean(localStorage.getItem('findaba_github_pat')))),
+          repository: repo,
+          branch: workingBranch,
+          workingBranch,
+          deploymentBranch,
+          defaultBranch,
+          owner: gitData.owner || repo.split('/')[0] || '',
+          repoName: gitData.repoName || repo.split('/')[1] || repo,
+          connected: typeof gitData.connected === 'boolean' ? gitData.connected : true,
+          active: true,
+          hasToken: Boolean(gitData.hasToken || localStorage.getItem('findaba_github_pat')),
+          tokenMasked: gitData.tokenMasked || null,
+          githubUsername: gitData.githubUsername || null,
+          githubEmail: gitData.githubEmail || null,
+          lastSync: gitData.lastSync || null,
+          lastCommitSha: gitData.lastCommitSha || null,
+          lastSyncedSha: gitData.lastSyncedSha || null,
+          lastValidatedAt: gitData.lastValidatedAt || null,
+          validationError: gitData.validationError || null,
+          vercelProjectId: gitData.vercelProjectId || null,
+          deployment: gitData.deployment || {
+            environment: 'production',
+            deployTarget: 'vercel',
+            autoSync: true,
+            autoDeploy: true,
+            activeProfile: 'production-main',
+            provider: 'vercel',
+          },
+          externalServices: gitData.externalServices || {
+            supabase: { connected: true, url: '', hasServiceKey: true, hasAnonKey: true },
+            github: { connected: gitData.connected, repository: repo, branch: workingBranch, workingBranch, deploymentBranch, defaultBranch, hasToken: !!gitData.hasToken },
+            vercel: { isVercel: false, connected: true },
+            paystack: { configured: true },
+            ai: { configured: true, provider: 'openrouter' },
+          },
+          source: gitData.source || 'cache',
+          updatedAt: gitData.updatedAt,
+        };
+
+        cachedSystemConfig = configResponse;
+
+        // Persist to local storage cache
+        if (configResponse.repository) localStorage.setItem('findaba_git_repo', configResponse.repository);
+        if (configResponse.workingBranch) localStorage.setItem('findaba_git_branch', configResponse.workingBranch);
+        if (configResponse.deploymentBranch) localStorage.setItem('findaba_git_deploy_branch', configResponse.deploymentBranch);
+        if (configResponse.defaultBranch) localStorage.setItem('findaba_git_default_branch', configResponse.defaultBranch);
+        localStorage.setItem('findaba_git_connected', String(configResponse.connected));
+        if (configResponse.githubUsername) localStorage.setItem('findaba_git_username', configResponse.githubUsername);
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('findaba:system_config_updated', { detail: configResponse }));
+          window.dispatchEvent(new CustomEvent('findaba:git_config_updated', {
+            detail: {
+              repo: configResponse.repository,
+              branch: configResponse.workingBranch,
+              workingBranch: configResponse.workingBranch,
+              deploymentBranch: configResponse.deploymentBranch,
+              defaultBranch: configResponse.defaultBranch,
+              connected: configResponse.connected,
+              username: configResponse.githubUsername,
+              lastCommitSha: configResponse.lastCommitSha,
+            },
+          }));
+        }
+
+        return configResponse;
+      }
+    }
+  } catch (err) {
+    console.warn('[SystemConfig] Failed to fetch /api/git/config:', err);
+  }
+
+  // 2. Try /api/admin/config if available
   try {
     const res = await fetch('/api/admin/config', { headers });
     if (res.ok) {
       const data: SystemConfigResponse = await res.json();
       if (data && data.success) {
         cachedSystemConfig = data;
-        
-        // Cache to local storage as optimistic sync
         if (data.repository) localStorage.setItem('findaba_git_repo', data.repository);
-        if (data.branch) localStorage.setItem('findaba_git_branch', data.branch);
+        if (data.workingBranch || data.branch) localStorage.setItem('findaba_git_branch', data.workingBranch || data.branch);
+        if (data.deploymentBranch) localStorage.setItem('findaba_git_deploy_branch', data.deploymentBranch);
 
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('findaba:system_config_updated', { detail: data }));
           window.dispatchEvent(new CustomEvent('findaba:git_config_updated', {
-            detail: { repo: data.repository, branch: data.branch, connected: data.connected }
+            detail: { repo: data.repository, branch: data.workingBranch || data.branch, connected: data.connected },
           }));
         }
 
@@ -129,61 +230,24 @@ export async function fetchSystemConfig(): Promise<SystemConfigResponse> {
     console.warn('[SystemConfig] Failed to fetch /api/admin/config:', err);
   }
 
-  // Fallback to /api/git/config if /api/admin/config is unauthorized or unreachable
-  try {
-    const gitRes = await fetch('/api/git/config', { headers });
-    if (gitRes.ok) {
-      const gitData = await gitRes.json();
-      const fallbackConfig: SystemConfigResponse = {
-        success: true,
-        configured: Boolean(gitData.repo && gitData.hasToken),
-        repository: gitData.repo || localStorage.getItem('findaba_git_repo') || 'nedtwistmovies-star/FindAba-OS',
-        branch: gitData.branch || localStorage.getItem('findaba_git_branch') || 'main',
-        owner: (gitData.repo || '').split('/')[0] || '',
-        connected: typeof gitData.connected === 'boolean' ? gitData.connected : true,
-        active: true,
-        hasToken: Boolean(gitData.hasToken),
-        tokenMasked: null,
-        lastSync: gitData.lastSync || null,
-        lastCommitSha: gitData.lastCommitSha || null,
-        deployment: {
-          environment: 'production',
-          deployTarget: 'vercel',
-          autoSync: true,
-          autoDeploy: true,
-          activeProfile: 'production-main',
-          provider: 'vercel'
-        },
-        externalServices: {
-          supabase: { connected: true, url: '', hasServiceKey: true, hasAnonKey: true },
-          github: { connected: true, repository: gitData.repo || '', branch: gitData.branch || '', hasToken: !!gitData.hasToken },
-          vercel: { isVercel: false, connected: true },
-          paystack: { configured: true },
-          ai: { configured: true, provider: 'openrouter' }
-        },
-        source: 'cache'
-      };
-
-      cachedSystemConfig = fallbackConfig;
-      return fallbackConfig;
-    }
-  } catch (fallbackErr) {
-    console.warn('[SystemConfig] Fallback to /api/git/config failed:', fallbackErr);
-  }
-
   // Return last cached or safe default
   if (cachedSystemConfig) return cachedSystemConfig;
 
-  const defaultBranch = localStorage.getItem('findaba_git_branch') || 'main';
+  const defaultBranch = localStorage.getItem('findaba_git_default_branch') || 'main';
+  const defaultWorking = localStorage.getItem('findaba_git_branch') || 'main';
+  const defaultDeploy = localStorage.getItem('findaba_git_deploy_branch') || 'main';
   const defaultRepo = localStorage.getItem('findaba_git_repo') || 'nedtwistmovies-star/FindAba-OS';
 
   return {
     success: true,
     configured: true,
     repository: defaultRepo,
-    branch: defaultBranch,
+    branch: defaultWorking,
+    workingBranch: defaultWorking,
+    deploymentBranch: defaultDeploy,
+    defaultBranch,
     owner: defaultRepo.split('/')[0] || '',
-    connected: true,
+    connected: localStorage.getItem('findaba_git_connected') === 'true',
     active: true,
     hasToken: Boolean(localStorage.getItem('findaba_github_pat')),
     tokenMasked: null,
@@ -195,16 +259,16 @@ export async function fetchSystemConfig(): Promise<SystemConfigResponse> {
       autoSync: true,
       autoDeploy: true,
       activeProfile: 'production-main',
-      provider: 'vercel'
+      provider: 'vercel',
     },
     externalServices: {
       supabase: { connected: true, url: '', hasServiceKey: true, hasAnonKey: true },
-      github: { connected: true, repository: defaultRepo, branch: defaultBranch, hasToken: true },
+      github: { connected: true, repository: defaultRepo, branch: defaultWorking, hasToken: true },
       vercel: { isVercel: false, connected: true },
       paystack: { configured: true },
-      ai: { configured: true, provider: 'openrouter' }
+      ai: { configured: true, provider: 'openrouter' },
     },
-    source: 'default'
+    source: 'default',
   };
 }
 
@@ -295,4 +359,74 @@ export async function testSystemConnections(): Promise<{
     cachedSystemConfig = data.config;
   }
   return data;
+}
+
+/**
+ * Fetches available remote branches for the repository.
+ */
+export async function fetchRemoteBranches(repo?: string): Promise<{
+  branches: Array<{ name: string; protected: boolean; sha: string }>;
+  workingBranch: string;
+  deploymentBranch: string;
+  defaultBranch: string;
+}> {
+  const params = new URLSearchParams();
+  if (repo) params.append('repo', repo);
+
+  const res = await fetch(`/api/git/branches?${params.toString()}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Failed to fetch branches (${res.status})`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Sets user-selected working branch or deployment branch, persisting choice immediately across sessions.
+ */
+export async function selectTargetBranch(
+  branch: string,
+  type: 'working' | 'deployment' = 'working',
+  repo?: string
+): Promise<SystemConfigResponse> {
+  const cleanBranch = branch.trim();
+  if (!cleanBranch) throw new Error('Branch name cannot be empty');
+
+  if (type === 'deployment') {
+    localStorage.setItem('findaba_git_deploy_branch', cleanBranch);
+  } else {
+    localStorage.setItem('findaba_git_branch', cleanBranch);
+  }
+
+  const res = await fetch('/api/git/branch/select', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ branch: cleanBranch, type, repo }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error || `Failed to persist branch selection (${res.status})`);
+  }
+
+  const result = await res.json();
+  const updatedConfig = result.data || (await fetchSystemConfig());
+  cachedSystemConfig = updatedConfig;
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('findaba:system_config_updated', { detail: updatedConfig }));
+    window.dispatchEvent(new CustomEvent('findaba:git_config_updated', {
+      detail: {
+        repo: updatedConfig.repository,
+        branch: updatedConfig.workingBranch,
+        workingBranch: updatedConfig.workingBranch,
+        deploymentBranch: updatedConfig.deploymentBranch,
+        defaultBranch: updatedConfig.defaultBranch,
+        connected: updatedConfig.connected,
+      },
+    }));
+  }
+
+  return updatedConfig;
 }

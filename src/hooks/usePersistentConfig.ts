@@ -73,8 +73,13 @@ export const usePersistentConfig = () => {
     refresh,
     update,
     repository: config?.repository || '',
-    branch: config?.branch || '',
+    branch: config?.workingBranch || config?.branch || '',
+    workingBranch: config?.workingBranch || config?.branch || '',
+    deploymentBranch: config?.deploymentBranch || 'main',
+    defaultBranch: config?.defaultBranch || 'main',
     connected: config?.connected || false,
+    lastCommitSha: config?.lastCommitSha || null,
+    lastValidatedAt: config?.lastValidatedAt || null,
     deployment: config?.deployment
   };
 };

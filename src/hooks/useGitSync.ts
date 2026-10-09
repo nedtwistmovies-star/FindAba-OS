@@ -6,16 +6,37 @@ export interface GitSyncStatus {
   connected: boolean;
   repo?: string;
   branch?: string;
+  workingBranch?: string;
+  deploymentBranch?: string;
+  defaultBranch?: string;
   lastUpdated?: string;
   data?: any;
   error?: string;
   details?: string;
   systemHasToken?: boolean;
   systemConfigured?: boolean;
+  username?: string;
+  lastCommitSha?: string;
 }
 
 export const useGitSync = () => {
-  const [status, setStatus] = useState<GitSyncStatus>({ connected: false });
+  const [status, setStatus] = useState<GitSyncStatus>(() => {
+    const savedRepo = localStorage.getItem('findaba_git_repo') || undefined;
+    const savedBranch = localStorage.getItem('findaba_git_branch') || 'main';
+    const savedDeploy = localStorage.getItem('findaba_git_deploy_branch') || 'main';
+    const savedDefault = localStorage.getItem('findaba_git_default_branch') || 'main';
+    const savedConnected = localStorage.getItem('findaba_git_connected') === 'true';
+    const savedUsername = localStorage.getItem('findaba_git_username') || undefined;
+    return {
+      connected: savedConnected,
+      repo: savedRepo,
+      branch: savedBranch,
+      workingBranch: savedBranch,
+      deploymentBranch: savedDeploy,
+      defaultBranch: savedDefault,
+      username: savedUsername,
+    };
+  });
   const [loading, setLoading] = useState(false);
 
   const getAuthHeaders = async (): Promise<Record<string, string>> => {
@@ -41,7 +62,8 @@ export const useGitSync = () => {
       headers['Authorization'] = `Bearer emergency_admin_${btoa(userEmail)}`;
     }
 
-    const savedPat = localStorage.getItem('findaba_github_pat')?.trim();
+    // Support both PAT storage keys seamlessly
+    const savedPat = (localStorage.getItem('findaba_github_pat') || localStorage.getItem('findaba_git_token') || '').trim();
     if (savedPat) {
       headers['X-GitHub-Token'] = savedPat;
     }
@@ -53,11 +75,13 @@ export const useGitSync = () => {
     setLoading(true);
     try {
       const authHeaders = await getAuthHeaders();
+      const targetRepo = manualRepo || localStorage.getItem('findaba_git_repo') || undefined;
+      const targetBranch = manualBranch || localStorage.getItem('findaba_git_branch') || undefined;
       
       let url = '/api/git/sync';
       const params = new URLSearchParams();
-      if (manualRepo) params.append('repo', manualRepo);
-      if (manualBranch) params.append('branch', manualBranch);
+      if (targetRepo) params.append('repo', targetRepo);
+      if (targetBranch) params.append('branch', targetBranch);
       
       const queryString = params.toString();
       if (queryString) url += `?${queryString}`;
@@ -271,8 +295,8 @@ export const useGitSync = () => {
     setLoading(true);
     try {
       const authHeaders = await getAuthHeaders();
-      const targetRepo = options?.repo;
-      const targetBranch = options?.branch;
+      const targetRepo = options?.repo || status.repo || localStorage.getItem('findaba_git_repo')?.trim();
+      const targetBranch = options?.branch || status.workingBranch || status.branch || localStorage.getItem('findaba_git_branch')?.trim() || 'main';
 
       let url = `/api/git/push`;
       const params = new URLSearchParams();
@@ -328,6 +352,27 @@ export const useGitSync = () => {
 
   const clearError = useCallback(() => {
     setStatus(prev => ({ ...prev, error: undefined }));
+  }, []);
+
+  // Listen for real-time Git configuration changes across all windows & components
+  useEffect(() => {
+    const handleGitConfigUpdated = (e: any) => {
+      if (e.detail) {
+        setStatus(prev => ({
+          ...prev,
+          repo: e.detail.repo ?? prev.repo,
+          branch: e.detail.workingBranch ?? e.detail.branch ?? prev.branch,
+          workingBranch: e.detail.workingBranch ?? e.detail.branch ?? prev.workingBranch,
+          deploymentBranch: e.detail.deploymentBranch ?? prev.deploymentBranch,
+          defaultBranch: e.detail.defaultBranch ?? prev.defaultBranch,
+          connected: typeof e.detail.connected === 'boolean' ? e.detail.connected : prev.connected,
+          username: e.detail.username ?? prev.username,
+          lastCommitSha: e.detail.lastCommitSha ?? prev.lastCommitSha,
+        }));
+      }
+    };
+    window.addEventListener('findaba:git_config_updated', handleGitConfigUpdated);
+    return () => window.removeEventListener('findaba:git_config_updated', handleGitConfigUpdated);
   }, []);
 
   // Auto-sync on mount

@@ -26,14 +26,23 @@ export const GitHubSync: React.FC = () => {
 
   const fetchUser = async () => {
     try {
+      const headers: Record<string, string> = { Accept: 'application/json' };
+      const savedToken = (localStorage.getItem('findaba_github_pat') || localStorage.getItem('findaba_git_token') || '').trim();
+      if (savedToken) headers['X-GitHub-Token'] = savedToken;
+
       const response = await fetch('/api/github/user', {
+        headers,
         credentials: 'include'
       });
       if (response.ok) {
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
           const data = await response.json();
-          setUser(data);
+          if (data && data.login) {
+            setUser(data);
+          } else {
+            setUser(null);
+          }
         } else {
           setUser(null);
         }
@@ -187,10 +196,8 @@ export const GitHubSync: React.FC = () => {
         credentials: 'include'
       });
       setUser(null);
-      localStorage.removeItem('findaba_git_repo');
-      setRepoInput('');
-      sync(''); // Clear sync status
-      addToast('GitHub Disconnected & Repo Cleared', 'info');
+      // Preserve saved repository & branch preferences so reconnecting is instant
+      addToast('GitHub Disconnected (Repository preferences preserved)', 'info');
     } catch (error) {
       addToast('Failed to disconnect GitHub', 'error');
     }
@@ -203,10 +210,21 @@ export const GitHubSync: React.FC = () => {
     addToast('Callback URL Copied', 'info');
   };
 
-  const handleSaveRepo = () => {
-    if (repoInput.trim()) {
-      localStorage.setItem('findaba_git_repo', repoInput.trim());
-      sync(repoInput.trim());
+  const handleSaveRepo = async () => {
+    const cleanRepo = repoInput.trim();
+    if (cleanRepo) {
+      localStorage.setItem('findaba_git_repo', cleanRepo);
+      // Persist to server backend
+      try {
+        await fetch('/api/git/persist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repository: cleanRepo }),
+        });
+      } catch (saveErr) {
+        console.warn('[GitHubSync] Server persist note:', saveErr);
+      }
+      sync(cleanRepo);
       setIsEditingRepo(false);
       addToast('Repository Partner Updated', 'success');
     }

@@ -103,6 +103,18 @@ export const GitRepositorySyncModal: React.FC<GitRepositorySyncModalProps> = ({
       setLocalRepoValue(cleanedRepo);
       setCustomUrlInput(cleanedRepo);
       
+      // Persist to server backend immediately
+      fetch('/api/git/persist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repository: cleanedRepo }),
+      }).catch(() => {});
+
+      window.dispatchEvent(new CustomEvent('findaba:git_config_updated', {
+        detail: { repo: cleanedRepo },
+      }));
+      window.dispatchEvent(new Event('storage'));
+      
       // Determine sync state
       if (metadataRepoUrl && metadataRepoUrl !== 'Not Specified') {
         const cleanedFromMeta = cleanRepositoryName(metadataRepoUrl);

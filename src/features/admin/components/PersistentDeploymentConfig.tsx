@@ -54,6 +54,7 @@ export const PersistentDeploymentConfig: React.FC = () => {
   // Form State
   const [repo, setRepo] = useState('');
   const [branch, setBranch] = useState('main');
+  const [deploymentBranch, setDeploymentBranch] = useState('main');
   const [token, setToken] = useState('');
   const [showToken, setShowToken] = useState(false);
 

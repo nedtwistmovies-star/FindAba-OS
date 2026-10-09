@@ -9,7 +9,10 @@ import {
   loadSystemConfig,
   saveSystemConfig,
   getSanitizedConfig,
+  validateGitConnection,
+  getPublicGitConfig,
 } from "../services/configService";
+import { handleGetUser } from "./auth";
 import {
   githubClient,
   resolveGithubToken,
@@ -22,6 +25,27 @@ import {
 } from "../services/github";
 
 export const githubRouter = Router();
+
+/** Direct mount of user status so /api/github/user and /api/git/user work seamlessly */
+githubRouter.get("/user", handleGetUser);
+
+/** Public safe git status & validation endpoint */
+githubRouter.get("/status", async (req, res) => {
+  try {
+    const doValidate = req.query.validate === "true" || req.query.check === "true";
+    const status = await validateGitConnection(doValidate);
+    res.json({
+      success: true,
+      ...status,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: "Failed to query Git status",
+      message: err.message,
+    });
+  }
+});
 
 const EXCLUDE_DIRS = ["node_modules", "dist", ".git", ".next", ".vercel", "build", "public", "coverage", "logs"];
 const EXCLUDE_FILES = ["package-lock.json", "yarn.lock", ".env", ".env.local", "github_token", ".DS_Store"];
@@ -324,8 +348,9 @@ const pushChangesHandler = async (req: any, res: any) => {
     }
 
     const headers = authHeaders(token);
+    const currentConfig = await loadSystemConfig();
     const repoMeta = await getRepoMeta(owner, name, token);
-    const targetBranch = branchOverride || env.GITHUB_BRANCH || repoMeta.default_branch || "main";
+    const targetBranch = branchOverride || currentConfig.workingBranch || currentConfig.branch || env.GITHUB_BRANCH || repoMeta.default_branch || "main";
 
     // Prepare files to push
     const treeItems: Array<{ path: string; mode?: string; type?: string; content: string }> = [];
@@ -418,6 +443,15 @@ const pushChangesHandler = async (req: any, res: any) => {
       baseTreeSha: branchInfo.treeSha,
       parentCommitSha: branchInfo.commitSha,
     });
+
+    // Update persistent system configuration with verified remote commit SHA
+    await saveSystemConfig({
+      lastCommitSha: commitSha,
+      lastSyncedSha: commitSha,
+      lastSync: new Date().toISOString(),
+      workingBranch: targetBranch,
+      branch: targetBranch,
+    }).catch(() => {});
 
     // Record in webhook / push logs
     const adminIdentifier = req.user?.email || req.user?.username || author;
@@ -742,20 +776,58 @@ githubRouter.post("/test-connection", ensureAdmin, async (req, res) => {
   }
 });
 
-/** Get current authoritative GitHub repository configuration (admin only) */
-githubRouter.get("/config", ensureAdmin, async (_req, res) => {
-  const config = await loadSystemConfig();
+/** Get current authoritative GitHub repository configuration (sanitized for safe consumption) */
+githubRouter.get("/config", async (_req, res) => {
+  const sanitized = await getSanitizedConfig();
   res.json({
-    success: true,
-    repo: config.repository || env.GITHUB_REPO,
-    branch: config.branch || env.GITHUB_BRANCH,
-    hasToken: Boolean(config.githubToken || env.GITHUB_TOKEN),
-    connected: config.connected,
-    active: config.active,
-    lastSync: config.lastSync,
-    lastCommitSha: config.lastCommitSha,
-    source: config.id ? "supabase" : "environment",
+    ...sanitized,
   });
+});
+
+/** Select active working branch or deployment branch and persist choice immediately */
+githubRouter.post("/branch/select", async (req, res) => {
+  const { branch, type = "working", repo } = req.body || {};
+
+  if (!branch || typeof branch !== "string" || !branch.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: "Branch name is required and must be a non-empty string.",
+    });
+  }
+
+  const cleanBranch = branch.trim();
+  const updatePayload: any = {
+    repository: repo ? normalizeRepo(repo) : undefined,
+  };
+
+  if (type === "deployment") {
+    updatePayload.deploymentBranch = cleanBranch;
+  } else {
+    // Both branch and workingBranch track the active working branch
+    updatePayload.branch = cleanBranch;
+    updatePayload.workingBranch = cleanBranch;
+  }
+
+  try {
+    const updated = await saveSystemConfig(updatePayload);
+    res.json({
+      success: true,
+      message: `Branch '${cleanBranch}' successfully set and persisted as ${type} branch.`,
+      branch: cleanBranch,
+      workingBranch: updated.workingBranch,
+      deploymentBranch: updated.deploymentBranch,
+      defaultBranch: updated.defaultBranch,
+      repo: updated.repository,
+      data: updated,
+    });
+  } catch (err: any) {
+    console.error("[GitBranchSelect] Failed to persist branch selection:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to persist branch selection",
+      details: err.message,
+    });
+  }
 });
 
 /** Update GITHUB_REPO and branch directly with persistent Supabase storage */
@@ -872,9 +944,10 @@ githubRouter.post("/webhook/simulate", ensureAdmin, async (req, res) => {
   res.json({ success: true, log: simulatedEntry });
 });
 
-/** Fetch repository branches list using GITHUB_TOKEN (admin only) */
-githubRouter.get("/branches", ensureAdmin, async (req, res) => {
-  let repo = (req.query.repo as string) || env.GITHUB_REPO;
+/** Fetch repository branches list using GITHUB_TOKEN or user session */
+githubRouter.get("/branches", async (req, res) => {
+  const currentConfig = await loadSystemConfig();
+  let repo = (req.query.repo as string) || currentConfig.repository || env.GITHUB_REPO;
   const token = resolveGithubToken(req);
 
   if (!repo) {
@@ -896,12 +969,21 @@ githubRouter.get("/branches", ensureAdmin, async (req, res) => {
       sha: b.commit?.sha?.substring(0, 7) || "",
     }));
 
+    // Retrieve default branch from repo metadata if possible
+    let remoteDefault = currentConfig.defaultBranch || "main";
+    try {
+      const meta = await getRepoMeta(owner, name, token);
+      if (meta?.default_branch) remoteDefault = meta.default_branch;
+    } catch {}
+
     res.json({
       success: true,
       repo,
       branches,
       count: branches.length,
-      defaultBranch: env.GITHUB_BRANCH || "main",
+      workingBranch: currentConfig.workingBranch || currentConfig.branch || "main",
+      deploymentBranch: currentConfig.deploymentBranch || "main",
+      defaultBranch: remoteDefault,
     });
   } catch (error: any) {
     const { status, details } = formatGithubError(error, repo, token);
@@ -910,6 +992,9 @@ githubRouter.get("/branches", ensureAdmin, async (req, res) => {
       success: false,
       message: `Failed to fetch branches for '${repo}': ${details}`,
       branches: [],
+      workingBranch: currentConfig.workingBranch || currentConfig.branch || "main",
+      deploymentBranch: currentConfig.deploymentBranch || "main",
+      defaultBranch: currentConfig.defaultBranch || "main",
     });
   }
 });
