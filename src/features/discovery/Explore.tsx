@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { Search, LayoutGrid, Map as MapIcon, ArrowLeft, Filter, CheckCircle2, X, ShieldCheck } from 'lucide-react';
-import { BusinessCard, MapView, IndustrialButton, VoiceSearchButton, BusinessListSkeleton } from '../../components';
+import { Search, LayoutGrid, Map as MapIcon, ArrowLeft, Filter, CheckCircle2, X, ShieldCheck, Store, PlusCircle } from 'lucide-react';
+import { BusinessCard, MapView, IndustrialButton, VoiceSearchButton, BusinessListSkeleton, SearchDidYouMean, RequestListingModal } from '../../components';
 import { Business, VerificationStatus } from '../../types';
 import { CATEGORIES } from '../../constants';
 import { useOracle } from '../../providers';
@@ -34,6 +34,7 @@ const Explore = ({
   const [areaFilter, setAreaFilter] = useState<string>('All Areas');
   const [sortBy, setSortBy] = useState<'name' | 'rating'>('name');
   const [showFilters, setShowFilters] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   // Safety normalization to handle null props
   const bizList = Array.isArray(businesses) ? businesses : [];
@@ -310,17 +311,62 @@ const Explore = ({
               </div>
             ))}
              {filtered.length === 0 && (
-              <div className="col-span-full py-20 sm:py-40 text-center flex flex-col items-center animate-fade-in">
-                 <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/5 rounded-3xl flex items-center justify-center text-aba-gold mb-6 sm:mb-8 border border-white/5">
+              <div className="col-span-full py-12 sm:py-20 text-center flex flex-col items-center animate-fade-in space-y-6">
+                 <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/5 rounded-3xl flex items-center justify-center text-aba-gold mb-2 border border-white/5 shadow-inner">
                    <Search className="w-8 h-8 sm:w-10 sm:h-10" />
                  </div>
-                 <h3 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-white leading-none">We couldn't find a good match yet</h3>
-                 <p className="text-[9px] sm:text-[10px] font-bold uppercase mt-3 sm:mt-4 text-aba-gold/60 tracking-widest max-w-xs mx-auto leading-relaxed">
-                   Try a different word, a nearby area, or search for a specific product like "shoes" or service like "tailor".
-                 </p>
+                 <div className="space-y-2">
+                   <h3 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-white leading-none">
+                     We couldn't find a good match yet
+                   </h3>
+                   <p className="text-[10px] sm:text-xs font-medium text-white/50 tracking-wide max-w-md mx-auto leading-relaxed">
+                     {searchQuery
+                       ? `No verified listings currently match "${searchQuery}". Explore our suggested alternatives or request a new listing.`
+                       : `No listings match the selected filters. Try clearing filters or searching for specific products or trades.`}
+                   </p>
+                 </div>
                  
-                 {searchData.suggestions.length > 0 && (
-                   <div className="mt-8">
+                 {/* AI-Powered "Did you mean?" and Alternative Searches */}
+                 {searchQuery && (
+                   <SearchDidYouMean
+                     query={searchQuery}
+                     onSelectQuery={(newQ) => setSearchQuery(newQ)}
+                     onSelectCategory={(cat) => {
+                       setCategoryFilter(cat);
+                       setSearchQuery('');
+                     }}
+                     className="mt-2 mb-2"
+                   />
+                 )}
+
+                 {/* Dynamic Request a Listing Callout */}
+                 <div className="w-full max-w-xl mx-auto p-5 sm:p-6 bg-gradient-to-r from-aba-gold/15 via-white/[0.04] to-transparent border border-aba-gold/30 rounded-2xl text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+                   <div className="space-y-1">
+                     <div className="flex items-center gap-1.5 text-aba-gold text-[11px] font-black uppercase tracking-wider">
+                       <Store size={15} />
+                       <span>Missing in Directory?</span>
+                     </div>
+                     <p className="text-white font-bold text-sm">
+                       Know an artisan or shop matching {searchQuery ? `"${searchQuery}"` : 'this search'}?
+                     </p>
+                     <p className="text-white/50 text-xs">
+                       Request a verified listing, or onboard your enterprise to get listed on FindAba.
+                     </p>
+                   </div>
+                   <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto shrink-0">
+                     <button
+                       onClick={() => setIsRequestModalOpen(true)}
+                       className="w-full sm:w-auto px-4 py-2.5 bg-aba-gold hover:bg-aba-gold/90 text-aba-deep rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md active:scale-95 cursor-pointer"
+                     >
+                       <PlusCircle size={14} />
+                       <span>Request a Listing</span>
+                     </button>
+                   </div>
+                 </div>
+
+                 {/* Standard Suggested Categories fallback */}
+                 {searchData.suggestions.length > 0 && !searchQuery && (
+                   <div className="mt-4">
                      <p className="text-[8px] font-black uppercase text-white/30 tracking-[0.2em] mb-4">Suggested Categories</p>
                      <div className="flex flex-wrap justify-center gap-2">
                        {searchData.suggestions.map(s => (
@@ -335,12 +381,22 @@ const Explore = ({
                      </div>
                    </div>
                  )}
-                 <button 
-                   onClick={() => { setCategoryFilter('All Categories'); setStatusFilter('All'); setSearchQuery(''); }}
-                   className="mt-8 sm:mt-10 px-6 sm:px-8 py-3 sm:py-4 bg-white/5 text-white/40 rounded-xl font-bold uppercase text-[9px] sm:text-[10px] tracking-widest border border-white/10 hover:text-white transition-standard"
-                 >
-                   Reset Search
-                 </button>
+
+                 <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                   <button 
+                     onClick={() => { setCategoryFilter('All Categories'); setStatusFilter('All'); setAreaFilter('All Areas'); setSearchQuery(''); }}
+                     className="px-6 py-3 bg-white/5 text-white/40 hover:text-white rounded-xl font-bold uppercase text-[9px] sm:text-[10px] tracking-widest border border-white/10 hover:border-white/20 transition-standard cursor-pointer"
+                   >
+                     Reset Search
+                   </button>
+                   <button
+                     onClick={() => setView('register')}
+                     className="px-6 py-3 bg-white/5 text-aba-gold/80 hover:text-aba-gold rounded-xl font-bold uppercase text-[9px] sm:text-[10px] tracking-widest border border-aba-gold/20 hover:border-aba-gold/40 transition-standard cursor-pointer flex items-center gap-1.5"
+                   >
+                     <Store size={13} />
+                     <span>Register as Merchant</span>
+                   </button>
+                 </div>
               </div>
             )}
           </div>
@@ -350,6 +406,14 @@ const Explore = ({
           </div>
         )}
       </div>
+
+      <RequestListingModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        initialQuery={searchQuery}
+        initialCategory={categoryFilter !== 'All Categories' ? categoryFilter : undefined}
+        onNavigateToRegister={() => setView('register')}
+      />
     </div>
   );
 };

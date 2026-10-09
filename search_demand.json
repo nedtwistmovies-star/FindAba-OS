@@ -283,5 +283,12 @@
     "query": "Publ",
     "resultsCount": 2,
     "timestamp": "2026-10-07T20:48:50.051Z"
+  },
+  {
+    "query": "Bespoke Tailoring in Ngwa Road",
+    "resultsCount": 0,
+    "locationFocus": "Ngwa Road Hub",
+    "timestamp": "2026-10-09T05:21:40.727Z",
+    "isListingRequest": true
   }
 ]

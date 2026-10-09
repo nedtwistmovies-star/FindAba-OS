@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import { env } from "../services/env";
+import { resolveQueryCategories, isBusinessInCategory } from "../../src/services/localSearchService";
 
 export const businessesRouter = Router();
 
@@ -88,18 +89,21 @@ businessesRouter.get("/", async (req, res) => {
 
   let filtered = businesses;
   if (categoryFilter && categoryFilter !== "All" && categoryFilter !== "All Categories") {
-    filtered = filtered.filter(b => b.category === categoryFilter);
+    filtered = filtered.filter(b => isBusinessInCategory(b.category, categoryFilter) || b.category === categoryFilter);
   }
   if (areaFilter && areaFilter !== "All" && areaFilter !== "All Areas") {
     filtered = filtered.filter(b => b.area === areaFilter);
   }
   if (searchQuery) {
+    const mappedCategories = resolveQueryCategories(searchQuery);
     filtered = filtered.filter(b => {
       const name = (b.name || "").toLowerCase();
       const cat = (b.category || "").toLowerCase();
       const prod = (b.primary_product_or_service || "").toLowerCase();
       const area = (b.area || "").toLowerCase();
-      return name.includes(searchQuery) || cat.includes(searchQuery) || prod.includes(searchQuery) || area.includes(searchQuery);
+      const matchesText = name.includes(searchQuery) || cat.includes(searchQuery) || prod.includes(searchQuery) || area.includes(searchQuery);
+      const matchesCategory = mappedCategories.some(targetCat => isBusinessInCategory(b.category, targetCat));
+      return matchesText || matchesCategory;
     });
   }
 

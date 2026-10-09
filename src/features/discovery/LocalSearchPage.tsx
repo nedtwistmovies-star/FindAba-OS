@@ -1,9 +1,10 @@
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Business } from '../../types';
 import { searchLocalBusinesses, SearchResult, recordSearchTelemetry } from '../../services/localSearchService';
-import { BusinessCard, SectionHeader, IndustrialButton } from '../../components';
-import { Search, MapPin, ArrowLeft, Globe, ShieldCheck } from 'lucide-react';
+import { BusinessCard, SectionHeader, IndustrialButton, SearchDidYouMean, RequestListingModal } from '../../components';
+import { Search, MapPin, ArrowLeft, Globe, ShieldCheck, Store, PlusCircle } from 'lucide-react';
+import { useOracle } from '../../providers';
 
 interface LocalSearchPageProps {
   slug: string;
@@ -22,6 +23,9 @@ const LocalSearchPage: React.FC<LocalSearchPageProps> = ({
   favorites = [],
   onToggleFavorite = () => {}
 }) => {
+  const { setSearchQuery } = useOracle();
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+
   // Convert slug to query: "shoe-sellers-in-aba" -> "shoe sellers in aba"
   const query = useMemo(() => {
     if (!slug) return '';
@@ -66,19 +70,75 @@ const LocalSearchPage: React.FC<LocalSearchPageProps> = ({
 
   if (searchRes.noResults || results.length === 0) {
      return (
-       <div className="flex-1 bg-aba-deep min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-8">
-          <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center border border-white/10 text-aba-gold">
-             <Search size={40} />
+       <div className="flex-1 bg-aba-deep min-h-screen flex flex-col items-center justify-center p-6 text-center space-y-6 animate-fade-in">
+          <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center border border-white/10 text-aba-gold shadow-inner">
+             <Search size={36} />
           </div>
-          <div className="space-y-4">
+          <div className="space-y-2">
              <h2 className="text-2xl font-bold text-white uppercase tracking-tight">We couldn't find a good match yet</h2>
-             <p className="text-white/40 text-sm max-w-md mx-auto uppercase font-bold tracking-widest leading-relaxed">
-                There are no verified listings matching "{query}" at the moment. Try a broader search or check back later.
+             <p className="text-white/50 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
+                There are no verified listings matching "{query}" at the moment. Try our AI suggestions or request a new listing.
              </p>
           </div>
-          <IndustrialButton onClick={() => setView('home')} variant="outline" icon={ArrowLeft}>
-             Back to Home
-          </IndustrialButton>
+
+          {/* AI-Powered Suggestion Block */}
+          {query && (
+            <SearchDidYouMean
+              query={query}
+              onSelectQuery={(newQ) => {
+                setSearchQuery(newQ);
+                setView('explore');
+              }}
+              onSelectCategory={(cat) => {
+                setSearchQuery(cat);
+                setView('explore');
+              }}
+              className="max-w-lg"
+            />
+          )}
+
+          {/* Dynamic Request a Listing Callout */}
+          <div className="w-full max-w-lg p-5 bg-gradient-to-r from-aba-gold/15 via-white/[0.04] to-transparent border border-aba-gold/30 rounded-2xl text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 text-aba-gold text-[11px] font-black uppercase tracking-wider">
+                <Store size={15} />
+                <span>Missing in Directory?</span>
+              </div>
+              <p className="text-white font-bold text-sm">
+                Know an artisan or shop for "{query}"?
+              </p>
+              <p className="text-white/50 text-xs">
+                Request a listing to dispatch our local verification scouts in Aba.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsRequestModalOpen(true)}
+              className="w-full sm:w-auto px-4 py-2.5 bg-aba-gold hover:bg-aba-gold/90 text-aba-deep rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md active:scale-95 cursor-pointer shrink-0"
+            >
+              <PlusCircle size={14} />
+              <span>Request Listing</span>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <IndustrialButton onClick={() => setView('home')} variant="outline" icon={ArrowLeft}>
+               Back to Home
+            </IndustrialButton>
+            <button
+              onClick={() => setView('register')}
+              className="px-6 py-3 bg-white/5 text-aba-gold/80 hover:text-aba-gold rounded-xl font-bold uppercase text-[9px] sm:text-[10px] tracking-widest border border-aba-gold/20 hover:border-aba-gold/40 transition-standard cursor-pointer flex items-center gap-1.5"
+            >
+              <Store size={13} />
+              <span>Register as Merchant</span>
+            </button>
+          </div>
+
+          <RequestListingModal
+            isOpen={isRequestModalOpen}
+            onClose={() => setIsRequestModalOpen(false)}
+            initialQuery={query}
+            onNavigateToRegister={() => setView('register')}
+          />
        </div>
      );
   }

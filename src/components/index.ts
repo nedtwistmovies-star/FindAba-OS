@@ -38,6 +38,8 @@ import OfflineBanner, { cacheBusinessOffline, getOfflineCachedBusinesses } from 
 import PWAInstallButton from './PWAInstallButton';
 import BusinessQRCodeModal, { BusinessQRCode } from './BusinessQRCodeModal';
 import GitDiagnostics from './GitDiagnostics';
+import { SearchDidYouMean } from './SearchDidYouMean';
+import { RequestListingModal } from './RequestListingModal';
 export {
   BentoGrid, BentoItem,
   BusinessCard,
@@ -80,5 +82,7 @@ export {
   BusinessQRCode,
   cacheBusinessOffline,
   getOfflineCachedBusinesses,
-  GitDiagnostics
+  GitDiagnostics,
+  SearchDidYouMean,
+  RequestListingModal
 };
